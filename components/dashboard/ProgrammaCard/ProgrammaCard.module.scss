@@ -7,8 +7,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  /* spans full left column (240px) → same height as one half-width card ((240-12)/2 = 114px) */
-  overflow: hidden;
+  overflow: scroll;
 }
 
 // ─── Header ──────────────────────────────────────────────────
