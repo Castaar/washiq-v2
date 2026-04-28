@@ -1,0 +1,102 @@
+@use 'reset';
+@use 'typography';
+
+// ============================================================
+// Design tokens — CSS custom properties on :root
+// Consumed by every component via var(--token-name)
+// ============================================================
+:root {
+  // Backgrounds
+  --color-bg:               #070b18;
+  --color-bg-secondary:     #0c1022;
+  --color-bg-tertiary:      #111828;
+
+  // Glass surfaces
+  --color-surface:          rgba(255, 255, 255, 0.04);
+  --color-surface-hover:    rgba(255, 255, 255, 0.07);
+  --color-surface-elevated: rgba(255, 255, 255, 0.09);
+  --color-surface-sidebar:  rgba(255, 255, 255, 0.025);
+
+  // Borders
+  --color-border:           rgba(255, 255, 255, 0.08);
+  --color-border-strong:    rgba(255, 255, 255, 0.14);
+  --color-border-active:    rgba(79, 124, 255, 0.55);
+
+  // Accent palette
+  --color-accent-blue:      #4f7cff;
+  --color-accent-blue-dim:  rgba(79, 124, 255, 0.18);
+  --color-accent-purple:    #a78bfa;
+  --color-accent-purple-dim:rgba(167, 139, 250, 0.18);
+  --color-accent-teal:      #10d9a0;
+  --color-accent-teal-dim:  rgba(16, 217, 160, 0.15);
+  --color-accent-amber:     #f6a52b;
+  --color-accent-amber-dim: rgba(246, 165, 43, 0.15);
+  --color-accent-red:       #f05252;
+  --color-accent-red-dim:   rgba(240, 82, 82, 0.15);
+
+  // Text hierarchy
+  --color-text-primary:     #ffffff;
+  --color-text-secondary:   #aebacb;
+  --color-text-muted:       #979eac;
+  --color-text-inverse:     #080d1a;
+
+  // Glow
+  --glow-blue:   0 0 28px rgba(79, 124, 255, 0.28);
+  --glow-teal:   0 0 28px rgba(16, 217, 160, 0.22);
+  --glow-purple: 0 0 28px rgba(167, 139, 250, 0.22);
+  --glow-red:    0 0 28px rgba(240, 82, 82, 0.22);
+
+  // Spacing scale (4-point)
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-7:  28px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  // Radii
+  --radius-sm:   6px;
+  --radius-md:   10px;
+  --radius-lg:   16px;
+  --radius-xl:   22px;
+  --radius-full: 9999px;
+
+  // Shadows
+  --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.45);
+  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.55);
+  --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.65);
+
+  // Layout
+  --sidebar-width:           240px;
+  --sidebar-collapsed-width: 64px;
+  --topbar-height:           64px;
+
+  // Transitions
+  --transition-fast: 150ms ease;
+  --transition-base: 240ms ease;
+  --transition-slow: 380ms ease;
+}
+
+// ============================================================
+// Base layout
+// ============================================================
+html,
+body {
+  height: 100%;
+  font-family: var(--font-inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
+  background-color: var(--color-bg);
+  color: var(--color-text-primary);
+  background-image:
+    radial-gradient(ellipse 70% 50% at 15% -5%,  rgba(79, 124, 255, 0.07) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 40% at 85% 100%, rgba(167, 139, 250, 0.05) 0%, transparent 55%);
+  background-attachment: fixed;
+}
+
+#__next {
+  height: 100%;
+}

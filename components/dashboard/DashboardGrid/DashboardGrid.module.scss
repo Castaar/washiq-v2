@@ -1,0 +1,75 @@
+@use 'variables' as *;
+
+.grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+// ─── Row 1: Metrics ──────────────────────────────────────────
+.metricsRow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-4);
+
+  @include respond-to('tablet') {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @include respond-to('mobile') {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-3);
+  }
+}
+
+// ─── Row 2: Hero + Alerts ────────────────────────────────────
+.midRow {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: var(--space-4);
+  align-items: stretch;
+
+  @include respond-to('tablet') {
+    grid-template-columns: 1fr;
+  }
+
+  @include respond-to('mobile') {
+    grid-template-columns: 1fr;
+  }
+}
+
+.heroCol {
+  min-width: 0;
+}
+
+.alertsCol {
+  @include respond-to('tablet') {
+    // On tablet, alerts panel spans full width but stays compact height
+    max-height: 360px;
+    overflow: hidden;
+  }
+}
+
+// ─── Row 3: Inventory + Ranking ──────────────────────────────
+.bottomRow {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: var(--space-4);
+  align-items: start;
+
+  @include respond-to('tablet') {
+    grid-template-columns: 1fr;
+  }
+
+  @include respond-to('mobile') {
+    grid-template-columns: 1fr;
+  }
+}
+
+.inventoryCol {
+  min-width: 0;
+}
+
+.rankingCol {
+  // Stays right-aligned on desktop
+}

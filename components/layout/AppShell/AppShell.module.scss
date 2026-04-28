@@ -1,0 +1,40 @@
+@use 'variables' as *;
+
+.shell {
+  display: flex;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  transition: margin-left var(--transition-slow);
+  overflow-x: hidden;
+
+  @include respond-to('mobile') {
+    margin-left: 0 !important;
+    width: 100%;
+  }
+}
+
+.mainCollapsed {
+  // No visual shift needed — sidebar width change is intrinsic
+}
+
+.content {
+  flex: 1;
+  padding: var(--space-6);
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  @include respond-to('tablet') {
+    padding: var(--space-5);
+  }
+
+  @include respond-to('mobile') {
+    padding: var(--space-4);
+  }
+}

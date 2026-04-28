@@ -1,0 +1,273 @@
+@use 'variables' as *;
+
+// ─── Overlay (mobile backdrop) ──────────────────────────────
+.overlay {
+  display: none;
+
+  @include respond-to('mobile') {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 40;
+  }
+}
+
+// ─── Sidebar shell ──────────────────────────────────────────
+.sidebar {
+  width: var(--sidebar-width);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface-sidebar);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-right: 1px solid var(--color-border);
+  transition: width var(--transition-slow);
+  position: sticky;
+  top: 0;
+  flex-shrink: 0;
+  overflow: hidden;
+
+  @include respond-to('tablet') {
+    width: var(--sidebar-collapsed-width);
+  }
+
+  @include respond-to('mobile') {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 50;
+    width: var(--sidebar-width);
+    transform: translateX(-100%);
+    transition: transform var(--transition-base);
+  }
+}
+
+.collapsed {
+  width: var(--sidebar-collapsed-width);
+
+  .collapseBtn { transform: rotate(180deg); }
+}
+
+.mobileOpen {
+  @include respond-to('mobile') {
+    transform: translateX(0);
+  }
+}
+
+// ─── Header ─────────────────────────────────────────────────
+.header {
+  @include flex-between;
+  padding: var(--space-5) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  min-height: var(--topbar-height);
+  flex-shrink: 0;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  flex: 1;
+}
+
+.logoIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-md);
+  background: var(--color-accent-blue-dim);
+  color: var(--color-accent-blue);
+  border: 1px solid rgba(79, 124, 255, 0.3);
+  box-shadow: 0 0 14px rgba(79, 124, 255, 0.2);
+  flex-shrink: 0;
+}
+
+.logoText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.workspaceName {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  @include truncate;
+}
+
+.workspaceSubtitle {
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+  letter-spacing: 0.04em;
+}
+
+.collapseBtn {
+  @include flex-center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+  transition: color var(--transition-fast), background var(--transition-fast), transform var(--transition-slow);
+
+  &:hover {
+    color: var(--color-text-primary);
+    background: var(--color-surface-hover);
+  }
+
+  @include respond-to('tablet') { display: none; }
+  @include respond-to('mobile') { display: none; }
+}
+
+// ─── Navigation ─────────────────────────────────────────────
+.nav {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--space-3) var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+
+  &::-webkit-scrollbar { width: 4px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 2px; }
+}
+
+.navSection {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  & + & {
+    margin-top: var(--space-4);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--color-border);
+  }
+}
+
+.sectionTitle {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  padding: 0 var(--space-3);
+  margin-bottom: var(--space-1);
+}
+
+.navLink {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background var(--transition-fast), color var(--transition-fast);
+  position: relative;
+  min-width: 0;
+
+  &:hover {
+    background: var(--color-surface-hover);
+    color: var(--color-text-primary);
+  }
+
+  &.active {
+    background: var(--color-accent-blue-dim);
+    color: var(--color-accent-blue);
+    border: 1px solid rgba(79, 124, 255, 0.2);
+  }
+}
+
+.navIcon {
+  @include flex-center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.navLabel {
+  @include truncate;
+  flex: 1;
+}
+
+.navBadge {
+  @include flex-center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: var(--radius-full);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  background: var(--color-accent-red);
+  color: #fff;
+}
+
+.collapsedBadge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--color-accent-red);
+  box-shadow: 0 0 6px var(--color-accent-red);
+}
+
+// ─── Footer ─────────────────────────────────────────────────
+.footer {
+  padding: var(--space-3) var(--space-2);
+  border-top: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.userCard {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  transition: background var(--transition-fast);
+  min-width: 0;
+  cursor: pointer;
+
+  &:hover { background: var(--color-surface-hover); }
+}
+
+.avatar {
+  @include flex-center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, var(--color-accent-blue), var(--color-accent-purple));
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.userInfo {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.userName {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  @include truncate;
+}
+
+.userRole {
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+}

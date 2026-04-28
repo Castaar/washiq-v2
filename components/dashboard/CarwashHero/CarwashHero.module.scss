@@ -1,0 +1,71 @@
+@use 'variables' as *;
+
+.hero {
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-xl);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  @include respond-to('mobile') {
+    height: 200px;
+    min-height: 200px;
+  }
+}
+
+// ─── Ambient glow ────────────────────────────────────────────
+.glow {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 65% 40% at 50% 65%, rgba(16, 217, 160, 0.07) 0%, transparent 65%),
+    radial-gradient(ellipse 45% 30% at 30% 80%, rgba(79, 124, 255, 0.05) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+// ─── Perspective grid ────────────────────────────────────────
+.grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 80%, black 30%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 80%, black 30%, transparent 75%);
+  pointer-events: none;
+}
+
+// ─── Placeholder (remove when adding real image) ─────────────
+.placeholder {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  text-align: center;
+  padding: var(--space-6);
+}
+
+.placeholderIcon {
+  font-size: 3rem;
+  filter: grayscale(1);
+  opacity: 0.3;
+}
+
+.placeholderText {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.placeholderSub {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  opacity: 0.6;
+  max-width: 220px;
+}

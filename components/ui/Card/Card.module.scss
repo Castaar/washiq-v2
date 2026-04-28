@@ -1,0 +1,38 @@
+@use 'variables' as *;
+
+.card {
+  @include card-base;
+  position: relative;
+  transition: border-color var(--transition-base), box-shadow var(--transition-base);
+}
+
+// Padding scale
+.padding-none { padding: 0; }
+.padding-sm   { padding: var(--space-4); }
+.padding-md   { padding: var(--space-5) var(--space-6); }
+.padding-lg   { padding: var(--space-6); }
+
+// Variants
+.variant-default {
+  box-shadow: var(--shadow-md);
+}
+
+.variant-elevated {
+  background: var(--color-surface-elevated);
+  box-shadow: var(--shadow-lg);
+}
+
+.variant-glow-blue {
+  border-color: rgba(79, 124, 255, 0.35);
+  box-shadow: var(--shadow-md), var(--glow-blue);
+}
+
+.variant-glow-teal {
+  border-color: rgba(16, 217, 160, 0.3);
+  box-shadow: var(--shadow-md), var(--glow-teal);
+}
+
+.variant-glow-purple {
+  border-color: rgba(167, 139, 250, 0.3);
+  box-shadow: var(--shadow-md), var(--glow-purple);
+}

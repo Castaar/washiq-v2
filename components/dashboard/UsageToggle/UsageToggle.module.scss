@@ -1,0 +1,38 @@
+@use 'variables' as *;
+
+.group {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.tab {
+  flex: 1;
+  height: 38px;
+  border-radius: var(--radius-md);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: color var(--transition-fast),
+              border-color var(--transition-fast),
+              background var(--transition-fast),
+              box-shadow var(--transition-fast);
+  white-space: nowrap;
+  padding: 0 var(--space-4);
+
+  &:hover:not(.active) {
+    color: var(--color-text-secondary);
+    background: var(--color-surface);
+  }
+}
+
+.active {
+  color: var(--color-text-primary);
+  background: rgba(16, 217, 160, 0.05);
+  border-color: rgba(16, 217, 160, 0.5);
+  box-shadow:
+    0 0 14px rgba(16, 217, 160, 0.12),
+    inset 0 0 16px rgba(16, 217, 160, 0.04);
+}

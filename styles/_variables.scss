@@ -1,0 +1,68 @@
+// ============================================================
+// SCSS compile-time variables & mixins only — no CSS output.
+// Import in component modules with: @use 'variables' as *
+// (works because ./styles is in sassOptions.includePaths)
+// ============================================================
+
+// Breakpoint tokens
+$bp-mobile-max:  767px;
+$bp-tablet-min:  768px;
+$bp-tablet-max:  1023px;
+$bp-desktop-min: 1024px;
+$bp-wide-min:    1440px;
+
+// ============================================================
+// Respond-to mixin — single source of truth for breakpoints
+// ============================================================
+@mixin respond-to($bp) {
+  @if $bp == 'mobile' {
+    @media (max-width: $bp-mobile-max) { @content; }
+  } @else if $bp == 'tablet' {
+    @media (min-width: $bp-tablet-min) and (max-width: $bp-tablet-max) { @content; }
+  } @else if $bp == 'tablet-down' {
+    @media (max-width: $bp-tablet-max) { @content; }
+  } @else if $bp == 'desktop' {
+    @media (min-width: $bp-desktop-min) { @content; }
+  } @else if $bp == 'wide' {
+    @media (min-width: $bp-wide-min) { @content; }
+  }
+}
+
+// ============================================================
+// Utility mixins
+// ============================================================
+@mixin glass($opacity: 0.045, $blur: 18px) {
+  background: rgba(255, 255, 255, $opacity);
+  backdrop-filter: blur($blur);
+  -webkit-backdrop-filter: blur($blur);
+  border: 1px solid var(--color-border);
+}
+
+@mixin glow-border($color: var(--color-accent-blue)) {
+  border-color: $color;
+  box-shadow: 0 0 0 1px $color, inset 0 0 16px rgba(79, 124, 255, 0.06);
+}
+
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+@mixin truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@mixin card-base {
+  @include glass;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+}

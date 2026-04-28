@@ -1,0 +1,71 @@
+@use 'variables' as *;
+
+.card {
+  @include glass(0.04);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  align-items: flex-end;
+  text-align: right;
+  aspect-ratio: 1;
+  overflow: hidden;
+}
+
+.label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  align-self: flex-start;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  margin-top: auto;
+}
+
+.position {
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  letter-spacing: -0.02em;
+}
+
+.total {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.hint {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  margin-top: auto;
+  transition: color 0.15s;
+}
+
+// ─── Interactive state ────────────────────────────────────────
+.clickable {
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  outline: none;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(16, 217, 160, 0.3);
+
+    .hint { color: #10d9a0; }
+  }
+
+  &:focus-visible {
+    border-color: rgba(16, 217, 160, 0.5);
+    box-shadow: 0 0 0 2px rgba(16, 217, 160, 0.2);
+  }
+}

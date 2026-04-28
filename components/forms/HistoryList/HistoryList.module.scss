@@ -1,0 +1,255 @@
+@use 'variables' as *;
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.empty {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+// ── Entry card ────────────────────────────────────────────────
+.entryCard {
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.entryHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-3) var(--space-5);
+  cursor: pointer;
+  transition: background 0.12s;
+  user-select: none;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.03);
+  }
+}
+
+.weekLabel {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  min-width: 180px;
+  flex-shrink: 0;
+}
+
+.entrySummary {
+  display: flex;
+  gap: var(--space-5);
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.summaryItem {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  font-size: 0.8125rem;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.summaryLabel {
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.entryActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-shrink: 0;
+}
+
+.editBtn {
+  height: 28px;
+  padding: 0 var(--space-4);
+  background: transparent;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.12s, color 0.12s;
+
+  &:hover {
+    border-color: var(--color-accent-teal);
+    color: var(--color-accent-teal);
+  }
+}
+
+.chevron {
+  font-size: 1.25rem;
+  color: var(--color-text-muted);
+  transition: transform 0.2s;
+  display: inline-block;
+  line-height: 1;
+}
+
+.chevronOpen {
+  transform: rotate(90deg);
+}
+
+// ── Body ──────────────────────────────────────────────────────
+.entryBody {
+  border-top: 1px solid var(--color-border);
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+// ── Read-only detail ──────────────────────────────────────────
+.detailSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.detailSectionTitle {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.detailGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-6);
+}
+
+.detailItem {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 100px;
+}
+
+.detailLabel {
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+}
+
+.detailValue {
+  font-size: 0.875rem;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+// ── Edit form ─────────────────────────────────────────────────
+.editSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+
+  & + & {
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--color-border);
+  }
+}
+
+.editSectionTitle {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.fieldsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 130px;
+  flex: 1;
+}
+
+.fieldLabel {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.input {
+  height: 38px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  font-size: 0.875rem;
+  font-family: inherit;
+  padding: 0 var(--space-3);
+  transition: border-color 0.15s;
+  font-variant-numeric: tabular-nums;
+
+  &:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.22);
+  }
+}
+
+.error {
+  font-size: 0.8125rem;
+  color: var(--color-accent-amber);
+}
+
+.editFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding-top: var(--space-2);
+}
+
+.cancelBtn {
+  height: 34px;
+  padding: 0 var(--space-5);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.saveBtn {
+  height: 34px;
+  padding: 0 var(--space-5);
+  background: transparent;
+  border: 1px solid var(--color-accent-teal);
+  border-radius: var(--radius-md);
+  color: var(--color-accent-teal);
+  font-size: 0.8125rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+
+  &:hover:not(:disabled) {
+    background: var(--color-accent-teal);
+    color: #000;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}

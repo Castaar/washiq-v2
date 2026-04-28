@@ -1,0 +1,197 @@
+@use 'variables' as *;
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-5);
+}
+
+.modal {
+  @include glass(0.06);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  width: 100%;
+  max-width: 480px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+// ─── Header ──────────────────────────────────────────────────
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-5) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-1);
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.metaLabel {
+  font-weight: 500;
+}
+
+.metaValue {
+  color: var(--color-text-secondary);
+}
+
+.metaSep {
+  color: var(--color-text-muted);
+}
+
+.closeBtn {
+  @include flex-center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--transition-fast), color var(--transition-fast);
+
+  &:hover {
+    background: var(--color-surface-hover);
+    color: var(--color-text-primary);
+  }
+}
+
+// ─── Body ─────────────────────────────────────────────────────
+.body {
+  overflow-y: auto;
+  padding: var(--space-4) var(--space-5) var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+// ─── Checklist ────────────────────────────────────────────────
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+}
+
+.item-checked {
+  background: rgba(16, 217, 160, 0.05);
+  border-color: rgba(16, 217, 160, 0.15);
+}
+
+.item-remark {
+  background: rgba(246, 165, 43, 0.05);
+  border-color: rgba(246, 165, 43, 0.2);
+}
+
+.item-unchecked {
+  background: rgba(240, 82, 82, 0.05);
+  border-color: rgba(240, 82, 82, 0.2);
+}
+
+.itemIcon {
+  @include flex-center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+  margin-top: 1px;
+
+  .item-checked & {
+    color: var(--color-accent-teal);
+  }
+
+  .item-remark & {
+    color: var(--color-accent-amber);
+  }
+
+  .item-unchecked & {
+    color: var(--color-accent-red);
+  }
+}
+
+.crossIcon {
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.itemContent {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.itemLabel {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  line-height: 1.4;
+}
+
+.itemOpmerking {
+  font-size: 0.75rem;
+  color: var(--color-accent-amber);
+  line-height: 1.4;
+}
+
+// ─── Dagrapport ───────────────────────────────────────────────
+.dagrapport {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+
+.dagrapportLabel {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+  margin: 0 0 var(--space-2);
+}
+
+.dagrapportText {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  margin: 0;
+  white-space: pre-wrap;
+}

@@ -1,0 +1,66 @@
+@use 'variables' as *;
+
+.wrap {
+  display: flex;
+  align-items: center;
+  height: 36px;
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  padding: 0 var(--space-4);
+  gap: 0;
+  position: relative;
+  cursor: pointer;
+  overflow: hidden;
+  white-space: nowrap;
+  width: auto;
+}
+
+.label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  padding-right: var(--space-3);
+}
+
+.divider {
+  width: 1px;
+  height: 16px;
+  background: var(--color-border);
+  margin-right: var(--space-3);
+  flex-shrink: 0;
+}
+
+// The actual <select> is invisible but covers the whole pill for clicking
+.select {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+}
+
+.value {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  pointer-events: none;
+  // padding-right: var(--space-4);
+
+  // chevron
+  &::after {
+    content: '';
+    display: inline-block;
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 5px solid var(--color-text-muted);
+    margin-left: var(--space-2);
+    vertical-align: middle;
+    position: relative;
+    top: -1px;
+  }
+}

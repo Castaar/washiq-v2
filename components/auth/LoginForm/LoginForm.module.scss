@@ -1,0 +1,131 @@
+@use 'variables' as *;
+
+.card {
+  width: 100%;
+  max-width: 380px;
+  background: rgba(255, 255, 255, 0.055);
+  backdrop-filter: blur(32px);
+  -webkit-backdrop-filter: blur(32px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 18px;
+  padding: 36px 36px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.logoArea {
+  display: flex;
+  justify-content: center;
+  padding-bottom: 4px;
+}
+
+.logoText {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.label {
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: var(--color-text-primary);
+}
+
+.input {
+  height: 44px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  color: var(--color-text-primary);
+  font-size: 0.9375rem;
+  font-family: inherit;
+  padding: 0 16px;
+  transition: border-color 0.15s;
+
+  &:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.28);
+  }
+
+  &::placeholder {
+    color: var(--color-text-muted);
+  }
+}
+
+.selectWrap {
+  position: relative;
+}
+
+.select {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  height: 44px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  color: var(--color-text-primary);
+  font-size: 0.9375rem;
+  font-family: inherit;
+  padding: 0 16px;
+  padding-right: 36px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+
+  &:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.28);
+  }
+
+  option {
+    background: #0a0e1a;
+    color: var(--color-text-primary);
+  }
+}
+
+.selectArrow {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+.error {
+  font-size: 0.8125rem;
+  color: var(--color-accent-amber);
+  margin-top: -4px;
+}
+
+.submitBtn {
+  height: 44px;
+  background: var(--color-accent-teal);
+  border: none;
+  border-radius: 10px;
+  color: #000;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  letter-spacing: 0.01em;
+  transition: opacity 0.15s;
+  margin-top: 4px;
+
+  &:hover:not(:disabled) {
+    opacity: 0.88;
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}

@@ -1,0 +1,137 @@
+@use 'variables' as *;
+
+.card {
+  @include glass(0.04);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  /* spans full left column (240px) → same height as one half-width card ((240-12)/2 = 114px) */
+  overflow: hidden;
+}
+
+// ─── Header ──────────────────────────────────────────────────
+.header {
+  @include flex-between;
+}
+
+.headerLabel {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.programSelector {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-accent-teal);
+  cursor: pointer;
+  transition: color var(--transition-fast);
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+}
+
+// ─── Native-select pill (same pattern as SiteSelector) ────────
+.selectorPill {
+  display: flex;
+  align-items: center;
+  height: 28px;
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  padding: 0 var(--space-3);
+  position: relative;
+  cursor: pointer;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.hiddenSelect {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+}
+
+.selectedValue {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-accent-teal);
+  pointer-events: none;
+  padding-right: var(--space-4);
+
+  &::after {
+    content: '';
+    display: inline-block;
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 5px solid var(--color-accent-teal);
+    margin-left: var(--space-2);
+    vertical-align: middle;
+    opacity: 0.8;
+  }
+}
+
+// ─── Count row ────────────────────────────────────────────────
+.countRow {
+  @include flex-between;
+}
+
+// ─── Divider ─────────────────────────────────────────────────
+.divider {
+  height: 1px;
+  background: var(--color-border);
+}
+
+// ─── Chemie rows ─────────────────────────────────────────────
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.chemieRow {
+  @include flex-between;
+  align-items: flex-start;
+}
+
+.chemieLabel {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  padding-top: 3px;
+}
+
+.chemieValues {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.chemieValue {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.chemieDelta {
+  font-size: 0.75rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.positive { color: var(--color-accent-teal); }
+.negative { color: var(--color-accent-amber); }

@@ -1,0 +1,30 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+
+  @media (max-width: 767px) {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+}
+
+.bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+
+  @media (max-width: 767px) {
+    top: 40px;
+    height: 55vh;
+  }
+}
+
+.root > :not(.bg) {
+  position: relative;
+  z-index: 1;
+}

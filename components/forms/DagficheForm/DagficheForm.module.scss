@@ -1,0 +1,197 @@
+@use "variables" as *;
+
+.card {
+  width: 100%;
+  max-width: 1000px;
+  background: #ffffff1a;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  overflow: scroll;
+}
+
+// ── Two-column layout ─────────────────────────────────────────
+.columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-6);
+  align-items: start;
+  @include respond-to('mobile') {
+    grid-template-columns: 1fr;
+  }
+}
+
+.left,
+.right {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.sectionLabel {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+// ── Checklist items ───────────────────────────────────────────
+.itemList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.checklistItem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.itemLabel {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+}
+
+.itemRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.opmerkingInput {
+  flex: 1;
+  height: 38px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  font-size: 0.875rem;
+  font-family: inherit;
+  padding: 0 var(--space-3);
+  transition: border-color 0.15s;
+
+  &:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+
+  &::placeholder {
+    color: var(--color-text-muted);
+  }
+}
+
+.checkBtn {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--color-text-muted);
+  font-size: 1rem;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    color 0.15s;
+
+  &:hover {
+    border-color: var(--color-accent-teal);
+    color: var(--color-accent-teal);
+  }
+}
+
+.checkBtnActive {
+  background: rgba(0, 189, 149, 0.15);
+  border-color: var(--color-accent-teal);
+  color: var(--color-accent-teal);
+}
+
+// ── Dagrapport ────────────────────────────────────────────────
+.reportArea {
+  width: 100%;
+  min-height: 160px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-secondary);
+  font-size: 0.8125rem;
+  font-family: inherit;
+  line-height: 1.6;
+  padding: var(--space-4);
+  resize: none;
+  overflow: hidden;
+  cursor: default;
+}
+
+// ── Footer ────────────────────────────────────────────────────
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+}
+
+.incidentBtn {
+  height: 34px;
+  padding: 0 var(--space-5);
+  background: transparent;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 999px;
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  transition:
+    border-color 0.15s,
+    color 0.15s;
+
+  &:hover {
+    border-color: var(--color-text-secondary);
+    color: var(--color-text-primary);
+  }
+}
+
+.submitBtn {
+  height: 40px;
+  padding: 0 var(--space-6);
+  background: transparent;
+  border: 1px solid var(--color-accent-teal);
+  border-radius: var(--radius-md);
+  color: var(--color-accent-teal);
+  font-size: 0.875rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+
+  &:hover:not(:disabled) {
+    background: var(--color-accent-teal);
+    color: #000;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.success {
+  text-align: center;
+  color: var(--color-accent-teal);
+  font-size: 1rem;
+  font-weight: 500;
+  padding: var(--space-6) 0;
+}

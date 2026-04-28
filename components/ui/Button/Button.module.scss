@@ -1,0 +1,122 @@
+@use 'variables' as *;
+
+.button {
+  @include flex-center;
+  gap: var(--space-2);
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--transition-fast),
+              border-color var(--transition-fast),
+              box-shadow var(--transition-fast),
+              opacity var(--transition-fast);
+  white-space: nowrap;
+  position: relative;
+  border: 1px solid transparent;
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-accent-blue);
+    outline-offset: 2px;
+  }
+}
+
+// Sizes
+.size-sm {
+  height: 32px;
+  padding: 0 var(--space-3);
+  font-size: 0.8125rem;
+
+  .iconSlot { width: 14px; height: 14px; }
+}
+
+.size-md {
+  height: 38px;
+  padding: 0 var(--space-4);
+  font-size: 0.875rem;
+
+  .iconSlot { width: 16px; height: 16px; }
+}
+
+.size-lg {
+  height: 44px;
+  padding: 0 var(--space-6);
+  font-size: 0.9375rem;
+
+  .iconSlot { width: 18px; height: 18px; }
+}
+
+// Variants
+.variant-primary {
+  background: var(--color-accent-blue);
+  color: #fff;
+  border-color: var(--color-accent-blue);
+  box-shadow: 0 0 16px rgba(79, 124, 255, 0.3);
+
+  &:hover:not(:disabled) {
+    background: #6b91ff;
+    box-shadow: 0 0 24px rgba(79, 124, 255, 0.45);
+  }
+}
+
+.variant-secondary {
+  @include glass(0.06);
+  color: var(--color-text-primary);
+  border-color: var(--color-border-strong);
+
+  &:hover:not(:disabled) {
+    background: var(--color-surface-hover);
+    border-color: rgba(255, 255, 255, 0.22);
+  }
+}
+
+.variant-ghost {
+  background: transparent;
+  color: var(--color-text-secondary);
+  border-color: transparent;
+
+  &:hover:not(:disabled) {
+    background: var(--color-surface);
+    color: var(--color-text-primary);
+  }
+}
+
+.variant-danger {
+  background: var(--color-accent-red-dim);
+  color: var(--color-accent-red);
+  border-color: rgba(240, 82, 82, 0.35);
+
+  &:hover:not(:disabled) {
+    background: rgba(240, 82, 82, 0.25);
+  }
+}
+
+.iconSlot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.loading {
+  .label { opacity: 0; }
+
+  &::after {
+    content: '';
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

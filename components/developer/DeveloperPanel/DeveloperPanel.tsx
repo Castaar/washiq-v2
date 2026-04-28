@@ -1,0 +1,960 @@
+'use client';
+
+import { useState } from 'react';
+import styles from './DeveloperPanel.module.scss';
+
+export interface DeveloperUser {
+  id: string;
+  name: string;
+  email: string;
+  role: 'developer' | 'owner' | 'employee';
+  siteIds: string[];
+  siteNames: string[];
+}
+
+export interface DeveloperSite {
+  id: string;
+  name: string;
+  location: string;
+}
+
+export interface DeveloperProgram {
+  id: string;
+  siteId: string;
+  name: string;
+  tier: number;
+  chemicals: string[];
+}
+
+export interface DeveloperMaintenanceTask {
+  id: string;
+  siteId: string;
+  description: string;
+  trigger_type: 'washes' | 'months' | 'fixed_date' | 'fixed_months';
+  trigger_value: number;
+  trigger_day?: number;
+  trigger_month?: number;
+  trigger_month_list?: number[];
+}
+
+export interface DeveloperPanelProps {
+  users: DeveloperUser[];
+  sites: DeveloperSite[];
+  programs: DeveloperProgram[];
+  maintenanceTasks: DeveloperMaintenanceTask[];
+}
+
+const ROLE_LABELS: Record<string, string> = {
+  developer: 'Developer',
+  owner: 'Eigenaar',
+  employee: 'Medewerker',
+};
+
+// ── User row ─────────────────────────────────────────────────
+function UserRow({
+  user,
+  sites,
+  onDelete,
+  onUpdateSites,
+  onUpdateRole,
+}: {
+  user: DeveloperUser;
+  sites: DeveloperSite[];
+  onDelete: (id: string) => void;
+  onUpdateSites: (id: string, siteIds: string[]) => void;
+  onUpdateRole: (id: string, role: DeveloperUser['role']) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [selectedSites, setSelectedSites] = useState<string[]>(user.siteIds);
+  const [selectedRole, setSelectedRole] = useState(user.role);
+  const [saving, setSaving] = useState(false);
+
+  function toggleSite(siteId: string) {
+    setSelectedSites((prev) =>
+      prev.includes(siteId) ? prev.filter((s) => s !== siteId) : [...prev, siteId],
+    );
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      await fetch(`/api/users/${user.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: selectedRole, siteIds: selectedSites }),
+      });
+      onUpdateSites(user.id, selectedSites);
+      onUpdateRole(user.id, selectedRole);
+      setEditing(false);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!confirm(`Gebruiker "${user.name}" verwijderen?`)) return;
+    await fetch(`/api/users/${user.id}`, { method: 'DELETE' });
+    onDelete(user.id);
+  }
+
+  return (
+    <div className={styles.userCard}>
+      <div className={styles.userMain}>
+        <div className={styles.userAvatar} aria-hidden="true">
+          {user.name.charAt(0).toUpperCase()}
+        </div>
+        <div className={styles.userInfo}>
+          <span className={styles.userName}>{user.name}</span>
+          <span className={styles.userEmail}>{user.email}</span>
+        </div>
+        <span className={[styles.rolePill, styles[`role_${user.role}`]].join(' ')}>
+          {ROLE_LABELS[user.role]}
+        </span>
+        <div className={styles.sitePills}>
+          {user.role === 'developer' ? (
+            <span className={styles.allSitesPill}>Alle sites</span>
+          ) : user.siteNames.length > 0 ? (
+            user.siteNames.map((name) => (
+              <span key={name} className={styles.sitePill}>{name}</span>
+            ))
+          ) : (
+            <span className={styles.noAccess}>Geen toegang</span>
+          )}
+        </div>
+        <div className={styles.rowActions}>
+          <button
+            type="button"
+            className={styles.editBtn}
+            onClick={() => setEditing((v) => !v)}
+            aria-label="Bewerken"
+          >
+            ✏
+          </button>
+          <button
+            type="button"
+            className={styles.deleteBtn}
+            onClick={handleDelete}
+            aria-label="Verwijderen"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+
+      {editing && (
+        <div className={styles.editPanel}>
+          <div className={styles.editRow}>
+            <span className={styles.editLabel}>Rol</span>
+            <select
+              className={styles.roleSelect}
+              value={selectedRole}
+              onChange={(e) => setSelectedRole(e.target.value as DeveloperUser['role'])}
+            >
+              <option value="developer">Developer</option>
+              <option value="owner">Eigenaar</option>
+              <option value="employee">Medewerker</option>
+            </select>
+          </div>
+          {selectedRole !== 'developer' && (
+            <div className={styles.editRow}>
+              <span className={styles.editLabel}>Toegang</span>
+              <div className={styles.checkboxGroup}>
+                {sites.map((s) => (
+                  <label key={s.id} className={styles.checkboxItem}>
+                    <input
+                      type="checkbox"
+                      checked={selectedSites.includes(s.id)}
+                      onChange={() => toggleSite(s.id)}
+                    />
+                    {s.name}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+          <div className={styles.editActions}>
+            <button type="button" className={styles.cancelBtn} onClick={() => setEditing(false)}>
+              Annuleren
+            </button>
+            <button type="button" className={styles.saveSmallBtn} onClick={handleSave} disabled={saving}>
+              {saving ? 'Opslaan...' : 'Opslaan'}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Program row ───────────────────────────────────────────────
+function ProgramRow({
+  program,
+  onDelete,
+  onUpdate,
+}: {
+  program: DeveloperProgram;
+  onDelete: (id: string) => void;
+  onUpdate: (id: string, updated: Partial<DeveloperProgram>) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(program.name);
+  const [tier, setTier] = useState(program.tier);
+  const [chemicals, setChemicals] = useState<string[]>(program.chemicals);
+  const [newChem, setNewChem] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  function addChem() {
+    const trimmed = newChem.trim();
+    if (trimmed && !chemicals.includes(trimmed)) {
+      setChemicals((prev) => [...prev, trimmed]);
+    }
+    setNewChem('');
+  }
+
+  function removeChem(chem: string) {
+    setChemicals((prev) => prev.filter((c) => c !== chem));
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      await fetch(`/api/programs/${program.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, tier, chemicals }),
+      });
+      onUpdate(program.id, { name, tier, chemicals });
+      setEditing(false);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!confirm(`Programma "${program.name}" verwijderen?`)) return;
+    await fetch(`/api/programs/${program.id}`, { method: 'DELETE' });
+    onDelete(program.id);
+  }
+
+  return (
+    <div className={styles.programCard}>
+      <div className={styles.programMain}>
+        <span className={styles.programTier}>{program.tier}</span>
+        <span className={styles.programName}>{program.name}</span>
+        <div className={styles.chemPills}>
+          {program.chemicals.length > 0
+            ? program.chemicals.map((c) => (
+                <span key={c} className={styles.chemPill}>{c}</span>
+              ))
+            : <span className={styles.noAccess}>Geen chemie</span>}
+        </div>
+        <div className={styles.rowActions}>
+          <button type="button" className={styles.editBtn} onClick={() => setEditing((v) => !v)} aria-label="Bewerken">✏</button>
+          <button type="button" className={styles.deleteBtn} onClick={handleDelete} aria-label="Verwijderen">✕</button>
+        </div>
+      </div>
+
+      {editing && (
+        <div className={styles.editPanel}>
+          <div className={styles.editRow}>
+            <span className={styles.editLabel}>Naam</span>
+            <input
+              className={styles.input}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </div>
+          <div className={styles.editRow}>
+            <span className={styles.editLabel}>Tier</span>
+            <input
+              className={styles.input}
+              type="number"
+              min={1}
+              value={tier}
+              onChange={(e) => setTier(Number(e.target.value))}
+              style={{ width: 80 }}
+            />
+          </div>
+          <div className={styles.editRow}>
+            <span className={styles.editLabel}>Chemie</span>
+            <div className={styles.chemEditor}>
+              <div className={styles.chemPills}>
+                {chemicals.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    className={styles.chemPillRemove}
+                    onClick={() => removeChem(c)}
+                    title={`Verwijder ${c}`}
+                  >
+                    {c} ×
+                  </button>
+                ))}
+              </div>
+              <div className={styles.chemAddRow}>
+                <input
+                  className={styles.input}
+                  placeholder="Nieuw product..."
+                  value={newChem}
+                  onChange={(e) => setNewChem(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addChem(); } }}
+                />
+                <button type="button" className={styles.saveSmallBtn} onClick={addChem}>+</button>
+              </div>
+            </div>
+          </div>
+          <div className={styles.editActions}>
+            <button type="button" className={styles.cancelBtn} onClick={() => setEditing(false)}>Annuleren</button>
+            <button type="button" className={styles.saveSmallBtn} onClick={handleSave} disabled={saving}>
+              {saving ? 'Opslaan...' : 'Opslaan'}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Site block (programs per site) ────────────────────────────
+function SitePrograms({
+  site,
+  programs,
+  onDeleteProgram,
+  onUpdateProgram,
+  onAddProgram,
+}: {
+  site: DeveloperSite;
+  programs: DeveloperProgram[];
+  onDeleteProgram: (id: string) => void;
+  onUpdateProgram: (id: string, updated: Partial<DeveloperProgram>) => void;
+  onAddProgram: (program: DeveloperProgram) => void;
+}) {
+  const [showAdd, setShowAdd] = useState(false);
+  const [addName, setAddName] = useState('');
+  const [addTier, setAddTier] = useState(programs.length + 1);
+  const [addChemicals, setAddChemicals] = useState<string[]>([]);
+  const [newChem, setNewChem] = useState('');
+  const [adding, setAdding] = useState(false);
+
+  function addChem() {
+    const trimmed = newChem.trim();
+    if (trimmed && !addChemicals.includes(trimmed)) {
+      setAddChemicals((prev) => [...prev, trimmed]);
+    }
+    setNewChem('');
+  }
+
+  async function handleAdd(e: React.FormEvent) {
+    e.preventDefault();
+    if (!addName) return;
+    setAdding(true);
+    try {
+      const res = await fetch('/api/programs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ siteId: site.id, name: addName, tier: addTier, chemicals: addChemicals }),
+      });
+      const data = (await res.json()) as { id?: string };
+      if (res.ok && data.id) {
+        onAddProgram({ id: data.id, siteId: site.id, name: addName, tier: addTier, chemicals: addChemicals });
+        setAddName(''); setAddTier(programs.length + 2); setAddChemicals([]); setShowAdd(false);
+      }
+    } finally {
+      setAdding(false);
+    }
+  }
+
+  return (
+    <div className={styles.siteBlock}>
+      <div className={styles.siteBlockHeader}>
+        <span className={styles.siteBlockTitle}>{site.name}</span>
+        <button type="button" className={styles.addSmallBtn} onClick={() => setShowAdd((v) => !v)}>
+          + Programma
+        </button>
+      </div>
+
+      {programs.length === 0 && !showAdd && (
+        <p className={styles.noAccess}>Geen programma's</p>
+      )}
+
+      <div className={styles.programList}>
+        {programs
+          .slice()
+          .sort((a, b) => a.tier - b.tier)
+          .map((p) => (
+            <ProgramRow
+              key={p.id}
+              program={p}
+              onDelete={onDeleteProgram}
+              onUpdate={onUpdateProgram}
+            />
+          ))}
+      </div>
+
+      {showAdd && (
+        <form className={styles.addForm} onSubmit={handleAdd} noValidate>
+          <div className={styles.addFormRow}>
+            <div className={styles.addField}>
+              <label className={styles.addLabel}>Naam</label>
+              <input className={styles.input} value={addName} onChange={(e) => setAddName(e.target.value)} placeholder="Programma naam" />
+            </div>
+            <div className={styles.addField} style={{ maxWidth: 100 }}>
+              <label className={styles.addLabel}>Tier</label>
+              <input className={styles.input} type="number" min={1} value={addTier} onChange={(e) => setAddTier(Number(e.target.value))} />
+            </div>
+          </div>
+          <div className={styles.addFormRow}>
+            <div className={styles.addFieldFull}>
+              <label className={styles.addLabel}>Chemie</label>
+              <div className={styles.chemEditor}>
+                <div className={styles.chemPills}>
+                  {addChemicals.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      className={styles.chemPillRemove}
+                      onClick={() => setAddChemicals((prev) => prev.filter((x) => x !== c))}
+                    >
+                      {c} ×
+                    </button>
+                  ))}
+                </div>
+                <div className={styles.chemAddRow}>
+                  <input
+                    className={styles.input}
+                    placeholder="Nieuw product..."
+                    value={newChem}
+                    onChange={(e) => setNewChem(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); const t = newChem.trim(); if (t && !addChemicals.includes(t)) { setAddChemicals((prev) => [...prev, t]); } setNewChem(''); } }}
+                  />
+                  <button type="button" className={styles.saveSmallBtn} onClick={addChem}>+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className={styles.addFormFooter}>
+            <button type="button" className={styles.cancelBtn} onClick={() => setShowAdd(false)}>Annuleren</button>
+            <button type="submit" className={styles.saveSmallBtn} disabled={adding}>{adding ? 'Bezig...' : 'Opslaan'}</button>
+          </div>
+        </form>
+      )}
+    </div>
+  );
+}
+
+// ── Main panel ────────────────────────────────────────────────
+export function DeveloperPanel({ users: initialUsers, sites: initialSites, programs: initialPrograms, maintenanceTasks: initialTasks }: DeveloperPanelProps) {
+  const [users, setUsers] = useState(initialUsers);
+  const [sites, setSites] = useState(initialSites);
+  const [programs, setPrograms] = useState(initialPrograms);
+  const [tasks, setTasks] = useState(initialTasks);
+
+  // ── Site add state ──────────────────────────────────────────
+  const [showAddSite, setShowAddSite] = useState(false);
+  const [addSiteName, setAddSiteName] = useState('');
+  const [addSiteLocation, setAddSiteLocation] = useState('');
+  const [addingSite, setAddingSite] = useState(false);
+
+  async function handleDeleteSite(id: string, name: string) {
+    if (!confirm(`Carwash "${name}" en alle bijhorende data permanent verwijderen?`)) return;
+    const res = await fetch(`/api/sites/${id}`, { method: 'DELETE' });
+    if (res.ok) {
+      setSites((prev) => prev.filter((s) => s.id !== id));
+      setPrograms((prev) => prev.filter((p) => p.siteId !== id));
+    }
+  }
+
+  async function handleAddSite(e: React.FormEvent) {
+    e.preventDefault();
+    if (!addSiteName || !addSiteLocation) return;
+    setAddingSite(true);
+    try {
+      const res = await fetch('/api/sites', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: addSiteName, location: addSiteLocation }),
+      });
+      const data = (await res.json()) as { id?: string };
+      if (res.ok && data.id) {
+        setSites((prev) => [...prev, { id: data.id!, name: addSiteName, location: addSiteLocation }]);
+        setAddSiteName(''); setAddSiteLocation(''); setShowAddSite(false);
+      }
+    } finally {
+      setAddingSite(false);
+    }
+  }
+
+  // ── Program handlers ────────────────────────────────────────
+  function handleDeleteProgram(id: string) {
+    setPrograms((prev) => prev.filter((p) => p.id !== id));
+  }
+
+  function handleUpdateProgram(id: string, updated: Partial<DeveloperProgram>) {
+    setPrograms((prev) => prev.map((p) => (p.id === id ? { ...p, ...updated } : p)));
+  }
+
+  function handleAddProgram(program: DeveloperProgram) {
+    setPrograms((prev) => [...prev, program]);
+  }
+
+  // ── Maintenance task state & handlers ───────────────────────
+  const [taskSiteId, setTaskSiteId] = useState(sites[0]?.id ?? '');
+  const [showAddTask, setShowAddTask] = useState(false);
+  const [newTaskDesc, setNewTaskDesc] = useState('');
+  const [newTaskType, setNewTaskType] = useState<DeveloperMaintenanceTask['trigger_type']>('months');
+  const [newTaskValue, setNewTaskValue] = useState('');
+  const [newTaskDay, setNewTaskDay] = useState('');
+  const [newTaskMonth, setNewTaskMonth] = useState('');
+  const [newTaskMonthList, setNewTaskMonthList] = useState<number[]>([]);
+  const [addingTask, setAddingTask] = useState(false);
+
+  const MAANDEN = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
+
+  function toggleTaskMonth(m: number) {
+    setNewTaskMonthList((prev) => prev.includes(m) ? prev.filter((x) => x !== m) : [...prev, m].sort((a, b) => a - b));
+  }
+
+  async function handleAddTask(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newTaskDesc.trim() || !taskSiteId) return;
+    setAddingTask(true);
+    try {
+      const body: Record<string, unknown> = {
+        siteId: taskSiteId,
+        description: newTaskDesc.trim(),
+        trigger_type: newTaskType,
+      };
+      if (newTaskType === 'washes' || newTaskType === 'months') {
+        body.trigger_value = parseInt(newTaskValue) || 0;
+      }
+      if (newTaskType === 'fixed_date') {
+        body.trigger_day = parseInt(newTaskDay) || 1;
+        body.trigger_month = parseInt(newTaskMonth) || 1;
+      }
+      if (newTaskType === 'fixed_months') {
+        body.trigger_month_list = newTaskMonthList;
+      }
+      const res = await fetch('/api/maintenance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = (await res.json()) as { id?: string };
+      if (res.ok && data.id) {
+        const newTask: DeveloperMaintenanceTask = {
+          id: data.id,
+          siteId: taskSiteId,
+          description: newTaskDesc.trim(),
+          trigger_type: newTaskType,
+          trigger_value: parseInt(newTaskValue) || 0,
+          trigger_day: parseInt(newTaskDay) || 0,
+          trigger_month: parseInt(newTaskMonth) || 0,
+          trigger_month_list: newTaskMonthList,
+        };
+        setTasks((prev) => [...prev, newTask]);
+        setNewTaskDesc(''); setNewTaskValue(''); setNewTaskDay(''); setNewTaskMonth('');
+        setNewTaskMonthList([]); setNewTaskType('months'); setShowAddTask(false);
+      }
+    } finally {
+      setAddingTask(false);
+    }
+  }
+
+  async function handleDeleteTask(id: string) {
+    if (!confirm('Onderhoudstaak verwijderen?')) return;
+    await fetch(`/api/maintenance/${id}`, { method: 'DELETE' });
+    setTasks((prev) => prev.filter((t) => t.id !== id));
+  }
+
+  function taskTriggerLabel(t: DeveloperMaintenanceTask): string {
+    if (t.trigger_type === 'washes') return `Elke ${(t.trigger_value ?? 0).toLocaleString('nl-BE')} wassingen`;
+    if (t.trigger_type === 'months') {
+      if (t.trigger_value === 12) return '1× per jaar';
+      if (t.trigger_value === 24) return 'Om de 2 jaar';
+      return `Elke ${t.trigger_value} maanden`;
+    }
+    if (t.trigger_type === 'fixed_date') return `${t.trigger_day ?? ''} ${MAANDEN[(t.trigger_month ?? 1) - 1]} (jaarlijks)`;
+    if (t.trigger_type === 'fixed_months') return (t.trigger_month_list ?? []).map((m) => MAANDEN[m - 1]).join(' + ');
+    return '';
+  }
+
+  // ── User state ──────────────────────────────────────────────
+  const [showAdd, setShowAdd] = useState(false);
+  const [addName, setAddName] = useState('');
+  const [addEmail, setAddEmail] = useState('');
+  const [addPassword, setAddPassword] = useState('');
+  const [addRole, setAddRole] = useState<DeveloperUser['role']>('employee');
+  const [addSiteIds, setAddSiteIds] = useState<string[]>([]);
+  const [adding, setAdding] = useState(false);
+  const [addError, setAddError] = useState('');
+
+  function toggleAddSite(siteId: string) {
+    setAddSiteIds((prev) =>
+      prev.includes(siteId) ? prev.filter((s) => s !== siteId) : [...prev, siteId],
+    );
+  }
+
+  function handleDelete(id: string) {
+    setUsers((prev) => prev.filter((u) => u.id !== id));
+  }
+
+  function handleUpdateSites(id: string, siteIds: string[]) {
+    setUsers((prev) =>
+      prev.map((u) =>
+        u.id === id
+          ? {
+              ...u,
+              siteIds,
+              siteNames: siteIds
+                .map((sid) => sites.find((s) => s.id === sid)?.name ?? '')
+                .filter(Boolean),
+            }
+          : u,
+      ),
+    );
+  }
+
+  function handleUpdateRole(id: string, role: DeveloperUser['role']) {
+    setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, role } : u)));
+  }
+
+  async function handleAdd(e: React.FormEvent) {
+    e.preventDefault();
+    setAddError('');
+    if (!addName || !addEmail || !addPassword) {
+      setAddError('Vul alle velden in.');
+      return;
+    }
+    setAdding(true);
+    try {
+      const res = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: addName,
+          email: addEmail,
+          password: addPassword,
+          role: addRole,
+          siteIds: addRole === 'developer' ? [] : addSiteIds,
+        }),
+      });
+      const data = (await res.json()) as { id?: string; error?: string };
+      if (!res.ok) {
+        setAddError(data.error ?? 'Onbekende fout');
+        return;
+      }
+      const newUser: DeveloperUser = {
+        id: data.id!,
+        name: addName,
+        email: addEmail,
+        role: addRole,
+        siteIds: addRole === 'developer' ? [] : addSiteIds,
+        siteNames:
+          addRole === 'developer'
+            ? []
+            : addSiteIds.map((sid) => sites.find((s) => s.id === sid)?.name ?? '').filter(Boolean),
+      };
+      setUsers((prev) => [...prev, newUser]);
+      setAddName(''); setAddEmail(''); setAddPassword('');
+      setAddRole('employee'); setAddSiteIds([]);
+      setShowAdd(false);
+    } finally {
+      setAdding(false);
+    }
+  }
+
+  const grouped = {
+    developer: users.filter((u) => u.role === 'developer'),
+    owner:     users.filter((u) => u.role === 'owner'),
+    employee:  users.filter((u) => u.role === 'employee'),
+  };
+
+  return (
+    <div className={styles.panelWrapper}>
+      {/* ══ CARWASHES ══════════════════════════════════════ */}
+      <div className={styles.card}>
+        <div className={styles.header}>
+          <h1 className={styles.title}>Carwashes</h1>
+          <button type="button" className={styles.addUserBtn} onClick={() => setShowAddSite((v) => !v)}>
+            + Nieuwe carwash
+          </button>
+        </div>
+
+        {showAddSite && (
+          <form className={styles.addForm} onSubmit={handleAddSite} noValidate>
+            <div className={styles.addFormRow}>
+              <div className={styles.addField}>
+                <label className={styles.addLabel}>Naam</label>
+                <input className={styles.input} value={addSiteName} onChange={(e) => setAddSiteName(e.target.value)} placeholder="Dodane Aalst" />
+              </div>
+              <div className={styles.addField}>
+                <label className={styles.addLabel}>Locatie</label>
+                <input className={styles.input} value={addSiteLocation} onChange={(e) => setAddSiteLocation(e.target.value)} placeholder="Aalst" />
+              </div>
+            </div>
+            <div className={styles.addFormFooter}>
+              <button type="button" className={styles.cancelBtn} onClick={() => setShowAddSite(false)}>Annuleren</button>
+              <button type="submit" className={styles.saveSmallBtn} disabled={addingSite}>{addingSite ? 'Bezig...' : 'Opslaan'}</button>
+            </div>
+          </form>
+        )}
+
+        <div className={styles.siteList}>
+          {sites.map((s) => (
+            <div key={s.id} className={styles.siteRow}>
+              <span className={styles.siteName}>{s.name}</span>
+              <span className={styles.siteLocation}>{s.location}</span>
+              <button
+                type="button"
+                className={styles.deleteBtn}
+                onClick={() => handleDeleteSite(s.id, s.name)}
+                aria-label={`${s.name} verwijderen`}
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ══ PROGRAMMA'S ════════════════════════════════════ */}
+      <div className={styles.card}>
+        <div className={styles.header}>
+          <h1 className={styles.title}>Programma&apos;s &amp; Chemie</h1>
+        </div>
+        {sites.map((s) => (
+          <SitePrograms
+            key={s.id}
+            site={s}
+            programs={programs.filter((p) => p.siteId === s.id)}
+            onDeleteProgram={handleDeleteProgram}
+            onUpdateProgram={handleUpdateProgram}
+            onAddProgram={handleAddProgram}
+          />
+        ))}
+      </div>
+
+      {/* ══ GEBRUIKERS ═════════════════════════════════════ */}
+      <div className={styles.card}>
+        <div className={styles.header}>
+          <h1 className={styles.title}>Gebruikers</h1>
+          <button type="button" className={styles.addUserBtn} onClick={() => setShowAdd((v) => !v)}>
+            + Nieuwe gebruiker
+          </button>
+        </div>
+
+        {showAdd && (
+          <form className={styles.addForm} onSubmit={handleAdd} noValidate>
+            <div className={styles.addFormRow}>
+              <div className={styles.addField}>
+                <label className={styles.addLabel}>Naam</label>
+                <input className={styles.input} type="text" value={addName} onChange={(e) => setAddName(e.target.value)} placeholder="John Dhoe" />
+              </div>
+              <div className={styles.addField}>
+                <label className={styles.addLabel}>E-mail</label>
+                <input className={styles.input} type="email" value={addEmail} onChange={(e) => setAddEmail(e.target.value)} placeholder="john@domain.com" autoComplete="off" />
+              </div>
+              <div className={styles.addField}>
+                <label className={styles.addLabel}>Wachtwoord</label>
+                <input className={styles.input} type="password" value={addPassword} onChange={(e) => setAddPassword(e.target.value)} placeholder="••••••••" autoComplete="new-password" />
+              </div>
+              <div className={styles.addField}>
+                <label className={styles.addLabel}>Rol</label>
+                <select className={styles.roleSelect} value={addRole} onChange={(e) => setAddRole(e.target.value as DeveloperUser['role'])}>
+                  <option value="developer">Developer</option>
+                  <option value="owner">Eigenaar</option>
+                  <option value="employee">Medewerker</option>
+                </select>
+              </div>
+            </div>
+            {addRole !== 'developer' && (
+              <div className={styles.addFormRow}>
+                <div className={styles.addFieldFull}>
+                  <label className={styles.addLabel}>Carwash toegang</label>
+                  <div className={styles.checkboxGroup}>
+                    {sites.map((s) => (
+                      <label key={s.id} className={styles.checkboxItem}>
+                        <input type="checkbox" checked={addSiteIds.includes(s.id)} onChange={() => toggleAddSite(s.id)} />
+                        {s.name}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+            {addError && <p className={styles.addError}>{addError}</p>}
+            <div className={styles.addFormFooter}>
+              <button type="button" className={styles.cancelBtn} onClick={() => setShowAdd(false)}>Annuleren</button>
+              <button type="submit" className={styles.saveSmallBtn} disabled={adding}>{adding ? 'Bezig...' : 'Opslaan'}</button>
+            </div>
+          </form>
+        )}
+
+        {(['developer', 'owner', 'employee'] as const).map((role) => (
+          grouped[role].length > 0 && (
+            <section key={role} className={styles.group}>
+              <h2 className={styles.groupTitle}>{ROLE_LABELS[role]}s ({grouped[role].length})</h2>
+              <div className={styles.userList}>
+                {grouped[role].map((u) => (
+                  <UserRow
+                    key={u.id}
+                    user={u}
+                    sites={sites}
+                    onDelete={handleDelete}
+                    onUpdateSites={handleUpdateSites}
+                    onUpdateRole={handleUpdateRole}
+                  />
+                ))}
+              </div>
+            </section>
+          )
+        ))}
+      </div>
+
+      {/* ══ ONDERHOUD INSTALLATIE ══════════════════════════ */}
+      <div className={styles.card}>
+        <div className={styles.header}>
+          <h1 className={styles.title}>Onderhoud installatie</h1>
+          <button type="button" className={styles.addUserBtn} onClick={() => setShowAddTask((v) => !v)}>
+            + Nieuwe taak
+          </button>
+        </div>
+
+        {/* Site selector */}
+        <div className={styles.taskSiteRow}>
+          <label className={styles.addLabel}>Carwash</label>
+          <select
+            className={styles.roleSelect}
+            value={taskSiteId}
+            onChange={(e) => setTaskSiteId(e.target.value)}
+          >
+            {sites.map((s) => (
+              <option key={s.id} value={s.id}>{s.name} — {s.location}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Add form */}
+        {showAddTask && (
+          <form className={styles.addForm} onSubmit={handleAddTask} noValidate>
+            <div className={styles.addFormRow}>
+              <div className={styles.addFieldFull}>
+                <label className={styles.addLabel}>Omschrijving</label>
+                <input
+                  className={styles.input}
+                  value={newTaskDesc}
+                  onChange={(e) => setNewTaskDesc(e.target.value)}
+                  placeholder="Algemeen nazicht installatie"
+                />
+              </div>
+            </div>
+            <div className={styles.addFormRow}>
+              <div className={styles.addField}>
+                <label className={styles.addLabel}>Type interval</label>
+                <select
+                  className={styles.roleSelect}
+                  value={newTaskType}
+                  onChange={(e) => { setNewTaskType(e.target.value as DeveloperMaintenanceTask['trigger_type']); }}
+                >
+                  <option value="washes">Elke X wassingen</option>
+                  <option value="months">Elke X maanden (12 = jaarlijks, 24 = 2 jaar)</option>
+                  <option value="fixed_date">Vaste datum per jaar</option>
+                  <option value="fixed_months">Vaste maand(en) per jaar</option>
+                </select>
+              </div>
+              {(newTaskType === 'washes' || newTaskType === 'months') && (
+                <div className={styles.addField}>
+                  <label className={styles.addLabel}>{newTaskType === 'washes' ? 'Aantal wassingen' : 'Aantal maanden'}</label>
+                  <input
+                    className={styles.input}
+                    type="number"
+                    min="1"
+                    value={newTaskValue}
+                    onChange={(e) => setNewTaskValue(e.target.value)}
+                    placeholder={newTaskType === 'washes' ? '10000' : '12'}
+                  />
+                </div>
+              )}
+              {newTaskType === 'fixed_date' && (
+                <>
+                  <div className={styles.addField}>
+                    <label className={styles.addLabel}>Dag</label>
+                    <input
+                      className={styles.input}
+                      type="number"
+                      min="1"
+                      max="31"
+                      value={newTaskDay}
+                      onChange={(e) => setNewTaskDay(e.target.value)}
+                      placeholder="15"
+                      style={{ width: 80 }}
+                    />
+                  </div>
+                  <div className={styles.addField}>
+                    <label className={styles.addLabel}>Maand</label>
+                    <select
+                      className={styles.roleSelect}
+                      value={newTaskMonth}
+                      onChange={(e) => setNewTaskMonth(e.target.value)}
+                    >
+                      <option value="">-- kies --</option>
+                      {MAANDEN.map((m, i) => (
+                        <option key={i + 1} value={i + 1}>{m}</option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              )}
+            </div>
+            {newTaskType === 'fixed_months' && (
+              <div className={styles.addFormRow}>
+                <div className={styles.addFieldFull}>
+                  <label className={styles.addLabel}>Maanden</label>
+                  <div className={styles.monthGrid}>
+                    {MAANDEN.map((m, i) => (
+                      <label key={i + 1} className={styles.checkboxItem}>
+                        <input
+                          type="checkbox"
+                          checked={newTaskMonthList.includes(i + 1)}
+                          onChange={() => toggleTaskMonth(i + 1)}
+                        />
+                        {m}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+            <div className={styles.addFormFooter}>
+              <button type="button" className={styles.cancelBtn} onClick={() => setShowAddTask(false)}>Annuleren</button>
+              <button type="submit" className={styles.saveSmallBtn} disabled={addingTask}>{addingTask ? 'Bezig...' : 'Opslaan'}</button>
+            </div>
+          </form>
+        )}
+
+        {/* Task list for selected site */}
+        <div className={styles.taskList}>
+          {tasks.filter((t) => t.siteId === taskSiteId).length === 0 && (
+            <p className={styles.noAccess}>Geen taken voor deze carwash</p>
+          )}
+          {tasks
+            .filter((t) => t.siteId === taskSiteId)
+            .map((t) => (
+              <div key={t.id} className={styles.taskRow}>
+                <span className={styles.taskDesc}>{t.description}</span>
+                <span className={styles.taskTrigger}>{taskTriggerLabel(t)}</span>
+                <button
+                  type="button"
+                  className={styles.deleteBtn}
+                  onClick={() => handleDeleteTask(t.id)}
+                  aria-label="Verwijderen"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+        </div>
+      </div>
+    </div>
+  );
+}

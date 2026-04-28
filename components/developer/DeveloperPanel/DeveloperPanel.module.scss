@@ -1,0 +1,654 @@
+@use "variables" as *;
+
+// ── Panel wrapper (stacked cards) ─────────────────────────────
+.panelWrapper {
+  width: 100%;
+  max-width: 1100px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+// ── Card ──────────────────────────────────────────────────────
+.card {
+  width: 100%;
+  max-width: 1100px;
+  background: #ffffff1a;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+// ── Header ────────────────────────────────────────────────────
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.title {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.addUserBtn {
+  height: 36px;
+  padding: 0 var(--space-5);
+  background: transparent;
+  border: 1px solid var(--color-accent-teal);
+  border-radius: var(--radius-md);
+  color: var(--color-accent-teal);
+  font-size: 0.8125rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+
+  &:hover {
+    background: var(--color-accent-teal);
+    color: #000;
+  }
+}
+
+// ── Add form ──────────────────────────────────────────────────
+.addForm {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.addFormRow {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.addField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: 1;
+  min-width: 160px;
+}
+
+.addFieldFull {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: 1;
+}
+
+.addLabel {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.input {
+  height: 40px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  font-size: 0.875rem;
+  font-family: inherit;
+  padding: 0 var(--space-3);
+  transition: border-color 0.15s;
+
+  &:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.22);
+  }
+
+  &::placeholder {
+    color: var(--color-text-muted);
+  }
+}
+
+.roleSelect {
+  height: 40px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  font-size: 0.875rem;
+  font-family: inherit;
+  padding: 0 var(--space-3);
+  cursor: pointer;
+  appearance: none;
+
+  &:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.22);
+  }
+
+  option {
+    background: #080c1c;
+  }
+}
+
+.checkboxGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.checkboxItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.8125rem;
+  color: var(--color-text-primary);
+  cursor: pointer;
+
+  input[type="checkbox"] {
+    accent-color: var(--color-accent-teal);
+    width: 15px;
+    height: 15px;
+    cursor: pointer;
+  }
+}
+
+.addError {
+  font-size: 0.8125rem;
+  color: var(--color-accent-amber);
+}
+
+.addFormFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
+
+// ── Group ─────────────────────────────────────────────────────
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+
+  & + & {
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--color-border);
+  }
+}
+
+.groupTitle {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.userList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+// ── User card ─────────────────────────────────────────────────
+.userCard {
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.userMain {
+  display: grid;
+  grid-template-columns: 36px 1fr 110px 1fr auto;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+}
+
+.userAvatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+}
+
+.userInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.userName {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  @include truncate;
+}
+
+.userEmail {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  @include truncate;
+}
+
+// ── Role pills ────────────────────────────────────────────────
+.rolePill {
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 10px;
+  border-radius: var(--radius-full);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  justify-self: start;
+}
+
+.role_developer {
+  background: rgba(148, 100, 255, 0.18);
+  color: #c4a3ff;
+  border: 1px solid rgba(148, 100, 255, 0.35);
+}
+
+.role_owner {
+  background: rgba(79, 124, 255, 0.18);
+  color: #8fb3ff;
+  border: 1px solid rgba(79, 124, 255, 0.35);
+}
+
+.role_employee {
+  background: rgba(0, 189, 149, 0.15);
+  color: var(--color-accent-teal);
+  border: 1px solid rgba(0, 189, 149, 0.3);
+}
+
+// ── Site pills ────────────────────────────────────────────────
+.sitePills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.sitePill {
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 8px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--color-border);
+  font-size: 0.6875rem;
+  color: var(--color-text-secondary);
+}
+
+.allSitesPill {
+  @extend .sitePill;
+  border-color: rgba(0, 189, 149, 0.3);
+  color: var(--color-accent-teal);
+}
+
+.noAccess {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+// ── Row actions ───────────────────────────────────────────────
+.rowActions {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.editBtn {
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    color 0.15s;
+
+  &:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+    color: var(--color-text-primary);
+  }
+}
+
+.deleteBtn {
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: 1px solid rgba(255, 80, 80, 0.3);
+  border-radius: var(--radius-sm);
+  color: rgba(255, 120, 120, 0.7);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    color 0.15s,
+    background 0.15s;
+
+  &:hover {
+    background: rgba(255, 80, 80, 0.12);
+    color: #ff8080;
+    border-color: rgba(255, 80, 80, 0.5);
+  }
+}
+
+// ── Edit panel ────────────────────────────────────────────────
+.editPanel {
+  padding: var(--space-4);
+  border-top: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.02);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.editRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-5);
+}
+
+.editLabel {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  min-width: 60px;
+  padding-top: 10px;
+}
+
+.editActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
+
+.cancelBtn {
+  height: 32px;
+  padding: 0 var(--space-5);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.saveSmallBtn {
+  height: 32px;
+  padding: 0 var(--space-5);
+  background: transparent;
+  border: 1px solid var(--color-accent-teal);
+  border-radius: var(--radius-md);
+  color: var(--color-accent-teal);
+  font-size: 0.8125rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+
+  &:hover:not(:disabled) {
+    background: var(--color-accent-teal);
+    color: #000;
+  }
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+// ── Site list ─────────────────────────────────────────────────
+.siteList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.siteRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+
+  .deleteBtn {
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+}
+
+.siteName {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  flex: 1;
+}
+
+.siteLocation {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+// ── Site block (programs per site) ────────────────────────────
+.siteBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+
+  & + & {
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--color-border);
+  }
+}
+
+.siteBlockHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.siteBlockTitle {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.addSmallBtn {
+  height: 28px;
+  padding: 0 var(--space-4);
+  background: transparent;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    color 0.15s;
+
+  &:hover {
+    border-color: var(--color-accent-teal);
+    color: var(--color-accent-teal);
+  }
+}
+
+// ── Program card ──────────────────────────────────────────────
+.programList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.programCard {
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.programMain {
+  display: grid;
+  grid-template-columns: 28px 160px 1fr auto;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+}
+
+.programTier {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.programName {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  @include truncate;
+}
+
+// ── Chemical pills ────────────────────────────────────────────
+.chemPills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.chemPill {
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 8px;
+  border-radius: var(--radius-full);
+  background: rgba(0, 189, 149, 0.08);
+  border: 1px solid rgba(0, 189, 149, 0.25);
+  font-size: 0.6875rem;
+  color: var(--color-accent-teal);
+}
+
+.chemPillRemove {
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 8px;
+  border-radius: var(--radius-full);
+  background: rgba(0, 189, 149, 0.08);
+  border: 1px solid rgba(0, 189, 149, 0.25);
+  font-size: 0.6875rem;
+  color: var(--color-accent-teal);
+  cursor: pointer;
+  font-family: inherit;
+  transition:
+    background 0.12s,
+    border-color 0.12s;
+
+  &:hover {
+    background: rgba(255, 80, 80, 0.12);
+    border-color: rgba(255, 80, 80, 0.4);
+    color: #ff8080;
+  }
+}
+
+// ── Chem editor ───────────────────────────────────────────────
+.chemEditor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: 1;
+}
+
+.chemAddRow {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+
+  .input {
+    flex: 1;
+  }
+}
+
+// ── Onderhoud installatie ─────────────────────────────────────
+.taskSiteRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+
+  .roleSelect {
+    min-width: 240px;
+  }
+}
+
+.taskList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.taskRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  flex-wrap: wrap;
+}
+
+.taskDesc {
+  font-size: 0.875rem;
+  color: var(--color-text-primary);
+  flex: 1;
+  min-width: 160px;
+}
+
+.taskTrigger {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.monthGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
