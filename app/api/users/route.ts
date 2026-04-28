@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
 import { User } from '@/lib/models';
 import bcrypt from 'bcryptjs';
+import { sendWelcomeEmail } from '@/lib/email';
 
 export async function POST(req: NextRequest) {
   await dbConnect();
@@ -32,6 +33,8 @@ export async function POST(req: NextRequest) {
     password_hash,
     role,
   });
+
+  sendWelcomeEmail(email.trim().toLowerCase(), name.trim(), password).catch(() => null);
 
   return NextResponse.json({ id: user._id.toString() }, { status: 201 });
 }

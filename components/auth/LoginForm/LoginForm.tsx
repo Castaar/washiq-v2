@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './LoginForm.module.scss';
+import { IconEye, IconEyeOff } from '@/components/ui/icons';
 
 interface Site {
   id: string;
@@ -20,6 +21,7 @@ export function LoginForm({ sites }: LoginFormProps) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -87,13 +89,24 @@ export function LoginForm({ sites }: LoginFormProps) {
 
       <div className={styles.fieldGroup}>
         <label className={styles.label}>Wachtwoord</label>
-        <input
-          className={styles.input}
-          type="password"
-          autoComplete="current-password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+        <div className={styles.passwordWrap}>
+          <input
+            className={styles.input}
+            type={showPassword ? 'text' : 'password'}
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <button
+            type="button"
+            className={styles.eyeBtn}
+            onClick={() => setShowPassword((v) => !v)}
+            tabIndex={-1}
+            aria-label={showPassword ? 'Wachtwoord verbergen' : 'Wachtwoord tonen'}
+          >
+            {showPassword ? <IconEyeOff size={16} /> : <IconEye size={16} />}
+          </button>
+        </div>
       </div>
 
       {error && <p className={styles.error}>{error}</p>}

@@ -100,6 +100,34 @@
   line-height: 1;
 }
 
+.passwordWrap {
+  position: relative;
+
+  .input {
+    width: 100%;
+    padding-right: 44px;
+  }
+}
+
+.eyeBtn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  transition: color 0.15s;
+
+  &:hover {
+    color: var(--color-text-primary);
+  }
+}
+
 .error {
   font-size: 0.8125rem;
   color: var(--color-accent-amber);

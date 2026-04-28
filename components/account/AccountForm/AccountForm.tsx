@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import styles from './AccountForm.module.scss';
+import { IconEye, IconEyeOff } from '@/components/ui/icons';
 
 interface UserItem {
   id: string;
@@ -107,6 +108,8 @@ export function AccountForm({ priceConfig, users: initialUsers, siteId, currentU
   const [newPassword, setNewPassword] = useState('');
   const [saving, setSaving] = useState(false);
   const [addingUser, setAddingUser] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showNewUserPassword, setShowNewUserPassword] = useState(false);
 
   // All tracked stock products: fixed ones + chemicals from programs
   const ALL_STOCK_PRODUCTS: { name: string; unit: string }[] = [
@@ -391,14 +394,25 @@ export function AccountForm({ priceConfig, users: initialUsers, siteId, currentU
           </div>
           <div className={styles.fieldGroup}>
             <label className={styles.fieldLabel}>Password</label>
-            <input
-              className={styles.input}
-              type="password"
-              autoComplete="new-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••••"
-            />
+            <div className={styles.passwordWrap}>
+              <input
+                className={styles.input}
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="new-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••••"
+              />
+              <button
+                type="button"
+                className={styles.eyeBtn}
+                onClick={() => setShowPassword((v) => !v)}
+                tabIndex={-1}
+                aria-label={showPassword ? 'Wachtwoord verbergen' : 'Wachtwoord tonen'}
+              >
+                {showPassword ? <IconEyeOff size={15} /> : <IconEye size={15} />}
+              </button>
+            </div>
           </div>
         </div>
       </section>
@@ -460,14 +474,25 @@ export function AccountForm({ priceConfig, users: initialUsers, siteId, currentU
               value={newEmail}
               onChange={(e) => setNewEmail(e.target.value)}
             />
-            <input
-              className={styles.input}
-              type="password"
-              placeholder="••••••••••"
-              autoComplete="new-password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-            />
+            <div className={styles.passwordWrap}>
+              <input
+                className={styles.input}
+                type={showNewUserPassword ? 'text' : 'password'}
+                placeholder="••••••••••"
+                autoComplete="new-password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+              />
+              <button
+                type="button"
+                className={styles.eyeBtn}
+                onClick={() => setShowNewUserPassword((v) => !v)}
+                tabIndex={-1}
+                aria-label={showNewUserPassword ? 'Wachtwoord verbergen' : 'Wachtwoord tonen'}
+              >
+                {showNewUserPassword ? <IconEyeOff size={15} /> : <IconEye size={15} />}
+              </button>
+            </div>
           </div>
           <button
             type="button"

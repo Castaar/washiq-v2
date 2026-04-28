@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
 import { PriceConfig, User } from '@/lib/models';
 import bcrypt from 'bcryptjs';
+import { sendPasswordChangedEmail } from '@/lib/email';
 
 export async function PATCH(req: NextRequest) {
   await dbConnect();
@@ -63,7 +64,11 @@ export async function PATCH(req: NextRequest) {
     if (email) updates.email = email.trim().toLowerCase();
     if (newPassword) updates.password_hash = await bcrypt.hash(newPassword, 12);
     if (Object.keys(updates).length > 0) {
-      await User.findByIdAndUpdate(currentUserId, { $set: updates });
+      const updatedUser = await User.findByIdAndUpdate(currentUserId, { $set: updates }, { new: true });
+      if (newPassword && updatedUser) {
+        const notifyEmail = updates.email ?? updatedUser.email;
+        sendPasswordChangedEmail(notifyEmail, updatedUser.name as string).catch(() => null);
+      }
     }
   }
 
