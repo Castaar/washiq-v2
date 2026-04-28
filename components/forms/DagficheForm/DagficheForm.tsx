@@ -28,6 +28,8 @@ function buildReport(
   siteName: string,
   totalWagens: number,
   items: { label: string; checked: boolean; opmerking: string }[],
+  maintenanceTasks: { id: string; description: string }[],
+  maintenanceChecks: Record<string, { checked: boolean; opmerking: string }>,
 ): string {
   const parts = userName.trim().split(' ');
   const shortName =
@@ -38,13 +40,19 @@ function buildReport(
   const today = new Date();
   const date = `${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()}`;
 
-  // Build entries for every checked item, appending opmerking if present
   const checkedEntries = items
     .filter((i) => i.checked)
     .map((i) => (i.opmerking.trim() ? `${i.label} (${i.opmerking.trim()})` : i.label));
 
-  const checkText =
-    checkedEntries.length > 0 ? ` · ${checkedEntries.join(' · ')}` : '';
+  const checkedMaintenance = maintenanceTasks
+    .filter((t) => maintenanceChecks[t.id]?.checked)
+    .map((t) => {
+      const note = maintenanceChecks[t.id]?.opmerking?.trim();
+      return note ? `${t.description} (${note})` : t.description;
+    });
+
+  const allEntries = [...checkedEntries, ...checkedMaintenance];
+  const checkText = allEntries.length > 0 ? ` · ${allEntries.join(' · ')}` : '';
 
   return `[Automatisch gegenereerd dagrapport: ${shortName} · ${date} · ${siteName} · ${totalWagens} wassingen${checkText}]`;
 }
@@ -61,7 +69,7 @@ export function DagficheForm({ siteId, siteName, userName, totalWagens, maintena
   const [submitted, setSubmitted] = useState(false);
   const reportRef = useRef<HTMLTextAreaElement>(null);
 
-  const dagrapport = buildReport(userName, siteName, totalWagens, items);
+  const dagrapport = buildReport(userName, siteName, totalWagens, items, maintenanceTasks, maintenanceChecks);
 
   // Auto-resize the textarea to fit its content
   useEffect(() => {
