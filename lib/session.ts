@@ -51,6 +51,9 @@ export async function getSessionFromRequest(req: NextRequest): Promise<SessionPa
 
 // ── Set cookie ────────────────────────────────────────────────
 export function sessionCookieOptions(token: string) {
+  const maxAge = 60 * 60 * 24 * 7; // 7 days
+  const expires = new Date(Date.now() + maxAge * 1000);
+
   return {
     name: COOKIE_NAME,
     value: token,
@@ -58,7 +61,8 @@ export function sessionCookieOptions(token: string) {
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax' as const,
     path: '/',
-    maxAge: 60 * 60 * 24 * 7, // 7 days
+    maxAge,
+    expires,
   };
 }
 

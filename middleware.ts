@@ -12,6 +12,9 @@ export async function middleware(req: NextRequest) {
     PUBLIC_PATHS.some((p) => pathname.startsWith(p)) ||
     pathname.startsWith('/_next') ||
     pathname.startsWith('/favicon') ||
+    pathname === '/sw.js' ||
+    pathname === '/manifest.webmanifest' ||
+    pathname === '/apple-touch-icon.png' ||
     pathname.match(/\.(png|jpg|jpeg|svg|ico|webp|woff2?)$/)
   ) {
     return NextResponse.next();
@@ -27,7 +30,8 @@ export async function middleware(req: NextRequest) {
 
   // Employees cannot access wekelijkse-ingave, historiek, or developer panel
   if (session.role === 'employee') {
-    if (pathname.startsWith('/wekelijkse-ingave') || pathname.startsWith('/historiek')) {      const url = req.nextUrl.clone();
+    if (pathname.startsWith('/wekelijkse-ingave') || pathname.startsWith('/historiek')) {
+      const url = req.nextUrl.clone();
       url.pathname = '/dagfiche';
       return NextResponse.redirect(url);
     }
