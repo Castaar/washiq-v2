@@ -247,17 +247,6 @@ export async function CarwashPage({
       };
     });
 
-  const pendingItems: AlertItem[] = tasks
-    .filter((t) => !t.is_overdue)
-    .map((t) => ({
-      id:       t._id.toString(),
-      refType:  'maintenance_task' as const,
-      siteId:   siteId ?? '',
-      title:    t.description,
-      severity: 'medium' as const,
-      iconName: 'wrench',
-    }));
-
   // Dagfiche alerts: unchecked items, items with remarks, and defect notes
   const dagficheAlerts: AlertItem[] = [];
   for (const cl of checklists) {
@@ -406,7 +395,7 @@ export async function CarwashPage({
   ];
 
   const alertsPanelData: AlertsPanelData = {
-    alerts:    [...alertItems, ...pendingItems, ...dagficheAlerts],
+    alerts:    [...alertItems, ...dagficheAlerts],
     onderhoud: onderhoudItems,
     incident:  incidentItems,
   };
