@@ -15,13 +15,13 @@ node scripts/cleanup-collections.mjs  # drop all collections
 
 ## Environment variables (`.env.local`)
 
-| Variable | Purpose |
-|---|---|
-| `MONGODB_URI` | MongoDB Atlas connection string |
-| `SESSION_SECRET` | 32+ char secret for JWT signing |
-| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Web Push VAPID public key |
-| `VAPID_PRIVATE_KEY` | Web Push VAPID private key |
-| `VAPID_SUBJECT` | Web Push contact email (`mailto:...`) |
+| Variable                       | Purpose                               |
+| ------------------------------ | ------------------------------------- |
+| `MONGODB_URI`                  | MongoDB Atlas connection string       |
+| `SESSION_SECRET`               | 32+ char secret for JWT signing       |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Web Push VAPID public key             |
+| `VAPID_PRIVATE_KEY`            | Web Push VAPID private key            |
+| `VAPID_SUBJECT`                | Web Push contact email (`mailto:...`) |
 
 ## Architecture
 
@@ -30,17 +30,17 @@ node scripts/cleanup-collections.mjs  # drop all collections
 - Custom JWT auth via `jose` — no NextAuth or external library.
 - Session stored in an `httpOnly` cookie named `dodane_session` (7-day expiry).
 - `lib/session.ts` — sign, verify, read session from cookie or `NextRequest`.
-- `middleware.ts` — runs on every request; redirects unauthenticated users to `/login` and enforces role-based page access.
+- `proxy.ts` — runs on every request; redirects unauthenticated users to `/login` and enforces role-based page access.
 
 ### Role system
 
-Three roles enforced in both `middleware.ts` and individual API routes:
+Three roles enforced in both `proxy.ts` and individual API routes:
 
-| Role | Access |
-|---|---|
-| `developer` | All pages including `/developer` |
-| `owner` | All pages except `/developer` |
-| `employee` | `/dagfiche` and `/incidenten` only; redirected away from `/wekelijkse-ingave`, `/historiek`, `/developer` |
+| Role        | Access                                                                                                    |
+| ----------- | --------------------------------------------------------------------------------------------------------- |
+| `developer` | All pages including `/developer`                                                                          |
+| `owner`     | All pages except `/developer`                                                                             |
+| `employee`  | `/dagfiche` and `/incidenten` only; redirected away from `/wekelijkse-ingave`, `/historiek`, `/developer` |
 
 ### Database
 
@@ -119,18 +119,18 @@ scripts/
 - **Path alias:** `@/` maps to the project root.
 - **SCSS Modules:** every component co-locates a `.module.scss` file — no CSS-in-JS.
 - **SASS globals:** `styles/` is in `includePaths`; partials can be imported without a path prefix.
-- **API routes:** always call `dbConnect()` before touching models; always re-verify session with `getSession()` inside the handler (don't rely on middleware alone).
+- **API routes:** always call `dbConnect()` before touching models; always re-verify session with `getSession()` inside the handler (don't rely on proxy alone).
 - **Models file:** add new Mongoose models to `lib/models/index.ts`, not separate files.
 - **Types:** shared dashboard-related interfaces live in `lib/types/dashboard.ts`.
 
 ## Seed / demo credentials
 
-| Role | Email | Password |
-|---|---|---|
-| developer | alec@castaar.com | Cas#Dev@2026! |
-| owner | owner@dodane.be | wachtwoord123 |
-| employee (Ninove) | medewerker.ninove@dodane.be | wachtwoord123 |
-| employee (SPL) | medewerker.spl@dodane.be | wachtwoord123 |
+| Role               | Email                        | Password      |
+| ------------------ | ---------------------------- | ------------- |
+| developer          | alec@castaar.com             | Cas#Dev@2026! |
+| owner              | owner@dodane.be              | wachtwoord123 |
+| employee (Ninove)  | medewerker.ninove@dodane.be  | wachtwoord123 |
+| employee (SPL)     | medewerker.spl@dodane.be     | wachtwoord123 |
 | employee (Edingen) | medewerker.edingen@dodane.be | wachtwoord123 |
 
 Sites: **Dodane Ninove**, **Dodane Sint-Pieters-Leeuw**, **Dodane Edingen**

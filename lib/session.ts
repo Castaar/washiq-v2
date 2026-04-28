@@ -42,7 +42,7 @@ export async function getSession(): Promise<SessionPayload | null> {
   return verifySession(token);
 }
 
-// ── Read from a NextRequest (middleware) ──────────────────────
+// ── Read from a NextRequest (proxy) ──────────────────────
 export async function getSessionFromRequest(req: NextRequest): Promise<SessionPayload | null> {
   const token = req.cookies.get(COOKIE_NAME)?.value;
   if (!token) return null;
