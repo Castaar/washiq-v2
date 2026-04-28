@@ -1,4 +1,4 @@
-@use 'variables' as *;
+@use '../../../styles/variables' as *;
 
 .panel {
   @include glass(0.04);

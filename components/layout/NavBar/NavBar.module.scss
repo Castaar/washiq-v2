@@ -1,4 +1,4 @@
-@use 'variables' as *;
+@use '../../../styles/variables' as *;
 
 .nav {
   @include flex-between;
