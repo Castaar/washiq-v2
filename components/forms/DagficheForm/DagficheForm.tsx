@@ -20,6 +20,7 @@ export interface DagficheFormProps {
   siteName: string;
   userName: string;
   totalWagens: number;
+  maintenanceTasks?: { id: string; description: string }[];
 }
 
 function buildReport(
@@ -48,10 +49,13 @@ function buildReport(
   return `[Automatisch gegenereerd dagrapport: ${shortName} · ${date} · ${siteName} · ${totalWagens} wassingen${checkText}]`;
 }
 
-export function DagficheForm({ siteId, siteName, userName, totalWagens }: DagficheFormProps) {
+export function DagficheForm({ siteId, siteName, userName, totalWagens, maintenanceTasks = [] }: DagficheFormProps) {
   const router = useRouter();
   const [items, setItems] = useState(
     CHECKLIST_ITEMS.map((label) => ({ label, checked: false, opmerking: '' })),
+  );
+  const [maintenanceChecks, setMaintenanceChecks] = useState<Record<string, { checked: boolean; opmerking: string }>>(
+    Object.fromEntries(maintenanceTasks.map((t) => [t.id, { checked: false, opmerking: '' }])),
   );
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -79,14 +83,31 @@ export function DagficheForm({ siteId, siteName, userName, totalWagens }: Dagfic
     );
   }
 
+  function toggleMaintenance(id: string) {
+    setMaintenanceChecks((prev) => ({ ...prev, [id]: { ...prev[id], checked: !prev[id].checked } }));
+  }
+
+  function setMaintenanceOpmerking(id: string, value: string) {
+    setMaintenanceChecks((prev) => ({ ...prev, [id]: { ...prev[id], opmerking: value } }));
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
+    const checkedMaintenance = Object.entries(maintenanceChecks)
+      .filter(([, { checked }]) => checked)
+      .map(([taskId, { opmerking }]) => ({ taskId, notes: opmerking.trim() }));
     try {
       await fetch('/api/dagfiche', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ siteId, items, dagrapport }),
+        body: JSON.stringify({
+          siteId,
+          items,
+          dagrapport,
+          maintenanceChecks: checkedMaintenance,
+          totalWagens,
+        }),
       });
       setSubmitted(true);
       setTimeout(() => router.push('/'), 1200);
@@ -133,6 +154,38 @@ export function DagficheForm({ siteId, siteName, userName, totalWagens }: Dagfic
               </div>
             ))}
           </div>
+
+          {maintenanceTasks.length > 0 && (
+            <div className={styles.maintenanceSection}>
+              <h2 className={styles.sectionLabel}>Onderhoud nodig</h2>
+              <div className={styles.itemList}>
+                {maintenanceTasks.map((task) => (
+                  <div key={task.id} className={styles.checklistItem}>
+                    <span className={[styles.itemLabel, styles.maintenanceLabel].join(' ')}>
+                      {task.description}
+                    </span>
+                    <div className={styles.itemRow}>
+                      <input
+                        className={styles.opmerkingInput}
+                        type="text"
+                        placeholder="Opmerking"
+                        value={maintenanceChecks[task.id]?.opmerking ?? ''}
+                        onChange={(e) => setMaintenanceOpmerking(task.id, e.target.value)}
+                      />
+                      <button
+                        type="button"
+                        className={[styles.checkBtn, maintenanceChecks[task.id]?.checked ? styles.checkBtnActive : ''].join(' ')}
+                        onClick={() => toggleMaintenance(task.id)}
+                        aria-label={maintenanceChecks[task.id]?.checked ? 'Uitgevoerd' : 'Markeer als uitgevoerd'}
+                      >
+                        ✓
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ── Right: dagrapport ────────────────────────────── */}

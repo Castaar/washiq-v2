@@ -3,7 +3,7 @@ import type { Types } from 'mongoose';
 import { NavBar } from '@/components/layout/NavBar/NavBar';
 import { DagficheForm } from '@/components/forms/DagficheForm/DagficheForm';
 import { dbConnect } from '@/lib/db/mongoose';
-import { Site, WeeklyEntry } from '@/lib/models';
+import { Site, WeeklyEntry, MaintenanceTask } from '@/lib/models';
 import { getSession } from '@/lib/session';
 import styles from './page.module.scss';
 
@@ -24,16 +24,23 @@ export default async function DagfichePage({
   const siteDoc = siteDocs.find((s) => (s._id as Types.ObjectId).toString() === siteId);
   const siteName = (siteDoc?.name as string) ?? 'Carwash';
 
-  // Get most recent weekly entry to show wagens total
-  const lastEntry = await WeeklyEntry.findOne({ site_id: siteId })
-    .sort({ week_start: -1 })
-    .select('program_counts')
-    .lean();
+  const [lastEntry, overdueTaskDocs] = await Promise.all([
+    WeeklyEntry.findOne({ site_id: siteId }).sort({ week_start: -1 }).select('program_counts').lean(),
+    MaintenanceTask.find({
+      site_id: siteId,
+      $or: [{ is_overdue: true }, { last_done_at: null }],
+    }).select('_id description').lean(),
+  ]);
 
   const totalWagens = (lastEntry?.program_counts ?? []).reduce(
     (sum: number, p: { count?: number }) => sum + (p.count ?? 0),
     0,
   );
+
+  const maintenanceTasks = overdueTaskDocs.map((t) => ({
+    id: (t._id as Types.ObjectId).toString(),
+    description: t.description as string,
+  }));
 
   return (
     <div className={styles.root}>
@@ -47,6 +54,7 @@ export default async function DagfichePage({
           siteName={siteName}
           userName={session?.name ?? ''}
           totalWagens={totalWagens}
+          maintenanceTasks={maintenanceTasks}
         />
       </main>
     </div>

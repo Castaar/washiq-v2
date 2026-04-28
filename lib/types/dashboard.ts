@@ -63,6 +63,18 @@ export interface DefectPayload {
 
 export type IncidentPayload = IncidentSchadePayload | IncidentEhboPayload | DefectPayload;
 
+export interface MaintenanceTaskPayload {
+  type: 'maintenance_task';
+  description: string;
+  triggerType: 'washes' | 'months' | 'fixed_date' | 'fixed_months';
+  triggerValue: number;
+  triggerDay?: number;
+  triggerMonth?: number;
+  triggerMonthList?: number[];
+  lastDoneAt?: string;
+  washesAtLastDone?: number;
+}
+
 export interface AlertItem {
   id: string;
   refId?: string;       // MongoDB _id for activity API; falls back to id when absent
@@ -71,7 +83,7 @@ export interface AlertItem {
   iconName: string;
   date?: string;
   subtitle?: string;
-  payload?: DagfichePayload | IncidentPayload;
+  payload?: DagfichePayload | IncidentPayload | MaintenanceTaskPayload;
   refType?: ActivityRefType;
   siteId?: string;
 }

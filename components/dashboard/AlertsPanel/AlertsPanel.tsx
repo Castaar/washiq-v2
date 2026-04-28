@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import type { AlertItem, AlertsPanelData, DagfichePayload, IncidentPayload } from '@/lib/types/dashboard';
+import type { AlertItem, AlertsPanelData, DagfichePayload, IncidentPayload, MaintenanceTaskPayload } from '@/lib/types/dashboard';
 import { DynamicIcon, IconTrash, IconMessageSquare, IconX } from '@/components/ui/icons';
 import { DagficheModal } from '@/components/dashboard/DagficheModal/DagficheModal';
 import { IncidentModal } from '@/components/dashboard/IncidentModal/IncidentModal';
+import { MaintenanceModal } from '@/components/dashboard/MaintenanceModal/MaintenanceModal';
 import styles from './AlertsPanel.module.scss';
 
 type AlertTab = 'alerts' | 'onderhoud' | 'incident';
@@ -271,8 +272,9 @@ function ArchivePopup({
 }
 
 // ─── Modal state types ────────────────────────────────────────
-type DagficheModalState = { payload: DagfichePayload; refId: string; refType: string; siteId: string };
-type IncidentModalState = { payload: IncidentPayload; refId: string; refType: string; siteId: string };
+type DagficheModalState     = { payload: DagfichePayload; refId: string; refType: string; siteId: string };
+type IncidentModalState     = { payload: IncidentPayload; refId: string; refType: string; siteId: string };
+type MaintenanceModalState  = { payload: MaintenanceTaskPayload; refId: string; refType: string; siteId: string };
 
 // ─── Panel ───────────────────────────────────────────────────
 interface AlertsPanelProps {
@@ -280,10 +282,11 @@ interface AlertsPanelProps {
 }
 
 export function AlertsPanel({ data }: AlertsPanelProps) {
-  const [active, setActive]           = useState<AlertTab>('alerts');
-  const [archiveOpen, setArchiveOpen] = useState(false);
-  const [dagficheOpen, setDagficheOpen] = useState<DagficheModalState | null>(null);
-  const [incidentOpen, setIncidentOpen] = useState<IncidentModalState | null>(null);
+  const [active, setActive]               = useState<AlertTab>('alerts');
+  const [archiveOpen, setArchiveOpen]     = useState(false);
+  const [dagficheOpen, setDagficheOpen]   = useState<DagficheModalState | null>(null);
+  const [incidentOpen, setIncidentOpen]   = useState<IncidentModalState | null>(null);
+  const [maintenanceOpen, setMaintenanceOpen] = useState<MaintenanceModalState | null>(null);
   const { dismissed, dismiss, restore } = useDismissed();
 
   const allItems    = data[active];
@@ -302,6 +305,8 @@ export function AlertsPanel({ data }: AlertsPanelProps) {
     const siteId  = alert.siteId  ?? '';
     if (alert.payload.type === 'dagfiche') {
       setDagficheOpen({ payload: alert.payload as DagfichePayload, refId, refType, siteId });
+    } else if (alert.payload.type === 'maintenance_task') {
+      setMaintenanceOpen({ payload: alert.payload as MaintenanceTaskPayload, refId, refType, siteId });
     } else {
       setIncidentOpen({ payload: alert.payload as IncidentPayload, refId, refType, siteId });
     }
@@ -326,6 +331,15 @@ export function AlertsPanel({ data }: AlertsPanelProps) {
           refType={incidentOpen.refType}
           siteId={incidentOpen.siteId}
           onClose={() => setIncidentOpen(null)}
+        />
+      )}
+      {maintenanceOpen && (
+        <MaintenanceModal
+          payload={maintenanceOpen.payload}
+          refId={maintenanceOpen.refId}
+          refType={maintenanceOpen.refType}
+          siteId={maintenanceOpen.siteId}
+          onClose={() => setMaintenanceOpen(null)}
         />
       )}
 

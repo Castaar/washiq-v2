@@ -26,7 +26,7 @@ import { AlertsPanel } from '@/components/dashboard/AlertsPanel/AlertsPanel';
 import { VoorraadPanel } from '@/components/dashboard/VoorraadPanel/VoorraadPanel';
 import { ParamSelector } from '@/components/layout/NavBar/ParamSelector';
 import { SiteSelector } from '@/components/layout/NavBar/SiteSelector';
-import type { AlertItem, AlertsPanelData, VoorraadItem, ChemieRow, ConsumptionData, DagfichePayload, IncidentSchadePayload, IncidentEhboPayload, DefectPayload } from '@/lib/types/dashboard';
+import type { AlertItem, AlertsPanelData, VoorraadItem, ChemieRow, ConsumptionData, DagfichePayload, IncidentSchadePayload, IncidentEhboPayload, DefectPayload, MaintenanceTaskPayload } from '@/lib/types/dashboard';
 import styles from './CarwashPage.module.scss';
 import type { Types } from 'mongoose';
 
@@ -223,14 +223,29 @@ export async function CarwashPage({
 
   const alertItems: AlertItem[] = tasks
     .filter((t) => t.is_overdue)
-    .map((t) => ({
-      id:       t._id.toString(),
-      refType:  'maintenance_task' as const,
-      siteId:   siteId ?? '',
-      title:    t.description,
-      severity: 'high' as const,
-      iconName: 'wrench',
-    }));
+    .map((t) => {
+      const payload: MaintenanceTaskPayload = {
+        type: 'maintenance_task',
+        description: t.description,
+        triggerType: t.trigger_type,
+        triggerValue: t.trigger_value,
+        triggerDay: t.trigger_day,
+        triggerMonth: t.trigger_month,
+        triggerMonthList: t.trigger_month_list,
+        lastDoneAt: t.last_done_at ? fmtDate(new Date(t.last_done_at)) : undefined,
+        washesAtLastDone: t.washes_at_last_done,
+      };
+      return {
+        id:       t._id.toString(),
+        refId:    t._id.toString(),
+        refType:  'maintenance_task' as const,
+        siteId:   siteId ?? '',
+        title:    t.description,
+        severity: 'high' as const,
+        iconName: 'wrench',
+        payload,
+      };
+    });
 
   const pendingItems: AlertItem[] = tasks
     .filter((t) => !t.is_overdue)

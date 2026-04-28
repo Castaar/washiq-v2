@@ -19,7 +19,10 @@ export async function PATCH(
 
   await dbConnect();
   const update: Record<string, unknown> = {};
-  if (body.last_done_at) update.last_done_at = new Date(body.last_done_at);
+  if (body.last_done_at) {
+    update.last_done_at = new Date(body.last_done_at);
+    update.is_overdue = false;
+  }
   if (typeof body.washes_at_last_done === 'number') update.washes_at_last_done = body.washes_at_last_done;
 
   const doc = await MaintenanceTask.findByIdAndUpdate(id, { $set: update }, { new: true }).lean();
