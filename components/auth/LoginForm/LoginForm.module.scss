@@ -158,6 +158,24 @@
   }
 }
 
+.safariInstall {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.safariTip {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  text-align: center;
+
+  strong {
+    color: var(--color-text-primary);
+    font-weight: 500;
+  }
+}
+
 .installBtn {
   display: flex;
   align-items: center;

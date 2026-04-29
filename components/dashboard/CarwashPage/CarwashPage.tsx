@@ -27,6 +27,7 @@ import { VoorraadPanel } from '@/components/dashboard/VoorraadPanel/VoorraadPane
 import { ParamSelector } from '@/components/layout/NavBar/ParamSelector';
 import { SiteSelector } from '@/components/layout/NavBar/SiteSelector';
 import type { AlertItem, AlertsPanelData, VoorraadItem, ChemieRow, ConsumptionData, DagfichePayload, IncidentSchadePayload, IncidentEhboPayload, DefectPayload, MaintenanceTaskPayload } from '@/lib/types/dashboard';
+import { computeIsOverdue } from '@/lib/maintenance';
 import styles from './CarwashPage.module.scss';
 import type { Types } from 'mongoose';
 
@@ -221,8 +222,9 @@ export async function CarwashPage({
     return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}`;
   }
 
+  const now = new Date();
   const alertItems: AlertItem[] = tasks
-    .filter((t) => t.is_overdue)
+    .filter((t) => computeIsOverdue(t, now))
     .map((t) => {
       const payload: MaintenanceTaskPayload = {
         type: 'maintenance_task',

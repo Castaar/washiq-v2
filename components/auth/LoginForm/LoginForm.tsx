@@ -29,9 +29,15 @@ export function LoginForm({ sites }: LoginFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<Event | null>(null);
   const [isStandalone, setIsStandalone] = useState(true);
+  const [isSafari, setIsSafari] = useState(false);
+  const [showSafariTip, setShowSafariTip] = useState(false);
 
   useEffect(() => {
-    setIsStandalone(window.matchMedia('(display-mode: standalone)').matches);
+    const standalone = window.matchMedia('(display-mode: standalone)').matches;
+    setIsStandalone(standalone);
+
+    const ua = navigator.userAgent;
+    setIsSafari(/^((?!chrome|android).)*safari/i.test(ua));
 
     const handler = (e: Event) => {
       e.preventDefault();
@@ -145,6 +151,19 @@ export function LoginForm({ sites }: LoginFormProps) {
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           App installeren
         </button>
+      )}
+      {!isStandalone && !installPrompt && isSafari && (
+        <div className={styles.safariInstall}>
+          <button type="button" className={styles.installBtn} onClick={() => setShowSafariTip((v) => !v)}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            App installeren
+          </button>
+          {showSafariTip && (
+            <p className={styles.safariTip}>
+              Op Safari: kies <strong>Bestand → Voeg toe aan Dock</strong> (macOS) of gebruik de deelknop → <strong>Zet op beginscherm</strong> (iOS).
+            </p>
+          )}
+        </div>
       )}
     </form>
   );

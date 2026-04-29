@@ -22,6 +22,7 @@ import {
   MaintenanceLog,
   Site,
 } from '@/lib/models';
+import { computeIsOverdue } from '@/lib/maintenance';
 import type { Types } from 'mongoose';
 
 export async function GET(req: NextRequest) {
@@ -138,10 +139,11 @@ export async function GET(req: NextRequest) {
   });
 
   // ── Maintenance alerts ─────────────────────────────────────────
+  const now = new Date();
   const formattedAlerts = alerts.map((t) => ({
     id: t._id.toString(),
     description: t.description,
-    is_overdue: t.is_overdue,
+    is_overdue: computeIsOverdue(t, now),
     trigger_type: t.trigger_type,
     trigger_value: t.trigger_value,
     last_done_at: t.last_done_at,
