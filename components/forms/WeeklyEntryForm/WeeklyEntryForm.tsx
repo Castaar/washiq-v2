@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import styles from './WeeklyEntryForm.module.scss';
@@ -121,16 +121,26 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 export function WeeklyEntryForm({ siteId, programs, lastEntry }: WeeklyEntryFormProps) {
   const router = useRouter();
 
+  const uniqueChemicals = useMemo(() => {
+    const seen = new Set<string>();
+    const result: Chemical[] = [];
+    for (const p of programs) {
+      for (const c of p.chemicals) {
+        if (!seen.has(c.id)) { seen.add(c.id); result.push(c); }
+      }
+    }
+    return result;
+  }, [programs]);
+
   const [programCounts, setProgramCounts] = useState<Record<string, string>>(
-    Object.fromEntries(programs.map((p) => [p.id, ''])),
+    () => Object.fromEntries(programs.map((p) => [p.id, ''])),
   );
-  const [energyKw, setEnergyKw] = useState('');
   const [waterLiters, setWaterLiters] = useState('');
   const [saltKg, setSaltKg] = useState('');
   const [flockKg, setFlockKg] = useState('');
   const [clothUnits, setClothUnits] = useState('');
   const [chemicalUsages, setChemicalUsages] = useState<Record<string, string>>(
-    Object.fromEntries(programs.flatMap((p) => p.chemicals.map((c) => [`${p.id}_${c.id}`, '']))),
+    () => Object.fromEntries(uniqueChemicals.map((c) => [c.id, ''])),
   );
   const [weekStart, setWeekStart] = useState<string>(() => dateToWeekString(new Date()));
   const [saving, setSaving] = useState(false);
@@ -148,7 +158,7 @@ export function WeeklyEntryForm({ siteId, programs, lastEntry }: WeeklyEntryForm
     (lastEntry?.programCounts ?? []).map((pc) => [pc.programId, pc.count]),
   );
   const lastChemMap = Object.fromEntries(
-    (lastEntry?.chemicalUsages ?? []).map((cu) => [`${cu.programId}_${cu.chemicalId}`, cu.amount]),
+    (lastEntry?.chemicalUsages ?? []).map((cu) => [cu.chemicalId, cu.amount]),
   );
 
   async function handleSubmit(e: React.FormEvent) {
@@ -161,7 +171,7 @@ export function WeeklyEntryForm({ siteId, programs, lastEntry }: WeeklyEntryForm
       site_id: siteId,
       week_start: monday.toISOString(),
       water_liters: parseFloat(waterLiters) || 0,
-      energy_kw: parseFloat(energyKw) || 0,
+      energy_kw: 0,
       salt_kg: parseFloat(saltKg) || 0,
       flock_kg: parseFloat(flockKg) || 0,
       cloth_units: parseFloat(clothUnits) || 0,
@@ -170,14 +180,12 @@ export function WeeklyEntryForm({ siteId, programs, lastEntry }: WeeklyEntryForm
         name: p.name,
         count: parseFloat(programCounts[p.id]) || 0,
       })),
-      chemical_usages: programs.flatMap((p) =>
-        p.chemicals.map((c) => ({
-          chemical_id: c.id,
-          name: c.name,
-          amount: parseFloat(chemicalUsages[`${p.id}_${c.id}`]) || 0,
-          unit: c.unit,
-        })),
-      ),
+      chemical_usages: uniqueChemicals.map((c) => ({
+        chemical_id: c.id,
+        name: c.name,
+        amount: parseFloat(chemicalUsages[c.id]) || 0,
+        unit: c.unit,
+      })),
     };
 
     try {
@@ -194,8 +202,6 @@ export function WeeklyEntryForm({ siteId, programs, lastEntry }: WeeklyEntryForm
       setSaving(false);
     }
   }
-
-  const hasChemie = programs.some((p) => p.chemicals.length > 0);
 
   const currentWeek = dateToWeekString(new Date());
 
@@ -239,13 +245,6 @@ export function WeeklyEntryForm({ siteId, programs, lastEntry }: WeeklyEntryForm
         <SectionTitle>Verbruik — geldt voor alle programma&apos;s</SectionTitle>
         <div className={styles.fieldsRow}>
           <EntryField
-            label="Energie (kwh)"
-            value={energyKw}
-            onChange={setEnergyKw}
-            delta={getDelta(energyKw, lastEntry?.energyKw)}
-            lastValue={lastEntry?.energyKw ?? null}
-          />
-          <EntryField
             label="Water (liter)"
             value={waterLiters}
             onChange={setWaterLiters}
@@ -276,34 +275,23 @@ export function WeeklyEntryForm({ siteId, programs, lastEntry }: WeeklyEntryForm
         </div>
       </section>
 
-      {/* ── Section 3: Chemie per programma ─────────────────── */}
-      {hasChemie && (
+      {/* ── Section 3: Chemie totaal per product ────────────── */}
+      {uniqueChemicals.length > 0 && (
         <section className={styles.section}>
-          <SectionTitle>Chemie — per programma afzonderlijk</SectionTitle>
-          {programs.map(
-            (p) =>
-              p.chemicals.length > 0 && (
-                <div key={p.id} className={styles.programBlock}>
-                  <h3 className={styles.programLabel}>Programma — {p.name}</h3>
-                  <div className={styles.fieldsRow}>
-                    {p.chemicals.map((c) => {
-                      const key = `${p.id}_${c.id}`;
-                      return (
-                        <EntryField
-                          key={key}
-                          label={`${c.name} (${c.unit})`}
-                          value={chemicalUsages[key] ?? ''}
-                          onChange={(v) => setChemical(key, v)}
-                          delta={getDelta(chemicalUsages[key] ?? '', lastChemMap[key])}
-                          lastValue={lastChemMap[key] ?? null}
-                          stockLabel={c.current_stock != null ? `Voorraad: ${c.current_stock} ${c.unit}` : undefined}
-                        />
-                      );
-                    })}
-                  </div>
-                </div>
-              ),
-          )}
+          <SectionTitle>Chemie — totaal verbruik per product</SectionTitle>
+          <div className={styles.fieldsRow}>
+            {uniqueChemicals.map((c) => (
+              <EntryField
+                key={c.id}
+                label={`${c.name} (${c.unit})`}
+                value={chemicalUsages[c.id] ?? ''}
+                onChange={(v) => setChemical(c.id, v)}
+                delta={getDelta(chemicalUsages[c.id] ?? '', lastChemMap[c.id])}
+                lastValue={lastChemMap[c.id] ?? null}
+                stockLabel={c.current_stock != null ? `Voorraad: ${c.current_stock} ${c.unit}` : undefined}
+              />
+            ))}
+          </div>
         </section>
       )}
 

@@ -19,6 +19,13 @@ interface PriceConfigData {
   chemicalPrices: { name: string; price: number }[];
 }
 
+export interface EnergyBillItem {
+  id: string;
+  year: number;
+  month: number;
+  amount_euro: number;
+}
+
 export interface StockItem {
   id: string;
   name: string;
@@ -49,6 +56,7 @@ export interface AccountFormProps {
   stockItems: StockItem[];
   maintenanceTasks: MaintenanceTaskItem[];
   currentTotalWashes: number;
+  energyBills: EnergyBillItem[];
 }
 
 // ── Price field ──────────────────────────────────────────────
@@ -81,7 +89,7 @@ function PriceField({
 }
 
 // ── Main component ────────────────────────────────────────────
-export function AccountForm({ priceConfig, users: initialUsers, siteId, currentUser, role, chemieLabels, stockItems: initialStock, maintenanceTasks: initialTasks, currentTotalWashes }: AccountFormProps) {
+export function AccountForm({ priceConfig, users: initialUsers, siteId, currentUser, role, chemieLabels, stockItems: initialStock, maintenanceTasks: initialTasks, currentTotalWashes, energyBills: initialBills }: AccountFormProps) {
   const isEmployee = role === 'employee';
 
   // Accountgegevens
@@ -89,7 +97,6 @@ export function AccountForm({ priceConfig, users: initialUsers, siteId, currentU
   const [password, setPassword] = useState('');
 
   // Kostprijzen
-  const [energie, setEnergie] = useState(String(priceConfig?.energyPerKw ?? ''));
   const [water, setWater] = useState(String(priceConfig?.waterPerLiter ?? ''));
   const [zout, setZout] = useState(String(priceConfig?.saltPerKg ?? ''));
   const [flock, setFlock] = useState(String(priceConfig?.flockPerKg ?? ''));
@@ -119,6 +126,56 @@ export function AccountForm({ priceConfig, users: initialUsers, siteId, currentU
     ...chemieLabels.map((name) => ({ name, unit: 'L' })),
   ];
 
+  // Energiefacturen
+  const MAANDEN_SHORT = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
+  const [bills, setBills] = useState<EnergyBillItem[]>(initialBills);
+  const [billYear, setBillYear] = useState(String(new Date().getFullYear()));
+  const [billMonth, setBillMonth] = useState(String(new Date().getMonth() + 1));
+  const [billAmount, setBillAmount] = useState('');
+  const [savingBill, setSavingBill] = useState(false);
+  const [editingBill, setEditingBill] = useState<string | null>(null);
+  const [editBillAmount, setEditBillAmount] = useState('');
+
+  async function handleSaveBill() {
+    if (!billAmount) return;
+    setSavingBill(true);
+    try {
+      const res = await fetch('/api/energy-bills', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ siteId, year: Number(billYear), month: Number(billMonth), amount_euro: parseFloat(billAmount) }),
+      });
+      if (res.ok) {
+        const data = (await res.json()) as EnergyBillItem;
+        setBills((prev) => {
+          const filtered = prev.filter((b) => !(b.year === data.year && b.month === data.month));
+          return [data, ...filtered].sort((a, b) => b.year - a.year || b.month - a.month);
+        });
+        setBillAmount('');
+      }
+    } finally {
+      setSavingBill(false);
+    }
+  }
+
+  async function handleUpdateBill(id: string) {
+    const res = await fetch(`/api/energy-bills/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount_euro: parseFloat(editBillAmount) }),
+    });
+    if (res.ok) {
+      const data = (await res.json()) as EnergyBillItem;
+      setBills((prev) => prev.map((b) => (b.id === id ? data : b)));
+      setEditingBill(null);
+    }
+  }
+
+  async function handleDeleteBill(id: string) {
+    await fetch(`/api/energy-bills/${id}`, { method: 'DELETE' });
+    setBills((prev) => prev.filter((b) => b.id !== id));
+  }
+
   // Voorraad (stock)
   const [stocks, setStocks] = useState<StockItem[]>(initialStock);
   const [deliveryOpen, setDeliveryOpen] = useState<Record<string, string>>({}); // stockId -> qty string
@@ -145,7 +202,6 @@ export function AccountForm({ priceConfig, users: initialUsers, siteId, currentU
         body: JSON.stringify({
           siteId,
           priceConfigId: priceConfig?.id,
-          energyPerKw: parseFloat(energie) || 0,
           waterPerLiter: parseFloat(water) || 0,
           saltPerKg: parseFloat(zout) || 0,
           flockPerKg: parseFloat(flock) || 0,
@@ -421,7 +477,6 @@ export function AccountForm({ priceConfig, users: initialUsers, siteId, currentU
       <section className={styles.section}>
         <h2 className={styles.sectionLabel}>Kostprijzen</h2>
         <div className={styles.priceRow}>
-          <PriceField label="Energie" value={energie} onChange={setEnergie} />
           <PriceField label="Water" value={water} onChange={setWater} />
           <PriceField label="Zoutverzachter (kg)" value={zout} onChange={setZout} />
           <PriceField label="Flockmiddel (kg)" value={flock} onChange={setFlock} />
@@ -435,6 +490,101 @@ export function AccountForm({ priceConfig, users: initialUsers, siteId, currentU
               value={chemiePrices[i] ?? ''}
               onChange={(v) => updateChemiePrice(i, v)}
             />
+          ))}
+        </div>
+      </section>
+
+      {/* ── Energiefacturen ─────────────────────────────────── */}
+      <section className={styles.section}>
+        <h2 className={styles.sectionLabel}>Energiefacturen</h2>
+
+        {/* Add / upsert row */}
+        <div className={styles.addUserRow} style={{ alignItems: 'flex-end', gap: 8, marginBottom: 12 }}>
+          <div className={styles.fieldGroup} style={{ flex: '0 0 100px' }}>
+            <label className={styles.fieldLabel}>Jaar</label>
+            <input
+              className={styles.input}
+              type="number"
+              min="2020"
+              max="2099"
+              value={billYear}
+              onChange={(e) => setBillYear(e.target.value)}
+            />
+          </div>
+          <div className={styles.fieldGroup} style={{ flex: '0 0 130px' }}>
+            <label className={styles.fieldLabel}>Maand</label>
+            <select className={styles.input} value={billMonth} onChange={(e) => setBillMonth(e.target.value)}>
+              {MAANDEN_SHORT.map((m, i) => (
+                <option key={i + 1} value={i + 1}>{m}</option>
+              ))}
+            </select>
+          </div>
+          <div className={styles.fieldGroup} style={{ flex: 1 }}>
+            <label className={styles.fieldLabel}>Bedrag (€)</label>
+            <div className={styles.priceInputWrap}>
+              <span className={styles.euroSign} aria-hidden="true">€</span>
+              <input
+                className={styles.priceInput}
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="0,00"
+                value={billAmount}
+                onChange={(e) => setBillAmount(e.target.value)}
+              />
+            </div>
+          </div>
+          <button
+            type="button"
+            className={styles.addUserBtn}
+            onClick={handleSaveBill}
+            disabled={savingBill || !billAmount}
+            style={{ flexShrink: 0 }}
+          >
+            {savingBill ? 'Bezig...' : 'Opslaan'}
+          </button>
+        </div>
+
+        {/* Bill list */}
+        <div className={styles.stockList}>
+          {bills.length === 0 && (
+            <p style={{ opacity: 0.5, fontSize: 13 }}>Nog geen facturen ingevoerd.</p>
+          )}
+          {bills.map((b) => (
+            <div key={b.id} className={styles.stockRow}>
+              <span className={styles.stockName}>{MAANDEN_SHORT[b.month - 1]} {b.year}</span>
+              {editingBill === b.id ? (
+                <div className={styles.deliveryInline}>
+                  <span className={styles.euroSign} aria-hidden="true">€</span>
+                  <input
+                    className={styles.deliveryInput}
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={editBillAmount}
+                    onChange={(e) => setEditBillAmount(e.target.value)}
+                    autoFocus
+                    style={{ width: 100 }}
+                  />
+                  <button type="button" className={styles.confirmDeliveryBtn} onClick={() => handleUpdateBill(b.id)}>OK</button>
+                  <button type="button" className={styles.deleteStockBtn} onClick={() => setEditingBill(null)}>✕</button>
+                </div>
+              ) : (
+                <>
+                  <span className={styles.stockMeta}>€ {b.amount_euro.toFixed(2)}</span>
+                  <div className={styles.stockActions}>
+                    <button
+                      type="button"
+                      className={styles.addDeliveryBtn}
+                      onClick={() => { setEditingBill(b.id); setEditBillAmount(String(b.amount_euro)); }}
+                    >
+                      Wijzigen
+                    </button>
+                    <button type="button" className={styles.deleteStockBtn} onClick={() => handleDeleteBill(b.id)}>✕</button>
+                  </div>
+                </>
+              )}
+            </div>
           ))}
         </div>
       </section>

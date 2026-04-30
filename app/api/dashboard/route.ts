@@ -80,11 +80,8 @@ export async function GET(req: NextRequest) {
           raw: current.water_liters,
         },
         energy: {
-          value: cost(current.energy_kw, price?.energy_per_kw ?? 0),
-          delta: delta(
-            cost(current.energy_kw, price?.energy_per_kw ?? 0),
-            previous ? cost(previous.energy_kw, price?.energy_per_kw ?? 0) : undefined,
-          ),
+          value: Math.round((current.energy_kw ?? 0) * 100) / 100,
+          delta: delta(current.energy_kw ?? 0, previous?.energy_kw ?? undefined),
           raw: current.energy_kw,
         },
         salt: {

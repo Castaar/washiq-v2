@@ -3,7 +3,7 @@ import type { Types } from 'mongoose';
 import { NavBar } from '@/components/layout/NavBar/NavBar';
 import { AccountForm } from '@/components/account/AccountForm/AccountForm';
 import { dbConnect } from '@/lib/db/mongoose';
-import { Site, PriceConfig, User, WashProgram, ChemicalStock, MaintenanceTask, WeeklyEntry } from '@/lib/models';
+import { Site, PriceConfig, User, WashProgram, ChemicalStock, MaintenanceTask, WeeklyEntry, EnergyBill } from '@/lib/models';
 import { getSession } from '@/lib/session';
 import styles from './page.module.scss';
 
@@ -41,7 +41,7 @@ export default async function AccountPage({
 
   const addHref = sessionRole === 'employee' ? '/dagfiche' : '/wekelijkse-ingave';
 
-  const [priceConfigDoc, userDocs, currentUserDoc, programDocs, stockDocs, taskDocs, weeklyEntries] = await Promise.all([
+  const [priceConfigDoc, userDocs, currentUserDoc, programDocs, stockDocs, taskDocs, weeklyEntries, energyBillDocs] = await Promise.all([
     PriceConfig.findOne({ site_id: siteId }).lean(),
     User.find({ site_ids: siteId }).select('_id name email role').lean(),
     session ? User.findById(session.userId).select('_id name email').lean() : Promise.resolve(null),
@@ -49,6 +49,7 @@ export default async function AccountPage({
     ChemicalStock.find({ site_id: siteId }).sort({ name: 1 }).lean(),
     MaintenanceTask.find({ site_id: siteId }).sort({ description: 1 }).lean(),
     WeeklyEntry.find({ site_id: siteId }).select('program_counts').lean(),
+    EnergyBill.find({ site_id: siteId }).sort({ year: -1, month: -1 }).lean(),
   ]);
 
   // Collect unique chemical names from all programs for this site
@@ -112,6 +113,13 @@ export default async function AccountPage({
     washes_at_last_done: (t.washes_at_last_done as number) ?? 0,
   }));
 
+  const energyBills = energyBillDocs.map((b) => ({
+    id: (b._id as Types.ObjectId).toString(),
+    year: b.year as number,
+    month: b.month as number,
+    amount_euro: b.amount_euro as number,
+  }));
+
   return (
     <div className={styles.root}>
       <div className={styles.bg} aria-hidden="true">
@@ -129,6 +137,7 @@ export default async function AccountPage({
           stockItems={stockItems}
           maintenanceTasks={maintenanceTasks}
           currentTotalWashes={currentTotalWashes}
+          energyBills={energyBills}
         />
       </main>
     </div>

@@ -37,11 +37,19 @@ export interface DeveloperMaintenanceTask {
   trigger_month_list?: number[];
 }
 
+export interface DeveloperStockItem {
+  id: string;
+  siteId: string;
+  name: string;
+  unit: string;
+}
+
 export interface DeveloperPanelProps {
   users: DeveloperUser[];
   sites: DeveloperSite[];
   programs: DeveloperProgram[];
   maintenanceTasks: DeveloperMaintenanceTask[];
+  stockItems: DeveloperStockItem[];
 }
 
 const ROLE_LABELS: Record<string, string> = {
@@ -189,10 +197,12 @@ function UserRow({
 // ── Program row ───────────────────────────────────────────────
 function ProgramRow({
   program,
+  availableProducts,
   onDelete,
   onUpdate,
 }: {
   program: DeveloperProgram;
+  availableProducts: DeveloperStockItem[];
   onDelete: (id: string) => void;
   onUpdate: (id: string, updated: Partial<DeveloperProgram>) => void;
 }) {
@@ -200,19 +210,12 @@ function ProgramRow({
   const [name, setName] = useState(program.name);
   const [tier, setTier] = useState(program.tier);
   const [chemicals, setChemicals] = useState<string[]>(program.chemicals);
-  const [newChem, setNewChem] = useState('');
   const [saving, setSaving] = useState(false);
 
-  function addChem() {
-    const trimmed = newChem.trim();
-    if (trimmed && !chemicals.includes(trimmed)) {
-      setChemicals((prev) => [...prev, trimmed]);
-    }
-    setNewChem('');
-  }
-
-  function removeChem(chem: string) {
-    setChemicals((prev) => prev.filter((c) => c !== chem));
+  function toggleChem(productName: string) {
+    setChemicals((prev) =>
+      prev.includes(productName) ? prev.filter((c) => c !== productName) : [...prev, productName],
+    );
   }
 
   async function handleSave() {
@@ -258,11 +261,7 @@ function ProgramRow({
         <div className={styles.editPanel}>
           <div className={styles.editRow}>
             <span className={styles.editLabel}>Naam</span>
-            <input
-              className={styles.input}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
+            <input className={styles.input} value={name} onChange={(e) => setName(e.target.value)} />
           </div>
           <div className={styles.editRow}>
             <span className={styles.editLabel}>Tier</span>
@@ -276,32 +275,23 @@ function ProgramRow({
             />
           </div>
           <div className={styles.editRow}>
-            <span className={styles.editLabel}>Chemie</span>
-            <div className={styles.chemEditor}>
-              <div className={styles.chemPills}>
-                {chemicals.map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    className={styles.chemPillRemove}
-                    onClick={() => removeChem(c)}
-                    title={`Verwijder ${c}`}
-                  >
-                    {c} ×
-                  </button>
+            <span className={styles.editLabel}>Producten</span>
+            {availableProducts.length === 0 ? (
+              <span className={styles.noAccess}>Voeg eerst producten toe aan deze site</span>
+            ) : (
+              <div className={styles.checkboxGroup}>
+                {availableProducts.map((p) => (
+                  <label key={p.id} className={styles.checkboxItem}>
+                    <input
+                      type="checkbox"
+                      checked={chemicals.includes(p.name)}
+                      onChange={() => toggleChem(p.name)}
+                    />
+                    {p.name} ({p.unit})
+                  </label>
                 ))}
               </div>
-              <div className={styles.chemAddRow}>
-                <input
-                  className={styles.input}
-                  placeholder="Nieuw product..."
-                  value={newChem}
-                  onChange={(e) => setNewChem(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addChem(); } }}
-                />
-                <button type="button" className={styles.saveSmallBtn} onClick={addChem}>+</button>
-              </div>
-            </div>
+            )}
           </div>
           <div className={styles.editActions}>
             <button type="button" className={styles.cancelBtn} onClick={() => setEditing(false)}>Annuleren</button>
@@ -319,12 +309,14 @@ function ProgramRow({
 function SitePrograms({
   site,
   programs,
+  availableProducts,
   onDeleteProgram,
   onUpdateProgram,
   onAddProgram,
 }: {
   site: DeveloperSite;
   programs: DeveloperProgram[];
+  availableProducts: DeveloperStockItem[];
   onDeleteProgram: (id: string) => void;
   onUpdateProgram: (id: string, updated: Partial<DeveloperProgram>) => void;
   onAddProgram: (program: DeveloperProgram) => void;
@@ -333,15 +325,12 @@ function SitePrograms({
   const [addName, setAddName] = useState('');
   const [addTier, setAddTier] = useState(programs.length + 1);
   const [addChemicals, setAddChemicals] = useState<string[]>([]);
-  const [newChem, setNewChem] = useState('');
   const [adding, setAdding] = useState(false);
 
-  function addChem() {
-    const trimmed = newChem.trim();
-    if (trimmed && !addChemicals.includes(trimmed)) {
-      setAddChemicals((prev) => [...prev, trimmed]);
-    }
-    setNewChem('');
+  function toggleAddChem(productName: string) {
+    setAddChemicals((prev) =>
+      prev.includes(productName) ? prev.filter((c) => c !== productName) : [...prev, productName],
+    );
   }
 
   async function handleAdd(e: React.FormEvent) {
@@ -374,7 +363,7 @@ function SitePrograms({
       </div>
 
       {programs.length === 0 && !showAdd && (
-        <p className={styles.noAccess}>Geen programma's</p>
+        <p className={styles.noAccess}>Geen programma&apos;s</p>
       )}
 
       <div className={styles.programList}>
@@ -385,6 +374,7 @@ function SitePrograms({
             <ProgramRow
               key={p.id}
               program={p}
+              availableProducts={availableProducts}
               onDelete={onDeleteProgram}
               onUpdate={onUpdateProgram}
             />
@@ -405,31 +395,129 @@ function SitePrograms({
           </div>
           <div className={styles.addFormRow}>
             <div className={styles.addFieldFull}>
-              <label className={styles.addLabel}>Chemie</label>
-              <div className={styles.chemEditor}>
-                <div className={styles.chemPills}>
-                  {addChemicals.map((c) => (
-                    <button
-                      key={c}
-                      type="button"
-                      className={styles.chemPillRemove}
-                      onClick={() => setAddChemicals((prev) => prev.filter((x) => x !== c))}
-                    >
-                      {c} ×
-                    </button>
+              <label className={styles.addLabel}>Producten</label>
+              {availableProducts.length === 0 ? (
+                <span className={styles.noAccess}>Voeg eerst producten toe aan deze site</span>
+              ) : (
+                <div className={styles.checkboxGroup}>
+                  {availableProducts.map((p) => (
+                    <label key={p.id} className={styles.checkboxItem}>
+                      <input
+                        type="checkbox"
+                        checked={addChemicals.includes(p.name)}
+                        onChange={() => toggleAddChem(p.name)}
+                      />
+                      {p.name} ({p.unit})
+                    </label>
                   ))}
                 </div>
-                <div className={styles.chemAddRow}>
-                  <input
-                    className={styles.input}
-                    placeholder="Nieuw product..."
-                    value={newChem}
-                    onChange={(e) => setNewChem(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); const t = newChem.trim(); if (t && !addChemicals.includes(t)) { setAddChemicals((prev) => [...prev, t]); } setNewChem(''); } }}
-                  />
-                  <button type="button" className={styles.saveSmallBtn} onClick={addChem}>+</button>
-                </div>
-              </div>
+              )}
+            </div>
+          </div>
+          <div className={styles.addFormFooter}>
+            <button type="button" className={styles.cancelBtn} onClick={() => setShowAdd(false)}>Annuleren</button>
+            <button type="submit" className={styles.saveSmallBtn} disabled={adding}>{adding ? 'Bezig...' : 'Opslaan'}</button>
+          </div>
+        </form>
+      )}
+    </div>
+  );
+}
+
+// ── Products block per site ───────────────────────────────────
+function SiteProductsBlock({
+  site,
+  products,
+  onAdd,
+  onDelete,
+}: {
+  site: DeveloperSite;
+  products: DeveloperStockItem[];
+  onAdd: (item: DeveloperStockItem) => void;
+  onDelete: (id: string) => void;
+}) {
+  const [showAdd, setShowAdd] = useState(false);
+  const [addName, setAddName] = useState('');
+  const [addUnit, setAddUnit] = useState('L');
+  const [adding, setAdding] = useState(false);
+
+  async function handleAdd(e: React.FormEvent) {
+    e.preventDefault();
+    if (!addName.trim()) return;
+    setAdding(true);
+    try {
+      const res = await fetch('/api/stock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ siteId: site.id, name: addName.trim(), unit: addUnit, current_stock: 0, min_stock_alert: 0 }),
+      });
+      const data = (await res.json()) as { id?: string };
+      if (res.ok && data.id) {
+        onAdd({ id: data.id, siteId: site.id, name: addName.trim(), unit: addUnit });
+        setAddName(''); setAddUnit('L'); setShowAdd(false);
+      }
+    } finally {
+      setAdding(false);
+    }
+  }
+
+  async function handleDelete(id: string, name: string) {
+    if (!confirm(`Product "${name}" verwijderen?`)) return;
+    const res = await fetch(`/api/stock/${id}`, { method: 'DELETE' });
+    if (res.ok) onDelete(id);
+  }
+
+  return (
+    <div className={styles.siteBlock}>
+      <div className={styles.siteBlockHeader}>
+        <span className={styles.siteBlockTitle}>{site.name}</span>
+        <button type="button" className={styles.addSmallBtn} onClick={() => setShowAdd((v) => !v)}>
+          + Product
+        </button>
+      </div>
+
+      {products.length === 0 && !showAdd && (
+        <p className={styles.noAccess}>Geen producten</p>
+      )}
+
+      <div className={styles.programList}>
+        {products.map((p) => (
+          <div key={p.id} className={styles.programMain}>
+            <span className={styles.programName}>{p.name}</span>
+            <span className={styles.chemPill}>{p.unit}</span>
+            <div className={styles.rowActions}>
+              <button
+                type="button"
+                className={styles.deleteBtn}
+                onClick={() => handleDelete(p.id, p.name)}
+                aria-label="Verwijderen"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {showAdd && (
+        <form className={styles.addForm} onSubmit={handleAdd} noValidate>
+          <div className={styles.addFormRow}>
+            <div className={styles.addField}>
+              <label className={styles.addLabel}>Naam</label>
+              <input
+                className={styles.input}
+                value={addName}
+                onChange={(e) => setAddName(e.target.value)}
+                placeholder="LC Shampoo Fresh"
+              />
+            </div>
+            <div className={styles.addField} style={{ maxWidth: 120 }}>
+              <label className={styles.addLabel}>Eenheid</label>
+              <select className={styles.roleSelect} value={addUnit} onChange={(e) => setAddUnit(e.target.value)}>
+                <option value="L">L (liter)</option>
+                <option value="kg">kg</option>
+                <option value="stuks">stuks</option>
+              </select>
             </div>
           </div>
           <div className={styles.addFormFooter}>
@@ -443,11 +531,12 @@ function SitePrograms({
 }
 
 // ── Main panel ────────────────────────────────────────────────
-export function DeveloperPanel({ users: initialUsers, sites: initialSites, programs: initialPrograms, maintenanceTasks: initialTasks }: DeveloperPanelProps) {
+export function DeveloperPanel({ users: initialUsers, sites: initialSites, programs: initialPrograms, maintenanceTasks: initialTasks, stockItems: initialStock }: DeveloperPanelProps) {
   const [users, setUsers] = useState(initialUsers);
   const [sites, setSites] = useState(initialSites);
   const [programs, setPrograms] = useState(initialPrograms);
   const [tasks, setTasks] = useState(initialTasks);
+  const [stockItems, setStockItems] = useState(initialStock);
 
   // ── Site add state ──────────────────────────────────────────
   const [showAddSite, setShowAddSite] = useState(false);
@@ -495,6 +584,15 @@ export function DeveloperPanel({ users: initialUsers, sites: initialSites, progr
 
   function handleAddProgram(program: DeveloperProgram) {
     setPrograms((prev) => [...prev, program]);
+  }
+
+  // ── Stock / product handlers ────────────────────────────────
+  function handleAddStock(item: DeveloperStockItem) {
+    setStockItems((prev) => [...prev, item]);
+  }
+
+  function handleDeleteStock(id: string) {
+    setStockItems((prev) => prev.filter((s) => s.id !== id));
   }
 
   // ── Maintenance task state & handlers ───────────────────────
@@ -717,6 +815,25 @@ export function DeveloperPanel({ users: initialUsers, sites: initialSites, progr
         </div>
       </div>
 
+      {/* ══ PRODUCTEN ══════════════════════════════════════ */}
+      <div className={styles.card}>
+        <div className={styles.header}>
+          <h1 className={styles.title}>Producten</h1>
+        </div>
+        {sites.map((s) => {
+          const siteStock = stockItems.filter((st) => st.siteId === s.id);
+          return (
+            <SiteProductsBlock
+              key={s.id}
+              site={s}
+              products={siteStock}
+              onAdd={handleAddStock}
+              onDelete={handleDeleteStock}
+            />
+          );
+        })}
+      </div>
+
       {/* ══ PROGRAMMA'S ════════════════════════════════════ */}
       <div className={styles.card}>
         <div className={styles.header}>
@@ -727,6 +844,7 @@ export function DeveloperPanel({ users: initialUsers, sites: initialSites, progr
             key={s.id}
             site={s}
             programs={programs.filter((p) => p.siteId === s.id)}
+            availableProducts={stockItems.filter((st) => st.siteId === s.id)}
             onDeleteProgram={handleDeleteProgram}
             onUpdateProgram={handleUpdateProgram}
             onAddProgram={handleAddProgram}

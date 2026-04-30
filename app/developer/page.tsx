@@ -2,19 +2,20 @@ import Image from 'next/image';
 import type { Types } from 'mongoose';
 import { NavBar } from '@/components/layout/NavBar/NavBar';
 import { DeveloperPanel } from '@/components/developer/DeveloperPanel/DeveloperPanel';
-import type { DeveloperUser, DeveloperSite, DeveloperProgram, DeveloperMaintenanceTask } from '@/components/developer/DeveloperPanel/DeveloperPanel';
+import type { DeveloperUser, DeveloperSite, DeveloperProgram, DeveloperMaintenanceTask, DeveloperStockItem } from '@/components/developer/DeveloperPanel/DeveloperPanel';
 import { dbConnect } from '@/lib/db/mongoose';
-import { Site, User, WashProgram, MaintenanceTask } from '@/lib/models';
+import { Site, User, WashProgram, MaintenanceTask, ChemicalStock } from '@/lib/models';
 import styles from './page.module.scss';
 
 export default async function DeveloperPage() {
   await dbConnect();
 
-  const [siteDocs, userDocs, programDocs, taskDocs] = await Promise.all([
+  const [siteDocs, userDocs, programDocs, taskDocs, stockDocs] = await Promise.all([
     Site.find({}).select('_id name location').lean(),
     User.find({}).select('_id name email role site_ids').lean(),
     WashProgram.find({}).select('_id site_id name tier chemicals').lean(),
     MaintenanceTask.find({}).sort({ description: 1 }).lean(),
+    ChemicalStock.find({}).select('_id site_id name unit').sort({ name: 1 }).lean(),
   ]);
 
   const sites: DeveloperSite[] = siteDocs.map((s) => ({
@@ -56,6 +57,13 @@ export default async function DeveloperPage() {
     trigger_month_list: (t.trigger_month_list as number[]) ?? [],
   }));
 
+  const stockItems: DeveloperStockItem[] = stockDocs.map((s) => ({
+    id: (s._id as Types.ObjectId).toString(),
+    siteId: (s.site_id as Types.ObjectId).toString(),
+    name: (s.name as string) ?? '',
+    unit: (s.unit as string) ?? 'L',
+  }));
+
   return (
     <div className={styles.root}>
       <div className={styles.bg} aria-hidden="true">
@@ -63,7 +71,7 @@ export default async function DeveloperPage() {
       </div>
       <NavBar centerTitle="Developer" backHref="/" />
       <main className={styles.main}>
-        <DeveloperPanel users={users} sites={sites} programs={programs} maintenanceTasks={maintenanceTasks} />
+        <DeveloperPanel users={users} sites={sites} programs={programs} maintenanceTasks={maintenanceTasks} stockItems={stockItems} />
       </main>
     </div>
   );

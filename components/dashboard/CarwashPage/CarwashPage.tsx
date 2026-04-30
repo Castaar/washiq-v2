@@ -14,6 +14,7 @@ import {
   IncidentSchade,
   IncidentEhbo,
   Defect,
+  EnergyBill,
 } from '@/lib/models';
 import { UsageToggle } from '@/components/dashboard/UsageToggle/UsageToggle';
 import { ProgrammaCard } from '@/components/dashboard/ProgrammaCard/ProgrammaCard';
@@ -60,7 +61,13 @@ export async function CarwashPage({
   const filter = siteId ? { site_id: siteId } : {};
 
   // ── Fetch all data in parallel ───────────────────────────────
-  const [entries, programs, priceConfigs, stocks, tasks, logs, checklists, incSchades, incEhbos, defects] = await Promise.all([
+  const today = new Date();
+  const curYear = today.getFullYear();
+  const curMonth = today.getMonth() + 1;
+  const prevMonth = curMonth === 1 ? 12 : curMonth - 1;
+  const prevYear  = curMonth === 1 ? curYear - 1 : curYear;
+
+  const [entries, programs, priceConfigs, stocks, tasks, logs, checklists, incSchades, incEhbos, defects, energyBillCur, energyBillPrev] = await Promise.all([
     WeeklyEntry.find(filter).sort({ week_start: -1 }).limit(9).lean(),
     WashProgram.find(filter).sort({ tier: 1 }).lean(),
     PriceConfig.find(filter).sort({ valid_from: -1 }).limit(1).lean(),
@@ -71,6 +78,8 @@ export async function CarwashPage({
     IncidentSchade.find(filter).sort({ created_at: -1 }).limit(8).lean(),
     IncidentEhbo.find(filter).sort({ created_at: -1 }).limit(8).lean(),
     Defect.find(filter).sort({ created_at: -1 }).limit(8).lean(),
+    siteId ? EnergyBill.findOne({ site_id: siteId, year: curYear,  month: curMonth  }).lean() : null,
+    siteId ? EnergyBill.findOne({ site_id: siteId, year: prevYear, month: prevMonth }).lean() : null,
   ]);
 
   // ── Aggregate helper for month view ──────────────────────────
@@ -156,32 +165,32 @@ export async function CarwashPage({
   const saltRaw   = current?.salt_kg      ?? 0;
   const flockRaw  = current?.flock_kg     ?? 0;
   const waterRaw  = current?.water_liters ?? 0;
-  const energyRaw = current?.energy_kw    ?? 0;
   const clothRaw  = (current as Record<string, unknown>)?.cloth_units as number ?? 0;
 
   const saltPrevRaw   = previous?.salt_kg      ?? 0;
   const flockPrevRaw  = previous?.flock_kg     ?? 0;
   const waterPrevRaw  = previous?.water_liters ?? 0;
-  const energyPrevRaw = previous?.energy_kw    ?? 0;
   const clothPrevRaw  = (previous as Record<string, unknown>)?.cloth_units as number ?? 0;
 
   const saltVal   = getVal(saltRaw,   price?.salt_per_kg      ?? 0);
   const flockVal  = getVal(flockRaw,  price?.flock_per_kg     ?? 0);
   const waterVal  = getVal(waterRaw,  price?.water_per_liter  ?? 0);
-  const energyVal = getVal(energyRaw, price?.energy_per_kw    ?? 0);
+  const curBillAmount  = (energyBillCur?.amount_euro  as number | undefined) ?? 0;
+  const prevBillAmount = (energyBillPrev?.amount_euro as number | undefined) ?? 0;
+  const energyVal  = wagensCount > 0 && usage === 'wagen' ? Math.round((curBillAmount  / wagensCount)  * 100) / 100 : curBillAmount;
   const clothVal  = getVal(clothRaw,  price?.cloth_per_unit   ?? 0);
 
   const saltPrev   = getPrev(saltPrevRaw,   price?.salt_per_kg      ?? 0);
   const flockPrev  = getPrev(flockPrevRaw,  price?.flock_per_kg     ?? 0);
   const waterPrev  = getPrev(waterPrevRaw,  price?.water_per_liter  ?? 0);
-  const energyPrev = getPrev(energyPrevRaw, price?.energy_per_kw    ?? 0);
+  const energyPrev = wagensPrev > 0 && usage === 'wagen' ? Math.round((prevBillAmount / wagensPrev) * 100) / 100 : prevBillAmount;
   const clothPrev  = getPrev(clothPrevRaw,  price?.cloth_per_unit   ?? 0);
 
   const zoutData: ConsumptionData    = { label: 'Zout',           value: saltVal,   delta: calcDelta(saltVal, saltPrev),     prefix: cardPrefix, suffix: view === 'liter' ? 'kg' : undefined,    lowerIsBetter: true };
   const flocData: ConsumptionData    = { label: 'Flockmiddel',    value: flockVal,  delta: calcDelta(flockVal, flockPrev),   prefix: cardPrefix, suffix: view === 'liter' ? 'kg' : undefined,    lowerIsBetter: true };
   const clothData: ConsumptionData   = { label: 'Ruitendoekjes',  value: clothVal,  delta: calcDelta(clothVal, clothPrev),   prefix: cardPrefix, suffix: view === 'liter' ? 'st' : undefined,    lowerIsBetter: true };
   const waterData: ConsumptionData   = { label: 'Water',          value: waterVal,  delta: calcDelta(waterVal, waterPrev),   prefix: cardPrefix, suffix: view === 'liter' ? 'L' : undefined,     lowerIsBetter: true };
-  const energieData: ConsumptionData = { label: 'Energie',        value: energyVal, delta: calcDelta(energyVal, energyPrev), prefix: cardPrefix, suffix: view === 'liter' ? 'kWh' : undefined,   lowerIsBetter: true };
+  const energieData: ConsumptionData = { label: 'Energie',        value: energyVal, delta: calcDelta(energyVal, energyPrev), prefix: '€', lowerIsBetter: true };
 
   // ── Wagens is already calculated above ───────────────────────
 

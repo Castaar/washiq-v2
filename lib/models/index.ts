@@ -365,3 +365,19 @@ const ActivityLogSchema = new Schema<IActivityLog>({
 });
 export const ActivityLog = models.ActivityLog || model<IActivityLog>('ActivityLog', ActivityLogSchema);
 
+// ─── EnergyBill ───────────────────────────────────────────────
+export interface IEnergyBill extends Document {
+  site_id: Types.ObjectId;
+  year: number;
+  month: number; // 1–12
+  amount_euro: number;
+  created_at: Date;
+}
+const EnergyBillSchema = new Schema<IEnergyBill>({
+  site_id: { type: Schema.Types.ObjectId, ref: 'Site' },
+  year: Number,
+  month: Number,
+  amount_euro: Number,
+  created_at: { type: Date, default: Date.now },
+});
+export const EnergyBill = models.EnergyBill || model<IEnergyBill>('EnergyBill', EnergyBillSchema);
