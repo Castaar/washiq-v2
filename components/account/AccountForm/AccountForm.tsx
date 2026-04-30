@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import styles from './AccountForm.module.scss';
 import { IconEye, IconEyeOff } from '@/components/ui/icons';
 
@@ -872,6 +873,9 @@ export function AccountForm({ priceConfig, users: initialUsers, siteId, currentU
         <button type="submit" className={styles.saveBtn} disabled={saving}>
           {saving ? 'Opslaan...' : 'Opslaan'}
         </button>
+        <Link href={`/handleiding${siteId ? `?site=${siteId}` : ''}`} className={styles.helpLink}>
+          Handleiding bekijken
+        </Link>
       </div>
     </form>
   );

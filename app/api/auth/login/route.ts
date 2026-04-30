@@ -40,6 +40,7 @@ export async function POST(req: NextRequest) {
     ok: true,
     role: user.role,
     siteIds,
+    helpSeen: !!(user.help_seen),
   });
   res.cookies.set(sessionCookieOptions(token));
   return res;

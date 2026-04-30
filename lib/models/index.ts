@@ -22,6 +22,7 @@ export interface IUser extends Document {
   password_hash: string;
   role: 'developer' | 'owner' | 'employee';
   site_ids: Types.ObjectId[];
+  help_seen: boolean;
   created_at: Date;
 }
 const UserSchema = new Schema<IUser>({
@@ -30,6 +31,7 @@ const UserSchema = new Schema<IUser>({
   password_hash: String,
   role: { type: String, enum: ['developer', 'owner', 'employee'], default: 'employee' },
   site_ids: [{ type: Schema.Types.ObjectId, ref: 'Site' }],
+  help_seen: { type: Boolean, default: false },
   created_at: { type: Date, default: Date.now },
 });
 export const User = models.User || model<IUser>('User', UserSchema);

@@ -65,11 +65,16 @@ export function LoginForm({ sites }: LoginFormProps) {
         body: JSON.stringify({ email: username, password }),
       });
       if (res.ok) {
-        const data = await res.json() as { role: string; siteIds: string[] };
+        const data = await res.json() as { role: string; siteIds: string[]; helpSeen: boolean };
         // Pick the site to land on: selected > first in account > none
         const landingSite = siteId || data.siteIds?.[0] || '';
-        const dest = landingSite ? `/?site=${landingSite}` : '/';
-        router.push(dest);
+        if (!data.helpSeen) {
+          const dest = landingSite ? `/handleiding?site=${landingSite}` : '/handleiding';
+          router.push(dest);
+        } else {
+          const dest = landingSite ? `/?site=${landingSite}` : '/';
+          router.push(dest);
+        }
         router.refresh();
       } else {
         const data = await res.json().catch(() => ({}));

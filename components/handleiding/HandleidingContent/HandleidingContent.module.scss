@@ -1,0 +1,214 @@
+@use '../../../styles/variables' as *;
+
+.wrap {
+  width: 100%;
+  max-width: 780px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+// ── Intro banner ──────────────────────────────────────────────
+.introBanner {
+  @include glass(0.06, 20px);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.introTitle {
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  line-height: 1.3;
+}
+
+.introSubtitle {
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}
+
+// ── Section card ──────────────────────────────────────────────
+.card {
+  @include glass(0.045, 18px);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.04);
+  }
+}
+
+.cardIcon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.cardTitle {
+  flex: 1;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.cardBadge {
+  font-size: 0.7rem;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: rgba(79, 124, 255, 0.15);
+  color: var(--color-accent-blue);
+  border: 1px solid rgba(79, 124, 255, 0.25);
+  white-space: nowrap;
+}
+
+.cardBadgeGreen {
+  background: rgba(52, 211, 153, 0.12);
+  color: #34d399;
+  border-color: rgba(52, 211, 153, 0.25);
+}
+
+.chevron {
+  color: var(--color-text-muted);
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.cardBody {
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+// ── Subsection ────────────────────────────────────────────────
+.subSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.subTitle {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.text {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  line-height: 1.65;
+}
+
+// ── Button list ───────────────────────────────────────────────
+.buttonList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.buttonItem {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.buttonTag {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-family: var(--font-mono, monospace);
+}
+
+.buttonDesc {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  line-height: 1.55;
+  padding-top: 2px;
+}
+
+// ── Footer actions ────────────────────────────────────────────
+.footerActions {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-2) 0 var(--space-4);
+}
+
+.continueBtn {
+  height: 44px;
+  padding: 0 var(--space-8);
+  background: var(--color-accent-blue);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 500;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: opacity 0.15s;
+
+  &:hover {
+    opacity: 0.88;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.backBtn {
+  height: 44px;
+  padding: 0 var(--space-8);
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+  font-weight: 500;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background 0.15s;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
