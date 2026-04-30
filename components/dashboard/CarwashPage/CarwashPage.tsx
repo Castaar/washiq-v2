@@ -451,6 +451,17 @@ export async function CarwashPage({
   return (
     <div className={styles.grid}>
 
+      {/* ── Setup banner (shown when no price config exists) ─── */}
+      {!price && (userRole === 'owner' || userRole === 'developer') && (
+        <Link
+          href={siteId ? `/instellingen?site=${siteId}` : '/instellingen'}
+          className={styles.setupBanner}
+        >
+          <span>Prijzen nog niet ingesteld — stel uw instellingen in om kosten te berekenen</span>
+          <span className={styles.setupArrow}>→</span>
+        </Link>
+      )}
+
       {/* ── Mobile-only selector row ─────────────────────────── */}
       <div className={styles.mobileSelectors}>
         {sites && sites.length > 0 && propSiteId && (

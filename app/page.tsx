@@ -51,13 +51,16 @@ export default async function DashboardPage({
     : '/wekelijkse-ingave';
   const addHref = userRole === 'developer' ? '/developer' : (activeSiteId ? `${addBase}?site=${activeSiteId}` : addBase);
   const addLabel = userRole === 'developer' ? 'Developer' : userRole === 'employee' ? 'Dagfiche' : 'Wekelijkse Ingave';
+  const settingsHref = (userRole === 'owner' || userRole === 'developer')
+    ? (activeSiteId ? `/instellingen?site=${activeSiteId}` : '/instellingen')
+    : undefined;
 
   return (
     <div className={styles.root}>
       <div className={styles.bg} aria-hidden="true">
         <Image src="/background.png" alt="" fill style={{ objectFit: 'cover' }} priority />
       </div>
-      <NavBar sites={sites} activeSiteId={activeSiteId} activePeriod={period} activeView={view} addHref={addHref} addLabel={addLabel} />
+      <NavBar sites={sites} activeSiteId={activeSiteId} activePeriod={period} activeView={view} addHref={addHref} addLabel={addLabel} settingsHref={settingsHref} />
       <CarwashPage siteId={activeSiteId} period={period} view={view} usage={usage} sites={sites} addHref={addHref} addLabel={addLabel} userRole={userRole} />
     </div>
   );

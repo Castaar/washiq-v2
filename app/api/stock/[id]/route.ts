@@ -18,6 +18,12 @@ export async function PATCH(
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 
+  // Direct stock override (used by initial setup flow — no delivery log)
+  if (typeof body.set_stock === 'number') {
+    stock.current_stock = body.set_stock;
+    stock.last_updated = new Date();
+  }
+
   // If a delivery quantity is provided, log it and increase current_stock
   if (typeof body.delivery_quantity === 'number' && body.delivery_quantity > 0) {
     const session = await getSession();

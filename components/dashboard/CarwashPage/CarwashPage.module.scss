@@ -46,6 +46,33 @@
   }
 }
 
+// ─── Setup banner ────────────────────────────────────────────
+.setupBanner {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-5);
+  background: rgba(251, 191, 36, 0.07);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  border-radius: var(--radius-lg);
+  font-size: 0.8125rem;
+  color: rgba(251, 191, 36, 0.85);
+  text-decoration: none;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+
+  &:hover {
+    background: rgba(251, 191, 36, 0.11);
+    border-color: rgba(251, 191, 36, 0.45);
+  }
+}
+
+.setupArrow {
+  flex-shrink: 0;
+  font-size: 1rem;
+}
+
 // ─── Left ────────────────────────────────────────────────────
 .left {
   grid-area: left;

@@ -1,0 +1,420 @@
+@use '../../../styles/variables' as *;
+
+// ─── Wrapper ──────────────────────────────────────────────────
+.wrapper {
+  width: 100%;
+  max-width: 780px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding-bottom: var(--space-8);
+}
+
+// ─── First-time banner ────────────────────────────────────────
+.firstTimeBanner {
+  @include glass(0.06);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5) var(--space-6);
+  border-color: rgba(16, 217, 160, 0.25);
+}
+
+.bannerTitle {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-accent-teal);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: var(--space-2);
+}
+
+.bannerText {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  line-height: 1.55;
+  margin: 0;
+}
+
+// ─── Progress row ─────────────────────────────────────────────
+.progressRow {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: var(--space-4) var(--space-5);
+  @include glass(0.04);
+  border-radius: var(--radius-lg);
+}
+
+.progressStep {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: color var(--transition-fast);
+}
+
+.stepDone  { color: var(--color-accent-teal); }
+.stepActive { color: var(--color-text-primary); }
+.stepIdle  { color: var(--color-text-muted); }
+
+.progressLine {
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+  margin: 0 var(--space-3);
+  transition: background var(--transition-fast);
+
+  &.lineDone { background: rgba(16, 217, 160, 0.35); }
+}
+
+// ─── Step badge ───────────────────────────────────────────────
+.stepBadge {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.badgeDone {
+  background: rgba(16, 217, 160, 0.15);
+  color: var(--color-accent-teal);
+  border: 1px solid rgba(16, 217, 160, 0.4);
+}
+
+.badgePending {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+}
+
+// ─── Section card ─────────────────────────────────────────────
+.section {
+  @include glass(0.045);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+
+  @include respond-to('mobile') {
+    padding: var(--space-4);
+    border-radius: var(--radius-lg);
+  }
+}
+
+.sectionHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.sectionTitle {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.sectionHint {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  margin: 0;
+  margin-top: calc(-1 * var(--space-2));
+}
+
+// ─── Price fields ─────────────────────────────────────────────
+.priceGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.priceField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: 1 1 160px;
+  min-width: 140px;
+  max-width: 200px;
+}
+
+.priceLabel {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  font-weight: 400;
+}
+
+.priceInputWrap {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.04);
+  overflow: hidden;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+
+  &:focus-within {
+    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.06);
+  }
+}
+
+.priceInput {
+  flex: 1;
+  height: 40px;
+  background: transparent;
+  border: none;
+  color: var(--color-text-primary);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  font-family: inherit;
+  padding: 0 var(--space-3);
+  min-width: 0;
+
+  -moz-appearance: textfield;
+  &::-webkit-outer-spin-button,
+  &::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+  &:focus { outline: none; }
+  &::placeholder { color: var(--color-text-muted); font-weight: 400; }
+}
+
+.priceUnit {
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+  padding: 0 var(--space-3) 0 0;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+// ─── Stock table ──────────────────────────────────────────────
+.stockTable {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.stockHeaderRow {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 80px;
+  gap: var(--space-3);
+  padding: 0 var(--space-2);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+
+  @include respond-to('mobile') {
+    display: none;
+  }
+}
+
+.stockRow {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 80px;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid var(--color-border);
+
+  @include respond-to('mobile') {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
+  }
+}
+
+.stockName {
+  font-size: 0.875rem;
+  color: var(--color-text-primary);
+  font-weight: 500;
+}
+
+.stockInput {
+  height: 36px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  font-family: inherit;
+  padding: 0 var(--space-3);
+  width: 100%;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+
+  -moz-appearance: textfield;
+  &::-webkit-outer-spin-button,
+  &::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+  &:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  &::placeholder { color: var(--color-text-muted); font-weight: 400; }
+}
+
+.stockUnit {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+
+  @include respond-to('mobile') {
+    grid-column: 2;
+    grid-row: 2;
+  }
+}
+
+// ─── Energy bill form ─────────────────────────────────────────
+.billForm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.billSelect {
+  height: 40px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  font-size: 0.875rem;
+  font-family: inherit;
+  padding: 0 var(--space-3);
+  color-scheme: dark;
+  cursor: pointer;
+  transition: border-color var(--transition-fast);
+
+  &:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+}
+
+.billAmountWrap {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.04);
+  overflow: hidden;
+  transition: border-color var(--transition-fast);
+
+  &:focus-within { border-color: rgba(255, 255, 255, 0.2); }
+}
+
+.billEuro {
+  padding: 0 var(--space-3);
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.billAmountInput {
+  height: 40px;
+  width: 160px;
+  background: transparent;
+  border: none;
+  color: var(--color-text-primary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  font-family: inherit;
+  padding: 0 var(--space-3) 0 0;
+
+  -moz-appearance: textfield;
+  &::-webkit-outer-spin-button,
+  &::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+  &:focus { outline: none; }
+  &::placeholder { color: var(--color-text-muted); font-weight: 400; }
+}
+
+// ─── Bills list ───────────────────────────────────────────────
+.billsList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+}
+
+.billRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.billPeriod {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+}
+
+.billAmount {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+// ─── Section footer ───────────────────────────────────────────
+.sectionFooter {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-4);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+}
+
+.savedMsg {
+  font-size: 0.8125rem;
+  color: var(--color-accent-teal);
+}
+
+.saveBtn {
+  height: 40px;
+  padding: 0 var(--space-6);
+  background: transparent;
+  border: 1px solid var(--color-accent-teal);
+  border-radius: var(--radius-md);
+  color: var(--color-accent-teal);
+  font-size: 0.875rem;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+
+  &:hover:not(:disabled) {
+    background: var(--color-accent-teal);
+    color: var(--color-text-inverse);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+// ─── Empty hint ───────────────────────────────────────────────
+.emptyHint {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  font-style: italic;
+}

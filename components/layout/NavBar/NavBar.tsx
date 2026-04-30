@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
 import { carwashMeta } from '@/lib/mock-data/carwash';
-import { IconChevronDown, IconChevronLeft, IconUser } from '@/components/ui/icons';
+import { IconChevronDown, IconChevronLeft, IconUser, IconSettings } from '@/components/ui/icons';
 import { SiteSelector } from './SiteSelector';
 import { ParamSelector } from './ParamSelector';
 import { LogoutButton } from './LogoutButton';
@@ -38,6 +38,7 @@ interface NavBarProps {
   addHref?: string;
   addLabel?: string;
   backHref?: string;
+  settingsHref?: string;
 }
 
 const PERIOD_OPTIONS = [
@@ -50,7 +51,7 @@ const VIEW_OPTIONS = [
   { label: 'Eenheid', value: 'liter' },
 ];
 
-export function NavBar({ centerTitle, sites, activeSiteId, activePeriod = 'week', activeView = 'prijs', addHref, addLabel, backHref }: NavBarProps) {
+export function NavBar({ centerTitle, sites, activeSiteId, activePeriod = 'week', activeView = 'prijs', addHref, addLabel, backHref, settingsHref }: NavBarProps) {
   const logoParams = new URLSearchParams();
   if (activeSiteId) logoParams.set('site', activeSiteId);
   if (activePeriod !== 'week') logoParams.set('period', activePeriod);
@@ -107,6 +108,11 @@ export function NavBar({ centerTitle, sites, activeSiteId, activePeriod = 'week'
         {addHref && (
           <Link href={addHref} className={addLabel ? styles.addBtnLabel : styles.addBtn} aria-label={addLabel ?? 'Toevoegen'}>
             {addLabel ?? <span aria-hidden="true">+</span>}
+          </Link>
+        )}
+        {settingsHref && (
+          <Link href={settingsHref} className={styles.settingsBtn} aria-label="Instellingen">
+            <IconSettings size={16} />
           </Link>
         )}
         <Link href="/account" className={styles.profileBtn} aria-label="Account">

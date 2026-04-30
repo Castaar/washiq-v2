@@ -28,9 +28,9 @@ export async function proxy(req: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Employees cannot access wekelijkse-ingave, historiek, or developer panel
+  // Employees cannot access wekelijkse-ingave, historiek, instellingen, or developer panel
   if (session.role === 'employee') {
-    if (pathname.startsWith('/wekelijkse-ingave') || pathname.startsWith('/historiek')) {
+    if (pathname.startsWith('/wekelijkse-ingave') || pathname.startsWith('/historiek') || pathname.startsWith('/instellingen')) {
       const url = req.nextUrl.clone();
       url.pathname = '/dagfiche';
       return NextResponse.redirect(url);
