@@ -1,0 +1,314 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+// ─── Week navigatie ──────────────────────────────────────────
+.weekNav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  justify-content: space-between;
+}
+
+.navBtn {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  color: var(--color-text-secondary);
+  font-size: 0.8125rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+
+  &:hover { background: var(--color-bg-hover); color: var(--color-text-primary); }
+}
+
+.weekLabel {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  text-align: center;
+  flex: 1;
+}
+
+// ─── Week grid ───────────────────────────────────────────────
+.weekGrid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--space-2);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-4);
+  overflow-x: auto;
+
+  @media (max-width: 700px) {
+    grid-template-columns: repeat(7, minmax(90px, 1fr));
+  }
+}
+
+.dayCol {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-height: 120px;
+}
+
+.todayCol .dayHeader {
+  background: color-mix(in srgb, var(--color-accent-teal) 15%, transparent);
+  border-radius: var(--radius-sm);
+}
+
+.dayHeader {
+  text-align: center;
+  padding: var(--space-2) var(--space-1);
+}
+
+.dayName {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.dayDate {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  margin-top: 2px;
+}
+
+.dayShifts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  flex: 1;
+}
+
+.emptyDay {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  text-align: center;
+  padding: var(--space-2) 0;
+}
+
+.shiftChip {
+  background: color-mix(in srgb, var(--color-accent-teal) 12%, var(--color-bg-elevated) 88%);
+  border: 1px solid color-mix(in srgb, var(--color-accent-teal) 30%, var(--color-border) 70%);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2);
+  font-size: 0.75rem;
+  position: relative;
+}
+
+.chipName {
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: 2px;
+  padding-right: 14px;
+}
+
+.chipTime {
+  color: var(--color-text-secondary);
+}
+
+.chipNote {
+  color: var(--color-text-muted);
+  font-style: italic;
+  margin-top: 2px;
+  font-size: 0.6875rem;
+}
+
+.chipDelete {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: 0.625rem;
+  line-height: 1;
+  padding: 2px;
+  border-radius: 2px;
+  transition: color var(--transition-fast);
+
+  &:hover { color: var(--color-danger, #ef4444); }
+}
+
+// ─── Formulier ───────────────────────────────────────────────
+.addForm {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.formTitle {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.formFields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.formField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 130px;
+}
+
+.noteField {
+  flex: 1;
+  min-width: 200px;
+}
+
+.label {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.input, .select {
+  height: 36px;
+  padding: 0 var(--space-3);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-primary);
+  font-size: 0.875rem;
+  font-family: inherit;
+
+  &:focus { outline: none; border-color: var(--color-accent-teal); }
+}
+
+.submitBtn {
+  height: 40px;
+  padding: 0 var(--space-5);
+  background: var(--color-accent-teal);
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--color-text-inverse);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  align-self: flex-end;
+  transition: opacity var(--transition-fast);
+
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
+  &:hover:not(:disabled) { opacity: 0.85; }
+}
+
+// ─── Medewerker weergave ─────────────────────────────────────
+.myShiftsCard {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.cardTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.myList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.myShift {
+  display: flex;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-elevated);
+  align-items: center;
+
+  &.past {
+    opacity: 0.5;
+  }
+
+  &.isToday {
+    border-color: var(--color-accent-teal);
+    background: color-mix(in srgb, var(--color-accent-teal) 8%, var(--color-bg-elevated) 92%);
+  }
+}
+
+.myShiftDate {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 100px;
+}
+
+.myShiftDay {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.myShiftDateStr {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.todayBadge {
+  display: inline-block;
+  margin-top: var(--space-1);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: var(--color-accent-teal);
+  color: var(--color-text-inverse);
+  border-radius: var(--radius-sm);
+  padding: 1px 6px;
+  width: fit-content;
+}
+
+.myShiftTime {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.shiftNote {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  font-weight: 400;
+  font-style: italic;
+}
+
+.empty {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  font-style: italic;
+  text-align: center;
+  padding: var(--space-4) 0;
+}

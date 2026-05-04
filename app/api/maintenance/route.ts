@@ -47,6 +47,8 @@ export async function POST(req: NextRequest) {
     trigger_day?: number;
     trigger_month?: number;
     trigger_month_list?: number[];
+    last_done_at?: string;
+    washes_at_last_done?: number;
   };
 
   const body = (await req.json()) as Body;
@@ -55,6 +57,7 @@ export async function POST(req: NextRequest) {
   }
 
   await dbConnect();
+  const hasLastDone = !!body.last_done_at;
   const doc = await MaintenanceTask.create({
     site_id: body.siteId,
     description: body.description.trim(),
@@ -63,8 +66,9 @@ export async function POST(req: NextRequest) {
     trigger_day: body.trigger_day ?? 0,
     trigger_month: body.trigger_month ?? 0,
     trigger_month_list: body.trigger_month_list ?? [],
-    washes_at_last_done: 0,
-    is_overdue: body.trigger_type === 'washes',
+    last_done_at: hasLastDone ? new Date(body.last_done_at!) : undefined,
+    washes_at_last_done: body.washes_at_last_done ?? 0,
+    is_overdue: !hasLastDone && body.trigger_type === 'washes',
   });
 
   return NextResponse.json({ id: (doc._id as Types.ObjectId).toString() }, { status: 201 });

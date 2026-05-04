@@ -83,6 +83,7 @@ export default async function AccountPage({
   const users = userDocs.map((u) => ({
     id: (u._id as Types.ObjectId).toString(),
     name: (u.name as string) ?? '',
+    role: (u.role as string) ?? 'employee',
   }));
 
   const currentUser = currentUserDoc

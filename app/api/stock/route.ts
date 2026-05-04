@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
 import { ChemicalStock } from '@/lib/models';
+import { getSessionFromRequest } from '@/lib/session';
 
 export async function GET(req: NextRequest) {
+  const session = await getSessionFromRequest(req);
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   await dbConnect();
 
   const siteId = req.nextUrl.searchParams.get('siteId');
@@ -25,6 +29,11 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const session = await getSessionFromRequest(req);
+  if (!session || (session.role !== 'owner' && session.role !== 'developer')) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   await dbConnect();
 
   const body = await req.json();
@@ -35,10 +44,10 @@ export async function POST(req: NextRequest) {
 
   const stock = await ChemicalStock.create({
     site_id: body.siteId,
-    name: body.name,
+    name: body.name.trim(),
     current_stock: Number(body.current_stock) || 0,
     min_stock_alert: Number(body.min_stock_alert) || 0,
-    unit: body.unit,
+    unit: body.unit.trim(),
     last_updated: new Date(),
   });
 

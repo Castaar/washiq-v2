@@ -425,6 +425,7 @@ export async function CarwashPage({
 
   // ── Ranking (owner / developer only) ─────────────────────────
   const isOwner = userRole === 'owner' || userRole === 'developer';
+  const isEmployee = userRole === 'employee';
   let ownerRank = 1;
   let ownerTotal = 1;
   if (isOwner && siteId && resolvedSite?.owner_id) {
@@ -451,6 +452,17 @@ export async function CarwashPage({
   return (
     <div className={styles.grid}>
 
+      {/* ── Employee quick-access bar ────────────────────────── */}
+      {isEmployee && siteId && (
+        <div className={styles.employeeQuickBar}>
+          <Link href={`/dagfiche?site=${siteId}`} className={styles.quickBtn}>Dagfiche</Link>
+          <Link href={`/logboek?site=${siteId}`} className={styles.quickBtn}>Logboek</Link>
+          <Link href={`/opdrachten?site=${siteId}`} className={styles.quickBtn}>Opdrachten</Link>
+          <Link href={`/planning?site=${siteId}`} className={styles.quickBtn}>Planning</Link>
+          <Link href={`/incidenten?site=${siteId}`} className={styles.quickBtn}>Incidenten</Link>
+        </div>
+      )}
+
       {/* ── Setup banner (shown when no price config exists) ─── */}
       {!price && (userRole === 'owner' || userRole === 'developer') && (
         <Link
@@ -472,12 +484,16 @@ export async function CarwashPage({
         {addHref && addLabel && (
           <Link href={addHref} className={styles.mobileAddBtn}>{addLabel}</Link>
         )}
-        <Suspense fallback={null}>
-          <ParamSelector label="Tijd" paramKey="period" options={PERIOD_OPTIONS} activeValue={period} />
-        </Suspense>
-        <Suspense fallback={null}>
-          <ParamSelector label="Weergave" paramKey="view" options={VIEW_OPTIONS} activeValue={view} />
-        </Suspense>
+        {!isEmployee && (
+          <>
+            <Suspense fallback={null}>
+              <ParamSelector label="Tijd" paramKey="period" options={PERIOD_OPTIONS} activeValue={period} />
+            </Suspense>
+            <Suspense fallback={null}>
+              <ParamSelector label="Weergave" paramKey="view" options={VIEW_OPTIONS} activeValue={view} />
+            </Suspense>
+          </>
+        )}
       </div>
 
       {/* ── Centre hero ─────────────────────────────────────── */}
@@ -488,27 +504,29 @@ export async function CarwashPage({
       {/* ── Right column ────────────────────────────────────── */}
       <aside className={styles.right}>
         <AlertsPanel data={alertsPanelData} />
-        <VoorraadPanel items={voorraad} />
+        {!isEmployee && <VoorraadPanel items={voorraad} />}
       </aside>
 
-      {/* ── Left column ─────────────────────────────────────── */}
-      <aside className={styles.left}>
-        <Suspense fallback={null}><UsageToggle activeUsage={usage} /></Suspense>
-        <ProgrammaCard
-          programs={programOptions}
-          chemieRows={chemieRows}
-        />
-        <div className={styles.twoCol}>
-          <ConsumptionCard data={zoutData} />
-          <ConsumptionCard data={flocData} />
-          <ConsumptionCard data={clothData} />
-        </div>
-      </aside>
+      {/* ── Left column (owner/developer only) ──────────────── */}
+      {!isEmployee && (
+        <aside className={styles.left}>
+          <Suspense fallback={null}><UsageToggle activeUsage={usage} /></Suspense>
+          <ProgrammaCard
+            programs={programOptions}
+            chemieRows={chemieRows}
+          />
+          <div className={styles.twoCol}>
+            <ConsumptionCard data={zoutData} />
+            <ConsumptionCard data={flocData} />
+            <ConsumptionCard data={clothData} />
+          </div>
+        </aside>
+      )}
 
       {/* ── Bottom bar ──────────────────────────────────────── */}
       <div className={styles.foot}>
-        <ConsumptionCard data={waterData} />
-        <ConsumptionCard data={energieData} />
+        {!isEmployee && <ConsumptionCard data={waterData} />}
+        {!isEmployee && <ConsumptionCard data={energieData} />}
         <WagensCard count={wagensCount} delta={wagensCount - wagensPrev} />
         <div className={styles.spacer} />
         <div className={styles.rankingSlot}>
