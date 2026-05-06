@@ -18,7 +18,15 @@ export interface Program {
   chemicals: Chemical[];
 }
 
+export interface WashesTask {
+  id: string;
+  description: string;
+  triggerValue: number;
+  washesAtLastDone: number;
+}
+
 export interface LastEntryData {
+  tellerstand: number;
   waterLiters: number;
   energyKw: number;
   saltKg: number;
@@ -32,6 +40,7 @@ export interface WeeklyEntryFormProps {
   siteId: string;
   programs: Program[];
   lastEntry: LastEntryData | null;
+  washesTasks?: WashesTask[];
 }
 
 // ─── ISO week helpers ────────────────────────────────────────
@@ -118,7 +127,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 }
 
 // ─── Main form ────────────────────────────────────────────────
-export function WeeklyEntryForm({ siteId, programs, lastEntry }: WeeklyEntryFormProps) {
+export function WeeklyEntryForm({ siteId, programs, lastEntry, washesTasks = [] }: WeeklyEntryFormProps) {
   const router = useRouter();
 
   const uniqueChemicals = useMemo(() => {
@@ -132,6 +141,7 @@ export function WeeklyEntryForm({ siteId, programs, lastEntry }: WeeklyEntryForm
     return result;
   }, [programs]);
 
+  const [tellerstand, setTellerstand] = useState('');
   const [programCounts, setProgramCounts] = useState<Record<string, string>>(
     () => Object.fromEntries(programs.map((p) => [p.id, ''])),
   );
@@ -144,6 +154,19 @@ export function WeeklyEntryForm({ siteId, programs, lastEntry }: WeeklyEntryForm
   );
   const [weekStart, setWeekStart] = useState<string>(() => dateToWeekString(new Date()));
   const [saving, setSaving] = useState(false);
+
+  // Compute upcoming/overdue maintenance warnings based on entered tellerstand
+  const tellerstandNum = parseFloat(tellerstand) || 0;
+  const maintenanceWarnings = washesTasks
+    .map((t) => {
+      const due = t.washesAtLastDone + t.triggerValue;
+      const remaining = due - tellerstandNum;
+      const threshold = Math.max(500, Math.round(t.triggerValue * 0.1));
+      if (tellerstandNum >= due) return { task: t, type: 'overdue' as const, remaining: 0 };
+      if (tellerstandNum >= due - threshold) return { task: t, type: 'approaching' as const, remaining };
+      return null;
+    })
+    .filter((w): w is NonNullable<typeof w> => w !== null);
 
   const setProgramCount = useCallback((id: string, v: string) => {
     setProgramCounts((prev) => ({ ...prev, [id]: v }));
@@ -170,6 +193,7 @@ export function WeeklyEntryForm({ siteId, programs, lastEntry }: WeeklyEntryForm
     const body = {
       site_id: siteId,
       week_start: monday.toISOString(),
+      tellerstand: parseFloat(tellerstand) || 0,
       water_liters: parseFloat(waterLiters) || 0,
       energy_kw: 0,
       salt_kg: parseFloat(saltKg) || 0,
@@ -221,7 +245,33 @@ export function WeeklyEntryForm({ siteId, programs, lastEntry }: WeeklyEntryForm
         />
       </div>
 
-      {/* ── Section 1: Tellerstand ───────────────────────────── */}
+      {/* ── Section 0: Totale tellerstand ───────────────────── */}
+      <section className={styles.section}>
+        <SectionTitle>Totale tellerstand</SectionTitle>
+        <div className={styles.fieldsRow}>
+          <EntryField
+            label="Totaal aantal wagens (cumulatief)"
+            value={tellerstand}
+            onChange={setTellerstand}
+            delta={getDelta(tellerstand, lastEntry?.tellerstand)}
+            lastValue={lastEntry?.tellerstand ?? null}
+          />
+        </div>
+        {maintenanceWarnings.length > 0 && (
+          <div className={styles.maintenanceWarnings}>
+            {maintenanceWarnings.map(({ task, type, remaining }) => (
+              <div key={task.id} className={type === 'overdue' ? styles.warnOverdue : styles.warnApproaching}>
+                <strong>{task.description}</strong>
+                {type === 'overdue'
+                  ? ' — vervallen! Onderhoud is al voorbij.'
+                  : ` — nog ${remaining.toLocaleString('nl-BE')} wagens tot onderhoud.`}
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* ── Section 1: Tellerstand per programma ─────────── */}
       <section className={styles.section}>
         <SectionTitle>Tellerstand — aantal wassingen per programma</SectionTitle>
         <div className={styles.fieldsRow}>

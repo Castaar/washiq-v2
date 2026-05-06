@@ -28,7 +28,7 @@ import { VoorraadPanel } from '@/components/dashboard/VoorraadPanel/VoorraadPane
 import { ParamSelector } from '@/components/layout/NavBar/ParamSelector';
 import { SiteSelector } from '@/components/layout/NavBar/SiteSelector';
 import type { AlertItem, AlertsPanelData, VoorraadItem, ChemieRow, ConsumptionData, DagfichePayload, IncidentSchadePayload, IncidentEhboPayload, DefectPayload, MaintenanceTaskPayload } from '@/lib/types/dashboard';
-import { computeIsOverdue } from '@/lib/maintenance';
+import { computeIsOverdue, computeIsApproaching, washesRemaining } from '@/lib/maintenance';
 import styles from './CarwashPage.module.scss';
 import type { Types } from 'mongoose';
 
@@ -231,10 +231,14 @@ export async function CarwashPage({
     return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}`;
   }
 
+  // Current tellerstand from the latest weekly entry
+  const currentTellerstand = (entries[0] as Record<string, unknown>)?.tellerstand as number ?? 0;
+
   const now = new Date();
   const alertItems: AlertItem[] = tasks
-    .filter((t) => computeIsOverdue(t, now))
+    .filter((t) => computeIsOverdue(t, now, currentTellerstand > 0 ? currentTellerstand : undefined))
     .map((t) => {
+      const remaining = currentTellerstand > 0 ? washesRemaining(t, currentTellerstand) : null;
       const payload: MaintenanceTaskPayload = {
         type: 'maintenance_task',
         description: t.description,
@@ -245,6 +249,8 @@ export async function CarwashPage({
         triggerMonthList: t.trigger_month_list,
         lastDoneAt: t.last_done_at ? fmtDate(new Date(t.last_done_at)) : undefined,
         washesAtLastDone: t.washes_at_last_done,
+        washesRemaining: remaining ?? undefined,
+        currentTellerstand: currentTellerstand > 0 ? currentTellerstand : undefined,
       };
       return {
         id:       t._id.toString(),
@@ -257,6 +263,39 @@ export async function CarwashPage({
         payload,
       };
     });
+
+  // Approaching maintenance (within warning window, not yet overdue)
+  const approachingItems: AlertItem[] = currentTellerstand > 0
+    ? tasks
+        .filter((t) => !computeIsOverdue(t, now, currentTellerstand) && computeIsApproaching(t, currentTellerstand))
+        .map((t) => {
+          const remaining = washesRemaining(t, currentTellerstand);
+          const payload: MaintenanceTaskPayload = {
+            type: 'maintenance_task',
+            description: t.description,
+            triggerType: t.trigger_type,
+            triggerValue: t.trigger_value,
+            triggerDay: t.trigger_day,
+            triggerMonth: t.trigger_month,
+            triggerMonthList: t.trigger_month_list,
+            lastDoneAt: t.last_done_at ? fmtDate(new Date(t.last_done_at)) : undefined,
+            washesAtLastDone: t.washes_at_last_done,
+            washesRemaining: remaining ?? undefined,
+            currentTellerstand,
+          };
+          return {
+            id:       `approaching-${t._id.toString()}`,
+            refId:    t._id.toString(),
+            refType:  'maintenance_task' as const,
+            siteId:   siteId ?? '',
+            title:    t.description,
+            subtitle: remaining !== null ? `Nog ${remaining.toLocaleString('nl-BE')} wagens` : undefined,
+            severity: 'medium' as const,
+            iconName: 'wrench',
+            payload,
+          };
+        })
+    : [];
 
   // Dagfiche alerts: unchecked items, items with remarks, and defect notes
   const dagficheAlerts: AlertItem[] = [];
@@ -406,7 +445,7 @@ export async function CarwashPage({
   ];
 
   const alertsPanelData: AlertsPanelData = {
-    alerts:    [...alertItems, ...dagficheAlerts],
+    alerts:    [...alertItems, ...approachingItems, ...dagficheAlerts],
     onderhoud: onderhoudItems,
     incident:  incidentItems,
   };

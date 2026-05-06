@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
-import { WeeklyEntry, ChemicalStock } from '@/lib/models';
+import { WeeklyEntry, ChemicalStock, MaintenanceTask } from '@/lib/models';
 
 export async function POST(req: NextRequest) {
   await dbConnect();
@@ -11,9 +11,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'site_id and week_start are required' }, { status: 400 });
   }
 
+  const tellerstand: number = body.tellerstand ?? 0;
+
   const entry = await WeeklyEntry.create({
     site_id: body.site_id,
     week_start: new Date(body.week_start),
+    tellerstand,
     water_liters: body.water_liters ?? 0,
     energy_kw: body.energy_kw ?? 0,
     salt_kg: body.salt_kg ?? 0,
@@ -22,6 +25,19 @@ export async function POST(req: NextRequest) {
     program_counts: body.program_counts ?? [],
     chemical_usages: body.chemical_usages ?? [],
   });
+
+  // Update is_overdue for all washes-based maintenance tasks for this site
+  if (tellerstand > 0) {
+    const washesTasks = await MaintenanceTask.find({ site_id: body.site_id, trigger_type: 'washes' }).lean();
+    await Promise.all(
+      washesTasks.map((t) => {
+        const interval = (t.trigger_value as number) ?? 0;
+        if (interval === 0) return;
+        const isOverdue = tellerstand >= ((t.washes_at_last_done as number) ?? 0) + interval;
+        return MaintenanceTask.updateOne({ _id: t._id }, { $set: { is_overdue: isOverdue } });
+      }),
+    );
+  }
 
   // Deduct Ruitendoekjes from stock if used
   if (body.cloth_units > 0) {

@@ -85,6 +85,7 @@ export interface IWeeklyEntry extends Document {
   site_id: Types.ObjectId;
   user_id: Types.ObjectId;
   week_start: Date;
+  tellerstand: number;
   water_liters: number;
   energy_kw: number;
   salt_kg: number;
@@ -98,6 +99,7 @@ const WeeklyEntrySchema = new Schema<IWeeklyEntry>({
   site_id: { type: Schema.Types.ObjectId, ref: 'Site' },
   user_id: { type: Schema.Types.ObjectId, ref: 'User' },
   week_start: Date,
+  tellerstand: { type: Number, default: 0 },
   water_liters: Number,
   energy_kw: Number,
   salt_kg: Number,
