@@ -17,6 +17,8 @@
     "nodemailer": "^8.0.7",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
+    "react-is": "^19.2.5",
+    "recharts": "^3.8.1",
     "web-push": "^3.6.7"
   },
   "devDependencies": {

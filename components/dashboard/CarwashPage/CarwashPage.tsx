@@ -28,7 +28,7 @@ import { VoorraadPanel } from '@/components/dashboard/VoorraadPanel/VoorraadPane
 import { ParamSelector } from '@/components/layout/NavBar/ParamSelector';
 import { SiteSelector } from '@/components/layout/NavBar/SiteSelector';
 import type { AlertItem, AlertsPanelData, VoorraadItem, ChemieRow, ConsumptionData, DagfichePayload, IncidentSchadePayload, IncidentEhboPayload, DefectPayload, MaintenanceTaskPayload } from '@/lib/types/dashboard';
-import { computeIsOverdue } from '@/lib/maintenance';
+import { computeIsOverdue, computeIsApproaching, washesRemaining } from '@/lib/maintenance';
 import styles from './CarwashPage.module.scss';
 import type { Types } from 'mongoose';
 
@@ -231,10 +231,14 @@ export async function CarwashPage({
     return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}`;
   }
 
+  // Current tellerstand from the latest weekly entry
+  const currentTellerstand = (entries[0] as Record<string, unknown>)?.tellerstand as number ?? 0;
+
   const now = new Date();
   const alertItems: AlertItem[] = tasks
-    .filter((t) => computeIsOverdue(t, now))
+    .filter((t) => computeIsOverdue(t, now, currentTellerstand > 0 ? currentTellerstand : undefined))
     .map((t) => {
+      const remaining = currentTellerstand > 0 ? washesRemaining(t, currentTellerstand) : null;
       const payload: MaintenanceTaskPayload = {
         type: 'maintenance_task',
         description: t.description,
@@ -245,6 +249,8 @@ export async function CarwashPage({
         triggerMonthList: t.trigger_month_list,
         lastDoneAt: t.last_done_at ? fmtDate(new Date(t.last_done_at)) : undefined,
         washesAtLastDone: t.washes_at_last_done,
+        washesRemaining: remaining ?? undefined,
+        currentTellerstand: currentTellerstand > 0 ? currentTellerstand : undefined,
       };
       return {
         id:       t._id.toString(),
@@ -257,6 +263,39 @@ export async function CarwashPage({
         payload,
       };
     });
+
+  // Approaching maintenance (within warning window, not yet overdue)
+  const approachingItems: AlertItem[] = currentTellerstand > 0
+    ? tasks
+        .filter((t) => !computeIsOverdue(t, now, currentTellerstand) && computeIsApproaching(t, currentTellerstand))
+        .map((t) => {
+          const remaining = washesRemaining(t, currentTellerstand);
+          const payload: MaintenanceTaskPayload = {
+            type: 'maintenance_task',
+            description: t.description,
+            triggerType: t.trigger_type,
+            triggerValue: t.trigger_value,
+            triggerDay: t.trigger_day,
+            triggerMonth: t.trigger_month,
+            triggerMonthList: t.trigger_month_list,
+            lastDoneAt: t.last_done_at ? fmtDate(new Date(t.last_done_at)) : undefined,
+            washesAtLastDone: t.washes_at_last_done,
+            washesRemaining: remaining ?? undefined,
+            currentTellerstand,
+          };
+          return {
+            id:       `approaching-${t._id.toString()}`,
+            refId:    t._id.toString(),
+            refType:  'maintenance_task' as const,
+            siteId:   siteId ?? '',
+            title:    t.description,
+            subtitle: remaining !== null ? `Nog ${remaining.toLocaleString('nl-BE')} wagens` : undefined,
+            severity: 'medium' as const,
+            iconName: 'wrench',
+            payload,
+          };
+        })
+    : [];
 
   // Dagfiche alerts: unchecked items, items with remarks, and defect notes
   const dagficheAlerts: AlertItem[] = [];
@@ -406,7 +445,7 @@ export async function CarwashPage({
   ];
 
   const alertsPanelData: AlertsPanelData = {
-    alerts:    [...alertItems, ...dagficheAlerts],
+    alerts:    [...alertItems, ...approachingItems, ...dagficheAlerts],
     onderhoud: onderhoudItems,
     incident:  incidentItems,
   };
@@ -425,6 +464,7 @@ export async function CarwashPage({
 
   // ── Ranking (owner / developer only) ─────────────────────────
   const isOwner = userRole === 'owner' || userRole === 'developer';
+  const isEmployee = userRole === 'employee';
   let ownerRank = 1;
   let ownerTotal = 1;
   if (isOwner && siteId && resolvedSite?.owner_id) {
@@ -451,6 +491,17 @@ export async function CarwashPage({
   return (
     <div className={styles.grid}>
 
+      {/* ── Employee quick-access bar ────────────────────────── */}
+      {isEmployee && siteId && (
+        <div className={styles.employeeQuickBar}>
+          <Link href={`/dagfiche?site=${siteId}`} className={styles.quickBtn}>Dagfiche</Link>
+          <Link href={`/logboek?site=${siteId}`} className={styles.quickBtn}>Logboek</Link>
+          <Link href={`/opdrachten?site=${siteId}`} className={styles.quickBtn}>Opdrachten</Link>
+          <Link href={`/planning?site=${siteId}`} className={styles.quickBtn}>Planning</Link>
+          <Link href={`/incidenten?site=${siteId}`} className={styles.quickBtn}>Incidenten</Link>
+        </div>
+      )}
+
       {/* ── Setup banner (shown when no price config exists) ─── */}
       {!price && (userRole === 'owner' || userRole === 'developer') && (
         <Link
@@ -472,12 +523,16 @@ export async function CarwashPage({
         {addHref && addLabel && (
           <Link href={addHref} className={styles.mobileAddBtn}>{addLabel}</Link>
         )}
-        <Suspense fallback={null}>
-          <ParamSelector label="Tijd" paramKey="period" options={PERIOD_OPTIONS} activeValue={period} />
-        </Suspense>
-        <Suspense fallback={null}>
-          <ParamSelector label="Weergave" paramKey="view" options={VIEW_OPTIONS} activeValue={view} />
-        </Suspense>
+        {!isEmployee && (
+          <>
+            <Suspense fallback={null}>
+              <ParamSelector label="Tijd" paramKey="period" options={PERIOD_OPTIONS} activeValue={period} />
+            </Suspense>
+            <Suspense fallback={null}>
+              <ParamSelector label="Weergave" paramKey="view" options={VIEW_OPTIONS} activeValue={view} />
+            </Suspense>
+          </>
+        )}
       </div>
 
       {/* ── Centre hero ─────────────────────────────────────── */}
@@ -488,27 +543,29 @@ export async function CarwashPage({
       {/* ── Right column ────────────────────────────────────── */}
       <aside className={styles.right}>
         <AlertsPanel data={alertsPanelData} />
-        <VoorraadPanel items={voorraad} />
+        {!isEmployee && <VoorraadPanel items={voorraad} />}
       </aside>
 
-      {/* ── Left column ─────────────────────────────────────── */}
-      <aside className={styles.left}>
-        <Suspense fallback={null}><UsageToggle activeUsage={usage} /></Suspense>
-        <ProgrammaCard
-          programs={programOptions}
-          chemieRows={chemieRows}
-        />
-        <div className={styles.twoCol}>
-          <ConsumptionCard data={zoutData} />
-          <ConsumptionCard data={flocData} />
-          <ConsumptionCard data={clothData} />
-        </div>
-      </aside>
+      {/* ── Left column (owner/developer only) ──────────────── */}
+      {!isEmployee && (
+        <aside className={styles.left}>
+          <Suspense fallback={null}><UsageToggle activeUsage={usage} /></Suspense>
+          <ProgrammaCard
+            programs={programOptions}
+            chemieRows={chemieRows}
+          />
+          <div className={styles.twoCol}>
+            <ConsumptionCard data={zoutData} />
+            <ConsumptionCard data={flocData} />
+            <ConsumptionCard data={clothData} />
+          </div>
+        </aside>
+      )}
 
       {/* ── Bottom bar ──────────────────────────────────────── */}
       <div className={styles.foot}>
-        <ConsumptionCard data={waterData} />
-        <ConsumptionCard data={energieData} />
+        {!isEmployee && <ConsumptionCard data={waterData} />}
+        {!isEmployee && <ConsumptionCard data={energieData} />}
         <WagensCard count={wagensCount} delta={wagensCount - wagensPrev} />
         <div className={styles.spacer} />
         <div className={styles.rankingSlot}>

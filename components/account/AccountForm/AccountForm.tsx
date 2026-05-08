@@ -8,6 +8,7 @@ import { IconEye, IconEyeOff } from '@/components/ui/icons';
 interface UserItem {
   id: string;
   name: string;
+  role: string;
 }
 
 interface PriceConfigData {
@@ -116,6 +117,8 @@ export function AccountForm({ priceConfig, users: initialUsers, siteId, currentU
   const [newPassword, setNewPassword] = useState('');
   const [saving, setSaving] = useState(false);
   const [addingUser, setAddingUser] = useState(false);
+  const [addUserError, setAddUserError] = useState('');
+  const [addUserSuccess, setAddUserSuccess] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showNewUserPassword, setShowNewUserPassword] = useState(false);
 
@@ -232,21 +235,32 @@ export function AccountForm({ priceConfig, users: initialUsers, siteId, currentU
 
   async function handleAddUser(e: React.MouseEvent) {
     e.preventDefault();
-    if (!newName || !newEmail || !newPassword) return;
+    setAddUserError('');
+    setAddUserSuccess('');
+    if (!newName.trim() || !newEmail.trim() || !newPassword) {
+      setAddUserError('Vul naam, e-mailadres en wachtwoord in.');
+      return;
+    }
     setAddingUser(true);
     try {
       const res = await fetch('/api/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ siteIds: [siteId], name: newName, email: newEmail, password: newPassword, role: 'employee' }),
+        body: JSON.stringify({ siteIds: siteId ? [siteId] : [], name: newName.trim(), email: newEmail.trim(), password: newPassword, role: 'employee' }),
       });
-      if (res.ok) {
-        const data = (await res.json()) as { id: string };
-        setUsers((prev) => [...prev, { id: data.id, name: newName }]);
+      const data = await res.json() as { id?: string; error?: string };
+      if (res.ok && data.id) {
+        setUsers((prev) => [...prev, { id: data.id!, name: newName.trim(), role: 'employee' }]);
         setNewName('');
         setNewEmail('');
         setNewPassword('');
+        setAddUserSuccess(`${newName.trim()} is toegevoegd.`);
+        setTimeout(() => setAddUserSuccess(''), 4000);
+      } else {
+        setAddUserError(data.error ?? `Fout (${res.status}) — probeer opnieuw.`);
       }
+    } catch {
+      setAddUserError('Netwerkfout — probeer opnieuw.');
     } finally {
       setAddingUser(false);
     }
@@ -594,18 +608,25 @@ export function AccountForm({ priceConfig, users: initialUsers, siteId, currentU
       <section className={styles.section}>
         <h2 className={styles.sectionLabel}>Personeelsgegevens</h2>
         <div className={styles.userList}>
-          {users.map((u) => (
-            <div key={u.id} className={styles.userRow}>
-              <span className={styles.userName}>{u.name}</span>
-              <button
-                type="button"
-                className={styles.revokeBtn}
-                onClick={() => handleRevokeUser(u.id)}
-              >
-                Toegang opzeggen
-              </button>
-            </div>
-          ))}
+          {users.map((u) => {
+            const canRevoke =
+              u.id !== currentUser?.id &&
+              (role === 'developer' || u.role === 'employee');
+            return (
+              <div key={u.id} className={styles.userRow}>
+                <span className={styles.userName}>{u.name}</span>
+                {canRevoke && (
+                  <button
+                    type="button"
+                    className={styles.revokeBtn}
+                    onClick={() => handleRevokeUser(u.id)}
+                  >
+                    Toegang opzeggen
+                  </button>
+                )}
+              </div>
+            );
+          })}
         </div>
         <div className={styles.addUserBlock}>
           <span className={styles.addUserLabel}>Nieuwe gebruiker toevoegen</span>
@@ -653,6 +674,8 @@ export function AccountForm({ priceConfig, users: initialUsers, siteId, currentU
           >
             {addingUser ? 'Bezig...' : 'Opslaan'}
           </button>
+          {addUserError && <p className={styles.addUserError}>{addUserError}</p>}
+          {addUserSuccess && <p className={styles.addUserSuccess}>{addUserSuccess}</p>}
         </div>
       </section>
 

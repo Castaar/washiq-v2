@@ -85,6 +85,7 @@ export interface IWeeklyEntry extends Document {
   site_id: Types.ObjectId;
   user_id: Types.ObjectId;
   week_start: Date;
+  tellerstand: number;
   water_liters: number;
   energy_kw: number;
   salt_kg: number;
@@ -98,6 +99,7 @@ const WeeklyEntrySchema = new Schema<IWeeklyEntry>({
   site_id: { type: Schema.Types.ObjectId, ref: 'Site' },
   user_id: { type: Schema.Types.ObjectId, ref: 'User' },
   week_start: Date,
+  tellerstand: { type: Number, default: 0 },
   water_liters: Number,
   energy_kw: Number,
   salt_kg: Number,
@@ -383,3 +385,74 @@ const EnergyBillSchema = new Schema<IEnergyBill>({
   created_at: { type: Date, default: Date.now },
 });
 export const EnergyBill = models.EnergyBill || model<IEnergyBill>('EnergyBill', EnergyBillSchema);
+
+// ─── AttendanceLog ────────────────────────────────────────────
+export interface IAttendanceLog extends Document {
+  site_id: Types.ObjectId;
+  user_id: Types.ObjectId;
+  user_name: string;
+  type: 'opening' | 'sluiting';
+  timestamp: Date;
+  note: string;
+}
+const AttendanceLogSchema = new Schema<IAttendanceLog>({
+  site_id: { type: Schema.Types.ObjectId, ref: 'Site', required: true },
+  user_id: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  user_name: String,
+  type: { type: String, enum: ['opening', 'sluiting'], required: true },
+  timestamp: { type: Date, default: Date.now },
+  note: { type: String, default: '' },
+});
+export const AttendanceLog = models.AttendanceLog || model<IAttendanceLog>('AttendanceLog', AttendanceLogSchema);
+
+// ─── Opdracht ─────────────────────────────────────────────────
+export interface IOpdracht extends Document {
+  site_id: Types.ObjectId;
+  date: Date;
+  text: string;
+  created_by: Types.ObjectId;
+  created_by_name: string;
+  assigned_to_ids: Types.ObjectId[];
+  is_done: boolean;
+  done_by_name: string;
+  done_at: Date;
+  created_at: Date;
+}
+const OpdrachtSchema = new Schema<IOpdracht>({
+  site_id: { type: Schema.Types.ObjectId, ref: 'Site', required: true },
+  date: { type: Date, required: true },
+  text: { type: String, required: true },
+  created_by: { type: Schema.Types.ObjectId, ref: 'User' },
+  created_by_name: { type: String, default: '' },
+  assigned_to_ids: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+  is_done: { type: Boolean, default: false },
+  done_by_name: { type: String, default: '' },
+  done_at: Date,
+  created_at: { type: Date, default: Date.now },
+});
+export const Opdracht = models.Opdracht || model<IOpdracht>('Opdracht', OpdrachtSchema);
+
+// ─── Planning ─────────────────────────────────────────────────
+export interface IPlanning extends Document {
+  site_id: Types.ObjectId;
+  user_id: Types.ObjectId;
+  user_name: string;
+  date: Date;
+  start_time: string;
+  end_time: string;
+  note: string;
+  created_by: Types.ObjectId;
+  created_at: Date;
+}
+const PlanningSchema = new Schema<IPlanning>({
+  site_id: { type: Schema.Types.ObjectId, ref: 'Site', required: true },
+  user_id: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  user_name: { type: String, default: '' },
+  date: { type: Date, required: true },
+  start_time: { type: String, default: '' },
+  end_time: { type: String, default: '' },
+  note: { type: String, default: '' },
+  created_by: { type: Schema.Types.ObjectId, ref: 'User' },
+  created_at: { type: Date, default: Date.now },
+});
+export const Planning = models.Planning || model<IPlanning>('Planning', PlanningSchema);

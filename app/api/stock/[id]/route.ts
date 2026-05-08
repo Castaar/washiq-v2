@@ -65,9 +65,14 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const session = await getSession();
+  if (!session || (session.role !== 'owner' && session.role !== 'developer')) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   await dbConnect();
 
   const { id } = await params;

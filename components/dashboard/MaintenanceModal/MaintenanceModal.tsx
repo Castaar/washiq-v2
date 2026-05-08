@@ -78,10 +78,30 @@ export function MaintenanceModal({ payload, refId, refType, siteId, onClose }: M
               </div>
             )}
             {payload.triggerType === 'washes' && (
-              <div className={styles.row}>
-                <span className={styles.rowLabel}>Wassingen bij laatste uitvoering</span>
-                <span className={styles.rowValue}>{payload.washesAtLastDone ?? 0}</span>
-              </div>
+              <>
+                <div className={styles.row}>
+                  <span className={styles.rowLabel}>Wassingen bij laatste uitvoering</span>
+                  <span className={styles.rowValue}>{(payload.washesAtLastDone ?? 0).toLocaleString('nl-BE')}</span>
+                </div>
+                {payload.currentTellerstand !== undefined && (
+                  <div className={styles.row}>
+                    <span className={styles.rowLabel}>Huidige tellerstand</span>
+                    <span className={styles.rowValue}>{payload.currentTellerstand.toLocaleString('nl-BE')}</span>
+                  </div>
+                )}
+                {payload.washesRemaining !== undefined && payload.washesRemaining > 0 && (
+                  <div className={styles.row}>
+                    <span className={styles.rowLabel}>Nog te gaan</span>
+                    <span className={styles.rowValue}>{payload.washesRemaining.toLocaleString('nl-BE')} wagens</span>
+                  </div>
+                )}
+                {payload.washesRemaining === 0 && (
+                  <div className={styles.row}>
+                    <span className={styles.rowLabel}>Status</span>
+                    <span className={[styles.rowValue, styles.overdueLabel].join(' ')}>Vervallen — voer onderhoud uit</span>
+                  </div>
+                )}
+              </>
             )}
           </div>
 

@@ -145,7 +145,8 @@
   flex-direction: column;
   gap: var(--space-3);
   min-height: 0;
-  overflow-y: auto;
+  overflow: hidden;
+  justify-content: space-between;
 
   &::-webkit-scrollbar { width: 3px; }
   &::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 2px; }
@@ -183,4 +184,33 @@
   flex: 1;
 
   @include respond-to('mobile') { display: none; }
+}
+
+// ─── Employee quick-access bar ───────────────────────────────
+.employeeQuickBar {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  padding-bottom: var(--space-2);
+}
+
+.quickBtn {
+  height: 36px;
+  padding: 0 var(--space-4);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.14);
+    border-color: rgba(255, 255, 255, 0.25);
+  }
 }

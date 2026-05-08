@@ -604,6 +604,8 @@ export function DeveloperPanel({ users: initialUsers, sites: initialSites, progr
   const [newTaskDay, setNewTaskDay] = useState('');
   const [newTaskMonth, setNewTaskMonth] = useState('');
   const [newTaskMonthList, setNewTaskMonthList] = useState<number[]>([]);
+  const [newTaskLastDoneAt, setNewTaskLastDoneAt] = useState('');
+  const [newTaskWashesAtLastDone, setNewTaskWashesAtLastDone] = useState('');
   const [addingTask, setAddingTask] = useState(false);
 
   const MAANDEN = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
@@ -632,6 +634,12 @@ export function DeveloperPanel({ users: initialUsers, sites: initialSites, progr
       if (newTaskType === 'fixed_months') {
         body.trigger_month_list = newTaskMonthList;
       }
+      if (newTaskLastDoneAt) {
+        body.last_done_at = newTaskLastDoneAt;
+      }
+      if (newTaskType === 'washes' && newTaskWashesAtLastDone) {
+        body.washes_at_last_done = parseInt(newTaskWashesAtLastDone) || 0;
+      }
       const res = await fetch('/api/maintenance', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -651,7 +659,7 @@ export function DeveloperPanel({ users: initialUsers, sites: initialSites, progr
         };
         setTasks((prev) => [...prev, newTask]);
         setNewTaskDesc(''); setNewTaskValue(''); setNewTaskDay(''); setNewTaskMonth('');
-        setNewTaskMonthList([]); setNewTaskType('months'); setShowAddTask(false);
+        setNewTaskMonthList([]); setNewTaskType('months'); setNewTaskLastDoneAt(''); setNewTaskWashesAtLastDone(''); setShowAddTask(false);
       }
     } finally {
       setAddingTask(false);
@@ -1043,6 +1051,30 @@ export function DeveloperPanel({ users: initialUsers, sites: initialSites, progr
                 </div>
               </div>
             )}
+            <div className={styles.addFormRow}>
+              <div className={styles.addField}>
+                <label className={styles.addLabel}>Laatste beurt (optioneel)</label>
+                <input
+                  className={styles.input}
+                  type="date"
+                  value={newTaskLastDoneAt}
+                  onChange={(e) => setNewTaskLastDoneAt(e.target.value)}
+                />
+              </div>
+              {newTaskType === 'washes' && (
+                <div className={styles.addField}>
+                  <label className={styles.addLabel}>Wassingen bij laatste beurt</label>
+                  <input
+                    className={styles.input}
+                    type="number"
+                    min="0"
+                    value={newTaskWashesAtLastDone}
+                    onChange={(e) => setNewTaskWashesAtLastDone(e.target.value)}
+                    placeholder="0"
+                  />
+                </div>
+              )}
+            </div>
             <div className={styles.addFormFooter}>
               <button type="button" className={styles.cancelBtn} onClick={() => setShowAddTask(false)}>Annuleren</button>
               <button type="submit" className={styles.saveSmallBtn} disabled={addingTask}>{addingTask ? 'Bezig...' : 'Opslaan'}</button>

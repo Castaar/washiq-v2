@@ -255,6 +255,19 @@
   }
 }
 
+.addUserError {
+  margin: var(--space-2) 0 0;
+  font-size: 0.8125rem;
+  color: #ef4444;
+}
+
+.addUserSuccess {
+  margin: var(--space-2) 0 0;
+  font-size: 0.8125rem;
+  color: var(--color-accent-teal);
+  font-weight: 500;
+}
+
 // ── Footer ────────────────────────────────────────────────────
 .footer {
   display: flex;

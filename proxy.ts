@@ -30,7 +30,11 @@ export async function proxy(req: NextRequest) {
 
   // Employees cannot access wekelijkse-ingave, historiek, instellingen, or developer panel
   if (session.role === 'employee') {
-    if (pathname.startsWith('/wekelijkse-ingave') || pathname.startsWith('/historiek') || pathname.startsWith('/instellingen')) {
+    if (
+      pathname.startsWith('/wekelijkse-ingave') ||
+      pathname.startsWith('/historiek') ||
+      pathname.startsWith('/instellingen')
+    ) {
       const url = req.nextUrl.clone();
       url.pathname = '/dagfiche';
       return NextResponse.redirect(url);
@@ -40,6 +44,7 @@ export async function proxy(req: NextRequest) {
       url.pathname = '/';
       return NextResponse.redirect(url);
     }
+    // /logboek, /opdrachten, /planning are accessible for employees
   }
 
   // Only developers can access the developer panel

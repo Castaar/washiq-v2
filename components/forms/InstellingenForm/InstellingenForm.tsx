@@ -97,6 +97,54 @@ export function InstellingenForm({ siteId, priceConfig, stocks, energyBills }: I
   const [pricesSaved, setPricesSaved] = useState(false);
   const [hasPriceConfig, setHasPriceConfig] = useState(!!priceConfig);
 
+  // ── Product list state (owner can add/remove products) ───
+  const [productList, setProductList] = useState<StockItem[]>(stocks);
+  const [newProductName, setNewProductName] = useState('');
+  const [newProductUnit, setNewProductUnit] = useState('L');
+  const [addingProduct, setAddingProduct] = useState(false);
+  const [productError, setProductError] = useState('');
+
+  async function handleAddProduct(e: React.FormEvent) {
+    e.preventDefault();
+    const name = newProductName.trim();
+    if (!name) return;
+    if (productList.some((p) => p.name.toLowerCase() === name.toLowerCase())) {
+      setProductError('Product bestaat al');
+      return;
+    }
+    setProductError('');
+    setAddingProduct(true);
+    const res = await fetch('/api/stock', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ siteId, name, unit: newProductUnit, current_stock: 0, min_stock_alert: 0 }),
+    });
+    if (res.ok) {
+      const data = (await res.json()) as StockItem;
+      setProductList((prev) => [...prev, data]);
+      setStockValues((prev) => ({ ...prev, [data.id]: '' }));
+      setMinAlertValues((prev) => ({ ...prev, [data.id]: '' }));
+      setChemPrices((prev) => ({ ...prev, [data.name]: '' }));
+      setNewProductName('');
+    } else {
+      setProductError('Opslaan mislukt');
+    }
+    setAddingProduct(false);
+  }
+
+  async function handleDeleteProduct(id: string) {
+    const product = productList.find((p) => p.id === id);
+    if (!product) return;
+    if (!confirm(`Product "${product.name}" verwijderen? Historische data blijft bewaard.`)) return;
+    const res = await fetch(`/api/stock/${id}`, { method: 'DELETE' });
+    if (res.ok) {
+      setProductList((prev) => prev.filter((p) => p.id !== id));
+      setStockValues((prev) => { const n = { ...prev }; delete n[id]; return n; });
+      setMinAlertValues((prev) => { const n = { ...prev }; delete n[id]; return n; });
+      setChemPrices((prev) => { const n = { ...prev }; delete n[product.name]; return n; });
+    }
+  }
+
   // ── Stock state ───────────────────────────────────────────
   const [stockValues, setStockValues] = useState<Record<string, string>>(() =>
     Object.fromEntries(stocks.map((s) => [s.id, s.current_stock > 0 ? String(s.current_stock) : ''])),
@@ -117,7 +165,7 @@ export function InstellingenForm({ siteId, priceConfig, stocks, energyBills }: I
 
   // ── Derived state ─────────────────────────────────────────
   const hasPrices = hasPriceConfig || pricesSaved;
-  const hasStock = stocks.length > 0 && stocks.some((s) => s.current_stock > 0 || stockSaved);
+  const hasStock = productList.length > 0 && productList.some((s) => s.current_stock > 0 || stockSaved);
 
   // ── Handlers ──────────────────────────────────────────────
 
@@ -134,7 +182,7 @@ export function InstellingenForm({ siteId, priceConfig, stocks, energyBills }: I
         salt_per_kg: parseFloat(saltPrice) || 0,
         flock_per_kg: parseFloat(flockPrice) || 0,
         cloth_per_unit: parseFloat(clothPrice) || 0,
-        chemicals: stocks.map((s) => ({
+        chemicals: productList.map((s) => ({
           name: s.name,
           price_per_unit: parseFloat(chemPrices[s.name] ?? '') || 0,
         })),
@@ -152,7 +200,7 @@ export function InstellingenForm({ siteId, priceConfig, stocks, energyBills }: I
     setSavingStock(true);
     setStockSaved(false);
     await Promise.all(
-      stocks.map((s) =>
+      productList.map((s) =>
         fetch(`/api/stock/${s.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -238,7 +286,7 @@ export function InstellingenForm({ siteId, priceConfig, stocks, energyBills }: I
           <PriceField label="Zoutverzachter" unit="€ / kg" value={saltPrice} onChange={setSaltPrice} />
           <PriceField label="Flockmiddel" unit="€ / kg" value={flockPrice} onChange={setFlockPrice} />
           <PriceField label="Ruitendoekjes" unit="€ / stuk" value={clothPrice} onChange={setClothPrice} />
-          {stocks.map((s) => (
+          {productList.map((s) => (
             <PriceField
               key={s.name}
               label={s.name}
@@ -257,6 +305,65 @@ export function InstellingenForm({ siteId, priceConfig, stocks, energyBills }: I
         </div>
       </form>
 
+      {/* ── Sectie 1b: Producten beheren ─────────────────────── */}
+      <div className={styles.section}>
+        <div className={styles.sectionHead}>
+          <h2 className={styles.sectionTitle}>Producten beheren</h2>
+        </div>
+        <p className={styles.sectionHint}>
+          Voeg de chemische producten toe die uw carwash gebruikt. Elk product verschijnt automatisch in de wekelijkse ingave en de prijsberekening.
+        </p>
+
+        <div className={styles.productList}>
+          {productList.length === 0 && (
+            <p className={styles.emptyHint}>Nog geen producten toegevoegd.</p>
+          )}
+          {productList.map((p) => (
+            <div key={p.id} className={styles.productRow}>
+              <span className={styles.productName}>{p.name}</span>
+              <span className={styles.productUnit}>{p.unit}</span>
+              <button
+                type="button"
+                className={styles.deleteProductBtn}
+                onClick={() => handleDeleteProduct(p.id)}
+                aria-label={`${p.name} verwijderen`}
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <form className={styles.addProductForm} onSubmit={handleAddProduct} noValidate>
+          <input
+            className={styles.productInput}
+            type="text"
+            value={newProductName}
+            onChange={(e) => { setNewProductName(e.target.value); setProductError(''); }}
+            placeholder="Productnaam (bv. Shampoo Pro)"
+          />
+          <select
+            className={styles.productUnitSelect}
+            value={newProductUnit}
+            onChange={(e) => setNewProductUnit(e.target.value)}
+          >
+            <option value="L">L (liter)</option>
+            <option value="kg">kg</option>
+            <option value="ml">ml</option>
+            <option value="st">st (stuk)</option>
+            <option value="rol">rol</option>
+          </select>
+          <button
+            type="submit"
+            className={styles.saveBtn}
+            disabled={addingProduct || !newProductName.trim()}
+          >
+            {addingProduct ? 'Toevoegen...' : '+ Product toevoegen'}
+          </button>
+        </form>
+        {productError && <p className={styles.errorMsg}>{productError}</p>}
+      </div>
+
       {/* ── Sectie 2: Startvoorraad ──────────────────────────── */}
       <form className={styles.section} onSubmit={handleSaveStock} noValidate>
         <div className={styles.sectionHead}>
@@ -267,9 +374,9 @@ export function InstellingenForm({ siteId, priceConfig, stocks, energyBills }: I
           Geef de huidige hoeveelheid in voor elk product. Dit is de startbasis voor voorraadberekeningen.
         </p>
 
-        {stocks.length === 0 ? (
+        {productList.length === 0 ? (
           <p className={styles.emptyHint}>
-            Geen producten gevonden. Voeg eerst producten toe via de developer panel.
+            Geen producten gevonden. Voeg eerst producten toe via &quot;Producten beheren&quot; hierboven.
           </p>
         ) : (
           <>
@@ -280,7 +387,7 @@ export function InstellingenForm({ siteId, priceConfig, stocks, energyBills }: I
                 <span>Min. alert</span>
                 <span>Eenheid</span>
               </div>
-              {stocks.map((s) => (
+              {productList.map((s) => (
                 <div key={s.id} className={styles.stockRow}>
                   <span className={styles.stockName}>{s.name}</span>
                   <input

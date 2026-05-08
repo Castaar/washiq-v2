@@ -73,6 +73,8 @@ export interface MaintenanceTaskPayload {
   triggerMonthList?: number[];
   lastDoneAt?: string;
   washesAtLastDone?: number;
+  washesRemaining?: number;
+  currentTellerstand?: number;
 }
 
 export interface AlertItem {

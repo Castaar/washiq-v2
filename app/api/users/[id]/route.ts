@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
 import { User } from '@/lib/models';
+import { getSessionFromRequest } from '@/lib/session';
 import bcrypt from 'bcryptjs';
 import mongoose from 'mongoose';
 
@@ -8,8 +9,13 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const session = await getSessionFromRequest(req);
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   await dbConnect();
   const { id } = await params;
+
+  // Prevent any non-developer from removing site access from themselves
   const body = await req.json() as {
     role?: 'developer' | 'owner' | 'employee';
     siteIds?: string[];
@@ -19,6 +25,10 @@ export async function PATCH(
     email?: string;
     newPassword?: string;
   };
+
+  if (session.role !== 'developer' && body.removeSiteId && id === session.userId) {
+    return NextResponse.json({ error: 'Je kan je eigen toegang niet intrekken.' }, { status: 403 });
+  }
 
   const update: Record<string, unknown> = {};
   const arrayOps: Record<string, unknown> = {};
@@ -38,11 +48,22 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const session = await getSessionFromRequest(req);
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (session.role !== 'developer') {
+    return NextResponse.json({ error: 'Alleen een developer kan gebruikers verwijderen.' }, { status: 403 });
+  }
+
   await dbConnect();
   const { id } = await params;
+
+  if (id === session.userId) {
+    return NextResponse.json({ error: 'Je kan je eigen account niet verwijderen.' }, { status: 403 });
+  }
+
   await User.findByIdAndDelete(id);
   return NextResponse.json({ ok: true });
 }
