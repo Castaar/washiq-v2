@@ -205,6 +205,22 @@
   font-style: italic;
 }
 
+// ─── Tellerstand read-only display ───────────────────────────
+.tellerstandDisplay {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.tellerstandValue {
+  font-size: 0.9375rem;
+  color: var(--color-text-primary);
+
+  strong {
+    font-weight: 600;
+  }
+}
+
 // ─── Maintenance warnings ─────────────────────────────────────
 .maintenanceWarnings {
   display: flex;

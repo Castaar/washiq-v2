@@ -17,7 +17,7 @@ export default async function InstellingenPage({
 
   const session = await getSession();
   const [siteDocs, userDoc] = await Promise.all([
-    Site.find({}).select('_id name').lean(),
+    Site.find({}).select('_id name start_car_count').lean(),
     session ? User.findById(session.userId).select('site_ids role').lean() : null,
   ]);
 
@@ -30,7 +30,9 @@ export default async function InstellingenPage({
   const siteId = (site && allowedSiteDocs.find((s) => (s._id as Types.ObjectId).toString() === site))
     ? site
     : ((allowedSiteDocs[0]?._id as Types.ObjectId)?.toString() ?? null);
-  const siteName = allowedSiteDocs.find((s) => (s._id as Types.ObjectId).toString() === siteId)?.name as string ?? '';
+  const siteDoc = allowedSiteDocs.find((s) => (s._id as Types.ObjectId).toString() === siteId);
+  const siteName = (siteDoc?.name as string) ?? '';
+  const startCarCount = (siteDoc?.start_car_count as number) ?? 0;
   const filter = siteId ? { site_id: siteId } : {};
 
   const [priceConfigDoc, stockDocs, energyBillDocs] = await Promise.all([
@@ -82,6 +84,7 @@ export default async function InstellingenPage({
           priceConfig={priceConfig}
           stocks={stocks}
           energyBills={energyBills}
+          startCarCount={startCarCount}
         />
       </main>
     </div>

@@ -33,11 +33,19 @@ function ChemieRowItem({ row }: { row: ChemieRow }) {
   );
 }
 
-export function ProgrammaCard({ programs, chemieRows }: ProgrammaCardProps) {
-  const [selectedId, setSelectedId] = useState(programs[0]?.id ?? '');
+const ALL_ID = '__all__';
 
-  const selected = programs.find((p) => p.id === selectedId) ?? programs[0];
-  const countDelta = (selected?.count ?? 0) - (selected?.prevCount ?? 0);
+export function ProgrammaCard({ programs, chemieRows }: ProgrammaCardProps) {
+  const totalCount = programs.reduce((s, p) => s + p.count, 0);
+  const totalPrevCount = programs.reduce((s, p) => s + p.prevCount, 0);
+
+  const allOption: ProgramOption = { id: ALL_ID, name: 'Alle programma\'s', count: totalCount, prevCount: totalPrevCount };
+  const options = [allOption, ...programs];
+
+  const [selectedId, setSelectedId] = useState(ALL_ID);
+
+  const selected = selectedId === ALL_ID ? allOption : (programs.find((p) => p.id === selectedId) ?? allOption);
+  const countDelta = selected.count - selected.prevCount;
   const sign = countDelta >= 0 ? '+' : '';
 
   return (
@@ -53,12 +61,12 @@ export function ProgrammaCard({ programs, chemieRows }: ProgrammaCardProps) {
             onChange={(e) => setSelectedId(e.target.value)}
             aria-label="Selecteer programma"
           >
-            {programs.map((p) => (
+            {options.map((p) => (
               <option key={p.id} value={p.id}>{p.name}</option>
             ))}
           </select>
           <span className={styles.selectedValue} aria-hidden="true">
-            {selected?.name ?? '—'}
+            {selected.name}
           </span>
         </div>
       </div>
@@ -68,7 +76,7 @@ export function ProgrammaCard({ programs, chemieRows }: ProgrammaCardProps) {
       <div className={styles.countRow}>
         <span className={styles.chemieLabel}>Wagens</span>
         <div className={styles.chemieValues}>
-          <span className={styles.chemieValue}>{selected?.count ?? 0}</span>
+          <span className={styles.chemieValue}>{selected.count}</span>
           <span className={[styles.chemieDelta, countDelta >= 0 ? styles.positive : styles.negative].join(' ')}>
             {sign}{Math.abs(countDelta)}
           </span>

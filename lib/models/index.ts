@@ -5,12 +5,14 @@ export interface ISite extends Document {
   name: string;
   location: string;
   owner_id: Types.ObjectId;
+  start_car_count: number;
   created_at: Date;
 }
 const SiteSchema = new Schema<ISite>({
   name: String,
   location: String,
   owner_id: { type: Schema.Types.ObjectId, ref: 'User' },
+  start_car_count: { type: Number, default: 0 },
   created_at: { type: Date, default: Date.now },
 });
 export const Site = models.Site || model<ISite>('Site', SiteSchema);

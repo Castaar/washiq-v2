@@ -34,6 +34,7 @@ interface InstellingenFormProps {
   priceConfig: PriceConfigData | null;
   stocks: StockItem[];
   energyBills: EnergyBillData[];
+  startCarCount: number;
 }
 
 const MONTHS = [
@@ -77,7 +78,7 @@ function PriceField({
 
 // ─── Main component ───────────────────────────────────────────
 
-export function InstellingenForm({ siteId, priceConfig, stocks, energyBills }: InstellingenFormProps) {
+export function InstellingenForm({ siteId, priceConfig, stocks, energyBills, startCarCount }: InstellingenFormProps) {
   const isFirstTime = !priceConfig;
 
   // ── Prices state ──────────────────────────────────────────
@@ -162,6 +163,24 @@ export function InstellingenForm({ siteId, priceConfig, stocks, energyBills }: I
   const [billAmount, setBillAmount] = useState('');
   const [savingBill, setSavingBill] = useState(false);
   const [bills, setBills] = useState<EnergyBillData[]>(energyBills);
+
+  // ── Car count state ───────────────────────────────────────
+  const [carCount, setCarCount] = useState(startCarCount > 0 ? String(startCarCount) : '');
+  const [savingCarCount, setSavingCarCount] = useState(false);
+  const [carCountSaved, setCarCountSaved] = useState(false);
+
+  async function handleSaveCarCount(e: React.FormEvent) {
+    e.preventDefault();
+    setSavingCarCount(true);
+    setCarCountSaved(false);
+    await fetch(`/api/sites/${siteId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ start_car_count: parseInt(carCount) || 0 }),
+    });
+    setSavingCarCount(false);
+    setCarCountSaved(true);
+  }
 
   // ── Derived state ─────────────────────────────────────────
   const hasPrices = hasPriceConfig || pricesSaved;
@@ -482,6 +501,39 @@ export function InstellingenForm({ siteId, priceConfig, stocks, energyBills }: I
           </div>
         )}
       </div>
+
+      {/* ── Sectie 4: Start hoeveelheid wagens ──────────────── */}
+      <form className={styles.section} onSubmit={handleSaveCarCount} noValidate>
+        <div className={styles.sectionHead}>
+          <h2 className={styles.sectionTitle}>Start hoeveelheid wagens</h2>
+        </div>
+        <p className={styles.sectionHint}>
+          Geef het totale aantal wagens in dat gewassen is vóór u met deze app begon te registreren. Dit wordt opgeteld bij de tellerstand in het dashboard.
+        </p>
+
+        <div className={styles.priceField}>
+          <label className={styles.priceLabel}>Aantal wagens</label>
+          <div className={styles.priceInputWrap}>
+            <input
+              className={styles.priceInput}
+              type="number"
+              min="0"
+              step="1"
+              value={carCount}
+              onChange={(e) => { setCarCount(e.target.value); setCarCountSaved(false); }}
+              placeholder="0"
+            />
+            <span className={styles.priceUnit}>wagens</span>
+          </div>
+        </div>
+
+        <div className={styles.sectionFooter}>
+          {carCountSaved && <span className={styles.savedMsg}>Opgeslagen</span>}
+          <button type="submit" className={styles.saveBtn} disabled={savingCarCount}>
+            {savingCarCount ? 'Opslaan...' : 'Opslaan'}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }

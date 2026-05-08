@@ -141,7 +141,6 @@ export function WeeklyEntryForm({ siteId, programs, lastEntry, washesTasks = [] 
     return result;
   }, [programs]);
 
-  const [tellerstand, setTellerstand] = useState('');
   const [programCounts, setProgramCounts] = useState<Record<string, string>>(
     () => Object.fromEntries(programs.map((p) => [p.id, ''])),
   );
@@ -155,15 +154,17 @@ export function WeeklyEntryForm({ siteId, programs, lastEntry, washesTasks = [] 
   const [weekStart, setWeekStart] = useState<string>(() => dateToWeekString(new Date()));
   const [saving, setSaving] = useState(false);
 
-  // Compute upcoming/overdue maintenance warnings based on entered tellerstand
-  const tellerstandNum = parseFloat(tellerstand) || 0;
+  // Auto-compute tellerstand from previous + sum of this week's program counts
+  const computedTellerstand = (lastEntry?.tellerstand ?? 0) +
+    programs.reduce((sum, p) => sum + (parseFloat(programCounts[p.id] ?? '') || 0), 0);
+
   const maintenanceWarnings = washesTasks
     .map((t) => {
       const due = t.washesAtLastDone + t.triggerValue;
-      const remaining = due - tellerstandNum;
+      const remaining = due - computedTellerstand;
       const threshold = Math.max(500, Math.round(t.triggerValue * 0.1));
-      if (tellerstandNum >= due) return { task: t, type: 'overdue' as const, remaining: 0 };
-      if (tellerstandNum >= due - threshold) return { task: t, type: 'approaching' as const, remaining };
+      if (computedTellerstand >= due) return { task: t, type: 'overdue' as const, remaining: 0 };
+      if (computedTellerstand >= due - threshold) return { task: t, type: 'approaching' as const, remaining };
       return null;
     })
     .filter((w): w is NonNullable<typeof w> => w !== null);
@@ -193,7 +194,7 @@ export function WeeklyEntryForm({ siteId, programs, lastEntry, washesTasks = [] 
     const body = {
       site_id: siteId,
       week_start: monday.toISOString(),
-      tellerstand: parseFloat(tellerstand) || 0,
+      tellerstand: computedTellerstand,
       water_liters: parseFloat(waterLiters) || 0,
       energy_kw: 0,
       salt_kg: parseFloat(saltKg) || 0,
@@ -245,17 +246,16 @@ export function WeeklyEntryForm({ siteId, programs, lastEntry, washesTasks = [] 
         />
       </div>
 
-      {/* ── Section 0: Totale tellerstand ───────────────────── */}
+      {/* ── Section 0: Tellerstand (auto-computed) ──────────── */}
       <section className={styles.section}>
-        <SectionTitle>Totale tellerstand</SectionTitle>
-        <div className={styles.fieldsRow}>
-          <EntryField
-            label="Totaal aantal wagens (cumulatief)"
-            value={tellerstand}
-            onChange={setTellerstand}
-            delta={getDelta(tellerstand, lastEntry?.tellerstand)}
-            lastValue={lastEntry?.tellerstand ?? null}
-          />
+        <SectionTitle>Tellerstand</SectionTitle>
+        <div className={styles.tellerstandDisplay}>
+          {lastEntry?.tellerstand != null && (
+            <span className={styles.lastValue}>Vorige: {lastEntry.tellerstand.toLocaleString('nl-BE')}</span>
+          )}
+          <span className={styles.tellerstandValue}>
+            Nieuw totaal: <strong>{computedTellerstand.toLocaleString('nl-BE')}</strong>
+          </span>
         </div>
         {maintenanceWarnings.length > 0 && (
           <div className={styles.maintenanceWarnings}>
