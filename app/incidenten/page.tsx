@@ -4,7 +4,7 @@ import { NavBar } from '@/components/layout/NavBar/NavBar';
 import { IncidentenPanel } from '@/components/incidenten/IncidentenPanel/IncidentenPanel';
 import type { IncidentListItem } from '@/components/incidenten/IncidentenPanel/IncidentenPanel';
 import { dbConnect } from '@/lib/db/mongoose';
-import { Site, IncidentSchade, IncidentEhbo, Defect } from '@/lib/models';
+import { Site, IncidentSchade, IncidentEhbo, Defect, WeeklyEntry } from '@/lib/models';
 import { getSession } from '@/lib/session';
 import styles from './page.module.scss';
 
@@ -27,11 +27,18 @@ export default async function IncidentenPage({
   const siteId = (site && siteIds.includes(site)) ? site : (siteIds[0] ?? '');
   const siteName = siteDocs.find((s) => (s._id as Types.ObjectId).toString() === siteId)?.name as string ?? '';
 
-  const [schades, ehbos, defects] = await Promise.all([
+  const [schades, ehbos, defects, totalSchade, latestEntry] = await Promise.all([
     IncidentSchade.find({ site_id: siteId }).sort({ created_at: -1 }).limit(15).lean(),
     IncidentEhbo.find({ site_id: siteId }).sort({ created_at: -1 }).limit(15).lean(),
     Defect.find({ site_id: siteId }).sort({ created_at: -1 }).limit(15).lean(),
+    IncidentSchade.countDocuments({ site_id: siteId }),
+    WeeklyEntry.findOne({ site_id: siteId }).sort({ week_start: -1 }).select('tellerstand').lean(),
   ]);
+
+  const currentTellerstand = (latestEntry as { tellerstand?: number } | null)?.tellerstand ?? 0;
+  const schadesPer1000 = currentTellerstand > 0
+    ? Math.round((totalSchade / currentTellerstand) * 1000 * 10) / 10
+    : null;
 
   const incidents: IncidentListItem[] = [
     ...schades.map((s) => ({
@@ -40,6 +47,8 @@ export default async function IncidentenPage({
       title: (s.merk_model as string) || (s.naam_eigenaar as string) || 'Schade',
       subtitle: (s.omschrijving as string) || '',
       date: fmtDate(new Date(s.created_at as Date)),
+      is_resolved: (s.is_resolved as boolean) ?? false,
+      resolved_by_name: (s.resolved_by_name as string) ?? '',
     })),
     ...ehbos.map((e) => ({
       id: (e._id as Types.ObjectId).toString(),
@@ -47,6 +56,8 @@ export default async function IncidentenPage({
       title: (e.naam_slachtoffer as string) || 'EHBO',
       subtitle: (e.verwonding as string) || '',
       date: fmtDate(new Date(e.created_at as Date)),
+      is_resolved: false,
+      resolved_by_name: '',
     })),
     ...defects.map((d) => ({
       id: (d._id as Types.ObjectId).toString(),
@@ -54,6 +65,8 @@ export default async function IncidentenPage({
       title: ((d.omschrijving as string) ?? '').slice(0, 40) || 'Defect',
       subtitle: (d.ernst as string) || '',
       date: fmtDate(new Date(d.created_at as Date)),
+      is_resolved: (d.is_resolved as boolean) ?? false,
+      resolved_by_name: (d.resolved_by_name as string) ?? '',
     })),
   ].sort((a, b) => b.date.localeCompare(a.date));
 
@@ -67,7 +80,11 @@ export default async function IncidentenPage({
       </div>
       <NavBar centerTitle={`Incidenten — ${siteName}`} backHref="/" addHref={addHref} addLabel={addLabel} />
       <main className={styles.main}>
-        <IncidentenPanel siteId={siteId} initialIncidents={incidents} />
+        <IncidentenPanel
+          siteId={siteId}
+          initialIncidents={incidents}
+          stats={{ totalSchade, currentTellerstand, schadesPer1000 }}
+        />
       </main>
     </div>
   );

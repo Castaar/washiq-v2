@@ -166,3 +166,201 @@
   color: var(--color-text-muted);
   font-style: italic;
 }
+
+// ─── Tabs (owner) ─────────────────────────────────────────────
+.tabRow {
+  display: flex;
+  gap: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: var(--space-1);
+}
+
+.tabBtn {
+  padding: var(--space-2) var(--space-4);
+  border: none;
+  background: transparent;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  font-family: inherit;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: color var(--transition-fast), background var(--transition-fast);
+
+  &:hover { color: var(--color-text-primary); background: var(--color-bg-hover); }
+}
+
+.tabBtnActive {
+  color: var(--color-accent-teal);
+  font-weight: 600;
+  background: color-mix(in srgb, var(--color-accent-teal) 10%, transparent);
+}
+
+// ─── Maandoverzicht ───────────────────────────────────────────
+.monthCard {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.monthPicker {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.monthSelect {
+  height: 36px;
+  padding: 0 var(--space-3);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-primary);
+  font-size: 0.875rem;
+  font-family: inherit;
+
+  &:focus { outline: none; border-color: var(--color-accent-teal); }
+}
+
+.monthLabel {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+// ─── Summary table ────────────────────────────────────────────
+.summaryTable {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.summaryHeader {
+  display: grid;
+  grid-template-columns: 1fr 90px 80px 40px;
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-bg-elevated);
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.summaryRow {
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid var(--color-border);
+
+  &:last-child { border-bottom: none; }
+}
+
+.summaryLine {
+  display: grid;
+  grid-template-columns: 1fr 90px 80px 40px;
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-bg-card);
+  transition: background var(--transition-fast);
+
+  &:hover { background: var(--color-bg-hover); }
+}
+
+.colName {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.colDays {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+.colHours {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.colHoursVal {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-accent-teal);
+}
+
+.colToggle {
+  background: transparent;
+  border: none;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-family: inherit;
+  justify-self: end;
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
+
+  &:hover { color: var(--color-text-primary); }
+}
+
+// ─── Day detail (expanded) ────────────────────────────────────
+.dayDetail {
+  background: var(--color-bg-elevated);
+  border-top: 1px solid var(--color-border);
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.dayDetailRow {
+  display: grid;
+  grid-template-columns: 1fr 160px 100px;
+  align-items: center;
+  font-size: 0.875rem;
+  gap: var(--space-3);
+}
+
+.dayDetailDate {
+  color: var(--color-text-secondary);
+}
+
+.dayDetailTime {
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8125rem;
+}
+
+.dayDetailHours {
+  color: var(--color-text-primary);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.dayDetailOpen {
+  color: #e0b344;
+  font-weight: 400;
+  font-style: italic;
+  font-size: 0.8125rem;
+}
+
+.dayDetailTotal {
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-2);
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  text-align: right;
+
+  strong { color: var(--color-accent-teal); }
+}

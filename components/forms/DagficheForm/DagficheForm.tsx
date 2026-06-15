@@ -10,7 +10,8 @@ const CHECKLIST_ITEMS = [
   'Chemie voorraad ok?',
   'Textiel borstels nagekeken?',
   'Wastunnel uitgespoten en nagekeken?',
-  'Keuken/ bureau in orde?',
+  'Selfboxen nagekeken en ok?',
+  'Keuken / bureau in orde?',
   'Vuilbakken leeggemaakt?',
   'Kassa ok / afgesloten?',
 ];

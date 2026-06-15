@@ -70,6 +70,7 @@ for (const site of SITES) {
     _id: siteId,
     name: site.name,
     location: site.location,
+    setup_done: true,  // seeded sites are pre-configured
     created_at: new Date(),
   });
 

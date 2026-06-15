@@ -1,11 +1,59 @@
 @use '../../../styles/variables' as *;
 
+.wrap {
+  width: 100%;
+  max-width: 1100px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+// ── Stats bar ──────────────────────────────────────────────────
+.statsBar {
+  display: flex;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.statItem {
+  background: #ffffff1a;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-3) var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.statAlert {
+  border-color: rgba(224, 120, 68, 0.5);
+  background: rgba(224, 120, 68, 0.08);
+}
+
+.statValue {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  line-height: 1;
+}
+
+.statAlert .statValue {
+  color: #e07844;
+}
+
+.statLabel {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+// ── Main grid ──────────────────────────────────────────────────
 .grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-6);
   width: 100%;
-  max-width: 1100px;
   align-items: start;
   @include respond-to('mobile') {
     grid-template-columns: 1fr;
@@ -33,6 +81,42 @@
   letter-spacing: 0.02em;
 }
 
+// ── List header with filter ────────────────────────────────────
+.listHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.filterTabs {
+  display: flex;
+  gap: 4px;
+}
+
+.filterTab {
+  height: 26px;
+  padding: 0 var(--space-3);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+
+  &:hover {
+    color: var(--color-text-secondary);
+  }
+}
+
+.filterTabActive {
+  border-color: var(--color-text-secondary);
+  color: var(--color-text-primary);
+}
+
 // ── Incident list ──────────────────────────────────────────────
 .list {
   display: flex;
@@ -54,6 +138,11 @@
   padding: var(--space-3);
   border-radius: var(--radius-md);
   background: rgba(255, 255, 255, 0.025);
+  transition: opacity 0.15s;
+}
+
+.incidentCardResolved {
+  opacity: 0.5;
 }
 
 .incIcon {
@@ -76,6 +165,7 @@
   flex-direction: column;
   gap: 3px;
   min-width: 0;
+  flex: 1;
 }
 
 .incTop {
@@ -105,6 +195,13 @@
   text-overflow: ellipsis;
 }
 
+.incFooter {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: 2px;
+}
+
 .incBadge {
   display: flex;
   align-items: center;
@@ -126,6 +223,38 @@
 .badge_schade { color: #e07844; }
 .badge_ehbo   { color: #e04444; }
 .badge_defect { color: #e0b344; }
+
+// ── Resolve button ─────────────────────────────────────────────
+.resolveBtn {
+  margin-left: auto;
+  height: 22px;
+  padding: 0 var(--space-3);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  color: var(--color-text-muted);
+  font-size: 0.6875rem;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s, color 0.15s;
+  flex-shrink: 0;
+
+  &:hover:not(:disabled) {
+    border-color: var(--color-accent-teal);
+    color: var(--color-accent-teal);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.resolveBtnDone {
+  border-color: var(--color-accent-teal);
+  color: var(--color-accent-teal);
+}
 
 // ── Report buttons ─────────────────────────────────────────────
 .reportBtns {

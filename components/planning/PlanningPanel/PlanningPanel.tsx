@@ -48,6 +48,28 @@ function fmtDayLabel(dateStr: string): string {
   return d.toLocaleDateString('nl-BE', { day: 'numeric', month: 'short' });
 }
 
+function shiftHours(startTime: string, endTime: string): number {
+  const [sh, sm] = startTime.split(':').map(Number);
+  const [eh, em] = endTime.split(':').map(Number);
+  return Math.max(0, (eh * 60 + em - sh * 60 - sm) / 60);
+}
+
+function isWeekend(dateStr: string): boolean {
+  const d = new Date(dateStr + 'T00:00:00').getDay();
+  return d === 0 || d === 6;
+}
+
+// Count weekend days worked in the last N weeks for a given employee across all shifts
+function weekendsInWindow(shifts: Shift[], userId: string, windowWeeks: number, refDate: string): number {
+  const ref = new Date(refDate + 'T00:00:00');
+  const from = new Date(ref);
+  from.setDate(from.getDate() - windowWeeks * 7);
+  const days = new Set(
+    shifts.filter((s) => s.userId === userId && isWeekend(s.date) && new Date(s.date + 'T00:00:00') >= from).map((s) => s.date),
+  );
+  return days.size;
+}
+
 export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initialShifts, employees, weekStart: initialWeekStart }: PlanningPanelProps) {
   const [shifts, setShifts] = useState<Shift[]>(initialShifts);
   const [weekStart, setWeekStart] = useState(getMondayOf(initialWeekStart));
@@ -189,6 +211,33 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
           );
         })}
       </div>
+
+      {/* ── Uren & weekend overzicht per medewerker ─────────── */}
+      {employees.length > 0 && (
+        <div className={styles.hoursTable}>
+          <h3 className={styles.hoursTitle}>Overzicht deze week</h3>
+          <div className={styles.hoursRows}>
+            {employees.map((emp) => {
+              const empWeekShifts = weekShifts.filter((s) => s.userId === emp.id);
+              const totalHours = empWeekShifts.reduce((sum, s) => sum + shiftHours(s.startTime, s.endTime), 0);
+              const weekendDays4w = weekendsInWindow(shifts, emp.id, 4, weekStart);
+              const weekendWarn = weekendDays4w >= 4;
+              return (
+                <div key={emp.id} className={styles.hoursRow}>
+                  <span className={styles.hoursName}>{emp.name}</span>
+                  <span className={styles.hoursVal}>
+                    {totalHours > 0 ? `${totalHours.toFixed(1).replace('.0', '')}u` : '—'}
+                  </span>
+                  <span className={[styles.weekendBadge, weekendWarn ? styles.weekendWarn : ''].filter(Boolean).join(' ')}>
+                    {weekendDays4w} weekend{weekendDays4w !== 1 ? 'dagen' : 'dag'} / 4w
+                    {weekendWarn && ' ⚠'}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Add shift form */}
       <form className={styles.addForm} onSubmit={handleAddShift} noValidate>

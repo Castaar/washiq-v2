@@ -6,6 +6,7 @@ export interface ISite extends Document {
   location: string;
   owner_id: Types.ObjectId;
   start_car_count: number;
+  setup_done: boolean;
   created_at: Date;
 }
 const SiteSchema = new Schema<ISite>({
@@ -13,6 +14,7 @@ const SiteSchema = new Schema<ISite>({
   location: String,
   owner_id: { type: Schema.Types.ObjectId, ref: 'User' },
   start_car_count: { type: Number, default: 0 },
+  setup_done: { type: Boolean, default: false },
   created_at: { type: Date, default: Date.now },
 });
 export const Site = models.Site || model<ISite>('Site', SiteSchema);
@@ -239,6 +241,9 @@ export interface IIncidentSchade extends Document {
   installatiefout: boolean;
   klant_verantwoordelijk: boolean;
   verzekeringsdocumenten: boolean;
+  is_resolved: boolean;
+  resolved_at: Date;
+  resolved_by_name: string;
   created_at: Date;
 }
 const IncidentSchadeSchema = new Schema<IIncidentSchade>({
@@ -257,6 +262,9 @@ const IncidentSchadeSchema = new Schema<IIncidentSchade>({
   installatiefout: Boolean,
   klant_verantwoordelijk: Boolean,
   verzekeringsdocumenten: Boolean,
+  is_resolved: { type: Boolean, default: false },
+  resolved_at: Date,
+  resolved_by_name: { type: String, default: '' },
   created_at: { type: Date, default: Date.now },
 });
 export const IncidentSchade = models.IncidentSchade || model<IIncidentSchade>('IncidentSchade', IncidentSchadeSchema);
@@ -301,6 +309,9 @@ export interface IDefect extends Document {
   reported_by_name: string;
   omschrijving: string;
   ernst: 'laag' | 'medium' | 'hoog';
+  is_resolved: boolean;
+  resolved_at: Date;
+  resolved_by_name: string;
   created_at: Date;
 }
 const DefectSchema = new Schema<IDefect>({
@@ -309,6 +320,9 @@ const DefectSchema = new Schema<IDefect>({
   reported_by_name: String,
   omschrijving: String,
   ernst: { type: String, enum: ['laag', 'medium', 'hoog'], default: 'medium' },
+  is_resolved: { type: Boolean, default: false },
+  resolved_at: Date,
+  resolved_by_name: { type: String, default: '' },
   created_at: { type: Date, default: Date.now },
 });
 export const Defect = models.Defect || model<IDefect>('Defect', DefectSchema);
@@ -458,3 +472,20 @@ const PlanningSchema = new Schema<IPlanning>({
   created_at: { type: Date, default: Date.now },
 });
 export const Planning = models.Planning || model<IPlanning>('Planning', PlanningSchema);
+
+// ─── Announcement ─────────────────────────────────────────────
+export interface IAnnouncement extends Document {
+  text: string;
+  created_by_name: string;
+  is_all_sites: boolean;
+  site_ids: Types.ObjectId[];
+  created_at: Date;
+}
+const AnnouncementSchema = new Schema<IAnnouncement>({
+  text: { type: String, required: true },
+  created_by_name: { type: String, default: '' },
+  is_all_sites: { type: Boolean, default: true },
+  site_ids: [{ type: Schema.Types.ObjectId, ref: 'Site' }],
+  created_at: { type: Date, default: Date.now },
+});
+export const Announcement = models.Announcement || model<IAnnouncement>('Announcement', AnnouncementSchema);

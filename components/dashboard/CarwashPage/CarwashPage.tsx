@@ -75,9 +75,9 @@ export async function CarwashPage({
     MaintenanceTask.find(filter).lean(),
     MaintenanceLog.find(filter).sort({ done_at: -1 }).limit(10).lean(),
     DailyChecklist.find(filter).sort({ submitted_at: -1 }).limit(7).lean(),
-    IncidentSchade.find(filter).sort({ created_at: -1 }).limit(8).lean(),
+    IncidentSchade.find({ ...filter, $or: [{ is_resolved: false }, { is_resolved: { $exists: false } }] }).sort({ created_at: -1 }).limit(8).lean(),
     IncidentEhbo.find(filter).sort({ created_at: -1 }).limit(8).lean(),
-    Defect.find(filter).sort({ created_at: -1 }).limit(8).lean(),
+    Defect.find({ ...filter, $or: [{ is_resolved: false }, { is_resolved: { $exists: false } }] }).sort({ created_at: -1 }).limit(8).lean(),
     siteId ? EnergyBill.findOne({ site_id: siteId, year: curYear,  month: curMonth  }).lean() : null,
     siteId ? EnergyBill.findOne({ site_id: siteId, year: prevYear, month: prevMonth }).lean() : null,
   ]);
@@ -491,8 +491,8 @@ export async function CarwashPage({
   return (
     <div className={styles.grid}>
 
-      {/* ── Employee quick-access bar ────────────────────────── */}
-      {isEmployee && siteId && (
+      {/* ── Quick-access bar ─────────────────────────────────── */}
+      {siteId && (
         <div className={styles.employeeQuickBar}>
           <Link href={`/dagfiche?site=${siteId}`} className={styles.quickBtn}>Dagfiche</Link>
           <Link href={`/logboek?site=${siteId}`} className={styles.quickBtn}>Logboek</Link>

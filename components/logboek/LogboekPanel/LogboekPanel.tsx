@@ -11,6 +11,21 @@ export interface LogEntry {
   note: string;
 }
 
+interface DayRecord {
+  date: string;
+  checkIn: string;
+  checkOut: string;
+  hours: number;
+}
+
+interface EmployeeSummary {
+  userId: string;
+  userName: string;
+  totalHours: number;
+  daysWorked: number;
+  days: DayRecord[];
+}
+
 interface LogboekPanelProps {
   siteId: string;
   userRole: string;
@@ -38,11 +53,30 @@ function groupByDate(logs: LogEntry[]) {
   return map;
 }
 
+const MONTH_NAMES = ['Januari', 'Februari', 'Maart', 'April', 'Mei', 'Juni',
+  'Juli', 'Augustus', 'September', 'Oktober', 'November', 'December'];
+
+function fmtDayNL(dateStr: string) {
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString('nl-BE', { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
 export function LogboekPanel({ siteId, userRole, userName, recentLogs }: LogboekPanelProps) {
   const [logs, setLogs] = useState<LogEntry[]>(recentLogs);
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
   const [lastAction, setLastAction] = useState<'opening' | 'sluiting' | null>(null);
+
+  const isOwner = userRole === 'owner' || userRole === 'developer';
+  const [view, setView] = useState<'logboek' | 'maand'>('logboek');
+
+  // Month picker state
+  const now = new Date();
+  const [selYear, setSelYear] = useState(now.getFullYear());
+  const [selMonth, setSelMonth] = useState(now.getMonth() + 1);
+  const [summary, setSummary] = useState<EmployeeSummary[] | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [expandedUser, setExpandedUser] = useState<string | null>(null);
 
   async function register(type: 'opening' | 'sluiting') {
     setSaving(true);
@@ -60,12 +94,33 @@ export function LogboekPanel({ siteId, userRole, userName, recentLogs }: Logboek
     setSaving(false);
   }
 
+  async function loadSummary(year: number, month: number) {
+    setSummaryLoading(true);
+    setSummary(null);
+    try {
+      const res = await fetch(`/api/attendance/monthly?siteId=${siteId}&year=${year}&month=${month}`);
+      if (res.ok) setSummary(await res.json() as EmployeeSummary[]);
+    } finally {
+      setSummaryLoading(false);
+    }
+  }
+
+  function handleViewMonth() {
+    setView('maand');
+    loadSummary(selYear, selMonth);
+  }
+
+  function handleMonthChange(year: number, month: number) {
+    setSelYear(year);
+    setSelMonth(month);
+    if (view === 'maand') loadSummary(year, month);
+  }
+
   const grouped = groupByDate(logs);
-  const isOwner = userRole === 'owner' || userRole === 'developer';
 
   return (
     <div className={styles.wrapper}>
-      {/* ── Registreer aankomst / vertrek ─────────────────── */}
+      {/* ── Registreer aankomst / vertrek ─────────────────────── */}
       <div className={styles.registerCard}>
         <h2 className={styles.registerTitle}>Registreer aanwezigheid</h2>
         <p className={styles.registerSub}>Aangemeld als <strong>{userName}</strong></p>
@@ -103,30 +158,140 @@ export function LogboekPanel({ siteId, userRole, userName, recentLogs }: Logboek
         )}
       </div>
 
-      {/* ── Logboek (owner sees all, employee sees own) ───── */}
-      <div className={styles.logSection}>
-        <h2 className={styles.logTitle}>{isOwner ? 'Logboek — alle medewerkers' : 'Mijn registraties'}</h2>
+      {/* ── Owner tabs ─────────────────────────────────────────── */}
+      {isOwner && (
+        <div className={styles.tabRow}>
+          <button
+            type="button"
+            className={[styles.tabBtn, view === 'logboek' ? styles.tabBtnActive : ''].filter(Boolean).join(' ')}
+            onClick={() => setView('logboek')}
+          >
+            Logboek
+          </button>
+          <button
+            type="button"
+            className={[styles.tabBtn, view === 'maand' ? styles.tabBtnActive : ''].filter(Boolean).join(' ')}
+            onClick={handleViewMonth}
+          >
+            Maandoverzicht
+          </button>
+        </div>
+      )}
 
-        {grouped.size === 0 && (
-          <p className={styles.empty}>Geen registraties gevonden voor de afgelopen 30 dagen.</p>
-        )}
-
-        {Array.from(grouped.entries()).map(([date, dayLogs]) => (
-          <div key={date} className={styles.dayGroup}>
-            <div className={styles.dayHeader}>{date}</div>
-            {dayLogs.map((l) => (
-              <div key={l.id} className={[styles.logRow, l.type === 'opening' ? styles.opening : styles.sluiting].join(' ')}>
-                <span className={styles.typeBadge}>
-                  {l.type === 'opening' ? 'Aankomst' : 'Vertrek'}
-                </span>
-                <span className={styles.logName}>{l.userName}</span>
-                <span className={styles.logTime}>{fmtTime(l.timestamp)}</span>
-                {l.note && <span className={styles.logNote}>{l.note}</span>}
-              </div>
-            ))}
+      {/* ── Maandoverzicht (owner) ──────────────────────────────── */}
+      {isOwner && view === 'maand' && (
+        <div className={styles.monthCard}>
+          {/* Month picker */}
+          <div className={styles.monthPicker}>
+            <select
+              className={styles.monthSelect}
+              value={selMonth}
+              onChange={(e) => handleMonthChange(selYear, parseInt(e.target.value))}
+            >
+              {MONTH_NAMES.map((name, i) => (
+                <option key={i + 1} value={i + 1}>{name}</option>
+              ))}
+            </select>
+            <select
+              className={styles.monthSelect}
+              value={selYear}
+              onChange={(e) => handleMonthChange(parseInt(e.target.value), selMonth)}
+            >
+              {[now.getFullYear() - 1, now.getFullYear()].map((y) => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+            <span className={styles.monthLabel}>
+              {MONTH_NAMES[selMonth - 1]} {selYear}
+            </span>
           </div>
-        ))}
-      </div>
+
+          {summaryLoading && <p className={styles.empty}>Laden...</p>}
+
+          {!summaryLoading && summary !== null && summary.length === 0 && (
+            <p className={styles.empty}>Geen registraties gevonden voor deze maand.</p>
+          )}
+
+          {!summaryLoading && summary && summary.length > 0 && (
+            <div className={styles.summaryTable}>
+              {/* Header row */}
+              <div className={styles.summaryHeader}>
+                <span className={styles.colName}>Medewerker</span>
+                <span className={styles.colDays}>Dagen</span>
+                <span className={styles.colHours}>Uren</span>
+                <span className={styles.colToggle} />
+              </div>
+
+              {summary.map((emp) => (
+                <div key={emp.userId} className={styles.summaryRow}>
+                  {/* Employee summary line */}
+                  <div className={styles.summaryLine}>
+                    <span className={styles.colName}>{emp.userName}</span>
+                    <span className={styles.colDays}>{emp.daysWorked} dag{emp.daysWorked !== 1 ? 'en' : ''}</span>
+                    <span className={styles.colHoursVal}>
+                      {emp.totalHours.toFixed(1).replace('.0', '')} u
+                    </span>
+                    <button
+                      type="button"
+                      className={styles.colToggle}
+                      onClick={() => setExpandedUser(expandedUser === emp.userId ? null : emp.userId)}
+                    >
+                      {expandedUser === emp.userId ? '▲' : '▼'}
+                    </button>
+                  </div>
+
+                  {/* Day-by-day detail */}
+                  {expandedUser === emp.userId && (
+                    <div className={styles.dayDetail}>
+                      {emp.days.map((day) => (
+                        <div key={day.date} className={styles.dayDetailRow}>
+                          <span className={styles.dayDetailDate}>{fmtDayNL(day.date)}</span>
+                          <span className={styles.dayDetailTime}>
+                            {day.checkIn || '—'} → {day.checkOut || '?'}
+                          </span>
+                          <span className={[styles.dayDetailHours, !day.checkOut ? styles.dayDetailOpen : ''].filter(Boolean).join(' ')}>
+                            {day.hours > 0 ? `${day.hours.toFixed(1).replace('.0', '')} u` : day.checkIn ? 'niet uitgestempeld' : '—'}
+                          </span>
+                        </div>
+                      ))}
+                      <div className={styles.dayDetailTotal}>
+                        Totaal: <strong>{emp.totalHours.toFixed(1).replace('.0', '')} uur</strong>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Logboek (everyone / logboek tab) ────────────────────── */}
+      {(!isOwner || view === 'logboek') && (
+        <div className={styles.logSection}>
+          <h2 className={styles.logTitle}>{isOwner ? 'Logboek — alle medewerkers' : 'Mijn registraties'}</h2>
+
+          {grouped.size === 0 && (
+            <p className={styles.empty}>Geen registraties gevonden voor de afgelopen 30 dagen.</p>
+          )}
+
+          {Array.from(grouped.entries()).map(([date, dayLogs]) => (
+            <div key={date} className={styles.dayGroup}>
+              <div className={styles.dayHeader}>{date}</div>
+              {dayLogs.map((l) => (
+                <div key={l.id} className={[styles.logRow, l.type === 'opening' ? styles.opening : styles.sluiting].join(' ')}>
+                  <span className={styles.typeBadge}>
+                    {l.type === 'opening' ? 'Aankomst' : 'Vertrek'}
+                  </span>
+                  <span className={styles.logName}>{l.userName}</span>
+                  <span className={styles.logTime}>{fmtTime(l.timestamp)}</span>
+                  {l.note && <span className={styles.logNote}>{l.note}</span>}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

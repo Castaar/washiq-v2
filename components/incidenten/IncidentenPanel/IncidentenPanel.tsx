@@ -10,6 +10,14 @@ export interface IncidentListItem {
   title: string;
   subtitle: string;
   date: string;
+  is_resolved: boolean;
+  resolved_by_name: string;
+}
+
+export interface IncidentStats {
+  totalSchade: number;
+  currentTellerstand: number;
+  schadesPer1000: number | null;
 }
 
 const TYPE_LABEL: Record<IncidentListItem['type'], string> = {
@@ -25,21 +33,26 @@ const ERNST_COLORS: Record<string, string> = {
 };
 
 type Ernst = 'laag' | 'medium' | 'hoog';
+type Filter = 'open' | 'opgelost' | 'alles';
 
 export function IncidentenPanel({
   siteId,
   initialIncidents,
+  stats,
 }: {
   siteId: string;
   initialIncidents: IncidentListItem[];
+  stats: IncidentStats;
 }) {
   const [incidents, setIncidents] = useState(initialIncidents);
-
-  // Defect form state
+  const [filter, setFilter] = useState<Filter>('open');
   const [omschrijving, setOmschrijving] = useState('');
   const [ernst, setErnst] = useState<Ernst>('medium');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [resolvingId, setResolvingId] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [allLoaded, setAllLoaded] = useState(initialIncidents.length < 45);
 
   async function handleDefectSave() {
     if (!omschrijving.trim()) return;
@@ -59,6 +72,8 @@ export function IncidentenPanel({
           title: omschrijving.slice(0, 40),
           subtitle: ernst,
           date,
+          is_resolved: false,
+          resolved_by_name: '',
         };
         setIncidents((prev) => [newItem, ...prev]);
         setOmschrijving('');
@@ -71,78 +86,184 @@ export function IncidentenPanel({
     }
   }
 
+  async function handleToggleResolve(inc: IncidentListItem) {
+    setResolvingId(inc.id);
+    const endpoint =
+      inc.type === 'defect'
+        ? `/api/incidents/defect/${inc.id}`
+        : `/api/incidents/schade/${inc.id}`;
+    try {
+      const res = await fetch(endpoint, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_resolved: !inc.is_resolved }),
+      });
+      if (res.ok) {
+        setIncidents((prev) =>
+          prev.map((i) => i.id === inc.id ? { ...i, is_resolved: !inc.is_resolved } : i),
+        );
+      }
+    } finally {
+      setResolvingId(null);
+    }
+  }
+
+  async function handleLoadMore() {
+    setLoadingMore(true);
+    try {
+      const res = await fetch(`/api/incidents?siteId=${siteId}&skip=${incidents.length}`);
+      if (res.ok) {
+        const data = await res.json() as { items: IncidentListItem[] };
+        const newItems = data.items ?? [];
+        setIncidents((prev) => [...prev, ...newItems]);
+        if (newItems.length < 15) setAllLoaded(true);
+      }
+    } finally {
+      setLoadingMore(false);
+    }
+  }
+
   const schadeHref = `/incidenten/schade?site=${siteId}`;
   const ehboHref   = `/incidenten/ehbo?site=${siteId}`;
 
+  const filteredIncidents = incidents.filter((inc) => {
+    if (filter === 'open') return !inc.is_resolved;
+    if (filter === 'opgelost') return inc.is_resolved;
+    return true;
+  });
+
+  const openCount = incidents.filter((i) => !i.is_resolved && (i.type === 'defect' || i.type === 'schade')).length;
+
   return (
-    <div className={styles.grid}>
-      {/* ── Left: incident list ────────────────────────────── */}
-      <div className={styles.left}>
-        <h2 className={styles.sectionTitle}>Recentie incidenten</h2>
-        <div className={styles.list}>
-          {incidents.length === 0 && (
-            <p className={styles.empty}>Nog geen incidenten gemeld.</p>
-          )}
-          {incidents.map((inc) => (
-            <div key={inc.id} className={styles.incidentCard}>
-              <span className={[styles.incIcon, styles[`icon_${inc.type}`]].join(' ')} aria-hidden="true">
-                ⚠
-              </span>
-              <div className={styles.incBody}>
-                <div className={styles.incTop}>
-                  <span className={styles.incTitle}>{inc.title}</span>
-                  <span className={styles.incDate}>{inc.date}</span>
-                </div>
-                <span className={styles.incSubtitle}>{inc.subtitle}</span>
-                <span className={[styles.incBadge, styles[`badge_${inc.type}`]].join(' ')}>
-                  <span className={styles.badgeDot} aria-hidden="true" />
-                  {TYPE_LABEL[inc.type]}
-                </span>
-              </div>
-            </div>
-          ))}
+    <div className={styles.wrap}>
+      {/* ── Stats bar ─────────────────────────────────────────── */}
+      <div className={styles.statsBar}>
+        <div className={styles.statItem}>
+          <span className={styles.statValue}>{stats.totalSchade}</span>
+          <span className={styles.statLabel}>schadegevallen totaal</span>
         </div>
-        <div className={styles.reportBtns}>
-          <Link href={schadeHref} className={styles.reportBtn}>Schade ongeval melden</Link>
-          <Link href={ehboHref} className={styles.reportBtn}>EHBO incident melden</Link>
-        </div>
+        {stats.schadesPer1000 !== null && (
+          <div className={styles.statItem}>
+            <span className={styles.statValue}>{stats.schadesPer1000}</span>
+            <span className={styles.statLabel}>per 1.000 wassen</span>
+          </div>
+        )}
+        {openCount > 0 && (
+          <div className={[styles.statItem, styles.statAlert].join(' ')}>
+            <span className={styles.statValue}>{openCount}</span>
+            <span className={styles.statLabel}>open / niet opgelost</span>
+          </div>
+        )}
       </div>
 
-      {/* ── Right: defect form ─────────────────────────────── */}
-      <div className={styles.right}>
-        <h2 className={styles.sectionTitle}>Technisch defect melden</h2>
-        <textarea
-          className={styles.defectTextarea}
-          placeholder="Korte omschrijving van het technisch probleem..."
-          value={omschrijving}
-          onChange={(e) => setOmschrijving(e.target.value)}
-          rows={6}
-        />
-        <div className={styles.ernstRow}>
-          <span className={styles.ernstLabel}>Ernst</span>
-          {(['laag', 'medium', 'hoog'] as Ernst[]).map((level) => (
+      <div className={styles.grid}>
+        {/* ── Left: incident list ────────────────────────────── */}
+        <div className={styles.left}>
+          <div className={styles.listHeader}>
+            <h2 className={styles.sectionTitle}>Recente incidenten</h2>
+            <div className={styles.filterTabs}>
+              {(['open', 'opgelost', 'alles'] as Filter[]).map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  className={[styles.filterTab, filter === f ? styles.filterTabActive : ''].filter(Boolean).join(' ')}
+                  onClick={() => setFilter(f)}
+                >
+                  {f.charAt(0).toUpperCase() + f.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className={styles.list}>
+            {filteredIncidents.length === 0 && (
+              <p className={styles.empty}>
+                {filter === 'open' ? 'Geen openstaande incidenten.' : 'Geen incidenten gevonden.'}
+              </p>
+            )}
+            {filteredIncidents.map((inc) => (
+              <div
+                key={inc.id}
+                className={[styles.incidentCard, inc.is_resolved ? styles.incidentCardResolved : ''].filter(Boolean).join(' ')}
+              >
+                <span className={[styles.incIcon, styles[`icon_${inc.type}`]].join(' ')} aria-hidden="true">⚠</span>
+                <div className={styles.incBody}>
+                  <div className={styles.incTop}>
+                    <span className={styles.incTitle}>{inc.title}</span>
+                    <span className={styles.incDate}>{inc.date}</span>
+                  </div>
+                  <span className={styles.incSubtitle}>{inc.subtitle}</span>
+                  <div className={styles.incFooter}>
+                    <span className={[styles.incBadge, styles[`badge_${inc.type}`]].join(' ')}>
+                      <span className={styles.badgeDot} aria-hidden="true" />
+                      {TYPE_LABEL[inc.type]}
+                    </span>
+                    {(inc.type === 'defect' || inc.type === 'schade') && (
+                      <button
+                        type="button"
+                        className={[styles.resolveBtn, inc.is_resolved ? styles.resolveBtnDone : ''].filter(Boolean).join(' ')}
+                        onClick={() => handleToggleResolve(inc)}
+                        disabled={resolvingId === inc.id}
+                      >
+                        {inc.is_resolved ? '✓ Opgelost' : 'Opgelost?'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          {!allLoaded && (
             <button
-              key={level}
               type="button"
-              className={styles.ernstBtn}
-              style={{
-                borderColor: ernst === level ? ERNST_COLORS[level] : 'var(--color-border)',
-                color: ernst === level ? ERNST_COLORS[level] : 'var(--color-text-muted)',
-              }}
-              onClick={() => setErnst(level)}
+              className={styles.loadMoreBtn}
+              onClick={handleLoadMore}
+              disabled={loadingMore}
             >
-              {level.charAt(0).toUpperCase() + level.slice(1)}
+              {loadingMore ? 'Laden...' : 'Laad meer incidenten'}
             </button>
-          ))}
+          )}
+          <div className={styles.reportBtns}>
+            <Link href={schadeHref} className={styles.reportBtn}>Schade melden</Link>
+            <Link href={ehboHref} className={styles.reportBtn}>EHBO melden</Link>
+          </div>
         </div>
-        <button
-          type="button"
-          className={styles.defectSaveBtn}
-          onClick={handleDefectSave}
-          disabled={saving || !omschrijving.trim()}
-        >
-          {saved ? 'Opgeslagen ✓' : saving ? 'Bezig...' : 'Defect opslaan'}
-        </button>
+
+        {/* ── Right: defect form ─────────────────────────────── */}
+        <div className={styles.right}>
+          <h2 className={styles.sectionTitle}>Technisch defect melden</h2>
+          <textarea
+            className={styles.defectTextarea}
+            placeholder="Korte omschrijving van het technisch probleem..."
+            value={omschrijving}
+            onChange={(e) => setOmschrijving(e.target.value)}
+            rows={6}
+          />
+          <div className={styles.ernstRow}>
+            <span className={styles.ernstLabel}>Ernst</span>
+            {(['laag', 'medium', 'hoog'] as Ernst[]).map((level) => (
+              <button
+                key={level}
+                type="button"
+                className={styles.ernstBtn}
+                style={{
+                  borderColor: ernst === level ? ERNST_COLORS[level] : 'var(--color-border)',
+                  color: ernst === level ? ERNST_COLORS[level] : 'var(--color-text-muted)',
+                }}
+                onClick={() => setErnst(level)}
+              >
+                {level.charAt(0).toUpperCase() + level.slice(1)}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            className={styles.defectSaveBtn}
+            onClick={handleDefectSave}
+            disabled={saving || !omschrijving.trim()}
+          >
+            {saved ? 'Opgeslagen ✓' : saving ? 'Bezig...' : 'Defect opslaan'}
+          </button>
+        </div>
       </div>
     </div>
   );
