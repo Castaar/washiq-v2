@@ -55,6 +55,8 @@ export default async function DeveloperPage() {
     trigger_day: (t.trigger_day as number) ?? 0,
     trigger_month: (t.trigger_month as number) ?? 0,
     trigger_month_list: (t.trigger_month_list as number[]) ?? [],
+    last_done_at: t.last_done_at ? (t.last_done_at as Date).toISOString().slice(0, 10) : undefined,
+    washes_at_last_done: t.washes_at_last_done != null ? (t.washes_at_last_done as number) : undefined,
   }));
 
   const stockItems: DeveloperStockItem[] = stockDocs.map((s) => ({

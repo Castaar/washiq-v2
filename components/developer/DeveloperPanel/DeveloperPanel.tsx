@@ -35,6 +35,8 @@ export interface DeveloperMaintenanceTask {
   trigger_day?: number;
   trigger_month?: number;
   trigger_month_list?: number[];
+  last_done_at?: string;
+  washes_at_last_done?: number;
 }
 
 export interface DeveloperStockItem {
@@ -530,6 +532,101 @@ function SiteProductsBlock({
   );
 }
 
+// ── Maintenance task row ──────────────────────────────────────
+function MaintenanceTaskRow({
+  task,
+  label,
+  onDelete,
+  onUpdate,
+}: {
+  task: DeveloperMaintenanceTask;
+  label: string;
+  onDelete: (id: string) => void;
+  onUpdate: (id: string, patch: Pick<DeveloperMaintenanceTask, 'last_done_at' | 'washes_at_last_done'>) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [lastDoneAt, setLastDoneAt] = useState(task.last_done_at ?? '');
+  const [washesAtLastDone, setWashesAtLastDone] = useState(
+    task.washes_at_last_done !== undefined ? String(task.washes_at_last_done) : '',
+  );
+  const [saving, setSaving] = useState(false);
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      const body: Record<string, unknown> = {};
+      if (lastDoneAt) body.last_done_at = lastDoneAt;
+      if (task.trigger_type === 'washes' && washesAtLastDone !== '')
+        body.washes_at_last_done = parseInt(washesAtLastDone) || 0;
+      await fetch(`/api/maintenance/${task.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      onUpdate(task.id, {
+        last_done_at: lastDoneAt || undefined,
+        washes_at_last_done: task.trigger_type === 'washes' && washesAtLastDone !== ''
+          ? parseInt(washesAtLastDone) || 0
+          : undefined,
+      });
+      setEditing(false);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className={styles.taskRow}>
+      <div className={styles.taskMain}>
+        <span className={styles.taskDesc}>{task.description}</span>
+        <span className={styles.taskTrigger}>{label}</span>
+        {task.last_done_at && (
+          <span className={styles.taskMeta}>Laatste beurt: {task.last_done_at}</span>
+        )}
+        {task.trigger_type === 'washes' && task.washes_at_last_done !== undefined && (
+          <span className={styles.taskMeta}>{task.washes_at_last_done.toLocaleString('nl-BE')} was.</span>
+        )}
+        <div className={styles.rowActions}>
+          <button type="button" className={styles.editBtn} onClick={() => setEditing((v) => !v)} aria-label="Bewerken">✏</button>
+          <button type="button" className={styles.deleteBtn} onClick={() => onDelete(task.id)} aria-label="Verwijderen">✕</button>
+        </div>
+      </div>
+      {editing && (
+        <div className={styles.editPanel}>
+          <div className={styles.editRow}>
+            <span className={styles.editLabel}>Datum laatste beurt</span>
+            <input
+              className={styles.input}
+              type="date"
+              value={lastDoneAt}
+              onChange={(e) => setLastDoneAt(e.target.value)}
+            />
+          </div>
+          {task.trigger_type === 'washes' && (
+            <div className={styles.editRow}>
+              <span className={styles.editLabel}>Tellerstand bij laatste beurt</span>
+              <input
+                className={styles.input}
+                type="number"
+                min="0"
+                value={washesAtLastDone}
+                onChange={(e) => setWashesAtLastDone(e.target.value)}
+                placeholder="0"
+              />
+            </div>
+          )}
+          <div className={styles.editActions}>
+            <button type="button" className={styles.cancelBtn} onClick={() => setEditing(false)}>Annuleren</button>
+            <button type="button" className={styles.saveSmallBtn} onClick={handleSave} disabled={saving}>
+              {saving ? 'Opslaan...' : 'Opslaan'}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main panel ────────────────────────────────────────────────
 export function DeveloperPanel({ users: initialUsers, sites: initialSites, programs: initialPrograms, maintenanceTasks: initialTasks, stockItems: initialStock }: DeveloperPanelProps) {
   const [users, setUsers] = useState(initialUsers);
@@ -656,6 +753,10 @@ export function DeveloperPanel({ users: initialUsers, sites: initialSites, progr
           trigger_day: parseInt(newTaskDay) || 0,
           trigger_month: parseInt(newTaskMonth) || 0,
           trigger_month_list: newTaskMonthList,
+          last_done_at: newTaskLastDoneAt || undefined,
+          washes_at_last_done: newTaskType === 'washes' && newTaskWashesAtLastDone
+            ? parseInt(newTaskWashesAtLastDone) || 0
+            : undefined,
         };
         setTasks((prev) => [...prev, newTask]);
         setNewTaskDesc(''); setNewTaskValue(''); setNewTaskDay(''); setNewTaskMonth('');
@@ -670,6 +771,10 @@ export function DeveloperPanel({ users: initialUsers, sites: initialSites, progr
     if (!confirm('Onderhoudstaak verwijderen?')) return;
     await fetch(`/api/maintenance/${id}`, { method: 'DELETE' });
     setTasks((prev) => prev.filter((t) => t.id !== id));
+  }
+
+  function handleUpdateTask(id: string, patch: Pick<DeveloperMaintenanceTask, 'last_done_at' | 'washes_at_last_done'>) {
+    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
   }
 
   function taskTriggerLabel(t: DeveloperMaintenanceTask): string {
@@ -1090,18 +1195,13 @@ export function DeveloperPanel({ users: initialUsers, sites: initialSites, progr
           {tasks
             .filter((t) => t.siteId === taskSiteId)
             .map((t) => (
-              <div key={t.id} className={styles.taskRow}>
-                <span className={styles.taskDesc}>{t.description}</span>
-                <span className={styles.taskTrigger}>{taskTriggerLabel(t)}</span>
-                <button
-                  type="button"
-                  className={styles.deleteBtn}
-                  onClick={() => handleDeleteTask(t.id)}
-                  aria-label="Verwijderen"
-                >
-                  ✕
-                </button>
-              </div>
+              <MaintenanceTaskRow
+                key={t.id}
+                task={t}
+                label={taskTriggerLabel(t)}
+                onDelete={handleDeleteTask}
+                onUpdate={handleUpdateTask}
+              />
             ))}
         </div>
       </div>

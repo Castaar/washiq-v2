@@ -9,6 +9,7 @@
   justify-content: center;
   position: absolute;
   z-index: 999;
+  position: none;
 }
 
 .list {
@@ -164,6 +165,7 @@
   cursor: pointer;
   align-self: flex-start;
   transition: border-color 0.15s, color 0.15s;
+  pointer-events: auto;
 
   &:hover {
     border-color: rgba(255, 220, 100, 0.6);

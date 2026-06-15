@@ -13,6 +13,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json() as {
     siteId: string;
     tellerstand: number;
+    tellerstandDate?: string;
     prices?: {
       water_per_liter: number;
       energy_per_kw: number;
@@ -42,6 +43,7 @@ export async function POST(req: NextRequest) {
   ops.push(
     Site.findByIdAndUpdate(body.siteId, {
       start_car_count: body.tellerstand ?? 0,
+      start_car_count_date: body.tellerstandDate ? new Date(body.tellerstandDate) : new Date(),
       setup_done: true,
     }),
   );

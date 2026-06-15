@@ -405,7 +405,7 @@ export function AccountForm({ priceConfig, users: initialUsers, siteId, currentU
     try {
       const task = tasks.find((t) => t.id === taskId);
       const body: Record<string, unknown> = { last_done_at: fields.date };
-      if (task?.trigger_type === 'washes') body.washes_at_last_done = parseInt(fields.washes) || 0;
+      if (task?.trigger_type === 'washes') body.washes_at_last_done = currentTotalWashes;
       await fetch(`/api/maintenance/${taskId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -414,7 +414,7 @@ export function AccountForm({ priceConfig, users: initialUsers, siteId, currentU
       setTasks((prev) =>
         prev.map((t) =>
           t.id === taskId
-            ? { ...t, last_done_at: new Date(fields.date).toISOString(), washes_at_last_done: parseInt(fields.washes) || t.washes_at_last_done }
+            ? { ...t, last_done_at: new Date(fields.date).toISOString(), washes_at_last_done: task?.trigger_type === 'washes' ? currentTotalWashes : t.washes_at_last_done }
             : t,
         ),
       );
@@ -847,17 +847,6 @@ export function AccountForm({ priceConfig, users: initialUsers, siteId, currentU
                           onChange={(e) => setMarkOpen((prev) => ({ ...prev, [t.id]: { ...prev[t.id], date: e.target.value } }))}
                           style={{ width: 130 }}
                         />
-                        {t.trigger_type === 'washes' && (
-                          <input
-                            className={styles.deliveryInput}
-                            type="number"
-                            min="0"
-                            placeholder="wagens"
-                            value={markOpen[t.id].washes}
-                            onChange={(e) => setMarkOpen((prev) => ({ ...prev, [t.id]: { ...prev[t.id], washes: e.target.value } }))}
-                            style={{ width: 90 }}
-                          />
-                        )}
                         <button
                           type="button"
                           className={styles.confirmDeliveryBtn}
