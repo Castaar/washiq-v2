@@ -1,6 +1,7 @@
 @use '../../../styles/variables' as *;
 
 .wrap {
+  @include glass(0.04);
   display: flex;
   align-items: center;
   height: 36px;
