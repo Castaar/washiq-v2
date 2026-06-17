@@ -5,6 +5,28 @@ import styles from './InstellingenForm.module.scss';
 
 // ─── Types ───────────────────────────────────────────────────
 
+interface MaintenanceTaskItem {
+  id: string;
+  description: string;
+  trigger_type: 'washes' | 'months' | 'fixed_date' | 'fixed_months';
+  trigger_value: number;
+  trigger_day: number;
+  trigger_month: number;
+  trigger_month_list: number[];
+  last_done_at: string | null;
+  washes_at_last_done: number;
+}
+
+interface NewTaskDraft {
+  description: string;
+  trigger_type: 'washes' | 'months' | 'fixed_date';
+  trigger_value: number;
+  trigger_day: number;
+  trigger_month: number;
+  last_done_at: string;
+  washes_at_last_done: number;
+}
+
 interface StockItem {
   id: string;
   name: string;
@@ -35,12 +57,40 @@ interface InstellingenFormProps {
   stocks: StockItem[];
   energyBills: EnergyBillData[];
   startCarCount: number;
+  maintenanceTasks: MaintenanceTaskItem[];
+  currentTotalWashes: number;
 }
 
 const MONTHS = [
   'Januari', 'Februari', 'Maart', 'April', 'Mei', 'Juni',
   'Juli', 'Augustus', 'September', 'Oktober', 'November', 'December',
 ];
+
+const MONTHS_SHORT = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
+
+function emptyTask(): NewTaskDraft {
+  return {
+    description: '',
+    trigger_type: 'washes',
+    trigger_value: 0,
+    trigger_day: 1,
+    trigger_month: 1,
+    last_done_at: '',
+    washes_at_last_done: 0,
+  };
+}
+
+function taskTriggerLabel(t: MaintenanceTaskItem): string {
+  if (t.trigger_type === 'washes') return `Elke ${t.trigger_value.toLocaleString('nl-BE')} wassen`;
+  if (t.trigger_type === 'months') {
+    if (t.trigger_value === 12) return '1× per jaar';
+    if (t.trigger_value === 24) return 'Om de 2 jaar';
+    return `Elke ${t.trigger_value} maanden`;
+  }
+  if (t.trigger_type === 'fixed_date') return `${t.trigger_day} ${MONTHS[(t.trigger_month ?? 1) - 1]} (jaarlijks)`;
+  if (t.trigger_type === 'fixed_months') return (t.trigger_month_list ?? []).map((m) => MONTHS[m - 1]).join(' + ');
+  return '';
+}
 
 // ─── Sub-components ───────────────────────────────────────────
 
@@ -78,7 +128,7 @@ function PriceField({
 
 // ─── Main component ───────────────────────────────────────────
 
-export function InstellingenForm({ siteId, priceConfig, stocks, energyBills, startCarCount }: InstellingenFormProps) {
+export function InstellingenForm({ siteId, priceConfig, stocks, energyBills, startCarCount, maintenanceTasks: initialTasks, currentTotalWashes }: InstellingenFormProps) {
   const isFirstTime = !priceConfig;
 
   // ── Prices state ──────────────────────────────────────────
@@ -164,6 +214,30 @@ export function InstellingenForm({ siteId, priceConfig, stocks, energyBills, sta
   const [savingBill, setSavingBill] = useState(false);
   const [bills, setBills] = useState<EnergyBillData[]>(energyBills);
 
+  // ── Delivery state ────────────────────────────────────────
+  const [deliveryOpen, setDeliveryOpen] = useState<Record<string, string>>({});
+  const [savingDelivery, setSavingDelivery] = useState<string | null>(null);
+
+  async function handleConfirmDelivery(stockId: string) {
+    const qty = parseFloat(deliveryOpen[stockId] ?? '');
+    if (!qty || qty <= 0) return;
+    setSavingDelivery(stockId);
+    try {
+      const res = await fetch(`/api/stock/${stockId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ delivery_quantity: qty }),
+      });
+      if (res.ok) {
+        const updated = (await res.json()) as StockItem;
+        setProductList((prev) => prev.map((s) => (s.id === stockId ? { ...s, current_stock: updated.current_stock } : s)));
+        setDeliveryOpen((prev) => { const n = { ...prev }; delete n[stockId]; return n; });
+      }
+    } finally {
+      setSavingDelivery(null);
+    }
+  }
+
   // ── Car count state ───────────────────────────────────────
   const [carCount, setCarCount] = useState(startCarCount > 0 ? String(startCarCount) : '');
   const [savingCarCount, setSavingCarCount] = useState(false);
@@ -180,6 +254,64 @@ export function InstellingenForm({ siteId, priceConfig, stocks, energyBills, sta
     });
     setSavingCarCount(false);
     setCarCountSaved(true);
+  }
+
+  // ── Maintenance task state ─────────────────────────────────
+  const [tasks, setTasks] = useState<MaintenanceTaskItem[]>(initialTasks);
+  const [addingTask, setAddingTask] = useState(false);
+  const [savingTask, setSavingTask] = useState(false);
+  const [newTask, setNewTask] = useState<NewTaskDraft>(emptyTask());
+  const [deletingTask, setDeletingTask] = useState<string | null>(null);
+
+  async function handleAddTask(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newTask.description.trim()) return;
+    setSavingTask(true);
+    try {
+      const res = await fetch('/api/maintenance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          siteId,
+          description: newTask.description.trim(),
+          trigger_type: newTask.trigger_type,
+          trigger_value: newTask.trigger_value,
+          trigger_day: newTask.trigger_day,
+          trigger_month: newTask.trigger_month,
+          last_done_at: newTask.last_done_at || undefined,
+          washes_at_last_done: newTask.washes_at_last_done,
+        }),
+      });
+      if (res.ok) {
+        const { id } = (await res.json()) as { id: string };
+        const created: MaintenanceTaskItem = {
+          id,
+          description: newTask.description.trim(),
+          trigger_type: newTask.trigger_type,
+          trigger_value: newTask.trigger_value,
+          trigger_day: newTask.trigger_day,
+          trigger_month: newTask.trigger_month,
+          trigger_month_list: [],
+          last_done_at: newTask.last_done_at || null,
+          washes_at_last_done: newTask.washes_at_last_done,
+        };
+        setTasks((prev) => [...prev, created]);
+        setNewTask(emptyTask());
+        setAddingTask(false);
+      }
+    } finally {
+      setSavingTask(false);
+    }
+  }
+
+  async function handleDeleteTask(id: string) {
+    setDeletingTask(id);
+    try {
+      await fetch(`/api/maintenance/${id}`, { method: 'DELETE' });
+      setTasks((prev) => prev.filter((t) => t.id !== id));
+    } finally {
+      setDeletingTask(null);
+    }
   }
 
   // ── Derived state ─────────────────────────────────────────
@@ -265,10 +397,15 @@ export function InstellingenForm({ siteId, priceConfig, stocks, energyBills, sta
       {/* ── First-time welcome ───────────────────────────────── */}
       {isFirstTime && !pricesSaved && (
         <div className={styles.firstTimeBanner}>
-          <span className={styles.bannerTitle}>Eerste setup</span>
+          <span className={styles.bannerTitle}>Instellingen in 3 stappen</span>
           <p className={styles.bannerText}>
-            Volg de stappen hieronder om uw carwash in te stellen. Zodra prijzen en startvoorraad zijn ingegeven kunt u kosten berekenen op het dashboard.
+            Volg de stappen hieronder om uw carwash in te stellen:
           </p>
+          <ol className={styles.bannerSteps}>
+            <li>Prijzen per eenheid instellen</li>
+            <li>Startvoorraad ingeven</li>
+            <li>Eerste energiefactuur toevoegen</li>
+          </ol>
         </div>
       )}
 
@@ -440,6 +577,81 @@ export function InstellingenForm({ siteId, priceConfig, stocks, energyBills, sta
         )}
       </form>
 
+      {/* ── Sectie 2b: Chemie voorraad ───────────────────────── */}
+      <div className={styles.section}>
+        <div className={styles.sectionHead}>
+          <h2 className={styles.sectionTitle}>Chemie voorraad</h2>
+        </div>
+        <p className={styles.sectionHint}>
+          Registreer een levering om de voorraad bij te werken.
+        </p>
+        {productList.length === 0 ? (
+          <p className={styles.emptyHint}>Geen producten gevonden. Voeg eerst producten toe via &quot;Producten beheren&quot; hierboven.</p>
+        ) : (
+          <div className={styles.stockTable}>
+            <div className={styles.stockHeaderRow}>
+              <span>Product</span>
+              <span>Huidige voorraad</span>
+              <span>Eenheid</span>
+              <span></span>
+            </div>
+            {productList.map((s) => {
+              const isOpen = s.id in deliveryOpen;
+              const isLow = s.min_stock_alert > 0 && s.current_stock <= s.min_stock_alert;
+              return (
+                <div key={s.id} className={styles.stockRow}>
+                  <span className={styles.stockName}>{s.name}</span>
+                  <span className={[styles.stockName, isLow ? styles.stockLow : ''].filter(Boolean).join(' ')}>
+                    {s.current_stock}
+                  </span>
+                  <span className={styles.stockUnit}>{s.unit}</span>
+                  {isOpen ? (
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                      <input
+                        className={styles.stockInput}
+                        type="number"
+                        min="0"
+                        step="any"
+                        placeholder={s.unit}
+                        value={deliveryOpen[s.id]}
+                        onChange={(e) => setDeliveryOpen((prev) => ({ ...prev, [s.id]: e.target.value }))}
+                        autoFocus
+                        style={{ width: 90 }}
+                      />
+                      <button
+                        type="button"
+                        className={styles.saveBtn}
+                        onClick={() => handleConfirmDelivery(s.id)}
+                        disabled={savingDelivery === s.id}
+                        style={{ padding: '4px 10px' }}
+                      >
+                        {savingDelivery === s.id ? '...' : 'OK'}
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.deleteProductBtn}
+                        onClick={() => setDeliveryOpen((prev) => { const n = { ...prev }; delete n[s.id]; return n; })}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className={styles.saveBtn}
+                      onClick={() => setDeliveryOpen((prev) => ({ ...prev, [s.id]: '' }))}
+                      style={{ padding: '4px 10px' }}
+                    >
+                      + Levering
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       {/* ── Sectie 3: Energiefacturen ────────────────────────── */}
       <div className={styles.section}>
         <div className={styles.sectionHead}>
@@ -534,6 +746,205 @@ export function InstellingenForm({ siteId, priceConfig, stocks, energyBills, sta
           </button>
         </div>
       </form>
+
+      {/* ── Sectie 5: Onderhoudstaken ────────────────────────── */}
+      <div className={styles.section}>
+        <div className={styles.sectionHead}>
+          <h2 className={styles.sectionTitle}>Onderhoudstaken</h2>
+        </div>
+        <p className={styles.sectionHint}>
+          Beheer de terugkerende onderhoudstaken voor deze site. Huidig tellerstand: <strong>{currentTotalWashes.toLocaleString('nl-BE')} wassen</strong>.
+        </p>
+
+        {/* Task list */}
+        {tasks.length > 0 && (
+          <div className={styles.taskList}>
+            {tasks.map((t) => (
+              <div key={t.id} className={styles.taskRow}>
+                <div className={styles.taskInfo}>
+                  <span className={styles.taskDesc}>{t.description}</span>
+                  <span className={styles.taskTrigger}>
+                    {taskTriggerLabel(t)}
+                    {t.last_done_at && ` — laatste: ${new Date(t.last_done_at).toLocaleDateString('nl-BE', { day: '2-digit', month: '2-digit', year: 'numeric' })}`}
+                    {t.trigger_type === 'washes' && t.washes_at_last_done > 0 && ` (${t.washes_at_last_done.toLocaleString('nl-BE')} wgn.)`}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className={styles.deleteProductBtn}
+                  onClick={() => handleDeleteTask(t.id)}
+                  disabled={deletingTask === t.id}
+                  aria-label={`${t.description} verwijderen`}
+                >
+                  {deletingTask === t.id ? '...' : '✕'}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        {tasks.length === 0 && !addingTask && (
+          <p className={styles.emptyHint}>Nog geen onderhoudstaken geconfigureerd.</p>
+        )}
+
+        {/* Add task form */}
+        {addingTask ? (
+          <form className={styles.addTaskForm} onSubmit={handleAddTask} noValidate>
+            <div className={styles.taskFormField}>
+              <label className={styles.priceLabel}>Omschrijving</label>
+              <input
+                className={styles.productInput}
+                type="text"
+                placeholder="bijv. Borstels nakijken"
+                value={newTask.description}
+                onChange={(e) => setNewTask((t) => ({ ...t, description: e.target.value }))}
+                autoFocus
+              />
+            </div>
+
+            <div className={styles.taskFormField}>
+              <label className={styles.priceLabel}>Type trigger</label>
+              <div className={styles.radioGroup}>
+                {([['washes', 'Op aantal wassen'], ['months', 'Op aantal maanden'], ['fixed_date', 'Vaste datum per jaar']] as [NewTaskDraft['trigger_type'], string][]).map(([val, lbl]) => (
+                  <label key={val} className={styles.radioLabel}>
+                    <input
+                      type="radio"
+                      name="task_trigger_type"
+                      value={val}
+                      checked={newTask.trigger_type === val}
+                      onChange={() => setNewTask((t) => ({ ...t, trigger_type: val }))}
+                    />
+                    {lbl}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {newTask.trigger_type === 'washes' && (
+              <div className={styles.taskFormRow}>
+                <div className={styles.taskFormField}>
+                  <label className={styles.priceLabel}>Interval (wassen)</label>
+                  <input
+                    className={styles.stockInput}
+                    type="number"
+                    min={1}
+                    placeholder="bijv. 5000"
+                    value={newTask.trigger_value || ''}
+                    onChange={(e) => setNewTask((t) => ({ ...t, trigger_value: parseInt(e.target.value) || 0 }))}
+                  />
+                </div>
+                <div className={styles.taskFormField}>
+                  <label className={styles.priceLabel}>Tellerstand laatste keer</label>
+                  <input
+                    className={styles.stockInput}
+                    type="number"
+                    min={0}
+                    placeholder="bijv. 120000"
+                    value={newTask.washes_at_last_done || ''}
+                    onChange={(e) => setNewTask((t) => ({ ...t, washes_at_last_done: parseInt(e.target.value) || 0 }))}
+                  />
+                </div>
+                <div className={styles.taskFormField}>
+                  <label className={styles.priceLabel}>Datum laatste keer</label>
+                  <input
+                    className={styles.stockInput}
+                    type="date"
+                    value={newTask.last_done_at}
+                    onChange={(e) => setNewTask((t) => ({ ...t, last_done_at: e.target.value }))}
+                  />
+                </div>
+              </div>
+            )}
+
+            {newTask.trigger_type === 'months' && (
+              <div className={styles.taskFormRow}>
+                <div className={styles.taskFormField}>
+                  <label className={styles.priceLabel}>Interval (maanden)</label>
+                  <input
+                    className={styles.stockInput}
+                    type="number"
+                    min={1}
+                    placeholder="bijv. 3"
+                    value={newTask.trigger_value || ''}
+                    onChange={(e) => setNewTask((t) => ({ ...t, trigger_value: parseInt(e.target.value) || 0 }))}
+                  />
+                </div>
+                <div className={styles.taskFormField}>
+                  <label className={styles.priceLabel}>Datum laatste uitvoering</label>
+                  <input
+                    className={styles.stockInput}
+                    type="date"
+                    value={newTask.last_done_at}
+                    onChange={(e) => setNewTask((t) => ({ ...t, last_done_at: e.target.value }))}
+                  />
+                </div>
+              </div>
+            )}
+
+            {newTask.trigger_type === 'fixed_date' && (
+              <div className={styles.taskFormRow}>
+                <div className={styles.taskFormField}>
+                  <label className={styles.priceLabel}>Dag</label>
+                  <input
+                    className={styles.stockInput}
+                    type="number"
+                    min={1}
+                    max={31}
+                    value={newTask.trigger_day || ''}
+                    onChange={(e) => setNewTask((t) => ({ ...t, trigger_day: parseInt(e.target.value) || 1 }))}
+                  />
+                </div>
+                <div className={styles.taskFormField}>
+                  <label className={styles.priceLabel}>Maand</label>
+                  <select
+                    className={styles.stockInput}
+                    value={newTask.trigger_month}
+                    onChange={(e) => setNewTask((t) => ({ ...t, trigger_month: parseInt(e.target.value) }))}
+                  >
+                    {MONTHS_SHORT.map((m, i) => (
+                      <option key={i} value={i + 1}>{m}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className={styles.taskFormField}>
+                  <label className={styles.priceLabel}>Datum laatste uitvoering</label>
+                  <input
+                    className={styles.stockInput}
+                    type="date"
+                    value={newTask.last_done_at}
+                    onChange={(e) => setNewTask((t) => ({ ...t, last_done_at: e.target.value }))}
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className={styles.taskFormActions}>
+              <button
+                type="button"
+                className={styles.cancelBtn}
+                onClick={() => { setAddingTask(false); setNewTask(emptyTask()); }}
+              >
+                Annuleren
+              </button>
+              <button
+                type="submit"
+                className={styles.saveBtn}
+                disabled={savingTask || !newTask.description.trim()}
+              >
+                {savingTask ? 'Opslaan...' : 'Taak toevoegen'}
+              </button>
+            </div>
+          </form>
+        ) : (
+          <button
+            type="button"
+            className={styles.saveBtn}
+            style={{ marginTop: 8 }}
+            onClick={() => setAddingTask(true)}
+          >
+            + Onderhoudstaak toevoegen
+          </button>
+        )}
+      </div>
     </div>
   );
 }

@@ -11,29 +11,11 @@ interface UserItem {
   role: string;
 }
 
-interface PriceConfigData {
-  id: string;
-  energyPerKw: number;
-  waterPerLiter: number;
-  saltPerKg: number;
-  flockPerKg: number;
-  clothPerUnit: number;
-  chemicalPrices: { name: string; price: number }[];
-}
-
 export interface EnergyBillItem {
   id: string;
   year: number;
   month: number;
   amount_euro: number;
-}
-
-export interface StockItem {
-  id: string;
-  name: string;
-  current_stock: number;
-  min_stock_alert: number;
-  unit: string;
 }
 
 export interface MaintenanceTaskItem {
@@ -49,85 +31,22 @@ export interface MaintenanceTaskItem {
 }
 
 export interface AccountFormProps {
-  priceConfig: PriceConfigData | null;
   users: UserItem[];
   siteId: string;
   currentUser: { id: string; name: string; email: string } | null;
   role: 'developer' | 'owner' | 'employee';
-  chemieLabels: string[];
-  stockItems: StockItem[];
   maintenanceTasks: MaintenanceTaskItem[];
   currentTotalWashes: number;
   energyBills: EnergyBillItem[];
 }
 
-// ── Price field ──────────────────────────────────────────────
-function PriceField({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  return (
-    <div className={styles.priceGroup}>
-      <label className={styles.priceLabel}>{label}</label>
-      <div className={styles.priceInputWrap}>
-        <span className={styles.euroSign} aria-hidden="true">€</span>
-        <input
-          className={styles.priceInput}
-          type="number"
-          step="0.001"
-          min="0"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="0,000"
-        />
-      </div>
-    </div>
-  );
-}
-
 // ── Main component ────────────────────────────────────────────
-export function AccountForm({ priceConfig, users: initialUsers, siteId, currentUser, role, chemieLabels, stockItems: initialStock, maintenanceTasks: initialTasks, currentTotalWashes, energyBills: initialBills }: AccountFormProps) {
+export function AccountForm({ users: initialUsers, siteId, currentUser, role, maintenanceTasks: initialTasks, currentTotalWashes, energyBills: initialBills }: AccountFormProps) {
   const isEmployee = role === 'employee';
 
   // Accountgegevens
   const [email, setEmail] = useState(currentUser?.email ?? '');
   const [password, setPassword] = useState('');
-
-  // Kostprijzen
-  const [water, setWater] = useState(String(priceConfig?.waterPerLiter ?? ''));
-  const [zout, setZout] = useState(String(priceConfig?.saltPerKg ?? ''));
-  const [flock, setFlock] = useState(String(priceConfig?.flockPerKg ?? ''));
-  const [ruitendoekjes, setRuitendoekjes] = useState(String(priceConfig?.clothPerUnit ?? ''));
-  // allChemieLabels mirrors chemieLabels and grows when new products are added inline
-  const [allChemieLabels, setAllChemieLabels] = useState<string[]>(chemieLabels);
-  const [chemiePrices, setChemiePrices] = useState<string[]>(
-    chemieLabels.map((label) => {
-      const match = priceConfig?.chemicalPrices.find((c) => c.name === label);
-      return String(match?.price ?? '');
-    }),
-  );
-
-  // Voorraad (stock) — declared here so ALL_STOCK_PRODUCTS can reference it
-  const [stocks, setStocks] = useState<StockItem[]>(initialStock);
-
-  // All tracked stock products: fixed ones + chemicals from stock
-  const HARDCODED_STOCK = ['Zoutverzachter', 'Flockmiddel', 'Ruitendoekjes'];
-  const ALL_STOCK_PRODUCTS: { name: string; unit: string }[] = [
-    { name: 'Zoutverzachter', unit: 'kg' },
-    { name: 'Flockmiddel', unit: 'kg' },
-    { name: 'Ruitendoekjes', unit: 'stuks' },
-    ...allChemieLabels
-      .filter((name) => !HARDCODED_STOCK.includes(name))
-      .map((name) => {
-        const existing = stocks.find((s) => s.name === name);
-        return { name, unit: existing?.unit ?? 'L' };
-      }),
-  ];
 
   // Personeelsgegevens
   const [users, setUsers] = useState(initialUsers);
@@ -191,27 +110,6 @@ export function AccountForm({ priceConfig, users: initialUsers, siteId, currentU
     setBills((prev) => prev.filter((b) => b.id !== id));
   }
 
-  // Voorraad (stock) delivery state
-  const [deliveryOpen, setDeliveryOpen] = useState<Record<string, string>>({}); // stockId -> qty string
-  const [savingDelivery, setSavingDelivery] = useState<string | null>(null);
-  // Per-chemical init form for chemicals without a stock entry yet
-  const [initOpen, setInitOpen] = useState<Record<string, { quantity: string; alert: string }>>({}); // chemName -> fields
-  const [savingInit, setSavingInit] = useState<string | null>(null);
-
-  // Add new chemical product inline
-  const [newChemName, setNewChemName] = useState('');
-  const [newChemUnit, setNewChemUnit] = useState('L');
-  const [addingChem, setAddingChem] = useState(false);
-  const [addChemError, setAddChemError] = useState('');
-
-  function updateChemiePrice(index: number, value: string) {
-    setChemiePrices((prev) => {
-      const next = [...prev];
-      next[index] = value;
-      return next;
-    });
-  }
-
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
@@ -220,16 +118,6 @@ export function AccountForm({ priceConfig, users: initialUsers, siteId, currentU
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          siteId,
-          priceConfigId: priceConfig?.id,
-          waterPerLiter: parseFloat(water) || 0,
-          saltPerKg: parseFloat(zout) || 0,
-          flockPerKg: parseFloat(flock) || 0,
-          clothPerUnit: parseFloat(ruitendoekjes) || 0,
-          chemicalPrices: allChemieLabels.map((name, i) => ({
-            name,
-            price: parseFloat(chemiePrices[i] ?? '0') || 0,
-          })),
           currentUserId: currentUser?.id,
           email: email || undefined,
           newPassword: password || undefined,
@@ -279,102 +167,6 @@ export function AccountForm({ priceConfig, users: initialUsers, siteId, currentU
       setAddUserError('Netwerkfout — probeer opnieuw.');
     } finally {
       setAddingUser(false);
-    }
-  }
-
-  // ── Stock handlers ─────────────────────────────────────────
-  function toggleDelivery(id: string) {
-    setDeliveryOpen((prev) =>
-      id in prev ? Object.fromEntries(Object.entries(prev).filter(([k]) => k !== id)) : { ...prev, [id]: '' },
-    );
-  }
-
-  async function handleConfirmDelivery(stockId: string) {
-    const qty = parseFloat(deliveryOpen[stockId] ?? '');
-    if (!qty || qty <= 0) return;
-    setSavingDelivery(stockId);
-    try {
-      const res = await fetch(`/api/stock/${stockId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ delivery_quantity: qty }),
-      });
-      if (res.ok) {
-        const updated = (await res.json()) as StockItem;
-        setStocks((prev) => prev.map((s) => (s.id === stockId ? { ...s, current_stock: updated.current_stock } : s)));
-        setDeliveryOpen((prev) => Object.fromEntries(Object.entries(prev).filter(([k]) => k !== stockId)));
-      }
-    } finally {
-      setSavingDelivery(null);
-    }
-  }
-
-  async function handleDeleteStock(stockId: string) {
-    await fetch(`/api/stock/${stockId}`, { method: 'DELETE' });
-    setStocks((prev) => prev.filter((s) => s.id !== stockId));
-  }
-
-  function toggleInit(name: string) {
-    setInitOpen((prev) =>
-      name in prev
-        ? Object.fromEntries(Object.entries(prev).filter(([k]) => k !== name))
-        : { ...prev, [name]: { quantity: '', alert: '' } },
-    );
-  }
-
-  async function handleCreateStock(name: string) {
-    const fields = initOpen[name];
-    const unit = ALL_STOCK_PRODUCTS.find((p) => p.name === name)?.unit ?? 'L';
-    setSavingInit(name);
-    try {
-      const res = await fetch('/api/stock', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          siteId,
-          name,
-          unit,
-          min_stock_alert: parseFloat(fields.alert) || 0,
-          current_stock: parseFloat(fields.quantity) || 0,
-        }),
-      });
-      if (res.ok) {
-        const item = (await res.json()) as StockItem;
-        setStocks((prev) => [...prev, item]);
-        setInitOpen((prev) => Object.fromEntries(Object.entries(prev).filter(([k]) => k !== name)));
-      }
-    } finally {
-      setSavingInit(null);
-    }
-  }
-
-  async function handleAddChemical(e: React.FormEvent) {
-    e.preventDefault();
-    const name = newChemName.trim();
-    if (!name) return;
-    if (allChemieLabels.some((l) => l.toLowerCase() === name.toLowerCase())) {
-      setAddChemError('Product bestaat al');
-      return;
-    }
-    setAddChemError('');
-    setAddingChem(true);
-    try {
-      const res = await fetch('/api/stock', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ siteId, name, unit: newChemUnit, current_stock: 0, min_stock_alert: 0 }),
-      });
-      if (res.ok) {
-        const item = (await res.json()) as StockItem;
-        setAllChemieLabels((prev) => [...prev, name]);
-        setChemiePrices((prev) => [...prev, '']);
-        setStocks((prev) => [...prev, item]);
-        setNewChemName('');
-      } else {
-        setAddChemError('Opslaan mislukt');
-      }
-    } finally {
-      setAddingChem(false);
     }
   }
 
@@ -531,27 +323,6 @@ export function AccountForm({ priceConfig, users: initialUsers, siteId, currentU
               </button>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* ── Kostprijzen ─────────────────────────────────────── */}
-      <section className={styles.section}>
-        <h2 className={styles.sectionLabel}>Kostprijzen</h2>
-        <div className={styles.priceRow}>
-          <PriceField label="Water" value={water} onChange={setWater} />
-          <PriceField label="Zoutverzachter (kg)" value={zout} onChange={setZout} />
-          <PriceField label="Flockmiddel (kg)" value={flock} onChange={setFlock} />
-          <PriceField label="Ruitendoekjes (stuks)" value={ruitendoekjes} onChange={setRuitendoekjes} />
-        </div>
-        <div className={styles.priceRow}>
-          {allChemieLabels.map((label, i) => (
-            <PriceField
-              key={label}
-              label={label}
-              value={chemiePrices[i] ?? ''}
-              onChange={(v) => updateChemiePrice(i, v)}
-            />
-          ))}
         </div>
       </section>
 
@@ -724,173 +495,6 @@ export function AccountForm({ priceConfig, users: initialUsers, siteId, currentU
           {addUserSuccess && <p className={styles.addUserSuccess}>{addUserSuccess}</p>}
         </div>
       </section>
-
-      {/* ── Voorraad beheer ─────────────────────────────────── */}
-      {(true) && (
-        <section className={styles.section}>
-          <h2 className={styles.sectionLabel}>Chemie voorraad</h2>
-          <div className={styles.stockList}>
-            {ALL_STOCK_PRODUCTS.map(({ name }) => {
-              const s = stocks.find((x) => x.name === name);
-              if (s) {
-                // Existing stock entry
-                const isLow = s.min_stock_alert > 0 && s.current_stock <= s.min_stock_alert;
-                const isDeliveryOpen = s.id in deliveryOpen;
-                return (
-                  <div key={name} className={styles.stockRow}>
-                    <span className={styles.stockName}>{s.name}</span>
-                    <span className={[styles.stockMeta, isLow ? styles.stockLow : ''].filter(Boolean).join(' ')}>
-                      {s.current_stock} {s.unit}
-                    </span>
-                    {s.min_stock_alert > 0 && (
-                      <span className={styles.stockAlert}>min. {s.min_stock_alert} {s.unit}</span>
-                    )}
-                    <div className={styles.stockActions}>
-                      {isDeliveryOpen ? (
-                        <div className={styles.deliveryInline}>
-                          <input
-                            className={styles.deliveryInput}
-                            type="number"
-                            min="0"
-                            step="any"
-                            placeholder={s.unit}
-                            value={deliveryOpen[s.id]}
-                            onChange={(e) => setDeliveryOpen((prev) => ({ ...prev, [s.id]: e.target.value }))}
-                            autoFocus
-                          />
-                          <button
-                            type="button"
-                            className={styles.confirmDeliveryBtn}
-                            onClick={() => handleConfirmDelivery(s.id)}
-                            disabled={savingDelivery === s.id}
-                          >
-                            {savingDelivery === s.id ? '...' : 'OK'}
-                          </button>
-                          <button
-                            type="button"
-                            className={styles.deleteStockBtn}
-                            onClick={() => toggleDelivery(s.id)}
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          type="button"
-                          className={styles.addDeliveryBtn}
-                          onClick={() => toggleDelivery(s.id)}
-                        >
-                          + Levering
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        className={styles.deleteStockBtn}
-                        onClick={() => handleDeleteStock(s.id)}
-                        title="Verwijderen"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  </div>
-                );
-              }
-
-              // No stock entry yet — show inline init form
-              const init = initOpen[name];
-              return (
-                <div key={name} className={styles.stockRow}>
-                  <span className={styles.stockName}>{name}</span>
-                  <span className={styles.stockMeta} style={{ opacity: 0.4 }}>Niet ingesteld</span>
-                  <div className={styles.stockActions}>
-                    {init ? (
-                      <div className={styles.deliveryInline}>
-                        <input
-                          className={styles.deliveryInput}
-                          type="number"
-                          min="0"
-                          step="any"
-                          placeholder="Hoeveelheid"
-                          value={init.quantity}
-                          style={{ width: 110 }}
-                          onChange={(e) => setInitOpen((prev) => ({ ...prev, [name]: { ...prev[name], quantity: e.target.value } }))}
-                          autoFocus
-                        />
-                        <input
-                          className={styles.deliveryInput}
-                          type="number"
-                          min="0"
-                          step="any"
-                          placeholder="Min. alert"
-                          value={init.alert}
-                          style={{ width: 90 }}
-                          onChange={(e) => setInitOpen((prev) => ({ ...prev, [name]: { ...prev[name], alert: e.target.value } }))}
-                        />
-                        <button
-                          type="button"
-                          className={styles.confirmDeliveryBtn}
-                          onClick={() => handleCreateStock(name)}
-                          disabled={savingInit === name}
-                        >
-                          {savingInit === name ? '...' : 'OK'}
-                        </button>
-                        <button
-                          type="button"
-                          className={styles.deleteStockBtn}
-                          onClick={() => toggleInit(name)}
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        type="button"
-                        className={styles.addDeliveryBtn}
-                        onClick={() => toggleInit(name)}
-                      >
-                        Instellen
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Add new chemical product */}
-          <form className={styles.addUserRow} onSubmit={handleAddChemical} noValidate style={{ marginTop: 12, alignItems: 'flex-end', gap: 8 }}>
-            <div className={styles.fieldGroup} style={{ flex: 1 }}>
-              <label className={styles.fieldLabel}>Nieuw product toevoegen</label>
-              <input
-                className={styles.input}
-                type="text"
-                placeholder="Productnaam (bv. Shampoo Pro)"
-                value={newChemName}
-                onChange={(e) => { setNewChemName(e.target.value); setAddChemError(''); }}
-              />
-            </div>
-            <div className={styles.fieldGroup} style={{ flex: '0 0 120px' }}>
-              <label className={styles.fieldLabel}>Eenheid</label>
-              <select className={styles.input} value={newChemUnit} onChange={(e) => setNewChemUnit(e.target.value)}>
-                <option value="L">L (liter)</option>
-                <option value="kg">kg</option>
-                <option value="ml">ml</option>
-                <option value="st">st (stuk)</option>
-                <option value="rol">rol</option>
-              </select>
-            </div>
-            <button
-              type="submit"
-              className={styles.addUserBtn}
-              disabled={addingChem || !newChemName.trim()}
-              style={{ flexShrink: 0 }}
-            >
-              {addingChem ? 'Bezig...' : '+ Toevoegen'}
-            </button>
-          </form>
-          {addChemError && <p className={styles.addUserError}>{addChemError}</p>}
-        </section>
-      )}
 
       {/* ── Onderhoud installatie ────────────────────────── */}
       {tasks.length > 0 && (

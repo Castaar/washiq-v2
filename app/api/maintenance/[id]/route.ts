@@ -31,13 +31,13 @@ export async function PATCH(
   return NextResponse.json({ ok: true });
 }
 
-// DELETE /api/maintenance/[id]  — remove a task (developer only)
+// DELETE /api/maintenance/[id]  — remove a task (owner or developer)
 export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getSessionFromRequest(req);
-  if (!session || session.role !== 'developer') {
+  if (!session || (session.role !== 'developer' && session.role !== 'owner')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 

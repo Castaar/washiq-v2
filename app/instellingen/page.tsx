@@ -2,7 +2,7 @@ import Image from 'next/image';
 import { NavBar } from '@/components/layout/NavBar/NavBar';
 import { InstellingenForm } from '@/components/forms/InstellingenForm/InstellingenForm';
 import { dbConnect } from '@/lib/db/mongoose';
-import { Site, PriceConfig, ChemicalStock, EnergyBill, User } from '@/lib/models';
+import { Site, PriceConfig, ChemicalStock, EnergyBill, User, MaintenanceTask, WeeklyEntry } from '@/lib/models';
 import { getSession } from '@/lib/session';
 import type { Types } from 'mongoose';
 import styles from './page.module.scss';
@@ -35,10 +35,12 @@ export default async function InstellingenPage({
   const startCarCount = (siteDoc?.start_car_count as number) ?? 0;
   const filter = siteId ? { site_id: siteId } : {};
 
-  const [priceConfigDoc, stockDocs, energyBillDocs] = await Promise.all([
+  const [priceConfigDoc, stockDocs, energyBillDocs, taskDocs, weeklyEntries] = await Promise.all([
     PriceConfig.findOne(filter).sort({ valid_from: -1 }).lean(),
     ChemicalStock.find(filter).sort({ name: 1 }).lean(),
     EnergyBill.find(filter).sort({ year: -1, month: -1 }).limit(12).lean(),
+    MaintenanceTask.find(filter).sort({ description: 1 }).lean(),
+    WeeklyEntry.find(filter).select('program_counts').lean(),
   ]);
 
   const priceConfig = priceConfigDoc
@@ -69,6 +71,23 @@ export default async function InstellingenPage({
     amount_euro: b.amount_euro as number,
   }));
 
+  const maintenanceTasks = taskDocs.map((t) => ({
+    id: (t._id as Types.ObjectId).toString(),
+    description: (t.description as string) ?? '',
+    trigger_type: (t.trigger_type as string) as 'washes' | 'months' | 'fixed_date' | 'fixed_months',
+    trigger_value: (t.trigger_value as number) ?? 0,
+    trigger_day: (t.trigger_day as number) ?? 0,
+    trigger_month: (t.trigger_month as number) ?? 0,
+    trigger_month_list: (t.trigger_month_list as number[]) ?? [],
+    last_done_at: t.last_done_at ? (t.last_done_at as Date).toISOString() : null,
+    washes_at_last_done: (t.washes_at_last_done as number) ?? 0,
+  }));
+
+  const currentTotalWashes = (weeklyEntries as { program_counts?: { count: number }[] }[]).reduce(
+    (sum, e) => sum + (e.program_counts ?? []).reduce((s, p) => s + (p.count ?? 0), 0),
+    0,
+  );
+
   return (
     <div className={styles.root}>
       <div className={styles.bg} aria-hidden="true">
@@ -85,6 +104,8 @@ export default async function InstellingenPage({
           stocks={stocks}
           energyBills={energyBills}
           startCarCount={startCarCount}
+          maintenanceTasks={maintenanceTasks}
+          currentTotalWashes={currentTotalWashes}
         />
       </main>
     </div>

@@ -35,6 +35,14 @@
   margin: 0;
 }
 
+.bannerSteps {
+  margin: var(--space-2) 0 0 var(--space-4);
+  padding: 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  line-height: 1.7;
+}
+
 // ─── Progress row ─────────────────────────────────────────────
 .progressRow {
   display: flex;
@@ -265,6 +273,11 @@
   }
 
   &::placeholder { color: var(--color-text-muted); font-weight: 400; }
+}
+
+.stockLow {
+  color: var(--color-danger, #ef4444);
+  font-weight: 600;
 }
 
 .stockUnit {
@@ -507,4 +520,105 @@
   margin-top: var(--space-2);
   font-size: 0.8125rem;
   color: var(--color-danger, #ef4444);
+}
+
+// ─── Maintenance tasks ─────────────────────────────────────────
+.taskList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.taskRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.taskInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.taskDesc {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.taskTrigger {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.addTaskForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  margin-top: var(--space-2);
+}
+
+.taskFormField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: 1;
+}
+
+.taskFormRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: flex-end;
+}
+
+.taskFormActions {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: flex-end;
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+}
+
+.radioGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.radioLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+
+  input[type='radio'] { accent-color: var(--color-accent-teal); cursor: pointer; }
+}
+
+.cancelBtn {
+  height: 40px;
+  padding: 0 var(--space-5);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+
+  &:hover { background: rgba(255, 255, 255, 0.05); color: var(--color-text-primary); }
 }
