@@ -103,12 +103,31 @@ export function AccountForm({ priceConfig, users: initialUsers, siteId, currentU
   const [zout, setZout] = useState(String(priceConfig?.saltPerKg ?? ''));
   const [flock, setFlock] = useState(String(priceConfig?.flockPerKg ?? ''));
   const [ruitendoekjes, setRuitendoekjes] = useState(String(priceConfig?.clothPerUnit ?? ''));
+  // allChemieLabels mirrors chemieLabels and grows when new products are added inline
+  const [allChemieLabels, setAllChemieLabels] = useState<string[]>(chemieLabels);
   const [chemiePrices, setChemiePrices] = useState<string[]>(
     chemieLabels.map((label) => {
       const match = priceConfig?.chemicalPrices.find((c) => c.name === label);
       return String(match?.price ?? '');
     }),
   );
+
+  // Voorraad (stock) — declared here so ALL_STOCK_PRODUCTS can reference it
+  const [stocks, setStocks] = useState<StockItem[]>(initialStock);
+
+  // All tracked stock products: fixed ones + chemicals from stock
+  const HARDCODED_STOCK = ['Zoutverzachter', 'Flockmiddel', 'Ruitendoekjes'];
+  const ALL_STOCK_PRODUCTS: { name: string; unit: string }[] = [
+    { name: 'Zoutverzachter', unit: 'kg' },
+    { name: 'Flockmiddel', unit: 'kg' },
+    { name: 'Ruitendoekjes', unit: 'stuks' },
+    ...allChemieLabels
+      .filter((name) => !HARDCODED_STOCK.includes(name))
+      .map((name) => {
+        const existing = stocks.find((s) => s.name === name);
+        return { name, unit: existing?.unit ?? 'L' };
+      }),
+  ];
 
   // Personeelsgegevens
   const [users, setUsers] = useState(initialUsers);
@@ -121,14 +140,6 @@ export function AccountForm({ priceConfig, users: initialUsers, siteId, currentU
   const [addUserSuccess, setAddUserSuccess] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showNewUserPassword, setShowNewUserPassword] = useState(false);
-
-  // All tracked stock products: fixed ones + chemicals from programs
-  const ALL_STOCK_PRODUCTS: { name: string; unit: string }[] = [
-    { name: 'Zoutverzachter', unit: 'kg' },
-    { name: 'Flockmiddel', unit: 'kg' },
-    { name: 'Ruitendoekjes', unit: 'stuks' },
-    ...chemieLabels.map((name) => ({ name, unit: 'L' })),
-  ];
 
   // Energiefacturen
   const MAANDEN_SHORT = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
@@ -180,13 +191,18 @@ export function AccountForm({ priceConfig, users: initialUsers, siteId, currentU
     setBills((prev) => prev.filter((b) => b.id !== id));
   }
 
-  // Voorraad (stock)
-  const [stocks, setStocks] = useState<StockItem[]>(initialStock);
+  // Voorraad (stock) delivery state
   const [deliveryOpen, setDeliveryOpen] = useState<Record<string, string>>({}); // stockId -> qty string
   const [savingDelivery, setSavingDelivery] = useState<string | null>(null);
   // Per-chemical init form for chemicals without a stock entry yet
   const [initOpen, setInitOpen] = useState<Record<string, { quantity: string; alert: string }>>({}); // chemName -> fields
   const [savingInit, setSavingInit] = useState<string | null>(null);
+
+  // Add new chemical product inline
+  const [newChemName, setNewChemName] = useState('');
+  const [newChemUnit, setNewChemUnit] = useState('L');
+  const [addingChem, setAddingChem] = useState(false);
+  const [addChemError, setAddChemError] = useState('');
 
   function updateChemiePrice(index: number, value: string) {
     setChemiePrices((prev) => {
@@ -210,7 +226,7 @@ export function AccountForm({ priceConfig, users: initialUsers, siteId, currentU
           saltPerKg: parseFloat(zout) || 0,
           flockPerKg: parseFloat(flock) || 0,
           clothPerUnit: parseFloat(ruitendoekjes) || 0,
-          chemicalPrices: chemieLabels.map((name, i) => ({
+          chemicalPrices: allChemieLabels.map((name, i) => ({
             name,
             price: parseFloat(chemiePrices[i] ?? '0') || 0,
           })),
@@ -329,6 +345,36 @@ export function AccountForm({ priceConfig, users: initialUsers, siteId, currentU
       }
     } finally {
       setSavingInit(null);
+    }
+  }
+
+  async function handleAddChemical(e: React.FormEvent) {
+    e.preventDefault();
+    const name = newChemName.trim();
+    if (!name) return;
+    if (allChemieLabels.some((l) => l.toLowerCase() === name.toLowerCase())) {
+      setAddChemError('Product bestaat al');
+      return;
+    }
+    setAddChemError('');
+    setAddingChem(true);
+    try {
+      const res = await fetch('/api/stock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ siteId, name, unit: newChemUnit, current_stock: 0, min_stock_alert: 0 }),
+      });
+      if (res.ok) {
+        const item = (await res.json()) as StockItem;
+        setAllChemieLabels((prev) => [...prev, name]);
+        setChemiePrices((prev) => [...prev, '']);
+        setStocks((prev) => [...prev, item]);
+        setNewChemName('');
+      } else {
+        setAddChemError('Opslaan mislukt');
+      }
+    } finally {
+      setAddingChem(false);
     }
   }
 
@@ -498,7 +544,7 @@ export function AccountForm({ priceConfig, users: initialUsers, siteId, currentU
           <PriceField label="Ruitendoekjes (stuks)" value={ruitendoekjes} onChange={setRuitendoekjes} />
         </div>
         <div className={styles.priceRow}>
-          {chemieLabels.map((label, i) => (
+          {allChemieLabels.map((label, i) => (
             <PriceField
               key={label}
               label={label}
@@ -810,6 +856,39 @@ export function AccountForm({ priceConfig, users: initialUsers, siteId, currentU
               );
             })}
           </div>
+
+          {/* Add new chemical product */}
+          <form className={styles.addUserRow} onSubmit={handleAddChemical} noValidate style={{ marginTop: 12, alignItems: 'flex-end', gap: 8 }}>
+            <div className={styles.fieldGroup} style={{ flex: 1 }}>
+              <label className={styles.fieldLabel}>Nieuw product toevoegen</label>
+              <input
+                className={styles.input}
+                type="text"
+                placeholder="Productnaam (bv. Shampoo Pro)"
+                value={newChemName}
+                onChange={(e) => { setNewChemName(e.target.value); setAddChemError(''); }}
+              />
+            </div>
+            <div className={styles.fieldGroup} style={{ flex: '0 0 120px' }}>
+              <label className={styles.fieldLabel}>Eenheid</label>
+              <select className={styles.input} value={newChemUnit} onChange={(e) => setNewChemUnit(e.target.value)}>
+                <option value="L">L (liter)</option>
+                <option value="kg">kg</option>
+                <option value="ml">ml</option>
+                <option value="st">st (stuk)</option>
+                <option value="rol">rol</option>
+              </select>
+            </div>
+            <button
+              type="submit"
+              className={styles.addUserBtn}
+              disabled={addingChem || !newChemName.trim()}
+              style={{ flexShrink: 0 }}
+            >
+              {addingChem ? 'Bezig...' : '+ Toevoegen'}
+            </button>
+          </form>
+          {addChemError && <p className={styles.addUserError}>{addChemError}</p>}
         </section>
       )}
 
