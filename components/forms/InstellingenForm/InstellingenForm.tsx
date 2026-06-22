@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { SiteProgramManager } from '@/components/shared/WashProgramManager/WashProgramManager';
+import type { WashProgramItem } from '@/components/shared/WashProgramManager/WashProgramManager';
 import styles from './InstellingenForm.module.scss';
 
 // ─── Types ───────────────────────────────────────────────────
@@ -53,12 +55,14 @@ interface EnergyBillData {
 
 interface InstellingenFormProps {
   siteId: string;
+  siteName: string;
   priceConfig: PriceConfigData | null;
   stocks: StockItem[];
   energyBills: EnergyBillData[];
   startCarCount: number;
   maintenanceTasks: MaintenanceTaskItem[];
   currentTotalWashes: number;
+  programs: WashProgramItem[];
 }
 
 const MONTHS = [
@@ -128,8 +132,12 @@ function PriceField({
 
 // ─── Main component ───────────────────────────────────────────
 
-export function InstellingenForm({ siteId, priceConfig, stocks, energyBills, startCarCount, maintenanceTasks: initialTasks, currentTotalWashes }: InstellingenFormProps) {
+export function InstellingenForm({ siteId, siteName, priceConfig, stocks, energyBills, startCarCount, maintenanceTasks: initialTasks, currentTotalWashes, programs: initialPrograms }: InstellingenFormProps) {
   const isFirstTime = !priceConfig;
+
+  // ── Wasprogramma's state ──────────────────────────────────
+  const [programs, setPrograms] = useState<WashProgramItem[]>(initialPrograms);
+  const site = { id: siteId, name: siteName };
 
   // ── Prices state ──────────────────────────────────────────
   const [waterPrice, setWaterPrice] = useState(priceConfig?.water_per_liter ? String(priceConfig.water_per_liter) : '');
@@ -518,6 +526,26 @@ export function InstellingenForm({ siteId, priceConfig, stocks, energyBills, sta
           </button>
         </form>
         {productError && <p className={styles.errorMsg}>{productError}</p>}
+      </div>
+
+      {/* ── Sectie 1c: Wasprogramma's ────────────────────────── */}
+      <div className={styles.section}>
+        <div className={styles.sectionHead}>
+          <h2 className={styles.sectionTitle}>Wasprogramma&apos;s</h2>
+        </div>
+        <p className={styles.sectionHint}>
+          Stel de wasprogramma&apos;s in voor deze site: naam, tier en welke producten erbij gebruikt worden.
+        </p>
+        <SiteProgramManager
+          site={site}
+          allSites={[site]}
+          programs={programs}
+          availableProducts={productList}
+          onDeleteProgram={(id) => setPrograms((prev) => prev.filter((p) => p.id !== id))}
+          onUpdateProgram={(id, updated) => setPrograms((prev) => prev.map((p) => (p.id === id ? { ...p, ...updated } : p)))}
+          onAddProgram={(program) => setPrograms((prev) => [...prev, program])}
+          showCopy={false}
+        />
       </div>
 
       {/* ── Sectie 2: Startvoorraad ──────────────────────────── */}

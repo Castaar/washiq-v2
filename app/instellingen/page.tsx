@@ -2,7 +2,7 @@ import Image from 'next/image';
 import { NavBar } from '@/components/layout/NavBar/NavBar';
 import { InstellingenForm } from '@/components/forms/InstellingenForm/InstellingenForm';
 import { dbConnect } from '@/lib/db/mongoose';
-import { Site, PriceConfig, ChemicalStock, EnergyBill, User, MaintenanceTask, WeeklyEntry } from '@/lib/models';
+import { Site, PriceConfig, ChemicalStock, EnergyBill, User, MaintenanceTask, WeeklyEntry, WashProgram } from '@/lib/models';
 import { getSession } from '@/lib/session';
 import type { Types } from 'mongoose';
 import styles from './page.module.scss';
@@ -35,12 +35,13 @@ export default async function InstellingenPage({
   const startCarCount = (siteDoc?.start_car_count as number) ?? 0;
   const filter = siteId ? { site_id: siteId } : {};
 
-  const [priceConfigDoc, stockDocs, energyBillDocs, taskDocs, weeklyEntries] = await Promise.all([
+  const [priceConfigDoc, stockDocs, energyBillDocs, taskDocs, weeklyEntries, programDocs] = await Promise.all([
     PriceConfig.findOne(filter).sort({ valid_from: -1 }).lean(),
     ChemicalStock.find(filter).sort({ name: 1 }).lean(),
     EnergyBill.find(filter).sort({ year: -1, month: -1 }).limit(12).lean(),
     MaintenanceTask.find(filter).sort({ description: 1 }).lean(),
     WeeklyEntry.find(filter).select('program_counts').lean(),
+    WashProgram.find(filter).sort({ tier: 1 }).lean(),
   ]);
 
   const priceConfig = priceConfigDoc
@@ -88,6 +89,14 @@ export default async function InstellingenPage({
     0,
   );
 
+  const programs = programDocs.map((p) => ({
+    id: (p._id as Types.ObjectId).toString(),
+    siteId: (p.site_id as Types.ObjectId).toString(),
+    name: (p.name as string) ?? '',
+    tier: (p.tier as number) ?? 0,
+    chemicals: (p.chemicals as string[]) ?? [],
+  }));
+
   return (
     <div className={styles.root}>
       <div className={styles.bg} aria-hidden="true">
@@ -100,12 +109,14 @@ export default async function InstellingenPage({
       <main className={styles.main}>
         <InstellingenForm
           siteId={siteId ?? ''}
+          siteName={siteName}
           priceConfig={priceConfig}
           stocks={stocks}
           energyBills={energyBills}
           startCarCount={startCarCount}
           maintenanceTasks={maintenanceTasks}
           currentTotalWashes={currentTotalWashes}
+          programs={programs}
         />
       </main>
     </div>
