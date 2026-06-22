@@ -54,6 +54,7 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
   const [newName, setNewName] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [newRole, setNewRole] = useState<'employee' | 'technician'>('employee');
   const [saving, setSaving] = useState(false);
   const [addingUser, setAddingUser] = useState(false);
   const [addUserError, setAddUserError] = useState('');
@@ -152,14 +153,15 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
       const res = await fetch('/api/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ siteIds: siteId ? [siteId] : [], name: newName.trim(), email: newEmail.trim(), password: newPassword, role: 'employee' }),
+        body: JSON.stringify({ siteIds: siteId ? [siteId] : [], name: newName.trim(), email: newEmail.trim(), password: newPassword, role: newRole }),
       });
       const data = await res.json() as { id?: string; error?: string };
       if (res.ok && data.id) {
-        setUsers((prev) => [...prev, { id: data.id!, name: newName.trim(), role: 'employee' }]);
+        setUsers((prev) => [...prev, { id: data.id!, name: newName.trim(), role: newRole }]);
         setNewName('');
         setNewEmail('');
         setNewPassword('');
+        setNewRole('employee');
         setAddUserSuccess(`${newName.trim()} is toegevoegd.`);
         setTimeout(() => setAddUserSuccess(''), 4000);
       } else {
@@ -455,10 +457,13 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
           {users.map((u) => {
             const canRevoke =
               u.id !== currentUser?.id &&
-              (role === 'developer' || u.role === 'employee');
+              (role === 'developer' || u.role === 'employee' || u.role === 'technician');
             return (
               <div key={u.id} className={styles.userRow}>
-                <span className={styles.userName}>{u.name}</span>
+                <span className={styles.userName}>
+                  {u.name}
+                  {u.role === 'technician' && <span className={styles.roleBadge}> Technieker</span>}
+                </span>
                 {canRevoke && (
                   <button
                     type="button"
@@ -509,6 +514,14 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
                 {showNewUserPassword ? <IconEyeOff size={15} /> : <IconEye size={15} />}
               </button>
             </div>
+            <select
+              className={styles.input}
+              value={newRole}
+              onChange={(e) => setNewRole(e.target.value as 'employee' | 'technician')}
+            >
+              <option value="employee">Medewerker</option>
+              <option value="technician">Technieker</option>
+            </select>
           </div>
           <button
             type="button"

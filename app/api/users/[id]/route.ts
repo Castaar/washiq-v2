@@ -10,7 +10,9 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getSessionFromRequest(req);
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!session || (session.role !== 'developer' && session.role !== 'owner')) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
 
   await dbConnect();
   const { id } = await params;
@@ -30,6 +32,26 @@ export async function PATCH(
 
   if (session.role !== 'developer' && body.removeSiteId && id === session.userId) {
     return NextResponse.json({ error: 'Je kan je eigen toegang niet intrekken.' }, { status: 403 });
+  }
+
+  // Owners may only manage employees/technicians within their own sites — never
+  // touch other owners/developers or assign roles/sites outside their scope.
+  if (session.role === 'owner') {
+    const target = await User.findById(id).select('role').lean();
+    if (!target || (target.role !== 'employee' && target.role !== 'technician')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+    if (body.role && body.role !== 'employee' && body.role !== 'technician') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+    const siteIdsToCheck = [
+      ...(body.siteIds ?? []),
+      ...(body.addSiteId ? [body.addSiteId] : []),
+      ...(body.removeSiteId ? [body.removeSiteId] : []),
+    ];
+    if (siteIdsToCheck.some((sid) => !session.siteIds.includes(sid))) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
   }
 
   const update: Record<string, unknown> = {};

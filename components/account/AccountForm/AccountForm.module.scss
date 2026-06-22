@@ -185,6 +185,12 @@
   min-width: 120px;
 }
 
+.roleBadge {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--color-accent-amber);
+}
+
 .revokeBtn {
   height: 36px;
   padding: 0 var(--space-5);

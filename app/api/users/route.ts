@@ -1,10 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
 import { User } from '@/lib/models';
+import { getSessionFromRequest } from '@/lib/session';
 import bcrypt from 'bcryptjs';
 import { sendWelcomeEmail } from '@/lib/email';
 
+const OWNER_CREATABLE_ROLES = ['employee', 'technician'];
+
 export async function POST(req: NextRequest) {
+  const session = await getSessionFromRequest(req);
+  if (!session || (session.role !== 'owner' && session.role !== 'developer')) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   await dbConnect();
 
   const body = await req.json() as {
@@ -12,12 +20,21 @@ export async function POST(req: NextRequest) {
     name?: string;
     email?: string;
     password?: string;
-    role?: 'developer' | 'owner' | 'employee';
+    role?: 'developer' | 'owner' | 'employee' | 'technician';
   };
   const { siteIds, name, email, password, role = 'employee' } = body;
 
   if (!name || !email || !password) {
     return NextResponse.json({ error: 'Naam, e-mail en wachtwoord zijn verplicht' }, { status: 400 });
+  }
+
+  if (session.role === 'owner') {
+    if (!OWNER_CREATABLE_ROLES.includes(role)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+    if ((siteIds ?? []).some((id) => !session.siteIds.includes(id))) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
   }
 
   const existing = await User.findOne({ email: email.trim().toLowerCase() });
