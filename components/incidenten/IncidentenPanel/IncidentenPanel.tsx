@@ -14,10 +14,17 @@ export interface IncidentListItem {
   resolved_by_name: string;
 }
 
+export interface SchadeLocatieStat {
+  locatie: string;
+  count: number;
+  per1000: number | null;
+}
+
 export interface IncidentStats {
   totalSchade: number;
   currentTellerstand: number;
   schadesPer1000: number | null;
+  schadeLocatieStats?: SchadeLocatieStat[];
 }
 
 const TYPE_LABEL: Record<IncidentListItem['type'], string> = {
@@ -155,6 +162,19 @@ export function IncidentenPanel({
           </div>
         )}
       </div>
+
+      {stats.schadeLocatieStats && stats.schadeLocatieStats.length > 0 && (
+        <div className={styles.statsBar}>
+          {stats.schadeLocatieStats.map((s) => (
+            <div key={s.locatie} className={styles.statItem}>
+              <span className={styles.statValue}>
+                {s.count}{s.per1000 !== null ? ` (${s.per1000}/1000)` : ''}
+              </span>
+              <span className={styles.statLabel}>{s.locatie}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className={styles.grid}>
         {/* ── Left: incident list ────────────────────────────── */}

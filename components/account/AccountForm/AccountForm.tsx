@@ -34,7 +34,7 @@ export interface AccountFormProps {
   users: UserItem[];
   siteId: string;
   currentUser: { id: string; name: string; email: string } | null;
-  role: 'developer' | 'owner' | 'employee';
+  role: 'developer' | 'owner' | 'employee' | 'technician';
   maintenanceTasks: MaintenanceTaskItem[];
   currentTotalWashes: number;
   energyBills: EnergyBillItem[];

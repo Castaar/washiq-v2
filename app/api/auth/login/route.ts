@@ -26,13 +26,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Gebruikersnaam of wachtwoord onjuist' }, { status: 401 });
   }
 
+  if (user.is_active === false) {
+    return NextResponse.json({ error: 'Dit account is gedeactiveerd.' }, { status: 403 });
+  }
+
   const siteIds = ((user.site_ids as Types.ObjectId[]) ?? []).map((id) => id.toString());
 
   const token = await signSession({
     userId: (user._id as Types.ObjectId).toString(),
     name: user.name as string,
     email: user.email as string,
-    role: user.role as 'developer' | 'owner' | 'employee',
+    role: user.role as 'developer' | 'owner' | 'employee' | 'technician',
     siteIds,
   });
 

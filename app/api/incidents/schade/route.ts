@@ -23,6 +23,7 @@ export async function POST(req: NextRequest) {
     tel_gsm: body.tel_gsm ?? '',
     email: body.email ?? '',
     omschrijving: body.omschrijving ?? '',
+    schade_locaties: Array.isArray(body.schade_locaties) ? body.schade_locaties : [],
     onbetwist: body.onbetwist ?? false,
     installatiefout: body.installatiefout ?? false,
     klant_verantwoordelijk: body.klant_verantwoordelijk ?? false,

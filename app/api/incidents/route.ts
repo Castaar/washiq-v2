@@ -23,11 +23,12 @@ export async function GET(req: NextRequest) {
 
   await dbConnect();
 
-  const [schades, ehbos, defects, totalSchade, latestEntry] = await Promise.all([
+  const [schades, ehbos, defects, totalSchade, allSchades, latestEntry] = await Promise.all([
     IncidentSchade.find({ site_id: siteId }).sort({ created_at: -1 }).skip(skip > 0 ? skip : 0).limit(perType).lean(),
     IncidentEhbo.find({ site_id: siteId }).sort({ created_at: -1 }).skip(skip > 0 ? skip : 0).limit(perType).lean(),
     Defect.find({ site_id: siteId }).sort({ created_at: -1 }).skip(skip > 0 ? skip : 0).limit(perType).lean(),
     IncidentSchade.countDocuments({ site_id: siteId }),
+    IncidentSchade.find({ site_id: siteId }).select('schade_locaties').lean(),
     WeeklyEntry.findOne({ site_id: siteId }).sort({ week_start: -1 }).select('tellerstand').lean(),
   ]);
 
@@ -36,7 +37,7 @@ export async function GET(req: NextRequest) {
       id: (s._id as Types.ObjectId).toString(),
       type: 'schade' as const,
       title: s.merk_model || s.naam_eigenaar || 'Schade',
-      subtitle: s.omschrijving || '',
+      subtitle: [s.omschrijving, (s.schade_locaties ?? []).join(', ')].filter(Boolean).join(' — '),
       date: fmtDate(new Date(s.created_at)),
       is_resolved: s.is_resolved ?? false,
       resolved_by_name: s.resolved_by_name ?? '',
@@ -66,5 +67,20 @@ export async function GET(req: NextRequest) {
     ? Math.round((totalSchade / currentTellerstand) * 1000 * 10) / 10
     : null;
 
-  return NextResponse.json({ items, stats: { totalSchade, currentTellerstand, schadesPer1000 } });
+  const locatieCounts: Record<string, number> = {};
+  for (const s of allSchades as { schade_locaties?: string[] }[]) {
+    for (const loc of s.schade_locaties ?? []) {
+      locatieCounts[loc] = (locatieCounts[loc] ?? 0) + 1;
+    }
+  }
+  const schadeLocatieStats = Object.entries(locatieCounts).map(([locatie, count]) => ({
+    locatie,
+    count,
+    per1000: currentTellerstand > 0 ? Math.round((count / currentTellerstand) * 1000 * 10) / 10 : null,
+  }));
+
+  return NextResponse.json({
+    items,
+    stats: { totalSchade, currentTellerstand, schadesPer1000, schadeLocatieStats },
+  });
 }

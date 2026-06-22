@@ -26,18 +26,22 @@ export interface IUser extends Document {
   name: string;
   email: string;
   password_hash: string;
-  role: 'developer' | 'owner' | 'employee';
+  role: 'developer' | 'owner' | 'employee' | 'technician';
   site_ids: Types.ObjectId[];
   help_seen: boolean;
+  whatsapp: string;
+  is_active: boolean;
   created_at: Date;
 }
 const UserSchema = new Schema<IUser>({
   name: String,
   email: String,
   password_hash: String,
-  role: { type: String, enum: ['developer', 'owner', 'employee'], default: 'employee' },
+  role: { type: String, enum: ['developer', 'owner', 'employee', 'technician'], default: 'employee' },
   site_ids: [{ type: Schema.Types.ObjectId, ref: 'Site' }],
   help_seen: { type: Boolean, default: false },
+  whatsapp: { type: String, default: '' },
+  is_active: { type: Boolean, default: true },
   created_at: { type: Date, default: Date.now },
 });
 export const User = models.User || model<IUser>('User', UserSchema);
@@ -99,6 +103,7 @@ export interface IWeeklyEntry extends Document {
   cloth_units: number;
   program_counts: { program_id: Types.ObjectId; name: string; count: number }[];
   chemical_usages: { chemical_id: string; name: string; amount: number; unit: string }[];
+  total_cost: number;
   created_at: Date;
 }
 const WeeklyEntrySchema = new Schema<IWeeklyEntry>({
@@ -113,6 +118,7 @@ const WeeklyEntrySchema = new Schema<IWeeklyEntry>({
   cloth_units: { type: Number, default: 0 },
   program_counts: [{ program_id: Schema.Types.ObjectId, name: String, count: Number }],
   chemical_usages: [{ chemical_id: String, name: String, amount: Number, unit: String }],
+  total_cost: { type: Number, default: 0 },
   created_at: { type: Date, default: Date.now },
 });
 // Force re-registration in development so schema changes take effect after hot reload
@@ -239,6 +245,7 @@ export interface IIncidentSchade extends Document {
   tel_gsm: string;
   email: string;
   omschrijving: string;
+  schade_locaties: string[];
   onbetwist: boolean;
   installatiefout: boolean;
   klant_verantwoordelijk: boolean;
@@ -260,6 +267,7 @@ const IncidentSchadeSchema = new Schema<IIncidentSchade>({
   tel_gsm: String,
   email: String,
   omschrijving: String,
+  schade_locaties: { type: [String], default: [] },
   onbetwist: Boolean,
   installatiefout: Boolean,
   klant_verantwoordelijk: Boolean,

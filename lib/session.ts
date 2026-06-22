@@ -11,7 +11,7 @@ export interface SessionPayload {
   userId: string;
   name: string;
   email: string;
-  role: 'developer' | 'owner' | 'employee';
+  role: 'developer' | 'owner' | 'employee' | 'technician';
   siteIds: string[];
 }
 

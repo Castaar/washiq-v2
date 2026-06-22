@@ -208,3 +208,125 @@
   font-weight: 500;
   padding: var(--space-6) 0;
 }
+
+// ── Defect quick-report ───────────────────────────────────────
+.defectBtn {
+  height: 40px;
+  padding: 0 var(--space-5);
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid var(--color-accent-amber);
+  border-radius: var(--radius-md);
+  color: var(--color-accent-amber);
+  font-size: 0.875rem;
+  font-family: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+
+  &:hover {
+    background: var(--color-accent-amber);
+    color: #000;
+  }
+}
+
+.defectPanel {
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  background: rgba(245, 158, 11, 0.05);
+}
+
+.defectForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.defectTextarea {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  font-size: 0.875rem;
+  font-family: inherit;
+  line-height: 1.5;
+  padding: var(--space-3);
+  resize: none;
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-accent-amber);
+  }
+
+  &::placeholder {
+    color: var(--color-text-muted);
+  }
+}
+
+.defectRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.defectSelect {
+  height: 36px;
+  padding: 0 var(--space-3);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  font-size: 0.875rem;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.cancelSmallBtn {
+  height: 36px;
+  padding: 0 var(--space-4);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  font-family: inherit;
+  cursor: pointer;
+  margin-left: auto;
+
+  &:hover {
+    border-color: var(--color-text-secondary);
+    color: var(--color-text-primary);
+  }
+}
+
+.defectSubmitBtn {
+  height: 36px;
+  padding: 0 var(--space-5);
+  background: transparent;
+  border: 1px solid var(--color-accent-amber);
+  border-radius: var(--radius-md);
+  color: var(--color-accent-amber);
+  font-size: 0.875rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+
+  &:hover:not(:disabled) {
+    background: var(--color-accent-amber);
+    color: #000;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.defectSuccess {
+  text-align: center;
+  color: var(--color-accent-teal);
+  font-size: 0.9rem;
+  font-weight: 500;
+  padding: var(--space-3) 0;
+}

@@ -23,6 +23,7 @@ export interface HistoryEntry {
   saltKg: number;
   flockKg: number;
   clothUnits: number;
+  totalCost: number;
   programCounts: { programId: string; name: string; count: number }[];
   chemicalUsages: { chemicalId: string; name: string; amount: number; unit: string }[];
 }
@@ -139,6 +140,12 @@ function EntryRow({
           <span className={styles.summaryItem}><span className={styles.summaryLabel}>Water</span>{entry.waterLiters} L</span>
           <span className={styles.summaryItem}><span className={styles.summaryLabel}>Energie</span>{entry.energyKw} kWh</span>
           <span className={styles.summaryItem}><span className={styles.summaryLabel}>Zout</span>{entry.saltKg} kg</span>
+          {entry.totalCost > 0 && (
+            <span className={[styles.summaryItem, styles.costItem].join(' ')}>
+              <span className={styles.summaryLabel}>Kostprijs</span>
+              €{entry.totalCost.toFixed(2)}
+            </span>
+          )}
         </div>
         <div className={styles.entryActions}>
           <button

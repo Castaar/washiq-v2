@@ -65,6 +65,11 @@
   letter-spacing: 0.04em;
 }
 
+.costItem {
+  color: var(--color-accent-teal);
+  font-weight: 500;
+}
+
 .entryActions {
   display: flex;
   align-items: center;

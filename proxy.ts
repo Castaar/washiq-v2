@@ -48,6 +48,21 @@ export async function proxy(req: NextRequest) {
     // /logboek, /opdrachten, /planning are accessible for employees
   }
 
+  // Technicians can access dagfiche, incidenten, logboek, opdrachten, planning, historiek
+  // but not developer, setup, or instellingen
+  if (session.role === 'technician') {
+    if (pathname.startsWith('/setup') || pathname.startsWith('/instellingen')) {
+      const url = req.nextUrl.clone();
+      url.pathname = '/dagfiche';
+      return NextResponse.redirect(url);
+    }
+    if (pathname.startsWith('/developer')) {
+      const url = req.nextUrl.clone();
+      url.pathname = '/';
+      return NextResponse.redirect(url);
+    }
+  }
+
   // Only developers can access the developer panel
   if (pathname.startsWith('/developer') && session.role !== 'developer') {
     const url = req.nextUrl.clone();

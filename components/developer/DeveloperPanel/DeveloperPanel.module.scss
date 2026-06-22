@@ -208,7 +208,7 @@
 
 .userMain {
   display: grid;
-  grid-template-columns: 36px 1fr 110px 1fr auto;
+  grid-template-columns: 36px 1fr 110px auto 1fr auto;
   align-items: center;
   gap: var(--space-4);
   padding: var(--space-3) var(--space-4);
@@ -663,4 +663,66 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-3);
+}
+
+// ── Technician role pill ───────────────────────────────────────
+.role_technician {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--color-accent-amber);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+// ── Inactive user ─────────────────────────────────────────────
+.userInactive {
+  opacity: 0.55;
+}
+
+.inactivePill {
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 8px;
+  border-radius: var(--radius-full);
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #f87171;
+  white-space: nowrap;
+}
+
+.whatsappPill {
+  font-size: 0.6875rem;
+  color: var(--color-accent-teal);
+}
+
+// ── Copy config ───────────────────────────────────────────────
+.copySmallBtn {
+  height: 28px;
+  padding: 0 var(--space-4);
+  background: transparent;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: var(--radius-md);
+  color: var(--color-accent-amber);
+  font-size: 0.75rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+
+  &:hover {
+    background: rgba(245, 158, 11, 0.1);
+  }
+}
+
+.copyForm {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+  flex-wrap: wrap;
+}
+
+.copyResult {
+  font-size: 0.75rem;
+  color: var(--color-accent-teal);
 }

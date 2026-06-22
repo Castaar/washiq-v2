@@ -7,9 +7,11 @@ export interface DeveloperUser {
   id: string;
   name: string;
   email: string;
-  role: 'developer' | 'owner' | 'employee';
+  role: 'developer' | 'owner' | 'employee' | 'technician';
   siteIds: string[];
   siteNames: string[];
+  whatsapp: string;
+  is_active: boolean;
 }
 
 export interface DeveloperSite {
@@ -58,6 +60,7 @@ const ROLE_LABELS: Record<string, string> = {
   developer: 'Developer',
   owner: 'Eigenaar',
   employee: 'Medewerker',
+  technician: 'Technieker',
 };
 
 // ── User row ─────────────────────────────────────────────────
@@ -67,16 +70,20 @@ function UserRow({
   onDelete,
   onUpdateSites,
   onUpdateRole,
+  onUpdateUser,
 }: {
   user: DeveloperUser;
   sites: DeveloperSite[];
   onDelete: (id: string) => void;
   onUpdateSites: (id: string, siteIds: string[]) => void;
   onUpdateRole: (id: string, role: DeveloperUser['role']) => void;
+  onUpdateUser: (id: string, patch: Partial<DeveloperUser>) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [selectedSites, setSelectedSites] = useState<string[]>(user.siteIds);
   const [selectedRole, setSelectedRole] = useState(user.role);
+  const [whatsapp, setWhatsapp] = useState(user.whatsapp ?? '');
+  const [isActive, setIsActive] = useState(user.is_active ?? true);
   const [saving, setSaving] = useState(false);
 
   function toggleSite(siteId: string) {
@@ -91,10 +98,11 @@ function UserRow({
       await fetch(`/api/users/${user.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: selectedRole, siteIds: selectedSites }),
+        body: JSON.stringify({ role: selectedRole, siteIds: selectedSites, whatsapp, is_active: isActive }),
       });
       onUpdateSites(user.id, selectedSites);
       onUpdateRole(user.id, selectedRole);
+      onUpdateUser(user.id, { whatsapp, is_active: isActive });
       setEditing(false);
     } finally {
       setSaving(false);
@@ -108,7 +116,7 @@ function UserRow({
   }
 
   return (
-    <div className={styles.userCard}>
+    <div className={[styles.userCard, !user.is_active ? styles.userInactive : ''].join(' ')}>
       <div className={styles.userMain}>
         <div className={styles.userAvatar} aria-hidden="true">
           {user.name.charAt(0).toUpperCase()}
@@ -116,10 +124,12 @@ function UserRow({
         <div className={styles.userInfo}>
           <span className={styles.userName}>{user.name}</span>
           <span className={styles.userEmail}>{user.email}</span>
+          {user.whatsapp && <span className={styles.whatsappPill}>WhatsApp: {user.whatsapp}</span>}
         </div>
         <span className={[styles.rolePill, styles[`role_${user.role}`]].join(' ')}>
-          {ROLE_LABELS[user.role]}
+          {ROLE_LABELS[user.role] ?? user.role}
         </span>
+        {!user.is_active && <span className={styles.inactivePill}>Inactief</span>}
         <div className={styles.sitePills}>
           {user.role === 'developer' ? (
             <span className={styles.allSitesPill}>Alle sites</span>
@@ -163,6 +173,7 @@ function UserRow({
               <option value="developer">Developer</option>
               <option value="owner">Eigenaar</option>
               <option value="employee">Medewerker</option>
+              <option value="technician">Technieker</option>
             </select>
           </div>
           {selectedRole !== 'developer' && (
@@ -182,6 +193,27 @@ function UserRow({
               </div>
             </div>
           )}
+          <div className={styles.editRow}>
+            <span className={styles.editLabel}>WhatsApp</span>
+            <input
+              className={styles.input}
+              type="tel"
+              placeholder="+32 499 00 00 00"
+              value={whatsapp}
+              onChange={(e) => setWhatsapp(e.target.value)}
+            />
+          </div>
+          <div className={styles.editRow}>
+            <span className={styles.editLabel}>Status</span>
+            <label className={styles.checkboxItem}>
+              <input
+                type="checkbox"
+                checked={isActive}
+                onChange={(e) => setIsActive(e.target.checked)}
+              />
+              Actief (uitvinken = account deactiveren)
+            </label>
+          </div>
           <div className={styles.editActions}>
             <button type="button" className={styles.cancelBtn} onClick={() => setEditing(false)}>
               Annuleren
@@ -310,6 +342,7 @@ function ProgramRow({
 // ── Site block (programs per site) ────────────────────────────
 function SitePrograms({
   site,
+  allSites,
   programs,
   availableProducts,
   onDeleteProgram,
@@ -317,6 +350,7 @@ function SitePrograms({
   onAddProgram,
 }: {
   site: DeveloperSite;
+  allSites: DeveloperSite[];
   programs: DeveloperProgram[];
   availableProducts: DeveloperStockItem[];
   onDeleteProgram: (id: string) => void;
@@ -328,6 +362,30 @@ function SitePrograms({
   const [addTier, setAddTier] = useState(programs.length + 1);
   const [addChemicals, setAddChemicals] = useState<string[]>([]);
   const [adding, setAdding] = useState(false);
+  const [showCopy, setShowCopy] = useState(false);
+  const [copySiteId, setCopySiteId] = useState('');
+  const [copying, setCopying] = useState(false);
+  const [copyResult, setCopyResult] = useState('');
+
+  const otherSites = allSites.filter((s) => s.id !== site.id);
+
+  async function handleCopy(e: React.FormEvent) {
+    e.preventDefault();
+    if (!copySiteId) return;
+    setCopying(true);
+    setCopyResult('');
+    try {
+      const res = await fetch(`/api/sites/${copySiteId}/copy-config`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetSiteId: site.id, copyPrograms: true, copyProducts: false, copyMaintenance: false }),
+      });
+      const data = (await res.json()) as { results?: { programs: number } };
+      setCopyResult(`${data.results?.programs ?? 0} programma's gekopieerd`);
+    } finally {
+      setCopying(false);
+    }
+  }
 
   function toggleAddChem(productName: string) {
     setAddChemicals((prev) =>
@@ -359,10 +417,33 @@ function SitePrograms({
     <div className={styles.siteBlock}>
       <div className={styles.siteBlockHeader}>
         <span className={styles.siteBlockTitle}>{site.name}</span>
+        {otherSites.length > 0 && (
+          <button type="button" className={styles.copySmallBtn} onClick={() => setShowCopy((v) => !v)}>
+            Kopieer van...
+          </button>
+        )}
         <button type="button" className={styles.addSmallBtn} onClick={() => setShowAdd((v) => !v)}>
           + Programma
         </button>
       </div>
+      {showCopy && (
+        <form className={styles.copyForm} onSubmit={handleCopy} noValidate>
+          <select
+            className={styles.roleSelect}
+            value={copySiteId}
+            onChange={(e) => { setCopySiteId(e.target.value); setCopyResult(''); }}
+          >
+            <option value="">-- Kies bronsite --</option>
+            {otherSites.map((s) => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
+          <button type="submit" className={styles.saveSmallBtn} disabled={copying || !copySiteId}>
+            {copying ? 'Bezig...' : 'Kopieer programma\'s'}
+          </button>
+          {copyResult && <span className={styles.copyResult}>{copyResult}</span>}
+        </form>
+      )}
 
       {programs.length === 0 && !showAdd && (
         <p className={styles.noAccess}>Geen programma&apos;s</p>
@@ -829,6 +910,10 @@ export function DeveloperPanel({ users: initialUsers, sites: initialSites, progr
     setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, role } : u)));
   }
 
+  function handleUpdateUser(id: string, patch: Partial<DeveloperUser>) {
+    setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, ...patch } : u)));
+  }
+
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
     setAddError('');
@@ -864,6 +949,8 @@ export function DeveloperPanel({ users: initialUsers, sites: initialSites, progr
           addRole === 'developer'
             ? []
             : addSiteIds.map((sid) => sites.find((s) => s.id === sid)?.name ?? '').filter(Boolean),
+        whatsapp: '',
+        is_active: true,
       };
       setUsers((prev) => [...prev, newUser]);
       setAddName(''); setAddEmail(''); setAddPassword('');
@@ -875,9 +962,10 @@ export function DeveloperPanel({ users: initialUsers, sites: initialSites, progr
   }
 
   const grouped = {
-    developer: users.filter((u) => u.role === 'developer'),
-    owner:     users.filter((u) => u.role === 'owner'),
-    employee:  users.filter((u) => u.role === 'employee'),
+    developer:  users.filter((u) => u.role === 'developer'),
+    owner:      users.filter((u) => u.role === 'owner'),
+    technician: users.filter((u) => u.role === 'technician'),
+    employee:   users.filter((u) => u.role === 'employee'),
   };
 
   return (
@@ -956,6 +1044,7 @@ export function DeveloperPanel({ users: initialUsers, sites: initialSites, progr
           <SitePrograms
             key={s.id}
             site={s}
+            allSites={sites}
             programs={programs.filter((p) => p.siteId === s.id)}
             availableProducts={stockItems.filter((st) => st.siteId === s.id)}
             onDeleteProgram={handleDeleteProgram}
@@ -994,6 +1083,7 @@ export function DeveloperPanel({ users: initialUsers, sites: initialSites, progr
                 <select className={styles.roleSelect} value={addRole} onChange={(e) => setAddRole(e.target.value as DeveloperUser['role'])}>
                   <option value="developer">Developer</option>
                   <option value="owner">Eigenaar</option>
+                  <option value="technician">Technieker</option>
                   <option value="employee">Medewerker</option>
                 </select>
               </div>
@@ -1021,7 +1111,7 @@ export function DeveloperPanel({ users: initialUsers, sites: initialSites, progr
           </form>
         )}
 
-        {(['developer', 'owner', 'employee'] as const).map((role) => (
+        {(['developer', 'owner', 'technician', 'employee'] as const).map((role) => (
           grouped[role].length > 0 && (
             <section key={role} className={styles.group}>
               <h2 className={styles.groupTitle}>{ROLE_LABELS[role]}s ({grouped[role].length})</h2>
@@ -1034,6 +1124,7 @@ export function DeveloperPanel({ users: initialUsers, sites: initialSites, progr
                     onDelete={handleDelete}
                     onUpdateSites={handleUpdateSites}
                     onUpdateRole={handleUpdateRole}
+                    onUpdateUser={handleUpdateUser}
                   />
                 ))}
               </div>

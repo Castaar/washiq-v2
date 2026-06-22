@@ -12,7 +12,7 @@ export default async function DeveloperPage() {
 
   const [siteDocs, userDocs, programDocs, taskDocs, stockDocs] = await Promise.all([
     Site.find({}).select('_id name location').lean(),
-    User.find({}).select('_id name email role site_ids').lean(),
+    User.find({}).select('_id name email role site_ids whatsapp is_active').lean(),
     WashProgram.find({}).select('_id site_id name tier chemicals').lean(),
     MaintenanceTask.find({}).sort({ description: 1 }).lean(),
     ChemicalStock.find({}).select('_id site_id name unit').sort({ name: 1 }).lean(),
@@ -35,6 +35,8 @@ export default async function DeveloperPage() {
       role: (u.role as DeveloperUser['role']) ?? 'employee',
       siteIds,
       siteNames: siteIds.map((sid) => siteMap[sid] ?? '').filter(Boolean),
+      whatsapp: (u.whatsapp as string) ?? '',
+      is_active: (u.is_active as boolean) ?? true,
     };
   });
 

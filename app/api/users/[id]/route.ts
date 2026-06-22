@@ -17,13 +17,15 @@ export async function PATCH(
 
   // Prevent any non-developer from removing site access from themselves
   const body = await req.json() as {
-    role?: 'developer' | 'owner' | 'employee';
+    role?: 'developer' | 'owner' | 'employee' | 'technician';
     siteIds?: string[];
     addSiteId?: string;
     removeSiteId?: string;
     name?: string;
     email?: string;
     newPassword?: string;
+    whatsapp?: string;
+    is_active?: boolean;
   };
 
   if (session.role !== 'developer' && body.removeSiteId && id === session.userId) {
@@ -38,6 +40,8 @@ export async function PATCH(
   if (body.email)      update.email = body.email.trim().toLowerCase();
   if (body.siteIds)    update.site_ids = body.siteIds.map((s) => new mongoose.Types.ObjectId(s));
   if (body.newPassword) update.password_hash = await bcrypt.hash(body.newPassword, 12);
+  if (body.whatsapp !== undefined) update.whatsapp = body.whatsapp.trim();
+  if (body.is_active !== undefined) update.is_active = body.is_active;
   if (body.addSiteId)    arrayOps['$addToSet'] = { site_ids: new mongoose.Types.ObjectId(body.addSiteId) };
   if (body.removeSiteId) arrayOps['$pull']     = { site_ids: new mongoose.Types.ObjectId(body.removeSiteId) };
 

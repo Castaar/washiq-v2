@@ -6,6 +6,15 @@ import styles from './SchadeForm.module.scss';
 
 const VOERTUIG_TYPES = ['Personenwagen', 'Bestelwagen', 'Vrachtwagen', 'Motor', 'Fiets', 'Andere'];
 
+const SCHADE_LOCATIES = [
+  'Spiegel rechts',
+  'Spiegel links',
+  'Antenne',
+  'Ruitenwisser vooraan',
+  'Ruitenwisser achteraan',
+  'Velg schade',
+];
+
 interface SchadeFormProps {
   siteId: string;
   userName: string;
@@ -40,12 +49,19 @@ export function SchadeForm({ siteId, userName }: SchadeFormProps) {
   const [telGsm, setTelGsm] = useState('');
   const [email, setEmail] = useState('');
   const [omschrijving, setOmschrijving] = useState('');
+  const [schadeLocaties, setSchadeLocaties] = useState<string[]>([]);
   const [onbetwist, setOnbetwist] = useState(false);
   const [installatiefout, setInstallatiefout] = useState(false);
   const [klantVerantwoordelijk, setKlantVerantwoordelijk] = useState(false);
   const [verzekeringsdocumenten, setVerzekeringsdocumenten] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  function toggleLocatie(locatie: string) {
+    setSchadeLocaties((prev) =>
+      prev.includes(locatie) ? prev.filter((l) => l !== locatie) : [...prev, locatie],
+    );
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -65,6 +81,7 @@ export function SchadeForm({ siteId, userName }: SchadeFormProps) {
           tel_gsm: telGsm,
           email,
           omschrijving,
+          schade_locaties: schadeLocaties,
           onbetwist,
           installatiefout,
           klant_verantwoordelijk: klantVerantwoordelijk,
@@ -121,6 +138,21 @@ export function SchadeForm({ siteId, userName }: SchadeFormProps) {
         <div className={[styles.fieldGroup, styles.fieldGroupWide].join(' ')}>
           <label className={styles.fieldLabel}>Omschrijving schade</label>
           <textarea className={styles.textarea} placeholder="Spiegel geraakt tijdens doorrijden tunnel..." value={omschrijving} onChange={(e) => setOmschrijving(e.target.value)} rows={4} />
+        </div>
+      </div>
+
+      {/* Schade locaties */}
+      <div className={styles.fieldGroup}>
+        <label className={styles.fieldLabel}>Schade locatie(s)</label>
+        <div className={styles.checkRow}>
+          {SCHADE_LOCATIES.map((locatie) => (
+            <CheckToggle
+              key={locatie}
+              label={locatie}
+              value={schadeLocaties.includes(locatie)}
+              onChange={() => toggleLocatie(locatie)}
+            />
+          ))}
         </div>
       </div>
 

@@ -70,6 +70,30 @@ export function DagficheForm({ siteId, siteName, userName, totalWagens, maintena
   const [submitted, setSubmitted] = useState(false);
   const reportRef = useRef<HTMLTextAreaElement>(null);
 
+  const [showDefect, setShowDefect] = useState(false);
+  const [defectOmschrijving, setDefectOmschrijving] = useState('');
+  const [defectErnst, setDefectErnst] = useState<'laag' | 'medium' | 'hoog'>('medium');
+  const [defectSubmitting, setDefectSubmitting] = useState(false);
+  const [defectSubmitted, setDefectSubmitted] = useState(false);
+
+  async function handleDefectSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!defectOmschrijving.trim()) return;
+    setDefectSubmitting(true);
+    try {
+      await fetch('/api/incidents/defect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ siteId, omschrijving: defectOmschrijving.trim(), ernst: defectErnst }),
+      });
+      setDefectSubmitted(true);
+      setDefectOmschrijving('');
+      setTimeout(() => { setDefectSubmitted(false); setShowDefect(false); }, 1500);
+    } finally {
+      setDefectSubmitting(false);
+    }
+  }
+
   const dagrapport = buildReport(userName, siteName, totalWagens, items, maintenanceTasks, maintenanceChecks);
 
   // Auto-resize the textarea to fit its content
@@ -210,10 +234,52 @@ export function DagficheForm({ siteId, siteName, userName, totalWagens, maintena
         </div>
       </div>
 
+      {showDefect && (
+        <div className={styles.defectPanel}>
+          {defectSubmitted ? (
+            <p className={styles.defectSuccess}>Defect gemeld ✓</p>
+          ) : (
+            <form onSubmit={handleDefectSubmit} noValidate className={styles.defectForm}>
+              <textarea
+                className={styles.defectTextarea}
+                placeholder="Omschrijving van het defect..."
+                value={defectOmschrijving}
+                onChange={(e) => setDefectOmschrijving(e.target.value)}
+                rows={3}
+              />
+              <div className={styles.defectRow}>
+                <select
+                  className={styles.defectSelect}
+                  value={defectErnst}
+                  onChange={(e) => setDefectErnst(e.target.value as 'laag' | 'medium' | 'hoog')}
+                >
+                  <option value="laag">Laag</option>
+                  <option value="medium">Medium</option>
+                  <option value="hoog">Hoog</option>
+                </select>
+                <button type="button" className={styles.cancelSmallBtn} onClick={() => setShowDefect(false)}>
+                  Annuleren
+                </button>
+                <button type="submit" className={styles.defectSubmitBtn} disabled={defectSubmitting || !defectOmschrijving.trim()}>
+                  {defectSubmitting ? 'Bezig...' : 'Melden'}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+      )}
+
       <div className={styles.footer}>
         <Link href={`/incidenten?site=${siteId}`} className={styles.incidentBtn}>
           Incidenten melden
         </Link>
+        <button
+          type="button"
+          className={styles.defectBtn}
+          onClick={() => setShowDefect((v) => !v)}
+        >
+          Defect melden
+        </button>
         <button type="submit" className={styles.submitBtn} disabled={submitting}>
           {submitting ? 'Bezig...' : 'Verzenden'}
         </button>

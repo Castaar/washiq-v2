@@ -6,7 +6,7 @@ import Link from 'next/link';
 import styles from './HandleidingContent.module.scss';
 
 interface Props {
-  role: 'developer' | 'owner' | 'employee';
+  role: 'developer' | 'owner' | 'employee' | 'technician';
   siteParam: string;
   fromLogin: boolean;
 }
@@ -17,7 +17,7 @@ interface Section {
   title: string;
   badge?: string;
   badgeVariant?: 'blue' | 'green';
-  roles: ('developer' | 'owner' | 'employee')[];
+  roles: ('developer' | 'owner' | 'employee' | 'technician')[];
   content: React.ReactNode;
 }
 
@@ -248,7 +248,7 @@ export function HandleidingContent({ role, siteParam, fromLogin }: Props) {
             title: 'Developer-paneel',
             badge: 'Developer',
             badgeVariant: 'green' as const,
-            roles: ['developer'] as ('developer' | 'owner' | 'employee')[],
+            roles: ['developer'] as ('developer' | 'owner' | 'employee' | 'technician')[],
             content: (
               <>
                 <div className={styles.subSection}>
