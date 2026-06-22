@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSessionFromRequest } from '@/lib/session';
 
 // Public paths that don't require auth
-const PUBLIC_PATHS = ['/login', '/api/auth/login'];
+const PUBLIC_PATHS = ['/login', '/api/auth/login', '/docs/washiq-handleiding.pdf', '/robots.txt'];
 
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -34,7 +34,8 @@ export async function proxy(req: NextRequest) {
       pathname.startsWith('/wekelijkse-ingave') ||
       pathname.startsWith('/historiek') ||
       pathname.startsWith('/instellingen') ||
-      pathname.startsWith('/setup')
+      pathname.startsWith('/setup') ||
+      pathname.startsWith('/technieker')
     ) {
       const url = req.nextUrl.clone();
       url.pathname = '/dagfiche';

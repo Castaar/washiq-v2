@@ -33,7 +33,7 @@ export interface MaintenanceTaskItem {
 export interface AccountFormProps {
   users: UserItem[];
   siteId: string;
-  currentUser: { id: string; name: string; email: string } | null;
+  currentUser: { id: string; name: string; email: string; birthday?: string } | null;
   role: 'developer' | 'owner' | 'employee' | 'technician';
   maintenanceTasks: MaintenanceTaskItem[];
   currentTotalWashes: number;
@@ -47,6 +47,7 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
   // Accountgegevens
   const [email, setEmail] = useState(currentUser?.email ?? '');
   const [password, setPassword] = useState('');
+  const [birthday, setBirthday] = useState(currentUser?.birthday ?? '');
 
   // Personeelsgegevens
   const [users, setUsers] = useState(initialUsers);
@@ -121,6 +122,7 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
           currentUserId: currentUser?.id,
           email: email || undefined,
           newPassword: password || undefined,
+          birthday: birthday || undefined,
         }),
       });
     } finally {
@@ -278,6 +280,22 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
                 disabled
               />
             </div>
+            <div className={styles.fieldGroup}>
+              <label className={styles.fieldLabel}>Verjaardag</label>
+              <input
+                className={styles.input}
+                type="date"
+                value={birthday}
+                onChange={(e) => setBirthday(e.target.value)}
+                onBlur={() =>
+                  fetch('/api/account', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ currentUserId: currentUser?.id, birthday }),
+                  })
+                }
+              />
+            </div>
           </div>
         </section>
       </div>
@@ -322,6 +340,15 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
                 {showPassword ? <IconEyeOff size={15} /> : <IconEye size={15} />}
               </button>
             </div>
+          </div>
+          <div className={styles.fieldGroup}>
+            <label className={styles.fieldLabel}>Verjaardag</label>
+            <input
+              className={styles.input}
+              type="date"
+              value={birthday}
+              onChange={(e) => setBirthday(e.target.value)}
+            />
           </div>
         </div>
       </section>

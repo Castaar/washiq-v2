@@ -444,8 +444,56 @@ export async function CarwashPage({
     }),
   ];
 
+  // Consumption-per-car anomaly alerts: flags water/energy spikes and wax/chemical
+  // drops vs. the previous period, since these usually surface as a surprise water
+  // bill, motor wear, or cars coming out of the tunnel too wet.
+  function pctChange(curr: number, prev: number): number | null {
+    if (prev <= 0) return null;
+    return ((curr - prev) / prev) * 100;
+  }
+
+  const waterCostPerCarCur  = wagensCount > 0 ? calcCost(waterRaw,  price?.water_per_liter ?? 0) / wagensCount : 0;
+  const waterCostPerCarPrev = wagensPrev  > 0 ? calcCost(waterPrevRaw, price?.water_per_liter ?? 0) / wagensPrev  : 0;
+  const flockCostPerCarCur  = wagensCount > 0 ? calcCost(flockRaw,  price?.flock_per_kg ?? 0) / wagensCount : 0;
+  const flockCostPerCarPrev = wagensPrev  > 0 ? calcCost(flockPrevRaw, price?.flock_per_kg ?? 0) / wagensPrev  : 0;
+  const energyPerCarCur     = wagensCount > 0 ? curBillAmount  / wagensCount : 0;
+  const energyPerCarPrev    = wagensPrev  > 0 ? prevBillAmount / wagensPrev  : 0;
+
+  const ANOMALY_THRESHOLD_PCT = 20;
+  const consumptionAlertItems: AlertItem[] = [];
+
+  const waterPct = pctChange(waterCostPerCarCur, waterCostPerCarPrev);
+  if (waterPct !== null && waterPct >= ANOMALY_THRESHOLD_PCT) {
+    consumptionAlertItems.push({
+      id: 'consumption-water', siteId: siteId ?? '',
+      title: `Waterverbruik per wagen +${Math.round(waterPct)}%`,
+      subtitle: 'Sterke stijging t.o.v. vorige periode — controleer op lekken vóór de waterfactuur binnenkomt.',
+      severity: 'high', iconName: 'warning',
+    });
+  }
+
+  const energyPct = pctChange(energyPerCarCur, energyPerCarPrev);
+  if (energyPct !== null && energyPct >= ANOMALY_THRESHOLD_PCT) {
+    consumptionAlertItems.push({
+      id: 'consumption-energy', siteId: siteId ?? '',
+      title: `Energieverbruik per wagen +${Math.round(energyPct)}%`,
+      subtitle: 'Kan wijzen op slijtage van de motor — best snel laten nakijken.',
+      severity: 'high', iconName: 'warning',
+    });
+  }
+
+  const flockPct = pctChange(flockCostPerCarCur, flockCostPerCarPrev);
+  if (flockPct !== null && flockPct <= -ANOMALY_THRESHOLD_PCT) {
+    consumptionAlertItems.push({
+      id: 'consumption-flock', siteId: siteId ?? '',
+      title: `Wax/chemie verbruik per wagen ${Math.round(flockPct)}%`,
+      subtitle: 'Sterke daling — wagens kunnen te nat uit de tunnel komen.',
+      severity: 'medium', iconName: 'warning',
+    });
+  }
+
   const alertsPanelData: AlertsPanelData = {
-    alerts:    [...alertItems, ...approachingItems, ...dagficheAlerts],
+    alerts:    [...consumptionAlertItems, ...alertItems, ...approachingItems, ...dagficheAlerts],
     onderhoud: onderhoudItems,
     incident:  incidentItems,
   };
@@ -499,6 +547,10 @@ export async function CarwashPage({
           <Link href={`/opdrachten?site=${siteId}`} className={styles.quickBtn}>Opdrachten</Link>
           <Link href={`/planning?site=${siteId}`} className={styles.quickBtn}>Planning</Link>
           <Link href={`/incidenten?site=${siteId}`} className={styles.quickBtn}>Incidenten</Link>
+          <Link href="/diversen" className={styles.quickBtn}>Diversen</Link>
+          {!isEmployee && (
+            <Link href="/technieker" className={styles.quickBtn}>Technieker</Link>
+          )}
         </div>
       )}
 

@@ -12,7 +12,7 @@ const SCHADE_LOCATIES = [
   'Antenne',
   'Ruitenwisser vooraan',
   'Ruitenwisser achteraan',
-  'Velg schade',
+  'Divers',
 ];
 
 interface SchadeFormProps {

@@ -19,12 +19,13 @@ export async function PATCH(req: NextRequest) {
     currentUserId?: string;
     email?: string;
     newPassword?: string;
+    birthday?: string;
   };
 
   const {
     priceConfigId, siteId,
     energyPerKw, waterPerLiter, saltPerKg, flockPerKg, clothPerUnit,
-    chemicalPrices, currentUserId, email, newPassword,
+    chemicalPrices, currentUserId, email, newPassword, birthday,
   } = body;
 
   // Update price config
@@ -63,6 +64,7 @@ export async function PATCH(req: NextRequest) {
     const updates: Record<string, string> = {};
     if (email) updates.email = email.trim().toLowerCase();
     if (newPassword) updates.password_hash = await bcrypt.hash(newPassword, 12);
+    if (typeof birthday === 'string') updates.birthday = birthday.trim();
     if (Object.keys(updates).length > 0) {
       const updatedUser = await User.findByIdAndUpdate(currentUserId, { $set: updates }, { new: true });
       if (newPassword && updatedUser) {

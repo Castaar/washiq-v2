@@ -30,6 +30,7 @@ export interface IUser extends Document {
   site_ids: Types.ObjectId[];
   help_seen: boolean;
   whatsapp: string;
+  birthday: string;
   is_active: boolean;
   created_at: Date;
 }
@@ -41,6 +42,7 @@ const UserSchema = new Schema<IUser>({
   site_ids: [{ type: Schema.Types.ObjectId, ref: 'Site' }],
   help_seen: { type: Boolean, default: false },
   whatsapp: { type: String, default: '' },
+  birthday: { type: String, default: '' }, // MM-DD, no year needed
   is_active: { type: Boolean, default: true },
   created_at: { type: Date, default: Date.now },
 });
@@ -486,6 +488,7 @@ export const Planning = models.Planning || model<IPlanning>('Planning', Planning
 // ─── Announcement ─────────────────────────────────────────────
 export interface IAnnouncement extends Document {
   text: string;
+  kind: 'general' | 'birthday';
   created_by_name: string;
   is_all_sites: boolean;
   site_ids: Types.ObjectId[];
@@ -493,6 +496,7 @@ export interface IAnnouncement extends Document {
 }
 const AnnouncementSchema = new Schema<IAnnouncement>({
   text: { type: String, required: true },
+  kind: { type: String, enum: ['general', 'birthday'], default: 'general' },
   created_by_name: { type: String, default: '' },
   is_all_sites: { type: Boolean, default: true },
   site_ids: [{ type: Schema.Types.ObjectId, ref: 'Site' }],

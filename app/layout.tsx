@@ -21,6 +21,10 @@ export const metadata: Metadata = {
   icons: {
     apple: '/icons/apple-touch-icon.png',
   },
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export const viewport: Viewport = {

@@ -58,9 +58,25 @@ export async function sendPushToUser(
 }
 
 /**
- * Send a push notification to all subscribers for a given site.
- * Silently removes subscriptions that are no longer valid (410 Gone).
+ * Send a push notification to every subscriber across all sites.
+ * Used for problems that everyone in the company should know about instantly.
  */
+export async function sendPushToAll(payload: PushPayload): Promise<void> {
+  await dbConnect();
+
+  const subscriptions = await PushSubscription.find({});
+  if (!subscriptions.length) return;
+
+  const data = JSON.stringify({
+    title: payload.title,
+    body: payload.body,
+    url: payload.url ?? '/',
+    icon: payload.icon ?? '/icons/icon-192.png',
+  });
+
+  await sendToSubscriptions(subscriptions, data);
+}
+
 export async function sendPushToSite(
   siteId: string,
   payload: PushPayload,

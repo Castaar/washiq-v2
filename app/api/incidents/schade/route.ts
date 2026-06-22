@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
 import { IncidentSchade } from '@/lib/models';
 import { getSessionFromRequest } from '@/lib/session';
-import { sendPushToSite } from '@/lib/push';
+import { sendPushToAll } from '@/lib/push';
 
 export async function POST(req: NextRequest) {
   const session = await getSessionFromRequest(req);
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     verzekeringsdocumenten: body.verzekeringsdocumenten ?? false,
   });
 
-  sendPushToSite(body.siteId, {
+  sendPushToAll({
     title: 'Nieuw schade-incident',
     body: `${body.merk_model ?? ''} ${body.nummerplaat ?? ''}`.trim() || 'Een schade-incident werd ingediend.',
     url: '/incidenten/schade',

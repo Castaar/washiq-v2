@@ -43,7 +43,7 @@ export default async function AccountPage({
 
   const [userDocs, currentUserDoc, taskDocs, weeklyEntries, energyBillDocs] = await Promise.all([
     User.find({ site_ids: siteId }).select('_id name email role').lean(),
-    session ? User.findById(session.userId).select('_id name email').lean() : Promise.resolve(null),
+    session ? User.findById(session.userId).select('_id name email birthday').lean() : Promise.resolve(null),
     MaintenanceTask.find({ site_id: siteId }).sort({ description: 1 }).lean(),
     WeeklyEntry.find({ site_id: siteId }).select('program_counts').lean(),
     EnergyBill.find({ site_id: siteId }).sort({ year: -1, month: -1 }).lean(),
@@ -66,6 +66,7 @@ export default async function AccountPage({
         id: (currentUserDoc._id as Types.ObjectId).toString(),
         name: (currentUserDoc.name as string) ?? '',
         email: (currentUserDoc.email as string) ?? '',
+        birthday: (currentUserDoc.birthday as string) ?? '',
       }
     : null;
 

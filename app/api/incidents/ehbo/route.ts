@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
 import { IncidentEhbo } from '@/lib/models';
 import { getSessionFromRequest } from '@/lib/session';
-import { sendPushToSite } from '@/lib/push';
+import { sendPushToAll } from '@/lib/push';
 
 export async function POST(req: NextRequest) {
   const session = await getSessionFromRequest(req);
@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     dokter_nodig: body.dokter_nodig ?? false,
   });
 
-  sendPushToSite(body.siteId, {
+  sendPushToAll({
     title: 'Nieuw EHBO-incident',
     body: body.naam_slachtoffer ? `Slachtoffer: ${body.naam_slachtoffer}` : 'Een EHBO-incident werd ingediend.',
     url: '/incidenten/ehbo',
