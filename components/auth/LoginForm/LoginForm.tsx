@@ -72,7 +72,14 @@ export function LoginForm({ sites }: LoginFormProps) {
           const dest = landingSite ? `/handleiding?site=${landingSite}` : '/handleiding';
           router.replace(dest);
         } else {
-          const dest = landingSite ? `/?site=${landingSite}` : '/';
+          let dest: string;
+          if (data.role === 'technician') {
+            dest = '/technieker';
+          } else if (data.role === 'employee') {
+            dest = landingSite ? `/dagfiche?site=${landingSite}` : '/dagfiche';
+          } else {
+            dest = landingSite ? `/?site=${landingSite}` : '/';
+          }
           router.replace(dest);
         }
         router.refresh();
@@ -93,24 +100,26 @@ export function LoginForm({ sites }: LoginFormProps) {
         <span className={styles.logoText}>WashIQ</span>
       </div>
 
-      <div className={styles.fieldGroup}>
-        <label className={styles.label}>Locatie / site</label>
-        <div className={styles.selectWrap}>
-          <select
-            className={styles.select}
-            value={siteId}
-            onChange={(e) => setSiteId(e.target.value)}
-          >
-            <option value="">Selecteer uw carwash...</option>
-            {sites.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
-          <span className={styles.selectArrow} aria-hidden="true">▾</span>
+      {sites.length > 1 && (
+        <div className={styles.fieldGroup}>
+          <label className={styles.label}>Locatie / site</label>
+          <div className={styles.selectWrap}>
+            <select
+              className={styles.select}
+              value={siteId}
+              onChange={(e) => setSiteId(e.target.value)}
+            >
+              <option value="">Selecteer uw carwash...</option>
+              {sites.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+            <span className={styles.selectArrow} aria-hidden="true">▾</span>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className={styles.fieldGroup}>
         <label className={styles.label}>Gebruikersnaam</label>

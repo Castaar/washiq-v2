@@ -24,7 +24,7 @@ export default async function OpdrachtenPage({
 
   const userRole = (userDoc?.role as string) ?? session?.role ?? 'employee';
   const userSiteIds = ((userDoc?.site_ids as Types.ObjectId[]) ?? []).map((id) => id.toString());
-  const allowedSiteDocs = userRole === 'developer'
+  const allowedSiteDocs = (userRole === 'developer' || userRole === 'technician')
     ? siteDocs
     : siteDocs.filter((s) => userSiteIds.includes((s._id as Types.ObjectId).toString()));
 

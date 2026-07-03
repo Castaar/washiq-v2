@@ -39,7 +39,7 @@ export default async function DashboardPage({
   const userSiteIds = ((userDoc?.site_ids as Types.ObjectId[]) ?? []).map((id) => id.toString());
 
   const sites =
-    userRole === 'developer'
+    (userRole === 'developer' || userRole === 'technician')
       ? allSites
       : allSites.filter((s) => userSiteIds.includes(s.id));
 
