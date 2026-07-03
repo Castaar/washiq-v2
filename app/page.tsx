@@ -12,12 +12,13 @@ import styles from './page.module.scss';
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ site?: string; period?: string; view?: string; usage?: string }>;
+  searchParams: Promise<{ site?: string; period?: string; view?: string; usage?: string; date?: string }>;
 }) {
-  const { site, period: periodParam, view: viewParam, usage: usageParam } = await searchParams;
-  const period = (periodParam === 'month' ? 'month' : 'week') as 'week' | 'month';
+  const { site, period: periodParam, view: viewParam, usage: usageParam, date: dateParam } = await searchParams;
+  const period = (periodParam === 'week' ? 'week' : 'month') as 'week' | 'month';
   const view = (viewParam === 'liter' ? 'liter' : 'prijs') as 'prijs' | 'liter';
   const usage = (usageParam === 'wagen' ? 'wagen' : 'totaal') as 'totaal' | 'wagen';
+  const refDate = dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam) ? dateParam : new Date().toISOString().slice(0, 10);
   const session = await getSession();
 
   await dbConnect();
@@ -66,7 +67,7 @@ export default async function DashboardPage({
     ? '/dagfiche'
     : '/wekelijkse-ingave';
   const addHref = userRole === 'developer' ? '/developer' : (activeSiteId ? `${addBase}?site=${activeSiteId}` : addBase);
-  const addLabel = userRole === 'developer' ? 'Developer' : userRole === 'employee' ? 'Dagfiche' : 'Wekelijkse Ingave';
+  const addLabel = userRole === 'developer' ? 'Developer' : userRole === 'employee' ? 'Dagfiche' : 'Maandelijkse Ingave';
   const settingsHref = (userRole === 'owner' || userRole === 'developer')
     ? (activeSiteId ? `/instellingen?site=${activeSiteId}` : '/instellingen')
     : undefined;
@@ -94,7 +95,7 @@ export default async function DashboardPage({
       <div className={styles.bg} aria-hidden="true">
         <Image src="/background.png" alt="" fill style={{ objectFit: 'cover' }} priority />
       </div>
-      <NavBar sites={sites} activeSiteId={activeSiteId} activePeriod={period} activeView={view} addHref={addHref} addLabel={addLabel} settingsHref={settingsHref} />
+      <NavBar sites={sites} activeSiteId={activeSiteId} activePeriod={period} activeView={view} activeDate={refDate} addHref={addHref} addLabel={addLabel} settingsHref={settingsHref} />
       {announcements.length > 0 || canManage ? (
         <div className={styles.announcementsWrap}>
           <AnnouncementBanner
@@ -104,7 +105,7 @@ export default async function DashboardPage({
           />
         </div>
       ) : null}
-      <CarwashPage siteId={activeSiteId} period={period} view={view} usage={usage} sites={sites} addHref={addHref} addLabel={addLabel} userRole={userRole} />
+      <CarwashPage siteId={activeSiteId} period={period} view={view} usage={usage} refDate={refDate} sites={sites} addHref={addHref} addLabel={addLabel} userRole={userRole} />
     </div>
   );
 }

@@ -45,6 +45,7 @@ export async function GET(req: NextRequest) {
   const logs = await AttendanceLog.find({
     site_id: siteId,
     timestamp: { $gte: from, $lt: to },
+    person_type: { $ne: 'technician_extern' },
   }).sort({ timestamp: 1 }).lean();
 
   // Group by userId → dateStr → [logs]

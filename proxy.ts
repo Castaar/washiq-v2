@@ -23,12 +23,21 @@ export async function proxy(req: NextRequest) {
   const session = await getSessionFromRequest(req);
 
   if (!session) {
+    if (pathname === '/login') return NextResponse.next();
     const loginUrl = req.nextUrl.clone();
     loginUrl.pathname = '/login';
     return NextResponse.redirect(loginUrl);
   }
 
-  // Employees cannot access wekelijkse-ingave, historiek, instellingen, setup, or developer panel
+  // Already logged in: never show the login page again (e.g. after pressing
+  // the browser back button right after signing in) — bounce to the dashboard.
+  if (pathname === '/login') {
+    const url = req.nextUrl.clone();
+    url.pathname = '/';
+    return NextResponse.redirect(url);
+  }
+
+  // Employees cannot access maandelijkse-ingave, historiek, instellingen, setup, or developer panel
   if (session.role === 'employee') {
     if (
       pathname.startsWith('/wekelijkse-ingave') ||

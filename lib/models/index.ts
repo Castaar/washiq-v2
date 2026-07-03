@@ -420,6 +420,8 @@ export interface IAttendanceLog extends Document {
   user_id: Types.ObjectId;
   user_name: string;
   type: 'opening' | 'sluiting';
+  person_type: 'employee' | 'technician_extern';
+  registered_by_name: string;
   timestamp: Date;
   note: string;
 }
@@ -428,6 +430,8 @@ const AttendanceLogSchema = new Schema<IAttendanceLog>({
   user_id: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   user_name: String,
   type: { type: String, enum: ['opening', 'sluiting'], required: true },
+  person_type: { type: String, enum: ['employee', 'technician_extern'], default: 'employee' },
+  registered_by_name: { type: String, default: '' },
   timestamp: { type: Date, default: Date.now },
   note: { type: String, default: '' },
 });

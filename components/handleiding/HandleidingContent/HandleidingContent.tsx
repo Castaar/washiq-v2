@@ -127,7 +127,7 @@ export function HandleidingContent({ role, siteParam, fromLogin }: Props) {
     {
       id: 'wekelijkse-ingave',
       icon: '📅',
-      title: 'Wekelijkse ingave',
+      title: 'Maandelijkse ingave',
       badge: 'Eigenaar',
       badgeVariant: 'blue',
       roles: ['developer', 'owner'],
@@ -165,7 +165,7 @@ export function HandleidingContent({ role, siteParam, fromLogin }: Props) {
           <div className={styles.subSection}>
             <span className={styles.subTitle}>Wat is dit?</span>
             <p className={styles.text}>
-              De historiek toont een overzicht van alle wekelijkse ingaves, gesorteerd van nieuw naar
+              De historiek toont een overzicht van alle maandelijkse ingaves, gesorteerd van nieuw naar
               oud. Je kunt per week de kostprijs, het verbruik en de wasaantallen raadplegen.
             </p>
           </div>

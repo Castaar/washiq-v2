@@ -127,10 +127,10 @@ export default async function HistoriekPage({
           </div>
         )}
 
-        {/* ── Wekelijkse ingaves lijst ─────────────────────────── */}
+        {/* ── Maandelijkse ingaves lijst ─────────────────────────── */}
         <div className={styles.card}>
           <div className={styles.header}>
-            <h1 className={styles.title}>Wekelijkse Ingaves — {siteName}</h1>
+            <h1 className={styles.title}>Maandelijkse Ingaves — {siteName}</h1>
           </div>
           <HistoryList entries={entries} programs={programs} />
         </div>

@@ -57,7 +57,7 @@ export const alertsData: Record<AlertTab, CarwashAlert[]> = {
   alerts: [
     { id: 'a1', title: 'Controle: Textiel borstels niet nagekeken.', severity: 'medium', iconName: 'search'          },
     { id: 'a2', title: 'Lage voorraad chemie A',                     severity: 'high',   iconName: 'alert-triangle'  },
-    { id: 'a3', title: 'Nieuwe wekelijkse ingave',                   severity: 'low',    iconName: 'alert-triangle'  },
+    { id: 'a3', title: 'Nieuwe maandelijkse ingave',                   severity: 'low',    iconName: 'alert-triangle'  },
   ],
   onderhoud: [],
   incident:  [],

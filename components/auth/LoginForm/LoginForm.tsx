@@ -70,10 +70,10 @@ export function LoginForm({ sites }: LoginFormProps) {
         const landingSite = siteId || data.siteIds?.[0] || '';
         if (!data.helpSeen) {
           const dest = landingSite ? `/handleiding?site=${landingSite}` : '/handleiding';
-          router.push(dest);
+          router.replace(dest);
         } else {
           const dest = landingSite ? `/?site=${landingSite}` : '/';
-          router.push(dest);
+          router.replace(dest);
         }
         router.refresh();
       } else {

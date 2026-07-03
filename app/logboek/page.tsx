@@ -49,6 +49,8 @@ export default async function LogboekPage({
     id: (l._id as Types.ObjectId).toString(),
     userName: (l.user_name as string) ?? '',
     type: l.type as 'opening' | 'sluiting',
+    personType: (l.person_type as 'employee' | 'technician_extern') ?? 'employee',
+    registeredByName: (l.registered_by_name as string) ?? '',
     timestamp: (l.timestamp as Date).toISOString(),
     note: (l.note as string) ?? '',
   }));

@@ -34,7 +34,7 @@ export function ChemieChart({ data, products }: ChemieChartProps) {
   if (products.length === 0 || data.length === 0) {
     return (
       <div className={styles.empty}>
-        Geen verbruiksdata beschikbaar. Voeg wekelijkse ingaves toe om grafieken te zien.
+        Geen verbruiksdata beschikbaar. Voeg maandelijkse ingaves toe om grafieken te zien.
       </div>
     );
   }

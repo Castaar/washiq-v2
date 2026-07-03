@@ -7,6 +7,8 @@ export interface LogEntry {
   id: string;
   userName: string;
   type: 'opening' | 'sluiting';
+  personType: 'employee' | 'technician_extern';
+  registeredByName: string;
   timestamp: string;
   note: string;
 }
@@ -67,6 +69,13 @@ export function LogboekPanel({ siteId, userRole, userName, recentLogs }: Logboek
   const [saving, setSaving] = useState(false);
   const [lastAction, setLastAction] = useState<'opening' | 'sluiting' | null>(null);
 
+  // Externe technieker registratie (door de werknemer/eigenaar ter plaatse ingevuld)
+  const [techName, setTechName] = useState('');
+  const [techNote, setTechNote] = useState('');
+  const [techSaving, setTechSaving] = useState(false);
+  const [techLastAction, setTechLastAction] = useState<'opening' | 'sluiting' | null>(null);
+  const [techError, setTechError] = useState('');
+
   const isOwner = userRole === 'owner' || userRole === 'developer';
   const [view, setView] = useState<'logboek' | 'maand'>('logboek');
 
@@ -94,6 +103,29 @@ export function LogboekPanel({ siteId, userRole, userName, recentLogs }: Logboek
     setSaving(false);
   }
 
+  async function registerTechnician(type: 'opening' | 'sluiting') {
+    setTechError('');
+    if (!techName.trim()) {
+      setTechError('Vul de naam van de technieker in');
+      return;
+    }
+    setTechSaving(true);
+    const res = await fetch('/api/attendance', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ siteId, type, note: techNote, personType: 'technician_extern', personName: techName }),
+    });
+    if (res.ok) {
+      const entry = (await res.json()) as LogEntry;
+      setLogs((prev) => [entry, ...prev]);
+      setTechLastAction(type);
+      setTechNote('');
+    } else {
+      setTechError('Registreren mislukt, probeer opnieuw');
+    }
+    setTechSaving(false);
+  }
+
   async function loadSummary(year: number, month: number) {
     setSummaryLoading(true);
     setSummary(null);
@@ -114,6 +146,31 @@ export function LogboekPanel({ siteId, userRole, userName, recentLogs }: Logboek
     setSelYear(year);
     setSelMonth(month);
     if (view === 'maand') loadSummary(year, month);
+  }
+
+  function exportCsv() {
+    if (!summary || summary.length === 0) return;
+    const rows = [['Medewerker', 'Datum', 'Aankomst', 'Vertrek', 'Uren']];
+    for (const emp of summary) {
+      for (const day of emp.days) {
+        rows.push([
+          emp.userName,
+          day.date,
+          day.checkIn || '',
+          day.checkOut || '',
+          day.hours > 0 ? day.hours.toFixed(2) : '',
+        ]);
+      }
+      rows.push([emp.userName, 'Totaal', '', '', emp.totalHours.toFixed(2)]);
+    }
+    const csv = rows.map((r) => r.map((v) => `"${v.replace(/"/g, '""')}"`).join(';')).join('\n');
+    const blob = new Blob([`﻿${csv}`], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `uren-${MONTH_NAMES[selMonth - 1].toLowerCase()}-${selYear}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   const grouped = groupByDate(logs);
@@ -154,6 +211,56 @@ export function LogboekPanel({ siteId, userRole, userName, recentLogs }: Logboek
         {lastAction && (
           <p className={styles.confirm}>
             {lastAction === 'opening' ? 'Aankomst' : 'Vertrek'} geregistreerd
+          </p>
+        )}
+      </div>
+
+      {/* ── Externe technieker ───────────────────────────────────── */}
+      <div className={styles.registerCard}>
+        <h2 className={styles.registerTitle}>Externe technieker</h2>
+        <p className={styles.registerSub}>
+          Komt er een technieker van buitenaf langs (bv. voor herstelling)? Registreer hier wanneer hij aankomt en vertrekt.
+        </p>
+
+        <input
+          className={styles.noteInput}
+          type="text"
+          value={techName}
+          onChange={(e) => setTechName(e.target.value)}
+          placeholder="Naam van de technieker"
+          maxLength={80}
+        />
+        <input
+          className={styles.noteInput}
+          type="text"
+          value={techNote}
+          onChange={(e) => setTechNote(e.target.value)}
+          placeholder="Opmerking (optioneel, bv. reden van het bezoek)"
+          maxLength={120}
+        />
+
+        {techError && <p className={styles.error}>{techError}</p>}
+
+        <div className={styles.btnRow}>
+          <button
+            className={[styles.btn, styles.openBtn].join(' ')}
+            onClick={() => registerTechnician('opening')}
+            disabled={techSaving}
+          >
+            Technieker komt aan
+          </button>
+          <button
+            className={[styles.btn, styles.closeBtn].join(' ')}
+            onClick={() => registerTechnician('sluiting')}
+            disabled={techSaving}
+          >
+            Technieker vertrekt
+          </button>
+        </div>
+
+        {techLastAction && (
+          <p className={styles.confirm}>
+            {techLastAction === 'opening' ? 'Aankomst' : 'Vertrek'} van technieker geregistreerd
           </p>
         )}
       </div>
@@ -204,6 +311,15 @@ export function LogboekPanel({ siteId, userRole, userName, recentLogs }: Logboek
             <span className={styles.monthLabel}>
               {MONTH_NAMES[selMonth - 1]} {selYear}
             </span>
+            <button
+              type="button"
+              className={styles.exportBtn}
+              onClick={exportCsv}
+              disabled={!summary || summary.length === 0}
+              title="Download een Excel-bestand (CSV) met alle uren van deze maand"
+            >
+              ⬇ Exporteren
+            </button>
           </div>
 
           {summaryLoading && <p className={styles.empty}>Laden...</p>}
@@ -283,7 +399,12 @@ export function LogboekPanel({ siteId, userRole, userName, recentLogs }: Logboek
                   <span className={styles.typeBadge}>
                     {l.type === 'opening' ? 'Aankomst' : 'Vertrek'}
                   </span>
-                  <span className={styles.logName}>{l.userName}</span>
+                  <span className={styles.logName}>
+                    {l.userName}
+                    {l.personType === 'technician_extern' && (
+                      <span className={styles.technicianBadge}>Externe technieker</span>
+                    )}
+                  </span>
                   <span className={styles.logTime}>{fmtTime(l.timestamp)}</span>
                   {l.note && <span className={styles.logNote}>{l.note}</span>}
                 </div>

@@ -43,28 +43,20 @@ export interface WeeklyEntryFormProps {
   washesTasks?: WashesTask[];
 }
 
-// ─── ISO week helpers ────────────────────────────────────────
-function dateToWeekString(date: Date): string {
-  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-  const day = d.getUTCDay() || 7;
-  d.setUTCDate(d.getUTCDate() + 4 - day);
-  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-  const weekNo = Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
-  return `${d.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`;
+// Monday (00:00 UTC) of the ISO week containing the given YYYY-MM-DD date string
+function dateStringToMonday(dateStr: string): Date {
+  const d = new Date(`${dateStr}T00:00:00Z`);
+  const dayOfWeek = d.getUTCDay() || 7; // Sunday -> 7
+  d.setUTCDate(d.getUTCDate() - (dayOfWeek - 1));
+  return d;
 }
 
-function weekStringToMonday(weekStr: string): Date {
-  const [yearPart, weekPart] = weekStr.split('-W');
-  const year = parseInt(yearPart, 10);
-  const week = parseInt(weekPart, 10);
-  // Monday of week 1: find Jan 4 (always in week 1), then back to Monday
-  const jan4 = new Date(Date.UTC(year, 0, 4));
-  const dayOfJan4 = jan4.getUTCDay() || 7;
-  const monday1 = new Date(jan4);
-  monday1.setUTCDate(jan4.getUTCDate() - (dayOfJan4 - 1));
-  const monday = new Date(monday1);
-  monday.setUTCDate(monday1.getUTCDate() + (week - 1) * 7);
-  return monday;
+function dateToDateString(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+function fmtDayMonth(d: Date): string {
+  return `${d.getUTCDate().toString().padStart(2, '0')}/${(d.getUTCMonth() + 1).toString().padStart(2, '0')}`;
 }
 
 // ─── Delta helper ────────────────────────────────────────────
@@ -151,7 +143,7 @@ export function WeeklyEntryForm({ siteId, programs, lastEntry, washesTasks = [] 
   const [chemicalUsages, setChemicalUsages] = useState<Record<string, string>>(
     () => Object.fromEntries(uniqueChemicals.map((c) => [c.id, ''])),
   );
-  const [weekStart, setWeekStart] = useState<string>(() => dateToWeekString(new Date()));
+  const [pickedDate, setPickedDate] = useState<string>(() => dateToDateString(new Date()));
   const [saving, setSaving] = useState(false);
 
   // Auto-compute tellerstand from previous + sum of this week's program counts
@@ -189,7 +181,7 @@ export function WeeklyEntryForm({ siteId, programs, lastEntry, washesTasks = [] 
     e.preventDefault();
     setSaving(true);
 
-    const monday = weekStringToMonday(weekStart);
+    const monday = dateStringToMonday(pickedDate);
 
     const body = {
       site_id: siteId,
@@ -228,22 +220,27 @@ export function WeeklyEntryForm({ siteId, programs, lastEntry, washesTasks = [] 
     }
   }
 
-  const currentWeek = dateToWeekString(new Date());
+  const today = dateToDateString(new Date());
+  const pickedMonday = dateStringToMonday(pickedDate);
+  const pickedSunday = new Date(pickedMonday); pickedSunday.setUTCDate(pickedSunday.getUTCDate() + 6);
 
   return (
     <form className={styles.form} onSubmit={handleSubmit} noValidate>
 
       {/* ── Week selector ────────────────────────────────────── */}
       <div className={styles.weekPickerRow}>
-        <label className={styles.weekPickerLabel} htmlFor="weekPicker">Week invullen voor</label>
+        <label className={styles.weekPickerLabel} htmlFor="weekPicker">Kies een datum in de week die u wilt invullen</label>
         <input
           id="weekPicker"
           className={styles.weekInput}
-          type="week"
-          value={weekStart}
-          max={currentWeek}
-          onChange={(e) => setWeekStart(e.target.value)}
+          type="date"
+          value={pickedDate}
+          max={today}
+          onChange={(e) => setPickedDate(e.target.value)}
         />
+        <span className={styles.weekPickerHint}>
+          Week van {fmtDayMonth(pickedMonday)} t/m {fmtDayMonth(pickedSunday)}
+        </span>
       </div>
 
       {/* ── Section 0: Tellerstand (auto-computed) ──────────── */}

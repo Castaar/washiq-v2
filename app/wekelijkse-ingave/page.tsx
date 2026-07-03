@@ -97,7 +97,7 @@ export default async function WekelijkseIngavePage({
       <div className={styles.bg} aria-hidden="true">
         <Image src="/background.png" alt="" fill style={{ objectFit: 'cover' }} priority />
       </div>
-      <NavBar centerTitle={siteName ? `Wekelijkse Ingave — ${siteName}` : 'Wekelijkse Ingave'} backHref="/" />
+      <NavBar centerTitle={siteName ? `Maandelijkse Ingave — ${siteName}` : 'Maandelijkse Ingave'} backHref="/" />
       <main className={styles.main}>
         <WeeklyEntryForm
           siteId={siteId ?? ''}

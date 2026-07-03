@@ -4,6 +4,7 @@ import { carwashMeta } from '@/lib/mock-data/carwash';
 import { IconChevronDown, IconChevronLeft, IconUser, IconSettings } from '@/components/ui/icons';
 import { SiteSelector } from './SiteSelector';
 import { ParamSelector } from './ParamSelector';
+import { DatePicker } from './DatePicker';
 import { LogoutButton } from './LogoutButton';
 import styles from './NavBar.module.scss';
 
@@ -39,11 +40,12 @@ interface NavBarProps {
   addLabel?: string;
   backHref?: string;
   settingsHref?: string;
+  activeDate?: string;
 }
 
 const PERIOD_OPTIONS = [
-  { label: 'Week', value: 'week' },
   { label: 'Maand', value: 'month' },
+  { label: 'Week', value: 'week' },
 ];
 
 const VIEW_OPTIONS = [
@@ -51,10 +53,10 @@ const VIEW_OPTIONS = [
   { label: 'Eenheid', value: 'liter' },
 ];
 
-export function NavBar({ centerTitle, sites, activeSiteId, activePeriod = 'week', activeView = 'prijs', addHref, addLabel, backHref, settingsHref }: NavBarProps) {
+export function NavBar({ centerTitle, sites, activeSiteId, activePeriod = 'month', activeView = 'prijs', addHref, addLabel, backHref, settingsHref, activeDate }: NavBarProps) {
   const logoParams = new URLSearchParams();
   if (activeSiteId) logoParams.set('site', activeSiteId);
-  if (activePeriod !== 'week') logoParams.set('period', activePeriod);
+  if (activePeriod !== 'month') logoParams.set('period', activePeriod);
   if (activeView !== 'prijs') logoParams.set('view', activeView);
   const logoHref = logoParams.toString() ? `/?${logoParams.toString()}` : '/';
 
@@ -91,8 +93,8 @@ export function NavBar({ centerTitle, sites, activeSiteId, activePeriod = 'week'
               <SelectorPill label={carwashMeta.type} value={carwashMeta.location} />
             )}
             <span className={styles.hideMobile}>
-              <Suspense fallback={<button className={styles.pill} type="button"><span className={styles.pillLabel}>Tijd</span><span className={styles.pillDivider} aria-hidden="true" /><span className={styles.pillValue}>Week</span></button>}>
-                <ParamSelector label="Tijd" paramKey="period" options={PERIOD_OPTIONS} activeValue={activePeriod} />
+              <Suspense fallback={<button className={styles.pill} type="button"><span className={styles.pillLabel}>Periode</span><span className={styles.pillDivider} aria-hidden="true" /><span className={styles.pillValue}>Maand</span></button>}>
+                <ParamSelector label="Periode" paramKey="period" options={PERIOD_OPTIONS} activeValue={activePeriod} />
               </Suspense>
             </span>
             <span className={styles.hideMobile}>
@@ -100,6 +102,13 @@ export function NavBar({ centerTitle, sites, activeSiteId, activePeriod = 'week'
                 <ParamSelector label="Weergave" paramKey="view" options={VIEW_OPTIONS} activeValue={activeView} />
               </Suspense>
             </span>
+            {activeDate && (
+              <span className={styles.hideMobile}>
+                <Suspense fallback={null}>
+                  <DatePicker activeDate={activeDate} />
+                </Suspense>
+              </span>
+            )}
           </div>
         )}
       </div>

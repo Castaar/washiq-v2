@@ -38,6 +38,12 @@
   white-space: nowrap;
 }
 
+.weekPickerHint {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
 .weekInput {
   height: 36px;
   background: rgba(255, 255, 255, 0.04);

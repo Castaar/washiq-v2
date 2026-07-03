@@ -36,11 +36,11 @@ node scripts/cleanup-collections.mjs  # drop all collections
 
 Three roles enforced in both `proxy.ts` and individual API routes:
 
-| Role        | Access                                                                                                    |
-| ----------- | --------------------------------------------------------------------------------------------------------- |
-| `developer` | All pages including `/developer`                                                                          |
-| `owner`     | All pages except `/developer`                                                                             |
-| `employee`  | `/dagfiche` and `/incidenten` only; redirected away from `/wekelijkse-ingave`, `/historiek`, `/developer` |
+| Role        | Access                                                                                                      |
+| ----------- | ----------------------------------------------------------------------------------------------------------- |
+| `developer` | All pages including `/developer`                                                                            |
+| `owner`     | All pages except `/developer`                                                                               |
+| `employee`  | `/dagfiche` and `/incidenten` only; redirected away from `/maandelijkse-ingave`, `/historiek`, `/developer` |
 
 ### Database
 
@@ -65,7 +65,7 @@ app/
   page.tsx                    # dashboard (/)
   login/                      # public login page
   dagfiche/                   # daily checklist (employee + owner)
-  wekelijkse-ingave/          # weekly consumption entry (owner only)
+  maandelijkse-ingave/          # weekly consumption entry (owner only)
   historiek/                  # history of weekly entries (owner only)
   incidenten/                 # incident overview; sub-routes: /ehbo, /schade
   account/                    # account settings

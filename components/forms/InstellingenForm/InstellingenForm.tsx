@@ -475,7 +475,7 @@ export function InstellingenForm({ siteId, siteName, priceConfig, stocks, energy
           <h2 className={styles.sectionTitle}>Producten beheren</h2>
         </div>
         <p className={styles.sectionHint}>
-          Voeg de chemische producten toe die uw carwash gebruikt. Elk product verschijnt automatisch in de wekelijkse ingave en de prijsberekening.
+          Voeg de chemische producten toe die uw carwash gebruikt. Elk product verschijnt automatisch in de maandelijkse ingave en de prijsberekening.
         </p>
 
         <div className={styles.productList}>

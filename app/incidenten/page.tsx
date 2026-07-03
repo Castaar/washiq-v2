@@ -84,7 +84,7 @@ export default async function IncidentenPage({
   ].sort((a, b) => b.date.localeCompare(a.date));
 
   const addHref = session?.role === 'employee' ? `/dagfiche?site=${siteId}` : `/wekelijkse-ingave?site=${siteId}`;
-  const addLabel = session?.role === 'employee' ? 'Dagfiche' : 'Wekelijkse Ingave';
+  const addLabel = session?.role === 'employee' ? 'Dagfiche' : 'Maandelijkse Ingave';
 
   return (
     <div className={styles.root}>

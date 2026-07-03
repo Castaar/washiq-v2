@@ -94,7 +94,7 @@ export default async function AccountPage({
       <div className={styles.bg} aria-hidden="true">
         <Image src="/background.png" alt="" fill style={{ objectFit: 'cover' }} priority />
       </div>
-      <NavBar centerTitle={sites.find((s) => s.id === siteId)?.name ? `Account — ${sites.find((s) => s.id === siteId)!.name}` : 'Account'} sites={sites} activeSiteId={siteId} backHref="/" addHref={addHref} addLabel={addHref === '/dagfiche' ? 'Dagfiche' : 'Wekelijkse Ingave'} />
+      <NavBar centerTitle={sites.find((s) => s.id === siteId)?.name ? `Account — ${sites.find((s) => s.id === siteId)!.name}` : 'Account'} sites={sites} activeSiteId={siteId} backHref="/" addHref={addHref} addLabel={addHref === '/dagfiche' ? 'Dagfiche' : 'Maandelijkse Ingave'} />
       <main className={styles.main}>
         <AccountForm
           users={users}

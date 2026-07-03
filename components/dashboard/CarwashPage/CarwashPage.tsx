@@ -15,6 +15,7 @@ import {
   IncidentEhbo,
   Defect,
   EnergyBill,
+  AttendanceLog,
 } from '@/lib/models';
 import { UsageToggle } from '@/components/dashboard/UsageToggle/UsageToggle';
 import { ProgrammaCard } from '@/components/dashboard/ProgrammaCard/ProgrammaCard';
@@ -26,17 +27,27 @@ import { CarwashHero } from '@/components/dashboard/CarwashHero/CarwashHero';
 import { AlertsPanel } from '@/components/dashboard/AlertsPanel/AlertsPanel';
 import { VoorraadPanel } from '@/components/dashboard/VoorraadPanel/VoorraadPanel';
 import { ParamSelector } from '@/components/layout/NavBar/ParamSelector';
+import { DatePicker } from '@/components/layout/NavBar/DatePicker';
 import { SiteSelector } from '@/components/layout/NavBar/SiteSelector';
 import type { AlertItem, AlertsPanelData, VoorraadItem, ChemieRow, ConsumptionData, DagfichePayload, IncidentSchadePayload, IncidentEhboPayload, DefectPayload, MaintenanceTaskPayload } from '@/lib/types/dashboard';
 import { computeIsOverdue, computeIsApproaching, washesRemaining } from '@/lib/maintenance';
 import styles from './CarwashPage.module.scss';
 import type { Types } from 'mongoose';
 
+// Monday (00:00 UTC) of the ISO week containing the given date
+function mondayOf(date: Date): Date {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayOfWeek = d.getUTCDay() || 7; // Sunday -> 7
+  d.setUTCDate(d.getUTCDate() - (dayOfWeek - 1));
+  return d;
+}
+
 export async function CarwashPage({
   siteId: propSiteId,
-  period = 'week',
+  period = 'month',
   view = 'prijs',
   usage = 'totaal',
+  refDate,
   sites,
   addHref,
   addLabel,
@@ -46,6 +57,7 @@ export async function CarwashPage({
   period?: 'week' | 'month';
   view?: 'prijs' | 'liter';
   usage?: 'totaal' | 'wagen';
+  refDate?: string;
   sites?: { id: string; name: string; location: string }[];
   addHref?: string;
   addLabel?: string;
@@ -60,15 +72,33 @@ export async function CarwashPage({
   const siteId = resolvedSite ? (resolvedSite._id as Types.ObjectId).toString() : null;
   const filter = siteId ? { site_id: siteId } : {};
 
-  // ── Fetch all data in parallel ───────────────────────────────
-  const today = new Date();
-  const curYear = today.getFullYear();
-  const curMonth = today.getMonth() + 1;
+  // ── Reference date: which period the owner is currently viewing ──
+  const viewedDate = refDate && /^\d{4}-\d{2}-\d{2}$/.test(refDate) ? new Date(`${refDate}T00:00:00Z`) : new Date();
+  const curYear = viewedDate.getUTCFullYear();
+  const curMonth = viewedDate.getUTCMonth() + 1;
   const prevMonth = curMonth === 1 ? 12 : curMonth - 1;
   const prevYear  = curMonth === 1 ? curYear - 1 : curYear;
 
-  const [entries, programs, priceConfigs, stocks, tasks, logs, checklists, incSchades, incEhbos, defects, energyBillCur, energyBillPrev] = await Promise.all([
-    WeeklyEntry.find(filter).sort({ week_start: -1 }).limit(9).lean(),
+  // Calendar-month boundaries for the viewed month and the one before it
+  const curMonthStart  = new Date(Date.UTC(curYear, curMonth - 1, 1));
+  const curMonthEnd    = new Date(Date.UTC(curYear, curMonth, 1));
+  const prevMonthStart = new Date(Date.UTC(prevYear, prevMonth - 1, 1));
+  const prevMonthEnd   = curMonthStart;
+
+  // ISO-week boundaries for the viewed week and the one before it
+  const curWeekStart  = mondayOf(viewedDate);
+  const prevWeekStart = new Date(curWeekStart); prevWeekStart.setUTCDate(prevWeekStart.getUTCDate() - 7);
+
+  // ── Fetch all data in parallel ───────────────────────────────
+  const today = new Date();
+
+  const [entries, monthEntries, prevMonthEntries, latestEntry, programs, priceConfigs, stocks, tasks, logs, checklists, incSchades, incEhbos, defects, energyBillCur, energyBillPrev, attendanceLogs] = await Promise.all([
+    period === 'week'
+      ? WeeklyEntry.find({ ...filter, week_start: { $in: [curWeekStart, prevWeekStart] } }).lean()
+      : Promise.resolve([]),
+    period === 'month' ? WeeklyEntry.find({ ...filter, week_start: { $gte: curMonthStart, $lt: curMonthEnd } }).lean() : Promise.resolve([]),
+    period === 'month' ? WeeklyEntry.find({ ...filter, week_start: { $gte: prevMonthStart, $lt: prevMonthEnd } }).lean() : Promise.resolve([]),
+    WeeklyEntry.findOne(filter).sort({ week_start: -1 }).lean(),
     WashProgram.find(filter).sort({ tier: 1 }).lean(),
     PriceConfig.find(filter).sort({ valid_from: -1 }).limit(1).lean(),
     ChemicalStock.find(filter).sort({ name: 1 }).lean(),
@@ -80,6 +110,7 @@ export async function CarwashPage({
     Defect.find({ ...filter, $or: [{ is_resolved: false }, { is_resolved: { $exists: false } }] }).sort({ created_at: -1 }).limit(8).lean(),
     siteId ? EnergyBill.findOne({ site_id: siteId, year: curYear,  month: curMonth  }).lean() : null,
     siteId ? EnergyBill.findOne({ site_id: siteId, year: prevYear, month: prevMonth }).lean() : null,
+    AttendanceLog.find(filter).sort({ timestamp: -1 }).limit(15).lean(),
   ]);
 
   // ── Aggregate helper for month view ──────────────────────────
@@ -136,10 +167,16 @@ export async function CarwashPage({
   }
 
   // ── Build current / previous aggregates ──────────────────────
-  // Week:  this week's single entry vs last week's single entry
-  // Month: sum of last 4 weeks vs sum of prior 4 weeks
-  const current  = period === 'month' ? aggregateEntries(entries.slice(0, 4)) : (entries[0] ?? null);
-  const previous = period === 'month' ? aggregateEntries(entries.slice(4, 8)) : (entries[1] ?? null);
+  // Week:  the viewed week's entry vs the week before it
+  // Month: sum of all weeks within the viewed calendar month vs the month before it
+  const curWeekStartMs = curWeekStart.getTime();
+  const prevWeekStartMs = prevWeekStart.getTime();
+  const current  = period === 'month'
+    ? aggregateEntries(monthEntries)
+    : (entries.find((e) => new Date(e.week_start as Date).getTime() === curWeekStartMs) ?? null);
+  const previous = period === 'month'
+    ? aggregateEntries(prevMonthEntries)
+    : (entries.find((e) => new Date(e.week_start as Date).getTime() === prevWeekStartMs) ?? null);
   const price = priceConfigs[0] ?? null;
 
   // ── Wagens (needed before consumption cards for per-car division) ─
@@ -232,10 +269,13 @@ export async function CarwashPage({
   }
 
   // Current tellerstand from the latest weekly entry
-  const currentTellerstand = (entries[0] as Record<string, unknown>)?.tellerstand as number ?? 0;
+  const currentTellerstand = (latestEntry as Record<string, unknown>)?.tellerstand as number ?? 0;
 
   const now = new Date();
   const alertItems: AlertItem[] = tasks
+    // A washes-based task can't be "overdue" before any wagens have ever been recorded —
+    // without that guard it falls back to a stale is_overdue flag and fires on day one.
+    .filter((t) => !(t.trigger_type === 'washes' && currentTellerstand <= 0))
     .filter((t) => computeIsOverdue(t, now, currentTellerstand > 0 ? currentTellerstand : undefined))
     .map((t) => {
       const remaining = currentTellerstand > 0 ? washesRemaining(t, currentTellerstand) : null;
@@ -492,8 +532,26 @@ export async function CarwashPage({
     });
   }
 
+  // Check-in / check-out events, used to keep the owner's feed limited to
+  // completions, incidents and attendance — not proactive maintenance nagging.
+  const attendanceAlertItems: AlertItem[] = attendanceLogs.map((l) => ({
+    id:       `attendance-${(l._id as Types.ObjectId).toString()}`,
+    siteId:   siteId ?? '',
+    title:    `${l.user_name ?? 'Onbekend'} is ${l.type === 'opening' ? 'aangekomen' : 'vertrokken'}`,
+    subtitle: (l.person_type as string) === 'technician_extern' ? 'Externe technieker' : undefined,
+    date:     fmtDate(new Date(l.timestamp as Date)),
+    severity: 'low' as const,
+    iconName: 'check',
+  }));
+
+  // Technicians need to see proactive "this is due" maintenance warnings to act on them.
+  // The owner only needs to know once something is actually done, an incident happened,
+  // or who came/went — proactive maintenance nagging belongs in the Onderhoud tab only.
+  const isTechnician = userRole === 'technician';
   const alertsPanelData: AlertsPanelData = {
-    alerts:    [...consumptionAlertItems, ...alertItems, ...approachingItems, ...dagficheAlerts],
+    alerts: isTechnician
+      ? [...consumptionAlertItems, ...alertItems, ...approachingItems, ...dagficheAlerts]
+      : [...onderhoudItems, ...incidentItems, ...attendanceAlertItems],
     onderhoud: onderhoudItems,
     incident:  incidentItems,
   };
@@ -578,11 +636,16 @@ export async function CarwashPage({
         {!isEmployee && (
           <>
             <Suspense fallback={null}>
-              <ParamSelector label="Tijd" paramKey="period" options={PERIOD_OPTIONS} activeValue={period} />
+              <ParamSelector label="Periode" paramKey="period" options={PERIOD_OPTIONS} activeValue={period} />
             </Suspense>
             <Suspense fallback={null}>
               <ParamSelector label="Weergave" paramKey="view" options={VIEW_OPTIONS} activeValue={view} />
             </Suspense>
+            {refDate && (
+              <Suspense fallback={null}>
+                <DatePicker activeDate={refDate} />
+              </Suspense>
+            )}
           </>
         )}
       </div>
