@@ -32,7 +32,10 @@
   display: flex;
   justify-content: center;
   padding: var(--space-6);
-
-  // Subtle top padding so card doesn't sit against nav
   padding-top: var(--space-6);
+
+  @media (max-width: 767px) {
+    padding: var(--space-3) var(--space-2);
+    align-items: flex-start;
+  }
 }

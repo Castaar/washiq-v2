@@ -67,8 +67,7 @@ export default async function WekelijkseIngavePage({
         waterLiters: last.water_liters,
         energyKw: last.energy_kw,
         saltKg: last.salt_kg,
-        flockKg: last.flock_kg,
-        clothUnits: (last as Record<string, unknown>).cloth_units as number ?? 0,
+        blobLiters: (last as Record<string, unknown>).blob_liters as number ?? 0,
         programCounts: (last.program_counts ?? []).map(
           (pc: { program_id?: { toString(): string }; count?: number }) => ({
             programId: pc.program_id?.toString() ?? '',

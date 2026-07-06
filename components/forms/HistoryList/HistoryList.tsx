@@ -21,8 +21,7 @@ export interface HistoryEntry {
   waterLiters: number;
   energyKw: number;
   saltKg: number;
-  flockKg: number;
-  clothUnits: number;
+  blobLiters: number;
   totalCost: number;
   programCounts: { programId: string; name: string; count: number }[];
   chemicalUsages: { chemicalId: string; name: string; amount: number; unit: string }[];
@@ -70,8 +69,7 @@ function EntryRow({
   const [waterLiters, setWaterLiters] = useState(String(entry.waterLiters));
   const [energyKw, setEnergyKw] = useState(String(entry.energyKw));
   const [saltKg, setSaltKg] = useState(String(entry.saltKg));
-  const [flockKg, setFlockKg] = useState(String(entry.flockKg));
-  const [clothUnits, setClothUnits] = useState(String(entry.clothUnits ?? 0));
+  const [blobLiters, setBlobLiters] = useState(String(entry.blobLiters ?? 0));
   const [programCounts, setProgramCounts] = useState<Record<string, string>>(
     Object.fromEntries(
       programs.map((p) => {
@@ -80,19 +78,27 @@ function EntryRow({
       }),
     ),
   );
+  // Deduplicate chemicals across programs (same as WeeklyEntryForm)
+  const uniqueChemicals = (() => {
+    const seen = new Set<string>();
+    return programs.flatMap((p) => p.chemicals).filter((c) => {
+      if (seen.has(c.id) || c.name.toLowerCase() === 'blob') return false;
+      seen.add(c.id);
+      return true;
+    });
+  })();
+
   const [chemAmounts, setChemAmounts] = useState<Record<string, string>>(
     Object.fromEntries(
-      programs.flatMap((p) =>
-        p.chemicals.map((c) => {
-          const found = entry.chemicalUsages.find((cu) => cu.chemicalId === c.id || cu.name === c.name);
-          return [c.id, String(found?.amount ?? 0)];
-        }),
-      ),
+      uniqueChemicals.map((c) => {
+        const found = entry.chemicalUsages.find((cu) => cu.chemicalId === c.id || cu.name === c.name);
+        return [c.id, String(found?.amount ?? 0)];
+      }),
     ),
   );
 
   const totalWagens = entry.programCounts.reduce((s, pc) => s + pc.count, 0);
-  const hasChemicals = programs.some((p) => p.chemicals.length > 0);
+  const hasChemicals = uniqueChemicals.length > 0;
 
   async function handleSave() {
     setSaving(true);
@@ -102,21 +108,18 @@ function EntryRow({
         water_liters: parseFloat(waterLiters) || 0,
         energy_kw: parseFloat(energyKw) || 0,
         salt_kg: parseFloat(saltKg) || 0,
-        flock_kg: parseFloat(flockKg) || 0,
-        cloth_units: parseFloat(clothUnits) || 0,
+        blob_liters: parseFloat(blobLiters) || 0,
         program_counts: programs.map((p) => ({
           program_id: p.id,
           name: p.name,
           count: parseFloat(programCounts[p.id]) || 0,
         })),
-        chemical_usages: programs.flatMap((p) =>
-          p.chemicals.map((c) => ({
-            chemical_id: c.id,
-            name: c.name,
-            amount: parseFloat(chemAmounts[c.id]) || 0,
-            unit: c.unit,
-          })),
-        ),
+        chemical_usages: uniqueChemicals.map((c) => ({
+          chemical_id: c.id,
+          name: c.name,
+          amount: parseFloat(chemAmounts[c.id]) || 0,
+          unit: c.unit,
+        })),
       };
       const res = await fetch(`/api/weekly-entry/${entry.id}`, {
         method: 'PATCH',
@@ -187,9 +190,8 @@ function EntryRow({
                   {[
                     { label: 'Energie (kWh)', value: energyKw, set: setEnergyKw },
                     { label: 'Water (L)', value: waterLiters, set: setWaterLiters },
-                    { label: 'Zout (kg)', value: saltKg, set: setSaltKg },
-                    { label: 'Flockmiddel (kg)', value: flockKg, set: setFlockKg },
-                    { label: 'Ruitendoekjes (st)', value: clothUnits, set: setClothUnits },
+                    { label: 'Zoutverzachter (kg)', value: saltKg, set: setSaltKg },
+                    { label: 'Blob (liter)', value: blobLiters, set: setBlobLiters },
                   ].map(({ label, value, set }) => (
                     <div key={label} className={styles.fieldGroup}>
                       <label className={styles.fieldLabel}>{label}</label>
@@ -199,25 +201,23 @@ function EntryRow({
                 </div>
               </div>
 
-              {hasChemicals && programs.map((p) =>
-                p.chemicals.length > 0 ? (
-                  <div key={p.id} className={styles.editSection}>
-                    <p className={styles.editSectionTitle}>Chemie — {p.name}</p>
-                    <div className={styles.fieldsRow}>
-                      {p.chemicals.map((c) => (
-                        <div key={c.id} className={styles.fieldGroup}>
-                          <label className={styles.fieldLabel}>{c.name} ({c.unit})</label>
-                          <input
-                            className={styles.input}
-                            type="number"
-                            value={chemAmounts[c.id] ?? ''}
-                            onChange={(e) => setChemAmounts((prev) => ({ ...prev, [c.id]: e.target.value }))}
-                          />
-                        </div>
-                      ))}
-                    </div>
+              {hasChemicals && (
+                <div className={styles.editSection}>
+                  <p className={styles.editSectionTitle}>Chemie — totaal verbruik per product</p>
+                  <div className={styles.fieldsRow}>
+                    {uniqueChemicals.map((c) => (
+                      <div key={c.id} className={styles.fieldGroup}>
+                        <label className={styles.fieldLabel}>{c.name} ({c.unit})</label>
+                        <input
+                          className={styles.input}
+                          type="number"
+                          value={chemAmounts[c.id] ?? ''}
+                          onChange={(e) => setChemAmounts((prev) => ({ ...prev, [c.id]: e.target.value }))}
+                        />
+                      </div>
+                    ))}
                   </div>
-                ) : null,
+                </div>
               )}
 
               {error && <p className={styles.error}>{error}</p>}
@@ -246,9 +246,8 @@ function EntryRow({
                 <div className={styles.detailGrid}>
                   <span className={styles.detailItem}><span className={styles.detailLabel}>Energie</span><span className={styles.detailValue}>{entry.energyKw} kWh</span></span>
                   <span className={styles.detailItem}><span className={styles.detailLabel}>Water</span><span className={styles.detailValue}>{entry.waterLiters} L</span></span>
-                  <span className={styles.detailItem}><span className={styles.detailLabel}>Zout</span><span className={styles.detailValue}>{entry.saltKg} kg</span></span>
-                  <span className={styles.detailItem}><span className={styles.detailLabel}>Flockmiddel</span><span className={styles.detailValue}>{entry.flockKg} kg</span></span>
-                  {(entry.clothUnits ?? 0) > 0 && <span className={styles.detailItem}><span className={styles.detailLabel}>Ruitendoekjes</span><span className={styles.detailValue}>{entry.clothUnits} st</span></span>}
+                  <span className={styles.detailItem}><span className={styles.detailLabel}>Zoutverzachter</span><span className={styles.detailValue}>{entry.saltKg} kg</span></span>
+                  {(entry.blobLiters ?? 0) > 0 && <span className={styles.detailItem}><span className={styles.detailLabel}>Blob</span><span className={styles.detailValue}>{entry.blobLiters} L</span></span>}
                 </div>
               </div>
               {entry.chemicalUsages.length > 0 && (

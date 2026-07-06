@@ -103,6 +103,7 @@ export interface IWeeklyEntry extends Document {
   salt_kg: number;
   flock_kg: number;
   cloth_units: number;
+  blob_liters: number;
   program_counts: { program_id: Types.ObjectId; name: string; count: number }[];
   chemical_usages: { chemical_id: string; name: string; amount: number; unit: string }[];
   total_cost: number;
@@ -118,6 +119,7 @@ const WeeklyEntrySchema = new Schema<IWeeklyEntry>({
   salt_kg: Number,
   flock_kg: Number,
   cloth_units: { type: Number, default: 0 },
+  blob_liters: { type: Number, default: 0 },
   program_counts: [{ program_id: Schema.Types.ObjectId, name: String, count: Number }],
   chemical_usages: [{ chemical_id: String, name: String, amount: Number, unit: String }],
   total_cost: { type: Number, default: 0 },

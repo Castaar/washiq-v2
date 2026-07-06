@@ -17,7 +17,6 @@ import {
   EnergyBill,
   AttendanceLog,
 } from '@/lib/models';
-import { UsageToggle } from '@/components/dashboard/UsageToggle/UsageToggle';
 import { ProgrammaCard } from '@/components/dashboard/ProgrammaCard/ProgrammaCard';
 import type { ProgramOption } from '@/components/dashboard/ProgrammaCard/ProgrammaCard';
 import { ConsumptionCard } from '@/components/dashboard/ConsumptionCard/ConsumptionCard';
@@ -199,35 +198,30 @@ export async function CarwashPage({
   const perCar     = usage === 'wagen' ? '/wagen' : undefined;
 
   // ── Consumption cards ────────────────────────────────────────
-  const saltRaw   = current?.salt_kg      ?? 0;
-  const flockRaw  = current?.flock_kg     ?? 0;
-  const waterRaw  = current?.water_liters ?? 0;
-  const clothRaw  = (current as Record<string, unknown>)?.cloth_units as number ?? 0;
+  const saltRaw  = current?.salt_kg      ?? 0;
+  const waterRaw = current?.water_liters ?? 0;
+  const blobRaw  = (current as Record<string, unknown>)?.blob_liters as number ?? 0;
 
-  const saltPrevRaw   = previous?.salt_kg      ?? 0;
-  const flockPrevRaw  = previous?.flock_kg     ?? 0;
-  const waterPrevRaw  = previous?.water_liters ?? 0;
-  const clothPrevRaw  = (previous as Record<string, unknown>)?.cloth_units as number ?? 0;
+  const saltPrevRaw  = previous?.salt_kg      ?? 0;
+  const waterPrevRaw = previous?.water_liters ?? 0;
+  const blobPrevRaw  = (previous as Record<string, unknown>)?.blob_liters as number ?? 0;
 
-  const saltVal   = getVal(saltRaw,   price?.salt_per_kg      ?? 0);
-  const flockVal  = getVal(flockRaw,  price?.flock_per_kg     ?? 0);
-  const waterVal  = getVal(waterRaw,  price?.water_per_liter  ?? 0);
+  const saltVal  = getVal(saltRaw,  price?.salt_per_kg     ?? 0);
+  const waterVal = getVal(waterRaw, price?.water_per_liter ?? 0);
+  const blobVal  = getVal(blobRaw,  0);
   const curBillAmount  = (energyBillCur?.amount_euro  as number | undefined) ?? 0;
   const prevBillAmount = (energyBillPrev?.amount_euro as number | undefined) ?? 0;
   const energyVal  = wagensCount > 0 && usage === 'wagen' ? Math.round((curBillAmount  / wagensCount)  * 100) / 100 : curBillAmount;
-  const clothVal  = getVal(clothRaw,  price?.cloth_per_unit   ?? 0);
 
-  const saltPrev   = getPrev(saltPrevRaw,   price?.salt_per_kg      ?? 0);
-  const flockPrev  = getPrev(flockPrevRaw,  price?.flock_per_kg     ?? 0);
-  const waterPrev  = getPrev(waterPrevRaw,  price?.water_per_liter  ?? 0);
+  const saltPrev  = getPrev(saltPrevRaw,  price?.salt_per_kg     ?? 0);
+  const waterPrev = getPrev(waterPrevRaw, price?.water_per_liter ?? 0);
+  const blobPrev  = getPrev(blobPrevRaw,  0);
   const energyPrev = wagensPrev > 0 && usage === 'wagen' ? Math.round((prevBillAmount / wagensPrev) * 100) / 100 : prevBillAmount;
-  const clothPrev  = getPrev(clothPrevRaw,  price?.cloth_per_unit   ?? 0);
 
-  const zoutData: ConsumptionData    = { label: 'Zout',           value: saltVal,   delta: calcDelta(saltVal, saltPrev),     prefix: cardPrefix, suffix: view === 'liter' ? 'kg' : undefined,    lowerIsBetter: true };
-  const flocData: ConsumptionData    = { label: 'Flockmiddel',    value: flockVal,  delta: calcDelta(flockVal, flockPrev),   prefix: cardPrefix, suffix: view === 'liter' ? 'kg' : undefined,    lowerIsBetter: true };
-  const clothData: ConsumptionData   = { label: 'Ruitendoekjes',  value: clothVal,  delta: calcDelta(clothVal, clothPrev),   prefix: cardPrefix, suffix: view === 'liter' ? 'st' : undefined,    lowerIsBetter: true };
-  const waterData: ConsumptionData   = { label: 'Water',          value: waterVal,  delta: calcDelta(waterVal, waterPrev),   prefix: cardPrefix, suffix: view === 'liter' ? 'L' : undefined,     lowerIsBetter: true };
-  const energieData: ConsumptionData = { label: 'Energie',        value: energyVal, delta: calcDelta(energyVal, energyPrev), prefix: '€', lowerIsBetter: true };
+  const zoutData: ConsumptionData    = { label: 'Zout',    value: saltVal,  delta: calcDelta(saltVal, saltPrev),   prefix: cardPrefix, suffix: view === 'liter' ? 'kg' : undefined, lowerIsBetter: true };
+  const blobData: ConsumptionData    = { label: 'Blob',    value: blobVal,  delta: calcDelta(blobVal, blobPrev),   prefix: cardPrefix, suffix: view === 'liter' ? 'L'  : undefined, lowerIsBetter: true };
+  const waterData: ConsumptionData   = { label: 'Water',   value: waterVal, delta: calcDelta(waterVal, waterPrev), prefix: cardPrefix, suffix: view === 'liter' ? 'L'  : undefined, lowerIsBetter: true };
+  const energieData: ConsumptionData = { label: 'Energie', value: energyVal, delta: calcDelta(energyVal, energyPrev), prefix: '€', lowerIsBetter: true };
 
   // ── Wagens is already calculated above ───────────────────────
 
@@ -266,6 +260,17 @@ export async function CarwashPage({
   // ── Alerts panel ─────────────────────────────────────────────
   function fmtDate(d: Date) {
     return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}`;
+  }
+
+  function fmtTime(d: Date) {
+    return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+  }
+
+  function fmtDuration(ms: number) {
+    const totalMin = Math.round(ms / 60000);
+    const h = Math.floor(totalMin / 60);
+    const m = totalMin % 60;
+    return h > 0 ? `${h}u${m > 0 ? ` ${m}min` : ''}` : `${m}min`;
   }
 
   // Current tellerstand from the latest weekly entry
@@ -494,8 +499,8 @@ export async function CarwashPage({
 
   const waterCostPerCarCur  = wagensCount > 0 ? calcCost(waterRaw,  price?.water_per_liter ?? 0) / wagensCount : 0;
   const waterCostPerCarPrev = wagensPrev  > 0 ? calcCost(waterPrevRaw, price?.water_per_liter ?? 0) / wagensPrev  : 0;
-  const flockCostPerCarCur  = wagensCount > 0 ? calcCost(flockRaw,  price?.flock_per_kg ?? 0) / wagensCount : 0;
-  const flockCostPerCarPrev = wagensPrev  > 0 ? calcCost(flockPrevRaw, price?.flock_per_kg ?? 0) / wagensPrev  : 0;
+  const flockCostPerCarCur  = 0;
+  const flockCostPerCarPrev = 0;
   const energyPerCarCur     = wagensCount > 0 ? curBillAmount  / wagensCount : 0;
   const energyPerCarPrev    = wagensPrev  > 0 ? prevBillAmount / wagensPrev  : 0;
 
@@ -534,15 +539,43 @@ export async function CarwashPage({
 
   // Check-in / check-out events, used to keep the owner's feed limited to
   // completions, incidents and attendance — not proactive maintenance nagging.
-  const attendanceAlertItems: AlertItem[] = attendanceLogs.map((l) => ({
-    id:       `attendance-${(l._id as Types.ObjectId).toString()}`,
-    siteId:   siteId ?? '',
-    title:    `${l.user_name ?? 'Onbekend'} is ${l.type === 'opening' ? 'aangekomen' : 'vertrokken'}`,
-    subtitle: (l.person_type as string) === 'technician_extern' ? 'Externe technieker' : undefined,
-    date:     fmtDate(new Date(l.timestamp as Date)),
-    severity: 'low' as const,
-    iconName: 'check',
-  }));
+  const attendanceAlertItems: AlertItem[] = attendanceLogs.map((l) => {
+    const ts = new Date(l.timestamp as Date);
+    const isExtern = (l.person_type as string) === 'technician_extern';
+    const isDeparture = l.type === 'sluiting';
+
+    // For departures: find the most recent arrival of same person before this timestamp
+    let workedHours: string | undefined;
+    if (isDeparture) {
+      const arrival = attendanceLogs.find(
+        (a) =>
+          a.type === 'opening' &&
+          (a.user_name as string) === (l.user_name as string) &&
+          new Date(a.timestamp as Date).getTime() < ts.getTime(),
+      );
+      if (arrival) {
+        const ms = ts.getTime() - new Date(arrival.timestamp as Date).getTime();
+        const arrivalTime = fmtTime(new Date(arrival.timestamp as Date));
+        workedHours = `${arrivalTime} → ${fmtTime(ts)} · ${fmtDuration(ms)} gewerkt`;
+      }
+    }
+
+    const subtitleParts = [
+      isExtern ? 'Externe technieker' : undefined,
+      !isDeparture ? fmtTime(ts) : undefined,
+      isDeparture && workedHours ? workedHours : undefined,
+    ].filter(Boolean);
+
+    return {
+      id:       `attendance-${(l._id as Types.ObjectId).toString()}`,
+      siteId:   siteId ?? '',
+      title:    `${l.user_name ?? 'Onbekend'} is ${isDeparture ? 'vertrokken' : 'aangekomen'}`,
+      subtitle: subtitleParts.length > 0 ? subtitleParts.join(' · ') : undefined,
+      date:     `${fmtDate(ts)} ${fmtTime(ts)}`,
+      severity: 'low' as const,
+      iconName: 'check',
+    };
+  });
 
   // Technicians need to see proactive "this is due" maintenance warnings to act on them.
   // The owner only needs to know once something is actually done, an incident happened,
@@ -664,15 +697,13 @@ export async function CarwashPage({
       {/* ── Left column (owner/developer only) ──────────────── */}
       {!isEmployee && (
         <aside className={styles.left}>
-          <Suspense fallback={null}><UsageToggle activeUsage={usage} /></Suspense>
           <ProgrammaCard
             programs={programOptions}
             chemieRows={chemieRows}
           />
           <div className={styles.twoCol}>
             <ConsumptionCard data={zoutData} />
-            <ConsumptionCard data={flocData} />
-            <ConsumptionCard data={clothData} />
+            <ConsumptionCard data={blobData} />
           </div>
         </aside>
       )}

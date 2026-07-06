@@ -30,8 +30,7 @@ export interface LastEntryData {
   waterLiters: number;
   energyKw: number;
   saltKg: number;
-  flockKg: number;
-  clothUnits: number;
+  blobLiters: number;
   programCounts: { programId: string; count: number }[];
   chemicalUsages: { chemicalId: string; programId: string; amount: number }[];
 }
@@ -127,7 +126,7 @@ export function WeeklyEntryForm({ siteId, programs, lastEntry, washesTasks = [] 
     const result: Chemical[] = [];
     for (const p of programs) {
       for (const c of p.chemicals) {
-        if (!seen.has(c.id)) { seen.add(c.id); result.push(c); }
+        if (!seen.has(c.id) && c.name.toLowerCase() !== 'blob') { seen.add(c.id); result.push(c); }
       }
     }
     return result;
@@ -138,8 +137,7 @@ export function WeeklyEntryForm({ siteId, programs, lastEntry, washesTasks = [] 
   );
   const [waterLiters, setWaterLiters] = useState('');
   const [saltKg, setSaltKg] = useState('');
-  const [flockKg, setFlockKg] = useState('');
-  const [clothUnits, setClothUnits] = useState('');
+  const [blobLiters, setBlobLiters] = useState('');
   const [chemicalUsages, setChemicalUsages] = useState<Record<string, string>>(
     () => Object.fromEntries(uniqueChemicals.map((c) => [c.id, ''])),
   );
@@ -190,8 +188,7 @@ export function WeeklyEntryForm({ siteId, programs, lastEntry, washesTasks = [] 
       water_liters: parseFloat(waterLiters) || 0,
       energy_kw: 0,
       salt_kg: parseFloat(saltKg) || 0,
-      flock_kg: parseFloat(flockKg) || 0,
-      cloth_units: parseFloat(clothUnits) || 0,
+      blob_liters: parseFloat(blobLiters) || 0,
       program_counts: programs.map((p) => ({
         program_id: p.id,
         name: p.name,
@@ -306,18 +303,11 @@ export function WeeklyEntryForm({ siteId, programs, lastEntry, washesTasks = [] 
             lastValue={lastEntry?.saltKg ?? null}
           />
           <EntryField
-            label="Flockmiddel (kg)"
-            value={flockKg}
-            onChange={setFlockKg}
-            delta={getDelta(flockKg, lastEntry?.flockKg)}
-            lastValue={lastEntry?.flockKg ?? null}
-          />
-          <EntryField
-            label="Ruitendoekjes (stuks)"
-            value={clothUnits}
-            onChange={setClothUnits}
-            delta={getDelta(clothUnits, lastEntry?.clothUnits)}
-            lastValue={lastEntry?.clothUnits ?? null}
+            label="Blob (liter)"
+            value={blobLiters}
+            onChange={setBlobLiters}
+            delta={getDelta(blobLiters, lastEntry?.blobLiters)}
+            lastValue={lastEntry?.blobLiters ?? null}
           />
         </div>
       </section>

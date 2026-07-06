@@ -10,14 +10,14 @@ const tabs: { id: UsageMode; label: string }[] = [
   { id: 'wagen',  label: 'Wagenverbruik'  },
 ];
 
-export function UsageToggle({ activeUsage = 'totaal' }: { activeUsage?: UsageMode }) {
+export function UsageToggle({ activeUsage = 'wagen' }: { activeUsage?: UsageMode }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
   function handleClick(mode: UsageMode) {
     const params = new URLSearchParams(searchParams.toString());
-    if (mode === 'totaal') {
+    if (mode === 'wagen') {
       params.delete('usage');
     } else {
       params.set('usage', mode);
