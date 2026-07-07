@@ -1,11 +1,13 @@
 import Image from 'next/image';
+import { cookies } from 'next/headers';
 import type { Types } from 'mongoose';
 import { NavBar } from '@/components/layout/NavBar/NavBar';
 import { DagficheForm } from '@/components/forms/DagficheForm/DagficheForm';
 import { dbConnect } from '@/lib/db/mongoose';
-import { Site, WeeklyEntry, MaintenanceTask } from '@/lib/models';
+import { Site, WeeklyEntry, MaintenanceTask, User } from '@/lib/models';
 import { getSession } from '@/lib/session';
 import { computeIsOverdue } from '@/lib/maintenance';
+import { filterSitesForUser, resolveActiveSite } from '@/lib/getUserSites';
 import styles from './page.module.scss';
 
 export default async function DagfichePage({
@@ -18,12 +20,21 @@ export default async function DagfichePage({
 
   await dbConnect();
 
-  const siteDocs = await Site.find({}).select('_id name').lean();
-  const siteIds = siteDocs.map((s) => (s._id as Types.ObjectId).toString());
-  const siteId = (site && siteIds.includes(site)) ? site : (siteIds[0] ?? '');
+  const cookieStore = await cookies();
+  const cookieSite = cookieStore.get('dodane_active_site')?.value;
 
-  const siteDoc = siteDocs.find((s) => (s._id as Types.ObjectId).toString() === siteId);
-  const siteName = (siteDoc?.name as string) ?? 'Carwash';
+  const [siteDocs, userDoc] = await Promise.all([
+    Site.find({}).select('_id name location').lean(),
+    session ? User.findById(session.userId).select('site_ids role').lean() : null,
+  ]);
+
+  const userRole = (userDoc?.role as string) ?? session?.role ?? 'employee';
+  const userSiteIds = ((userDoc?.site_ids as Types.ObjectId[]) ?? []).map((id) => id.toString());
+  const allowedSites = filterSitesForUser(siteDocs as Parameters<typeof filterSitesForUser>[0], userSiteIds, userRole);
+  const siteId = resolveActiveSite(allowedSites, site ?? cookieSite);
+
+  const siteDoc = allowedSites.find((s) => s.id === siteId);
+  const siteName = siteDoc?.name ?? 'Carwash';
 
   const [lastEntry, allTaskDocs] = await Promise.all([
     WeeklyEntry.findOne({ site_id: siteId }).sort({ week_start: -1 }).select('program_counts').lean(),
@@ -50,7 +61,7 @@ export default async function DagfichePage({
       <div className={styles.bg} aria-hidden="true">
         <Image src="/background.png" alt="" fill style={{ objectFit: 'cover' }} priority />
       </div>
-      <NavBar centerTitle="Dagfiche" backHref="/" />
+      <NavBar sites={allowedSites} activeSiteId={siteId} backHref="/" />
       <main className={styles.main}>
         <DagficheForm
           siteId={siteId}

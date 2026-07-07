@@ -140,7 +140,7 @@ function EntryRow({
         <span className={styles.weekLabel}>{formatWeek(entry.weekStart)}</span>
         <div className={styles.entrySummary}>
           <span className={styles.summaryItem}><span className={styles.summaryLabel}>Wagens</span>{totalWagens}</span>
-          <span className={styles.summaryItem}><span className={styles.summaryLabel}>Water</span>{entry.waterLiters} L</span>
+          <span className={styles.summaryItem}><span className={styles.summaryLabel}>Water</span>{entry.waterLiters} m³</span>
           <span className={styles.summaryItem}><span className={styles.summaryLabel}>Energie</span>{entry.energyKw} kWh</span>
           <span className={styles.summaryItem}><span className={styles.summaryLabel}>Zout</span>{entry.saltKg} kg</span>
           {entry.totalCost > 0 && (
@@ -189,7 +189,7 @@ function EntryRow({
                 <div className={styles.fieldsRow}>
                   {[
                     { label: 'Energie (kWh)', value: energyKw, set: setEnergyKw },
-                    { label: 'Water (L)', value: waterLiters, set: setWaterLiters },
+                    { label: 'Water (m³)', value: waterLiters, set: setWaterLiters },
                     { label: 'Zoutverzachter (kg)', value: saltKg, set: setSaltKg },
                     { label: 'Blob (liter)', value: blobLiters, set: setBlobLiters },
                   ].map(({ label, value, set }) => (
@@ -245,7 +245,7 @@ function EntryRow({
                 <p className={styles.detailSectionTitle}>Verbruik</p>
                 <div className={styles.detailGrid}>
                   <span className={styles.detailItem}><span className={styles.detailLabel}>Energie</span><span className={styles.detailValue}>{entry.energyKw} kWh</span></span>
-                  <span className={styles.detailItem}><span className={styles.detailLabel}>Water</span><span className={styles.detailValue}>{entry.waterLiters} L</span></span>
+                  <span className={styles.detailItem}><span className={styles.detailLabel}>Water</span><span className={styles.detailValue}>{entry.waterLiters} m³</span></span>
                   <span className={styles.detailItem}><span className={styles.detailLabel}>Zoutverzachter</span><span className={styles.detailValue}>{entry.saltKg} kg</span></span>
                   {(entry.blobLiters ?? 0) > 0 && <span className={styles.detailItem}><span className={styles.detailLabel}>Blob</span><span className={styles.detailValue}>{entry.blobLiters} L</span></span>}
                 </div>

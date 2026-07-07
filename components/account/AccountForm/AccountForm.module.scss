@@ -185,10 +185,38 @@
   min-width: 120px;
 }
 
+.roleSelect {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: rgba(255,255,255,0.07);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-family: inherit;
+  cursor: pointer;
+
+  &.role_owner      { color: var(--color-accent-teal); }
+  &.role_technician  { color: var(--color-accent-amber); }
+  &.role_developer   { color: #a78bfa; }
+  &.role_employee    { color: var(--color-text-muted); }
+
+  &:focus { outline: none; border-color: var(--color-accent-teal); }
+}
+
 .roleBadge {
   font-size: 0.6875rem;
   font-weight: 600;
-  color: var(--color-accent-amber);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: rgba(255,255,255,0.07);
+  color: var(--color-text-muted);
+  margin-left: var(--space-2);
+
+  &.role_owner     { color: var(--color-accent-teal); }
+  &.role_technician { color: var(--color-accent-amber); }
+  &.role_developer  { color: #a78bfa; }
+  &.role_employee   { color: var(--color-text-muted); }
 }
 
 .revokeBtn {
@@ -557,4 +585,36 @@
   border-color: var(--color-accent-amber) !important;
   color: var(--color-accent-amber) !important;
   background: rgba(245, 158, 11, 0.06) !important;
+}
+
+.copyHint {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  margin: 0 0 var(--space-3);
+}
+
+.copyRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-3);
+}
+
+.copyChecks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+  margin-bottom: var(--space-4);
+}
+
+.copyCheck {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  user-select: none;
+  input { accent-color: var(--color-accent-teal); cursor: pointer; }
 }

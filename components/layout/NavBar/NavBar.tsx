@@ -53,11 +53,11 @@ const VIEW_OPTIONS = [
   { label: 'Eenheid', value: 'liter' },
 ];
 
-export function NavBar({ centerTitle, sites, activeSiteId, activePeriod = 'month', activeView = 'prijs', addHref, addLabel, backHref, settingsHref, activeDate }: NavBarProps) {
+export function NavBar({ centerTitle, sites, activeSiteId, activePeriod, activeView, addHref, addLabel, backHref, settingsHref, activeDate }: NavBarProps) {
   const logoParams = new URLSearchParams();
   if (activeSiteId) logoParams.set('site', activeSiteId);
-  if (activePeriod !== 'month') logoParams.set('period', activePeriod);
-  if (activeView !== 'prijs') logoParams.set('view', activeView);
+  if (activePeriod && activePeriod !== 'month') logoParams.set('period', activePeriod);
+  if (activeView && activeView !== 'prijs') logoParams.set('view', activeView);
   const logoHref = logoParams.toString() ? `/?${logoParams.toString()}` : '/';
 
   return (
@@ -92,16 +92,20 @@ export function NavBar({ centerTitle, sites, activeSiteId, activePeriod = 'month
             ) : (
               <SelectorPill label={carwashMeta.type} value={carwashMeta.location} />
             )}
-            <span className={styles.hideMobile}>
-              <Suspense fallback={<button className={styles.pill} type="button"><span className={styles.pillLabel}>Periode</span><span className={styles.pillDivider} aria-hidden="true" /><span className={styles.pillValue}>Maand</span></button>}>
-                <ParamSelector label="Periode" paramKey="period" options={PERIOD_OPTIONS} activeValue={activePeriod} />
-              </Suspense>
-            </span>
-            <span className={styles.hideMobile}>
-              <Suspense fallback={<button className={styles.pill} type="button"><span className={styles.pillLabel}>Weergave</span><span className={styles.pillDivider} aria-hidden="true" /><span className={styles.pillValue}>Prijs</span></button>}>
-                <ParamSelector label="Weergave" paramKey="view" options={VIEW_OPTIONS} activeValue={activeView} />
-              </Suspense>
-            </span>
+            {activePeriod && (
+              <span className={styles.hideMobile}>
+                <Suspense fallback={<button className={styles.pill} type="button"><span className={styles.pillLabel}>Periode</span><span className={styles.pillDivider} aria-hidden="true" /><span className={styles.pillValue}>Maand</span></button>}>
+                  <ParamSelector label="Periode" paramKey="period" options={PERIOD_OPTIONS} activeValue={activePeriod} />
+                </Suspense>
+              </span>
+            )}
+            {activeView && (
+              <span className={styles.hideMobile}>
+                <Suspense fallback={<button className={styles.pill} type="button"><span className={styles.pillLabel}>Weergave</span><span className={styles.pillDivider} aria-hidden="true" /><span className={styles.pillValue}>Prijs</span></button>}>
+                  <ParamSelector label="Weergave" paramKey="view" options={VIEW_OPTIONS} activeValue={activeView} />
+                </Suspense>
+              </span>
+            )}
             {activeDate && (
               <span className={styles.hideMobile}>
                 <Suspense fallback={null}>

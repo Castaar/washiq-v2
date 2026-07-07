@@ -16,6 +16,12 @@ export interface Shift {
 export interface PlanningEmployee {
   id: string;
   name: string;
+  siteIds?: string[];
+}
+
+export interface AllowedSite {
+  id: string;
+  name: string;
 }
 
 interface PlanningPanelProps {
@@ -25,6 +31,7 @@ interface PlanningPanelProps {
   shifts: Shift[];
   employees: PlanningEmployee[];
   weekStart: string;
+  allowedSites?: AllowedSite[];
 }
 
 const DAY_NAMES = ['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za', 'Zo'];
@@ -70,12 +77,14 @@ function weekendsInWindow(shifts: Shift[], userId: string, windowWeeks: number, 
   return days.size;
 }
 
-export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initialShifts, employees, weekStart: initialWeekStart }: PlanningPanelProps) {
+export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initialShifts, employees, weekStart: initialWeekStart, allowedSites = [] }: PlanningPanelProps) {
   const [shifts, setShifts] = useState<Shift[]>(initialShifts);
   const [weekStart, setWeekStart] = useState(getMondayOf(initialWeekStart));
 
   // New shift form
-  const [newUserId, setNewUserId] = useState(employees[0]?.id ?? '');
+  const [newSiteId, setNewSiteId] = useState(siteId);
+  const siteEmployees = employees.filter((e) => !e.siteIds || e.siteIds.includes(newSiteId));
+  const [newUserId, setNewUserId] = useState(employees.find((e) => !e.siteIds || e.siteIds.includes(siteId))?.id ?? employees[0]?.id ?? '');
   const [newDate, setNewDate] = useState(initialWeekStart);
   const [newStart, setNewStart] = useState('08:00');
   const [newEnd, setNewEnd] = useState('17:00');
@@ -105,7 +114,7 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        siteId,
+        siteId: newSiteId,
         userId: newUserId,
         userName: emp?.name ?? '',
         date: newDate,
@@ -243,6 +252,25 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
       <form className={styles.addForm} onSubmit={handleAddShift} noValidate>
         <h3 className={styles.formTitle}>Shift toevoegen</h3>
         <div className={styles.formFields}>
+          {allowedSites.length > 1 && (
+            <div className={styles.formField}>
+              <label className={styles.label}>Carwash</label>
+              <select
+                className={styles.select}
+                value={newSiteId}
+                onChange={(e) => {
+                  const sid = e.target.value;
+                  setNewSiteId(sid);
+                  const first = employees.find((em) => !em.siteIds || em.siteIds.includes(sid));
+                  setNewUserId(first?.id ?? '');
+                }}
+              >
+                {allowedSites.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
           <div className={styles.formField}>
             <label className={styles.label}>Medewerker</label>
             <select
@@ -250,7 +278,7 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
               value={newUserId}
               onChange={(e) => setNewUserId(e.target.value)}
             >
-              {employees.map((em) => (
+              {siteEmployees.map((em) => (
                 <option key={em.id} value={em.id}>{em.name}</option>
               ))}
             </select>

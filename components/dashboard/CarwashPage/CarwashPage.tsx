@@ -25,6 +25,8 @@ import { RankingWidget } from '@/components/dashboard/RankingWidget/RankingWidge
 import { CarwashHero } from '@/components/dashboard/CarwashHero/CarwashHero';
 import { AlertsPanel } from '@/components/dashboard/AlertsPanel/AlertsPanel';
 import { VoorraadPanel } from '@/components/dashboard/VoorraadPanel/VoorraadPanel';
+import { LogboekPanel } from '@/components/logboek/LogboekPanel/LogboekPanel';
+import type { LogEntry } from '@/components/logboek/LogboekPanel/LogboekPanel';
 import { ParamSelector } from '@/components/layout/NavBar/ParamSelector';
 import { DatePicker } from '@/components/layout/NavBar/DatePicker';
 import { SiteSelector } from '@/components/layout/NavBar/SiteSelector';
@@ -51,6 +53,8 @@ export async function CarwashPage({
   addHref,
   addLabel,
   userRole = 'employee',
+  recentLogs = [],
+  userName = '',
 }: {
   siteId?: string;
   period?: 'week' | 'month';
@@ -61,6 +65,8 @@ export async function CarwashPage({
   addHref?: string;
   addLabel?: string;
   userRole?: string;
+  recentLogs?: LogEntry[];
+  userName?: string;
 }) {
   await dbConnect();
 
@@ -220,7 +226,7 @@ export async function CarwashPage({
 
   const zoutData: ConsumptionData    = { label: 'Zout',    value: saltVal,  delta: calcDelta(saltVal, saltPrev),   prefix: cardPrefix, suffix: view === 'liter' ? 'kg' : undefined, lowerIsBetter: true };
   const blobData: ConsumptionData    = { label: 'Blob',    value: blobVal,  delta: calcDelta(blobVal, blobPrev),   prefix: cardPrefix, suffix: view === 'liter' ? 'L'  : undefined, lowerIsBetter: true };
-  const waterData: ConsumptionData   = { label: 'Water',   value: waterVal, delta: calcDelta(waterVal, waterPrev), prefix: cardPrefix, suffix: view === 'liter' ? 'L'  : undefined, lowerIsBetter: true };
+  const waterData: ConsumptionData   = { label: 'Water',   value: waterVal, delta: calcDelta(waterVal, waterPrev), prefix: cardPrefix, suffix: view === 'liter' ? 'm³' : undefined, lowerIsBetter: true };
   const energieData: ConsumptionData = { label: 'Energie', value: energyVal, delta: calcDelta(energyVal, energyPrev), prefix: '€', lowerIsBetter: true };
 
   // ── Wagens is already calculated above ───────────────────────
@@ -690,8 +696,19 @@ export async function CarwashPage({
 
       {/* ── Right column ────────────────────────────────────── */}
       <aside className={styles.right}>
-        <AlertsPanel data={alertsPanelData} />
-        {!isEmployee && <VoorraadPanel items={voorraad} />}
+        {isEmployee ? (
+          <LogboekPanel
+            siteId={siteId ?? ''}
+            userRole={userRole}
+            userName={userName}
+            recentLogs={recentLogs}
+          />
+        ) : (
+          <>
+            <AlertsPanel data={alertsPanelData} />
+            <VoorraadPanel items={voorraad} />
+          </>
+        )}
       </aside>
 
       {/* ── Left column (owner/developer only) ──────────────── */}

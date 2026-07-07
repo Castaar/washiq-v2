@@ -58,17 +58,15 @@ export async function proxy(req: NextRequest) {
     // /logboek, /opdrachten, /planning are accessible for employees
   }
 
-  // Technicians can access dagfiche, incidenten, logboek, opdrachten, planning, historiek
-  // but not developer, setup, or instellingen
+  // Technicians: only /technieker and /account (+ API routes)
   if (session.role === 'technician') {
-    if (pathname.startsWith('/setup') || pathname.startsWith('/instellingen')) {
+    const allowed =
+      pathname.startsWith('/technieker') ||
+      pathname.startsWith('/account') ||
+      pathname.startsWith('/api/');
+    if (!allowed) {
       const url = req.nextUrl.clone();
-      url.pathname = '/dagfiche';
-      return NextResponse.redirect(url);
-    }
-    if (pathname.startsWith('/developer')) {
-      const url = req.nextUrl.clone();
-      url.pathname = '/';
+      url.pathname = '/technieker';
       return NextResponse.redirect(url);
     }
   }

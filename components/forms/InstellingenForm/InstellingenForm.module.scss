@@ -622,3 +622,77 @@
 
   &:hover { background: rgba(255, 255, 255, 0.05); color: var(--color-text-primary); }
 }
+
+// ─── Copy config ─────────────────────────────────────────────
+.copyBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.copyRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.copyLabel {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+}
+
+.copySelect {
+  height: 36px;
+  padding: 0 var(--space-3);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  font-size: 0.875rem;
+  font-family: inherit;
+  cursor: pointer;
+  &:focus { outline: none; border-color: var(--color-accent-teal); }
+}
+
+.copyChecks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-6);
+}
+
+.copyCheck {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  user-select: none;
+  input { accent-color: var(--color-accent-teal); cursor: pointer; }
+}
+
+.copyWarn {
+  font-size: 0.75rem;
+  color: var(--color-accent-amber);
+}
+
+.copyFooter {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.copyResult {
+  font-size: 0.875rem;
+  color: var(--color-accent-teal);
+  margin: 0;
+}
+
+.copyArrow {
+  font-size: 1rem;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}

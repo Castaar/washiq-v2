@@ -38,11 +38,52 @@ export interface AccountFormProps {
   maintenanceTasks: MaintenanceTaskItem[];
   currentTotalWashes: number;
   energyBills: EnergyBillItem[];
+  allowedSites?: { id: string; name: string }[];
 }
 
 // ── Main component ────────────────────────────────────────────
-export function AccountForm({ users: initialUsers, siteId, currentUser, role, maintenanceTasks: initialTasks, currentTotalWashes, energyBills: initialBills }: AccountFormProps) {
-  const isEmployee = role === 'employee';
+export function AccountForm({ users: initialUsers, siteId, currentUser, role, maintenanceTasks: initialTasks, currentTotalWashes, energyBills: initialBills, allowedSites = [] }: AccountFormProps) {
+  const isEmployee = role === 'employee' || role === 'technician';
+
+  // ── Copy config state ─────────────────────────────────────
+  const canCopy = (role === 'owner' || role === 'developer') && allowedSites.length >= 2;
+  const [copySourceId, setCopySourceId] = useState(allowedSites[0]?.id ?? '');
+  const [copyTargetId, setCopyTargetId] = useState(allowedSites[1]?.id ?? '');
+  const [copyPrograms, setCopyPrograms] = useState(true);
+  const [copyProducts, setCopyProducts] = useState(true);
+  const [copyMaintenance, setCopyMaintenance] = useState(true);
+  const [copyPrices, setCopyPrices] = useState(false);
+  const [copying, setCopying] = useState(false);
+  const [copyResult, setCopyResult] = useState<string | null>(null);
+
+  async function handleCopyConfig() {
+    if (!copySourceId || !copyTargetId || copySourceId === copyTargetId) return;
+    setCopying(true);
+    setCopyResult(null);
+    try {
+      const res = await fetch(`/api/sites/${copySourceId}/copy-config`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetSiteId: copyTargetId, copyPrograms, copyProducts, copyMaintenance, copyPrices }),
+      });
+      const data = await res.json() as { ok?: boolean; results?: { programs: number; products: number; maintenance: number; prices: number }; error?: string };
+      if (res.ok && data.results) {
+        const r = data.results;
+        const parts = [];
+        if (r.programs) parts.push(`${r.programs} programma's`);
+        if (r.products) parts.push(`${r.products} producten`);
+        if (r.maintenance) parts.push(`${r.maintenance} onderhoudstaken`);
+        if (r.prices) parts.push('prijsconfiguratie');
+        setCopyResult(parts.length ? `Gekopieerd: ${parts.join(', ')}.` : 'Niets te kopiëren — alles bestaat al.');
+      } else {
+        setCopyResult(data.error ?? 'Fout bij kopiëren.');
+      }
+    } catch {
+      setCopyResult('Netwerkfout.');
+    } finally {
+      setCopying(false);
+    }
+  }
 
   // Accountgegevens
   const [email, setEmail] = useState(currentUser?.email ?? '');
@@ -138,6 +179,17 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
       body: JSON.stringify({ removeSiteId: siteId }),
     });
     setUsers((prev) => prev.filter((u) => u.id !== userId));
+  }
+
+  async function handleChangeRole(userId: string, newUserRole: string) {
+    const res = await fetch(`/api/users/${userId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role: newUserRole }),
+    });
+    if (res.ok) {
+      setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, role: newUserRole } : u));
+    }
   }
 
   async function handleAddUser(e: React.MouseEvent) {
@@ -458,12 +510,30 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
             const canRevoke =
               u.id !== currentUser?.id &&
               (role === 'developer' || u.role === 'employee' || u.role === 'technician');
+            const canChangeRole =
+              u.id !== currentUser?.id &&
+              (role === 'developer' || ((role === 'owner') && (u.role === 'employee' || u.role === 'technician')));
+            const roleLabel = u.role === 'owner' ? 'Eigenaar'
+              : u.role === 'technician' ? 'Technieker'
+              : u.role === 'developer' ? 'Developer'
+              : 'Medewerker';
             return (
               <div key={u.id} className={styles.userRow}>
-                <span className={styles.userName}>
-                  {u.name}
-                  {u.role === 'technician' && <span className={styles.roleBadge}> Technieker</span>}
-                </span>
+                <span className={styles.userName}>{u.name}</span>
+                {canChangeRole ? (
+                  <select
+                    className={`${styles.roleSelect} ${styles[`role_${u.role}`]}`}
+                    value={u.role}
+                    onChange={(e) => handleChangeRole(u.id, e.target.value)}
+                  >
+                    <option value="employee">Medewerker</option>
+                    <option value="technician">Technieker</option>
+                    {role === 'developer' && <option value="owner">Eigenaar</option>}
+                    {role === 'developer' && <option value="developer">Developer</option>}
+                  </select>
+                ) : (
+                  <span className={`${styles.roleBadge} ${styles[`role_${u.role}`]}`}>{roleLabel}</span>
+                )}
                 {canRevoke && (
                   <button
                     type="button"
@@ -599,6 +669,54 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
                 </div>
               );
             })}
+          </div>
+        </section>
+      )}
+
+      {/* ── Configuratie overnemen ──────────────────────────── */}
+      {canCopy && (
+        <section className={styles.section}>
+          <h2 className={styles.sectionLabel}>Configuratie overnemen</h2>
+          <p className={styles.copyHint}>
+            Kopieer programma&apos;s, producten, onderhoudstaken of prijzen van een carwash naar een andere.
+            Bestaande items worden niet overschreven (behalve prijzen).
+          </p>
+          <div className={styles.copyRow}>
+            <select className={styles.roleSelect} value={copySourceId} onChange={(e) => setCopySourceId(e.target.value)}>
+              {allowedSites.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+            <span style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>→</span>
+            <select className={styles.roleSelect} value={copyTargetId} onChange={(e) => setCopyTargetId(e.target.value)}>
+              {allowedSites.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+            {copySourceId === copyTargetId && (
+              <span style={{ fontSize: '0.75rem', color: 'var(--color-accent-amber)' }}>Van en naar moeten verschillen</span>
+            )}
+          </div>
+          <div className={styles.copyChecks}>
+            {([
+              { label: "Wasprogramma's", checked: copyPrograms, set: setCopyPrograms },
+              { label: 'Chemische producten', checked: copyProducts, set: setCopyProducts },
+              { label: 'Onderhoudstaken', checked: copyMaintenance, set: setCopyMaintenance },
+              { label: 'Prijsconfiguratie', checked: copyPrices, set: setCopyPrices, warn: true },
+            ] as { label: string; checked: boolean; set: (v: boolean) => void; warn?: boolean }[]).map(({ label, checked, set, warn }) => (
+              <label key={label} className={styles.copyCheck}>
+                <input type="checkbox" checked={checked} onChange={(e) => set(e.target.checked)} />
+                {label}
+                {warn && <span style={{ fontSize: '0.7rem', color: 'var(--color-accent-amber)', marginLeft: 4 }}>(overschrijft)</span>}
+              </label>
+            ))}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 4 }}>
+            <button
+              type="button"
+              className={styles.saveBtn}
+              onClick={handleCopyConfig}
+              disabled={copying || copySourceId === copyTargetId}
+            >
+              {copying ? 'Bezig...' : 'Configuratie kopiëren'}
+            </button>
+            {copyResult && <span style={{ fontSize: '0.875rem', color: 'var(--color-accent-teal)' }}>{copyResult}</span>}
           </div>
         </section>
       )}

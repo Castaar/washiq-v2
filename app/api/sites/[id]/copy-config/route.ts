@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
-import { WashProgram, ChemicalStock, MaintenanceTask } from '@/lib/models';
+import { WashProgram, ChemicalStock, MaintenanceTask, PriceConfig, User } from '@/lib/models';
 import { getSessionFromRequest } from '@/lib/session';
+import type { Types } from 'mongoose';
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getSessionFromRequest(req);
-  if (!session || session.role !== 'developer') {
+  if (!session || (session.role !== 'developer' && session.role !== 'owner')) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -19,15 +20,25 @@ export async function POST(
     copyPrograms?: boolean;
     copyProducts?: boolean;
     copyMaintenance?: boolean;
+    copyPrices?: boolean;
   };
 
-  const { targetSiteId, copyPrograms = true, copyProducts = true, copyMaintenance = true } = body;
+  const { targetSiteId, copyPrograms = true, copyProducts = true, copyMaintenance = true, copyPrices = false } = body;
+
+  // Owners may only copy between their own sites
+  if (session.role === 'owner') {
+    const userDoc = await User.findById(session.userId).select('site_ids').lean();
+    const ownedSiteIds = ((userDoc?.site_ids as Types.ObjectId[]) ?? []).map((id) => id.toString());
+    if (!ownedSiteIds.includes(sourceSiteId) || !ownedSiteIds.includes(targetSiteId)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+  }
 
   if (!targetSiteId) {
     return NextResponse.json({ error: 'targetSiteId is required' }, { status: 400 });
   }
 
-  const results = { programs: 0, products: 0, maintenance: 0 };
+  const results = { programs: 0, products: 0, maintenance: 0, prices: 0 };
 
   if (copyProducts) {
     const sourceProducts = await ChemicalStock.find({ site_id: sourceSiteId }).lean();
@@ -91,6 +102,24 @@ export async function POST(
         })),
       );
       results.maintenance = toCreate.length;
+    }
+  }
+
+  if (copyPrices) {
+    const sourcePrice = await PriceConfig.findOne({ site_id: sourceSiteId }).sort({ valid_from: -1 }).lean();
+    if (sourcePrice) {
+      await PriceConfig.deleteMany({ site_id: targetSiteId });
+      await PriceConfig.create({
+        site_id: targetSiteId,
+        valid_from: new Date(),
+        water_per_liter: sourcePrice.water_per_liter ?? 0,
+        salt_per_kg: sourcePrice.salt_per_kg ?? 0,
+        flock_per_kg: sourcePrice.flock_per_kg ?? 0,
+        cloth_per_unit: sourcePrice.cloth_per_unit ?? 0,
+        energy_per_kw: (sourcePrice as Record<string, unknown>).energy_per_kw ?? 0,
+        chemicals: (sourcePrice.chemicals ?? []) as { name: string; price_per_unit: number }[],
+      });
+      results.prices = 1;
     }
   }
 

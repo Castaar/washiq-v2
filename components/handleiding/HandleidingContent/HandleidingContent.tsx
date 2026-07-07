@@ -53,6 +53,8 @@ export function HandleidingContent({ role, siteParam, fromLogin }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState<Record<string, boolean>>({ dashboard: true });
   const [navigating, setNavigating] = useState(false);
+  const [dontShow, setDontShow] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   async function handleContinue() {
     setNavigating(true);
@@ -60,6 +62,14 @@ export function HandleidingContent({ role, siteParam, fromLogin }: Props) {
     const dest = siteParam ? `/?site=${siteParam}` : '/';
     router.push(dest);
     router.refresh();
+  }
+
+  async function handleDontShowChange(checked: boolean) {
+    setDontShow(checked);
+    if (checked) {
+      await fetch('/api/handleiding', { method: 'POST' });
+      setSaved(true);
+    }
   }
 
   function toggle(id: string) {
@@ -350,6 +360,17 @@ export function HandleidingContent({ role, siteParam, fromLogin }: Props) {
       ))}
 
       <div className={styles.footerActions}>
+        <label className={styles.dontShowLabel}>
+          <input
+            type="checkbox"
+            className={styles.dontShowCheck}
+            checked={dontShow}
+            onChange={(e) => handleDontShowChange(e.target.checked)}
+          />
+          Niet meer tonen na inloggen
+          {saved && <span className={styles.savedHint}>✓ Opgeslagen</span>}
+        </label>
+
         {fromLogin ? (
           <button
             className={styles.continueBtn}

@@ -95,7 +95,7 @@ export default async function TechniekerPage() {
       <div className={styles.bg} aria-hidden="true">
         <Image src="/background.png" alt="" fill style={{ objectFit: 'cover' }} priority />
       </div>
-      <NavBar centerTitle="Technieker" backHref="/" />
+      <NavBar centerTitle="Technieker" />
       <main className={styles.main}>
         <div className={styles.content}>
           <TechniekerPanel items={items} />

@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import { cookies } from 'next/headers';
 import { NavBar } from '@/components/layout/NavBar/NavBar';
 import { HistoryList } from '@/components/forms/HistoryList/HistoryList';
 import type { HistoryEntry, HistoryProgram } from '@/components/forms/HistoryList/HistoryList';
@@ -8,6 +9,7 @@ import { dbConnect } from '@/lib/db/mongoose';
 import { Site, WashProgram, WeeklyEntry, ChemicalStock, User } from '@/lib/models';
 import { getSession } from '@/lib/session';
 import type { Types } from 'mongoose';
+import { filterSitesForUser, resolveActiveSite } from '@/lib/getUserSites';
 import styles from './page.module.scss';
 
 export default async function HistoriekPage({
@@ -19,21 +21,20 @@ export default async function HistoriekPage({
   await dbConnect();
 
   const session = await getSession();
+
+  const cookieStore = await cookies();
+  const cookieSite = cookieStore.get('dodane_active_site')?.value;
+
   const [siteDocs, userDoc] = await Promise.all([
-    Site.find({}).select('_id name').lean(),
+    Site.find({}).select('_id name location').lean(),
     session ? User.findById(session.userId).select('site_ids role').lean() : null,
   ]);
 
   const userRole = (userDoc?.role as string) ?? session?.role ?? 'employee';
   const userSiteIds = ((userDoc?.site_ids as Types.ObjectId[]) ?? []).map((id) => id.toString());
-  const allowedSiteDocs = userRole === 'developer'
-    ? siteDocs
-    : siteDocs.filter((s) => userSiteIds.includes((s._id as Types.ObjectId).toString()));
-
-  const siteId = (site && allowedSiteDocs.find((s) => (s._id as Types.ObjectId).toString() === site))
-    ? site
-    : ((allowedSiteDocs[0]?._id as Types.ObjectId)?.toString() ?? null);
-  const siteName = allowedSiteDocs.find((s) => (s._id as Types.ObjectId).toString() === siteId)?.name as string ?? '';
+  const allowedSites = filterSitesForUser(siteDocs as Parameters<typeof filterSitesForUser>[0], userSiteIds, userRole);
+  const siteId = resolveActiveSite(allowedSites, site ?? cookieSite) || null;
+  const siteName = allowedSites.find((s) => s.id === siteId)?.name ?? '';
   const filter = siteId ? { site_id: siteId } : {};
 
   const [programDocs, entryDocs, stockDocs] = await Promise.all([
@@ -112,7 +113,7 @@ export default async function HistoriekPage({
       <div className={styles.bg} aria-hidden="true">
         <Image src="/background.png" alt="" fill style={{ objectFit: 'cover' }} priority />
       </div>
-      <NavBar centerTitle="Historiek" backHref={backHref} />
+      <NavBar sites={allowedSites} activeSiteId={siteId ?? ''} backHref={backHref} />
       <main className={styles.main}>
 
         {/* ── Verbruiksgrafieken ──────────────────────────────── */}

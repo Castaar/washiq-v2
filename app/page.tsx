@@ -2,7 +2,7 @@ import Image from 'next/image';
 import type { Types } from 'mongoose';
 import { redirect } from 'next/navigation';
 import { dbConnect } from '@/lib/db/mongoose';
-import { Site, User, Announcement, PriceConfig } from '@/lib/models';
+import { Site, User, Announcement, PriceConfig, AttendanceLog } from '@/lib/models';
 import { NavBar } from '@/components/layout/NavBar/NavBar';
 import { CarwashPage } from '@/components/dashboard/CarwashPage/CarwashPage';
 import { AnnouncementBanner } from '@/components/dashboard/AnnouncementBanner/AnnouncementBanner';
@@ -72,6 +72,27 @@ export default async function DashboardPage({
     ? (activeSiteId ? `/instellingen?site=${activeSiteId}` : '/instellingen')
     : undefined;
 
+  // Fetch recent attendance logs for employees (shown on dashboard instead of alerts panel)
+  let recentLogs: { id: string; userName: string; type: 'opening' | 'sluiting'; personType: 'employee' | 'technician_extern'; registeredByName: string; timestamp: string; note: string }[] = [];
+  if ((userRole === 'employee') && activeSiteId && session?.userId) {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const logDocs = await AttendanceLog.find({
+      site_id: activeSiteId,
+      user_id: session.userId,
+      timestamp: { $gte: thirtyDaysAgo },
+    }).sort({ timestamp: -1 }).limit(100).lean();
+    recentLogs = logDocs.map((l) => ({
+      id: (l._id as Types.ObjectId).toString(),
+      userName: (l.user_name as string) ?? '',
+      type: l.type as 'opening' | 'sluiting',
+      personType: ((l.person_type as string) ?? 'employee') as 'employee' | 'technician_extern',
+      registeredByName: (l.registered_by_name as string) ?? '',
+      timestamp: (l.timestamp as Date).toISOString(),
+      note: (l.note as string) ?? '',
+    }));
+  }
+
   // Fetch announcements visible for this site
   const announcementDocs = await Announcement.find({
     $or: [{ is_all_sites: true }, { site_ids: activeSiteId }],
@@ -105,7 +126,7 @@ export default async function DashboardPage({
           />
         </div>
       ) : null}
-      <CarwashPage siteId={activeSiteId} period={period} view={view} usage={usage} refDate={refDate} sites={sites} addHref={addHref} addLabel={addLabel} userRole={userRole} />
+      <CarwashPage siteId={activeSiteId} period={period} view={view} usage={usage} refDate={refDate} sites={sites} addHref={addHref} addLabel={addLabel} userRole={userRole} recentLogs={recentLogs} userName={session?.name ?? ''} />
     </div>
   );
 }

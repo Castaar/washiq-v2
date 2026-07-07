@@ -1,11 +1,13 @@
 import Image from 'next/image';
+import { cookies } from 'next/headers';
 import type { Types } from 'mongoose';
 import { NavBar } from '@/components/layout/NavBar/NavBar';
 import { IncidentenPanel } from '@/components/incidenten/IncidentenPanel/IncidentenPanel';
 import type { IncidentListItem } from '@/components/incidenten/IncidentenPanel/IncidentenPanel';
 import { dbConnect } from '@/lib/db/mongoose';
-import { Site, IncidentSchade, IncidentEhbo, Defect, WeeklyEntry } from '@/lib/models';
+import { Site, IncidentSchade, IncidentEhbo, Defect, WeeklyEntry, User } from '@/lib/models';
 import { getSession } from '@/lib/session';
+import { filterSitesForUser, resolveActiveSite } from '@/lib/getUserSites';
 import styles from './page.module.scss';
 
 function fmtDate(d: Date) {
@@ -22,10 +24,18 @@ export default async function IncidentenPage({
 
   await dbConnect();
 
-  const siteDocs = await Site.find({}).select('_id name').lean();
-  const siteIds = siteDocs.map((s) => (s._id as Types.ObjectId).toString());
-  const siteId = (site && siteIds.includes(site)) ? site : (siteIds[0] ?? '');
-  const siteName = siteDocs.find((s) => (s._id as Types.ObjectId).toString() === siteId)?.name as string ?? '';
+  const cookieStore = await cookies();
+  const cookieSite = cookieStore.get('dodane_active_site')?.value;
+
+  const [siteDocs, userDoc] = await Promise.all([
+    Site.find({}).select('_id name location').lean(),
+    session ? User.findById(session.userId).select('site_ids role').lean() : null,
+  ]);
+
+  const userRole = (userDoc?.role as string) ?? session?.role ?? 'employee';
+  const userSiteIds = ((userDoc?.site_ids as Types.ObjectId[]) ?? []).map((id) => id.toString());
+  const allowedSites = filterSitesForUser(siteDocs as Parameters<typeof filterSitesForUser>[0], userSiteIds, userRole);
+  const siteId = resolveActiveSite(allowedSites, site ?? cookieSite);
 
   const [schades, ehbos, defects, totalSchade, allSchades, latestEntry] = await Promise.all([
     IncidentSchade.find({ site_id: siteId }).sort({ created_at: -1 }).limit(15).lean(),
@@ -91,7 +101,7 @@ export default async function IncidentenPage({
       <div className={styles.bg} aria-hidden="true">
         <Image src="/background.png" alt="" fill style={{ objectFit: 'cover' }} priority />
       </div>
-      <NavBar centerTitle={`Incidenten — ${siteName}`} backHref="/" addHref={addHref} addLabel={addLabel} />
+      <NavBar sites={allowedSites} activeSiteId={siteId} backHref="/" addHref={addHref} addLabel={addLabel} />
       <main className={styles.main}>
         <IncidentenPanel
           siteId={siteId}

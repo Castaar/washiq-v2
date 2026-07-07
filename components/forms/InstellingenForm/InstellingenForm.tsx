@@ -63,6 +63,7 @@ interface InstellingenFormProps {
   maintenanceTasks: MaintenanceTaskItem[];
   currentTotalWashes: number;
   programs: WashProgramItem[];
+  allowedSites?: { id: string; name: string }[];
 }
 
 const MONTHS = [
@@ -132,7 +133,7 @@ function PriceField({
 
 // ─── Main component ───────────────────────────────────────────
 
-export function InstellingenForm({ siteId, siteName, priceConfig, stocks, energyBills, startCarCount, maintenanceTasks: initialTasks, currentTotalWashes, programs: initialPrograms }: InstellingenFormProps) {
+export function InstellingenForm({ siteId, siteName, priceConfig, stocks, energyBills, startCarCount, maintenanceTasks: initialTasks, currentTotalWashes, programs: initialPrograms, allowedSites = [] }: InstellingenFormProps) {
   const isFirstTime = !priceConfig;
 
   // ── Wasprogramma's state ──────────────────────────────────
@@ -973,6 +974,7 @@ export function InstellingenForm({ siteId, siteName, priceConfig, stocks, energy
           </button>
         )}
       </div>
+
     </div>
   );
 }

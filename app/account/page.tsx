@@ -39,7 +39,9 @@ export default async function AccountPage({
     ? site
     : (sites[0]?.id ?? '');
 
-  const addHref = sessionRole === 'employee' ? '/dagfiche' : '/wekelijkse-ingave';
+  const addHref = sessionRole === 'employee' ? '/dagfiche'
+    : sessionRole === 'technician' ? '/technieker'
+    : '/wekelijkse-ingave';
 
   const [userDocs, currentUserDoc, taskDocs, weeklyEntries, energyBillDocs] = await Promise.all([
     User.find({ site_ids: siteId }).select('_id name email role').lean(),
@@ -94,7 +96,14 @@ export default async function AccountPage({
       <div className={styles.bg} aria-hidden="true">
         <Image src="/background.png" alt="" fill style={{ objectFit: 'cover' }} priority />
       </div>
-      <NavBar centerTitle={sites.find((s) => s.id === siteId)?.name ? `Account — ${sites.find((s) => s.id === siteId)!.name}` : 'Account'} sites={sites} activeSiteId={siteId} backHref="/" addHref={addHref} addLabel={addHref === '/dagfiche' ? 'Dagfiche' : 'Maandelijkse Ingave'} />
+      <NavBar
+        centerTitle={sites.find((s) => s.id === siteId)?.name ? `Account — ${sites.find((s) => s.id === siteId)!.name}` : 'Account'}
+        sites={sessionRole !== 'technician' ? sites : undefined}
+        activeSiteId={siteId}
+        backHref={sessionRole === 'technician' ? '/technieker' : '/'}
+        addHref={addHref}
+        addLabel={sessionRole === 'employee' ? 'Dagfiche' : sessionRole === 'technician' ? 'Technieker' : 'Maandelijkse Ingave'}
+      />
       <main className={styles.main}>
         <AccountForm
           users={users}
@@ -104,6 +113,7 @@ export default async function AccountPage({
           maintenanceTasks={maintenanceTasks}
           currentTotalWashes={currentTotalWashes}
           energyBills={energyBills}
+          allowedSites={sites.map((s) => ({ id: s.id, name: s.name }))}
         />
       </main>
     </div>

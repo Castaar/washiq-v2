@@ -136,6 +136,7 @@ export function WeeklyEntryForm({ siteId, programs, lastEntry, washesTasks = [] 
     () => Object.fromEntries(programs.map((p) => [p.id, ''])),
   );
   const [waterLiters, setWaterLiters] = useState('');
+  const [energyKw, setEnergyKw] = useState('');
   const [saltKg, setSaltKg] = useState('');
   const [blobLiters, setBlobLiters] = useState('');
   const [chemicalUsages, setChemicalUsages] = useState<Record<string, string>>(
@@ -186,7 +187,7 @@ export function WeeklyEntryForm({ siteId, programs, lastEntry, washesTasks = [] 
       week_start: monday.toISOString(),
       tellerstand: computedTellerstand,
       water_liters: parseFloat(waterLiters) || 0,
-      energy_kw: 0,
+      energy_kw: parseFloat(energyKw) || 0,
       salt_kg: parseFloat(saltKg) || 0,
       blob_liters: parseFloat(blobLiters) || 0,
       program_counts: programs.map((p) => ({
@@ -289,11 +290,18 @@ export function WeeklyEntryForm({ siteId, programs, lastEntry, washesTasks = [] 
         <SectionTitle>Verbruik — geldt voor alle programma&apos;s</SectionTitle>
         <div className={styles.fieldsRow}>
           <EntryField
-            label="Water (liter)"
+            label="Water (m³)"
             value={waterLiters}
             onChange={setWaterLiters}
             delta={getDelta(waterLiters, lastEntry?.waterLiters)}
             lastValue={lastEntry?.waterLiters ?? null}
+          />
+          <EntryField
+            label="Elektriciteit (kWh)"
+            value={energyKw}
+            onChange={setEnergyKw}
+            delta={getDelta(energyKw, lastEntry?.energyKw)}
+            lastValue={lastEntry?.energyKw ?? null}
           />
           <EntryField
             label="Zoutverzachter (kg)"
