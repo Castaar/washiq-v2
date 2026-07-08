@@ -26,7 +26,7 @@ export default async function HistoriekPage({
   const cookieSite = cookieStore.get('dodane_active_site')?.value;
 
   const [siteDocs, userDoc] = await Promise.all([
-    Site.find({}).select('_id name location').lean(),
+    Site.find({}).select('_id name location start_car_count').lean(),
     session ? User.findById(session.userId).select('site_ids role').lean() : null,
   ]);
 
@@ -35,6 +35,8 @@ export default async function HistoriekPage({
   const allowedSites = filterSitesForUser(siteDocs as Parameters<typeof filterSitesForUser>[0], userSiteIds, userRole);
   const siteId = resolveActiveSite(allowedSites, site ?? cookieSite) || null;
   const siteName = allowedSites.find((s) => s.id === siteId)?.name ?? '';
+  const siteDoc = siteDocs.find((s) => (s._id as Types.ObjectId).toString() === siteId);
+  const startCarCount = (siteDoc?.start_car_count as number) ?? 0;
   const filter = siteId ? { site_id: siteId } : {};
 
   const [programDocs, entryDocs, stockDocs] = await Promise.all([
@@ -52,6 +54,7 @@ export default async function HistoriekPage({
   const entries: HistoryEntry[] = [...entryDocs].reverse().map((e) => ({
     id: (e._id as Types.ObjectId).toString(),
     weekStart: (e.week_start as Date).toISOString(),
+    createdAt: e.created_at ? (e.created_at as Date).toISOString() : undefined,
     waterLiters: e.water_liters ?? 0,
     energyKw: e.energy_kw ?? 0,
     saltKg: e.salt_kg ?? 0,
@@ -90,21 +93,22 @@ export default async function HistoriekPage({
   });
 
   function weekLabel(date: Date): string {
-    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-    const day = d.getUTCDay() || 7;
-    d.setUTCDate(d.getUTCDate() + 4 - day);
-    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-    const weekNo = Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
-    return `W${String(weekNo).padStart(2, '0')}`;
+    const d = new Date(date);
+    return `${String(d.getUTCDate()).padStart(2, '0')}/${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
   }
 
-  const chartData: ChemieDataPoint[] = entryDocs.map((e) => {
+  const entryChartData: ChemieDataPoint[] = entryDocs.map((e) => {
     const row: ChemieDataPoint = { week: weekLabel(new Date(e.week_start as Date)) };
     for (const cu of (e.chemical_usages ?? []) as { name?: string; amount?: number }[]) {
       if (cu.name) row[cu.name] = cu.amount ?? 0;
     }
     return row;
   });
+
+  // Prepend a "Begin" baseline point with 0 for all products
+  const beginRow: ChemieDataPoint = { week: 'Begin' };
+  for (const p of allProducts) beginRow[p.name] = 0;
+  const chartData: ChemieDataPoint[] = entryDocs.length > 0 ? [beginRow, ...entryChartData] : [];
 
   const backHref = siteId ? `/wekelijkse-ingave?site=${siteId}` : '/wekelijkse-ingave';
 
@@ -132,7 +136,7 @@ export default async function HistoriekPage({
           <div className={styles.header}>
             <h1 className={styles.title}>Maandelijkse Ingaves — {siteName}</h1>
           </div>
-          <HistoryList entries={entries} programs={programs} />
+          <HistoryList entries={entries} programs={programs} startCarCount={startCarCount} />
         </div>
       </main>
     </div>

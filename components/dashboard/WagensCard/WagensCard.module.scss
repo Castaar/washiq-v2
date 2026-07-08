@@ -37,3 +37,11 @@
 
 .positive { color: var(--color-accent-teal); }
 .negative { color: var(--color-accent-amber); }
+
+.tellerstand {
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+  align-self: flex-end;
+  font-variant-numeric: tabular-nums;
+  margin-top: var(--space-1);
+}

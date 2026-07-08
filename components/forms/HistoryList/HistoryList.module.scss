@@ -282,3 +282,44 @@
     cursor: not-allowed;
   }
 }
+
+
+// ── Beginsaldo row ────────────────────────────────────────────
+.startRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  opacity: 0.6;
+  flex-wrap: wrap;
+}
+
+.startLabel {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  min-width: 120px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.startMeta {
+  display: flex;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.startItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.startItemLabel {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}

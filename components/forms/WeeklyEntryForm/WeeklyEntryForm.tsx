@@ -40,6 +40,7 @@ export interface WeeklyEntryFormProps {
   programs: Program[];
   lastEntry: LastEntryData | null;
   washesTasks?: WashesTask[];
+  startCarCount?: number;
 }
 
 // Monday (00:00 UTC) of the ISO week containing the given YYYY-MM-DD date string
@@ -118,7 +119,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 }
 
 // ─── Main form ────────────────────────────────────────────────
-export function WeeklyEntryForm({ siteId, programs, lastEntry, washesTasks = [] }: WeeklyEntryFormProps) {
+export function WeeklyEntryForm({ siteId, programs, lastEntry, washesTasks = [], startCarCount = 0 }: WeeklyEntryFormProps) {
   const router = useRouter();
 
   const uniqueChemicals = useMemo(() => {
@@ -145,8 +146,8 @@ export function WeeklyEntryForm({ siteId, programs, lastEntry, washesTasks = [] 
   const [pickedDate, setPickedDate] = useState<string>(() => dateToDateString(new Date()));
   const [saving, setSaving] = useState(false);
 
-  // Auto-compute tellerstand from previous + sum of this week's program counts
-  const computedTellerstand = (lastEntry?.tellerstand ?? 0) +
+  // Auto-compute tellerstand from previous (or startCarCount on first entry) + this week's program counts
+  const computedTellerstand = (lastEntry?.tellerstand ?? startCarCount) +
     programs.reduce((sum, p) => sum + (parseFloat(programCounts[p.id] ?? '') || 0), 0);
 
   const maintenanceWarnings = washesTasks
@@ -296,13 +297,7 @@ export function WeeklyEntryForm({ siteId, programs, lastEntry, washesTasks = [] 
             delta={getDelta(waterLiters, lastEntry?.waterLiters)}
             lastValue={lastEntry?.waterLiters ?? null}
           />
-          <EntryField
-            label="Elektriciteit (kWh)"
-            value={energyKw}
-            onChange={setEnergyKw}
-            delta={getDelta(energyKw, lastEntry?.energyKw)}
-            lastValue={lastEntry?.energyKw ?? null}
-          />
+
           <EntryField
             label="Zoutverzachter (kg)"
             value={saltKg}

@@ -18,6 +18,7 @@ export interface HistoryProgram {
 export interface HistoryEntry {
   id: string;
   weekStart: string;
+  createdAt?: string;
   waterLiters: number;
   energyKw: number;
   saltKg: number;
@@ -30,26 +31,12 @@ export interface HistoryEntry {
 interface HistoryListProps {
   entries: HistoryEntry[];
   programs: HistoryProgram[];
+  startCarCount?: number;
 }
 
-function formatWeek(iso: string): string {
-  const monday = new Date(iso);
-
-  // ISO week number
-  const tmp = new Date(Date.UTC(monday.getFullYear(), monday.getMonth(), monday.getDate()));
-  const dayOfWeek = tmp.getUTCDay() || 7;
-  tmp.setUTCDate(tmp.getUTCDate() + 4 - dayOfWeek);
-  const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
-  const weekNr = Math.ceil(((tmp.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
-
-  // Sunday = Monday + 6 days
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 6);
-
-  const fmt = (d: Date) =>
-    `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}`;
-
-  return `Week ${weekNr} — ${fmt(monday)} t/m ${fmt(sunday)}/${sunday.getFullYear()}`;
+function formatDate(iso: string): string {
+  const d = new Date(iso);
+  return `${d.getUTCDate().toString().padStart(2, '0')}/${(d.getUTCMonth() + 1).toString().padStart(2, '0')}/${d.getUTCFullYear()}`;
 }
 
 // ── Edit row ─────────────────────────────────────────────────
@@ -137,7 +124,7 @@ function EntryRow({
     <div className={styles.entryCard}>
       {/* ── Row header ── */}
       <div className={styles.entryHeader} onClick={() => !editing && setExpanded((v) => !v)}>
-        <span className={styles.weekLabel}>{formatWeek(entry.weekStart)}</span>
+        <span className={styles.weekLabel}>{formatDate(entry.createdAt ?? entry.weekStart)}</span>
         <div className={styles.entrySummary}>
           <span className={styles.summaryItem}><span className={styles.summaryLabel}>Wagens</span>{totalWagens}</span>
           <span className={styles.summaryItem}><span className={styles.summaryLabel}>Water</span>{entry.waterLiters} m³</span>
@@ -272,7 +259,7 @@ function EntryRow({
 }
 
 // ── Main list ─────────────────────────────────────────────────
-export function HistoryList({ entries, programs }: HistoryListProps) {
+export function HistoryList({ entries, programs, startCarCount = 0 }: HistoryListProps) {
   if (entries.length === 0) {
     return <p className={styles.empty}>Nog geen ingaves gevonden voor deze carwash.</p>;
   }
@@ -282,6 +269,14 @@ export function HistoryList({ entries, programs }: HistoryListProps) {
       {entries.map((e) => (
         <EntryRow key={e.id} entry={e} programs={programs} />
       ))}
+      {startCarCount > 0 && (
+        <div className={styles.startRow}>
+          <span className={styles.startLabel}>Beginsaldo</span>
+          <div className={styles.startMeta}>
+            <span className={styles.startItem}><span className={styles.startItemLabel}>Stand teller</span>{startCarCount.toLocaleString('nl-BE')} wagens</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

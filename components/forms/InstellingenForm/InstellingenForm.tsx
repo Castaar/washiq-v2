@@ -40,6 +40,7 @@ interface StockItem {
 interface PriceConfigData {
   id?: string;
   water_per_liter: number;
+  energy_per_kw: number;
   salt_per_kg: number;
   flock_per_kg: number;
   cloth_per_unit: number;
@@ -142,6 +143,7 @@ export function InstellingenForm({ siteId, siteName, priceConfig, stocks, energy
 
   // ── Prices state ──────────────────────────────────────────
   const [waterPrice, setWaterPrice] = useState(priceConfig?.water_per_liter ? String(priceConfig.water_per_liter) : '');
+  const [energyPrice, setEnergyPrice] = useState(priceConfig?.energy_per_kw ? String(priceConfig.energy_per_kw) : '');
   const [saltPrice, setSaltPrice] = useState(priceConfig?.salt_per_kg ? String(priceConfig.salt_per_kg) : '');
   const [flockPrice, setFlockPrice] = useState(priceConfig?.flock_per_kg ? String(priceConfig.flock_per_kg) : '');
   const [clothPrice, setClothPrice] = useState(priceConfig?.cloth_per_unit ? String(priceConfig.cloth_per_unit) : '');
@@ -339,6 +341,7 @@ export function InstellingenForm({ siteId, siteName, priceConfig, stocks, energy
       body: JSON.stringify({
         siteId,
         water_per_liter: parseFloat(waterPrice) || 0,
+        energy_per_kw: parseFloat(energyPrice) || 0,
         salt_per_kg: parseFloat(saltPrice) || 0,
         flock_per_kg: parseFloat(flockPrice) || 0,
         cloth_per_unit: parseFloat(clothPrice) || 0,
@@ -447,7 +450,8 @@ export function InstellingenForm({ siteId, siteName, priceConfig, stocks, energy
         </p>
 
         <div className={styles.priceGrid}>
-          <PriceField label="Water" unit="€ / liter" value={waterPrice} onChange={setWaterPrice} />
+          <PriceField label="Water" unit="€ / m³" value={waterPrice} onChange={setWaterPrice} />
+          <PriceField label="Elektriciteit" unit="€ / kWh" value={energyPrice} onChange={setEnergyPrice} />
           <PriceField label="Zoutverzachter" unit="€ / kg" value={saltPrice} onChange={setSaltPrice} />
           <PriceField label="Flockmiddel" unit="€ / kg" value={flockPrice} onChange={setFlockPrice} />
           <PriceField label="Ruitendoekjes" unit="€ / stuk" value={clothPrice} onChange={setClothPrice} />

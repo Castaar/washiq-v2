@@ -188,6 +188,14 @@
   @include respond-to('mobile') { display: none; }
 }
 
+.fallbackNote {
+  grid-area: foot;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-2);
+  font-style: italic;
+}
+
 // ─── Employee quick-access bar ───────────────────────────────
 .employeeQuickBar {
   grid-column: 1 / -1;

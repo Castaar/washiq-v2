@@ -23,7 +23,7 @@ export default async function WekelijkseIngavePage({
   const cookieSite = cookieStore.get('dodane_active_site')?.value;
 
   const [siteDocs, userDoc] = await Promise.all([
-    Site.find({}).select('_id name location').lean(),
+    Site.find({}).select('_id name location start_car_count').lean(),
     session ? User.findById(session.userId).select('site_ids role').lean() : null,
   ]);
 
@@ -32,6 +32,8 @@ export default async function WekelijkseIngavePage({
   const allowedSites = filterSitesForUser(siteDocs as Parameters<typeof filterSitesForUser>[0], userSiteIds, userRole);
   const siteId = resolveActiveSite(allowedSites, site ?? cookieSite) || null;
   const siteName = allowedSites.find((s) => s.id === siteId)?.name ?? '';
+  const siteDoc = siteDocs.find((s) => (s._id as Types.ObjectId).toString() === siteId);
+  const startCarCount = (siteDoc?.start_car_count as number) ?? 0;
   const filter = siteId ? { site_id: siteId } : {};
 
   const [programs, lastEntries, stockDocs, washesTasks] = await Promise.all([
@@ -104,6 +106,7 @@ export default async function WekelijkseIngavePage({
           programs={programsWithChemicals}
           lastEntry={lastEntryData}
           washesTasks={washesTasksData}
+          startCarCount={startCarCount}
         />
       </main>
     </div>

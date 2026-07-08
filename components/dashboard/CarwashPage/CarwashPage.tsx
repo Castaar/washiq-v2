@@ -72,8 +72,8 @@ export async function CarwashPage({
 
   // ── Resolve site ─────────────────────────────────────────────
   const resolvedSite = propSiteId
-    ? await Site.findById(propSiteId).select('_id owner_id').lean()
-    : await Site.findOne({}).select('_id owner_id').lean();
+    ? await Site.findById(propSiteId).select('_id owner_id start_car_count').lean()
+    : await Site.findOne({}).select('_id owner_id start_car_count').lean();
   const siteId = resolvedSite ? (resolvedSite._id as Types.ObjectId).toString() : null;
   const filter = siteId ? { site_id: siteId } : {};
 
@@ -176,12 +176,16 @@ export async function CarwashPage({
   // Month: sum of all weeks within the viewed calendar month vs the month before it
   const curWeekStartMs = curWeekStart.getTime();
   const prevWeekStartMs = prevWeekStart.getTime();
+  const monthAggregate = period === 'month' ? aggregateEntries(monthEntries) : null;
+  // If the current period has no entries, fall back to the latest entry so cards show real data
+  const noCurrentData = period === 'month' ? monthEntries.length === 0 : !entries.find((e) => new Date(e.week_start as Date).getTime() === curWeekStartMs);
   const current  = period === 'month'
-    ? aggregateEntries(monthEntries)
-    : (entries.find((e) => new Date(e.week_start as Date).getTime() === curWeekStartMs) ?? null);
-  const previous = period === 'month'
+    ? (monthAggregate ?? latestEntry ?? null)
+    : (entries.find((e) => new Date(e.week_start as Date).getTime() === curWeekStartMs) ?? latestEntry ?? null);
+  // When falling back to latestEntry, suppress deltas (previous = null)
+  const previous = noCurrentData ? null : (period === 'month'
     ? aggregateEntries(prevMonthEntries)
-    : (entries.find((e) => new Date(e.week_start as Date).getTime() === prevWeekStartMs) ?? null);
+    : (entries.find((e) => new Date(e.week_start as Date).getTime() === prevWeekStartMs) ?? null));
   const price = priceConfigs[0] ?? null;
 
   // ── Wagens (needed before consumption cards for per-car division) ─
@@ -279,8 +283,9 @@ export async function CarwashPage({
     return h > 0 ? `${h}u${m > 0 ? ` ${m}min` : ''}` : `${m}min`;
   }
 
-  // Current tellerstand from the latest weekly entry
-  const currentTellerstand = (latestEntry as Record<string, unknown>)?.tellerstand as number ?? 0;
+  // Current tellerstand from the latest weekly entry, or fall back to start_car_count
+  const startCarCount = (resolvedSite as Record<string, unknown>)?.start_car_count as number ?? 0;
+  const currentTellerstand = (latestEntry as Record<string, unknown>)?.tellerstand as number ?? startCarCount;
 
   const now = new Date();
   const alertItems: AlertItem[] = tasks
@@ -726,10 +731,15 @@ export async function CarwashPage({
       )}
 
       {/* ── Bottom bar ──────────────────────────────────────── */}
+      {noCurrentData && latestEntry && (
+        <div className={styles.fallbackNote}>
+          Geen ingave voor deze periode — meest recente ingave getoond
+        </div>
+      )}
       <div className={styles.foot}>
         {!isEmployee && <ConsumptionCard data={waterData} />}
         {!isEmployee && <ConsumptionCard data={energieData} />}
-        <WagensCard count={wagensCount} delta={wagensCount - wagensPrev} />
+        <WagensCard count={wagensCount} delta={wagensCount - wagensPrev} tellerstand={currentTellerstand} />
         <div className={styles.spacer} />
         <div className={styles.rankingSlot}>
           {isOwner && (

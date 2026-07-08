@@ -14,6 +14,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     id: config._id.toString(),
     water_per_liter: config.water_per_liter ?? 0,
+    energy_per_kw: (config.energy_per_kw as number) ?? 0,
     salt_per_kg: config.salt_per_kg ?? 0,
     flock_per_kg: config.flock_per_kg ?? 0,
     cloth_per_unit: (config.cloth_per_unit as number) ?? 0,
@@ -32,7 +33,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { siteId, water_per_liter, salt_per_kg, flock_per_kg, cloth_per_unit, chemicals } = body;
+  const { siteId, water_per_liter, energy_per_kw, salt_per_kg, flock_per_kg, cloth_per_unit, chemicals } = body;
   if (!siteId) return NextResponse.json({ error: 'siteId required' }, { status: 400 });
 
   const config = await PriceConfig.findOneAndUpdate(
@@ -40,6 +41,7 @@ export async function POST(req: NextRequest) {
     {
       site_id: siteId,
       water_per_liter: Number(water_per_liter) || 0,
+      energy_per_kw: Number(energy_per_kw) || 0,
       salt_per_kg: Number(salt_per_kg) || 0,
       flock_per_kg: Number(flock_per_kg) || 0,
       cloth_per_unit: Number(cloth_per_unit) || 0,

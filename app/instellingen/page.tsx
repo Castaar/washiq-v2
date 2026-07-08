@@ -50,6 +50,7 @@ export default async function InstellingenPage({
     ? {
         id: (priceConfigDoc._id as Types.ObjectId).toString(),
         water_per_liter: priceConfigDoc.water_per_liter ?? 0,
+        energy_per_kw: (priceConfigDoc.energy_per_kw as number) ?? 0,
         salt_per_kg: priceConfigDoc.salt_per_kg ?? 0,
         flock_per_kg: priceConfigDoc.flock_per_kg ?? 0,
         cloth_per_unit: (priceConfigDoc.cloth_per_unit as number) ?? 0,
