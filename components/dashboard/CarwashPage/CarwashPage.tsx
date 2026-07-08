@@ -287,6 +287,13 @@ export async function CarwashPage({
   const startCarCount = (resolvedSite as Record<string, unknown>)?.start_car_count as number ?? 0;
   const currentTellerstand = (latestEntry as Record<string, unknown>)?.tellerstand as number ?? startCarCount;
 
+  // Previous period's tellerstand: last entry before current period
+  const prevLatestEntry = siteId
+    ? await WeeklyEntry.findOne({ ...filter, week_start: { $lt: period === 'month' ? curMonthStart : curWeekStart } }).sort({ week_start: -1 }).select('tellerstand').lean()
+    : null;
+  const prevTellerstand = (prevLatestEntry as Record<string, unknown> | null)?.tellerstand as number ?? startCarCount;
+  const tellerstandDelta = noCurrentData ? 0 : currentTellerstand - prevTellerstand;
+
   const now = new Date();
   const alertItems: AlertItem[] = tasks
     // A washes-based task can't be "overdue" before any wagens have ever been recorded —
@@ -739,7 +746,7 @@ export async function CarwashPage({
       <div className={styles.foot}>
         {!isEmployee && <ConsumptionCard data={waterData} />}
         {!isEmployee && <ConsumptionCard data={energieData} />}
-        <WagensCard count={wagensCount} delta={wagensCount - wagensPrev} tellerstand={currentTellerstand} />
+        <WagensCard count={wagensCount} delta={tellerstandDelta} tellerstand={currentTellerstand} />
         <div className={styles.spacer} />
         <div className={styles.rankingSlot}>
           {isOwner && (

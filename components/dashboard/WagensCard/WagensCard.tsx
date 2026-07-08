@@ -7,18 +7,18 @@ interface WagensCardProps {
 }
 
 export function WagensCard({ count, delta, tellerstand }: WagensCardProps) {
+  const displayValue = tellerstand != null && tellerstand > 0 ? tellerstand : count;
   const isPositive = delta >= 0;
   const sign = isPositive ? '+' : '';
 
   return (
     <div className={styles.card}>
       <span className={styles.label}>Wagens</span>
-      <span className={styles.value}>{count}</span>
-      <span className={[styles.delta, isPositive ? styles.positive : styles.negative].join(' ')}>
-        {sign}{delta}
-      </span>
-      {tellerstand != null && tellerstand > 0 && (
-        <span className={styles.tellerstand}>Stand: {tellerstand.toLocaleString('nl-BE')}</span>
+      <span className={styles.value}>{displayValue.toLocaleString('nl-BE')}</span>
+      {delta !== 0 && (
+        <span className={[styles.delta, isPositive ? styles.positive : styles.negative].join(' ')}>
+          {sign}{delta}
+        </span>
       )}
     </div>
   );
