@@ -133,3 +133,23 @@
 
 .positive { color: var(--color-accent-teal); }
 .negative { color: var(--color-accent-amber); }
+
+.totalRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-2) 0;
+}
+
+.totalLabel {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.totalValue {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--color-accent-teal);
+  font-variant-numeric: tabular-nums;
+}

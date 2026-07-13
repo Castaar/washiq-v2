@@ -9,6 +9,7 @@ export interface ProgramOption {
   name: string;
   count: number;
   prevCount: number;
+  chemicals?: string[];
 }
 
 interface ProgrammaCardProps {
@@ -48,6 +49,11 @@ export function ProgrammaCard({ programs, chemieRows }: ProgrammaCardProps) {
   const countDelta = selected.count - selected.prevCount;
   const sign = countDelta >= 0 ? '+' : '';
 
+  // Filter chemieRows to only the chemicals configured for the selected program
+  const visibleChemieRows = selectedId === ALL_ID || !selected.chemicals
+    ? chemieRows
+    : chemieRows.filter((r) => selected.chemicals!.includes(r.label));
+
   return (
     <div className={styles.card}>
       <div className={styles.header}>
@@ -83,11 +89,18 @@ export function ProgrammaCard({ programs, chemieRows }: ProgrammaCardProps) {
         </div>
       </div>
 
-      {chemieRows.length > 0 && (
+      {visibleChemieRows.length > 0 && (
         <>
           <div className={styles.divider} />
+          <div className={styles.totalRow}>
+            <span className={styles.totalLabel}>Totaal kostprijs</span>
+            <span className={styles.totalValue}>
+              € {Math.round(visibleChemieRows.reduce((s, r) => s + r.value, 0) * 100) / 100}
+            </span>
+          </div>
+          <div className={styles.divider} />
           <div className={styles.rows}>
-            {chemieRows.map((row) => <ChemieRowItem key={row.id} row={row} />)}
+            {visibleChemieRows.map((row) => <ChemieRowItem key={row.id} row={row} />)}
           </div>
         </>
       )}

@@ -264,6 +264,7 @@ export async function CarwashPage({
       name: p.name as string,
       count: curr?.count ?? 0,
       prevCount: prev?.count ?? 0,
+      chemicals: (p.chemicals as string[]) ?? [],
     };
   });
 
