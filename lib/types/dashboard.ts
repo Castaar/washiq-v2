@@ -109,6 +109,8 @@ export interface ChemieRow {
   label: string;
   value: number;
   delta: number;
+  rawAmount?: number;
+  unit?: string;
 }
 
 export interface ConsumptionData {

@@ -97,13 +97,13 @@ export async function CarwashPage({
   // ── Fetch all data in parallel ───────────────────────────────
   const today = new Date();
 
-  const [entries, monthEntries, prevMonthEntries, latestEntry, programs, priceConfigs, stocks, tasks, logs, checklists, incSchades, incEhbos, defects, energyBillCur, energyBillPrev, attendanceLogs] = await Promise.all([
+  const [entries, monthEntries, prevMonthEntries, lastTwoEntries, programs, priceConfigs, stocks, tasks, logs, checklists, incSchades, incEhbos, defects, energyBillCur, energyBillPrev, attendanceLogs] = await Promise.all([
     period === 'week'
       ? WeeklyEntry.find({ ...filter, week_start: { $in: [curWeekStart, prevWeekStart] } }).lean()
       : Promise.resolve([]),
     period === 'month' ? WeeklyEntry.find({ ...filter, week_start: { $gte: curMonthStart, $lt: curMonthEnd } }).lean() : Promise.resolve([]),
     period === 'month' ? WeeklyEntry.find({ ...filter, week_start: { $gte: prevMonthStart, $lt: prevMonthEnd } }).lean() : Promise.resolve([]),
-    WeeklyEntry.findOne(filter).sort({ week_start: -1 }).lean(),
+    WeeklyEntry.find(filter).sort({ week_start: -1 }).limit(2).lean(),
     WashProgram.find(filter).sort({ tier: 1 }).lean(),
     PriceConfig.find(filter).sort({ valid_from: -1 }).limit(1).lean(),
     ChemicalStock.find(filter).sort({ name: 1 }).lean(),
@@ -117,6 +117,31 @@ export async function CarwashPage({
     siteId ? EnergyBill.findOne({ site_id: siteId, year: prevYear, month: prevMonth }).lean() : null,
     AttendanceLog.find(filter).sort({ timestamp: -1 }).limit(15).lean(),
   ]);
+
+  const latestEntry = lastTwoEntries[0] ?? null;
+  const prevIngave  = lastTwoEntries[1] ?? null;
+
+  // ── Per-wagen cost helper ─────────────────────────────────────
+  type CostRow = { label: string; euroPerWagen: number; rawPerWagen?: number; unit?: string; isChemical?: boolean };
+  function costPerWagen(entry: typeof latestEntry, energyBill: number): CostRow[] {
+    if (!entry) return [];
+    const p = priceConfigs[0] ?? null;
+    const wagens = (entry.program_counts ?? []).reduce((s: number, pc: { count?: number }) => s + (pc.count ?? 0), 0);
+    if (wagens === 0) return [];
+    const r3 = (v: number) => Math.round(v * 1000) / 1000;
+    const r2 = (v: number) => Math.round(v * 100) / 100;
+    const rows: CostRow[] = [
+      { label: 'Water',   euroPerWagen: r2((entry.water_liters ?? 0) * (p?.water_per_liter ?? 0) / wagens), rawPerWagen: r3((entry.water_liters ?? 0) / wagens), unit: 'm³' },
+      { label: 'Energie', euroPerWagen: r2(energyBill / wagens) },
+      { label: 'Zout',    euroPerWagen: r2((entry.salt_kg ?? 0) * (p?.salt_per_kg ?? 0) / wagens), rawPerWagen: r3((entry.salt_kg ?? 0) / wagens), unit: 'kg' },
+      { label: 'Blob',    euroPerWagen: r2(((entry as Record<string,unknown>).blob_liters as number ?? 0) / wagens), rawPerWagen: r3(((entry as Record<string,unknown>).blob_liters as number ?? 0) / wagens), unit: 'L' },
+    ];
+    for (const cu of (entry.chemical_usages ?? []) as { name: string; amount: number; unit: string }[]) {
+      const chemPrice = (p?.chemicals as { name: string; price_per_unit: number }[] | undefined)?.find((c) => c.name === cu.name);
+      rows.push({ label: cu.name, euroPerWagen: r2((cu.amount ?? 0) * (chemPrice?.price_per_unit ?? 0) / wagens), rawPerWagen: r3((cu.amount ?? 0) / wagens), unit: cu.unit, isChemical: true });
+    }
+    return rows;
+  }
 
   // ── Aggregate helper for month view ──────────────────────────
   type EntryLike = {
@@ -221,7 +246,9 @@ export async function CarwashPage({
   const blobVal  = getVal(blobRaw,  0);
   const curBillAmount  = (energyBillCur?.amount_euro  as number | undefined) ?? 0;
   const prevBillAmount = (energyBillPrev?.amount_euro as number | undefined) ?? 0;
-  const energyVal  = wagensCount > 0 && usage === 'wagen' ? Math.round((curBillAmount  / wagensCount)  * 100) / 100 : curBillAmount;
+  // In fallback mode the displayed data is from the previous period, so use its energy bill
+  const effectiveBillAmount = noCurrentData ? prevBillAmount : curBillAmount;
+  const energyVal  = wagensCount > 0 ? Math.round((effectiveBillAmount / wagensCount) * 100) / 100 : effectiveBillAmount;
 
   const saltPrev  = getPrev(saltPrevRaw,  price?.salt_per_kg     ?? 0);
   const waterPrev = getPrev(waterPrevRaw, price?.water_per_liter ?? 0);
@@ -248,15 +275,15 @@ export async function CarwashPage({
     );
     const prevRawAmount = prev ? (prev.amount / prevDivisor) : 0;
     const prevVal = prev ? Math.round(prevRawAmount * rate * 100) / 100 : 0;
-    return { id: cu.chemical_id?.toString() ?? String(i), label: cu.name, value: val, delta: calcDelta(val, prevVal) };
+    return { id: cu.chemical_id?.toString() ?? String(i), label: cu.name, value: val, delta: calcDelta(val, prevVal), rawAmount: Math.round(rawAmount * 1000) / 1000, unit: cu.unit };
   });
 
   const programOptions: ProgramOption[] = programs.map((p) => {
     const pid = (p._id as Types.ObjectId).toString();
-    const curr = (current?.program_counts ?? []).find(
+    const curr = (latestEntry?.program_counts ?? []).find(
       (c: { program_id?: { toString(): string }; count: number }) => c.program_id?.toString() === pid,
     );
-    const prev = (previous?.program_counts ?? []).find(
+    const prev = (prevIngave?.program_counts ?? []).find(
       (c: { program_id?: { toString(): string }; count: number }) => c.program_id?.toString() === pid,
     );
     return {
@@ -288,12 +315,27 @@ export async function CarwashPage({
   const startCarCount = (resolvedSite as Record<string, unknown>)?.start_car_count as number ?? 0;
   const currentTellerstand = (latestEntry as Record<string, unknown>)?.tellerstand as number ?? startCarCount;
 
-  // Previous period's tellerstand: last entry before current period
-  const prevLatestEntry = siteId
-    ? await WeeklyEntry.findOne({ ...filter, week_start: { $lt: period === 'month' ? curMonthStart : curWeekStart } }).sort({ week_start: -1 }).select('tellerstand').lean()
-    : null;
-  const prevTellerstand = (prevLatestEntry as Record<string, unknown> | null)?.tellerstand as number ?? startCarCount;
-  const tellerstandDelta = noCurrentData ? 0 : currentTellerstand - prevTellerstand;
+  // Previous period's tellerstand for WagensCard delta
+  const prevTellerstand = (prevIngave as Record<string, unknown> | null)?.tellerstand as number ?? startCarCount;
+  const tellerstandDelta = latestEntry ? currentTellerstand - prevTellerstand : 0;
+
+  // Energy bills for the two most recent ingave months
+  const latestMonth = latestEntry ? new Date(latestEntry.week_start as Date).getUTCMonth() + 1 : curMonth;
+  const latestYear  = latestEntry ? new Date(latestEntry.week_start as Date).getUTCFullYear() : curYear;
+  const prevMonth2  = prevIngave  ? new Date(prevIngave.week_start  as Date).getUTCMonth() + 1 : prevMonth;
+  const prevYear2   = prevIngave  ? new Date(prevIngave.week_start  as Date).getUTCFullYear() : prevYear;
+  const [latestBillDoc, prevBillDoc] = siteId
+    ? await Promise.all([
+        EnergyBill.findOne({ site_id: siteId, year: latestYear, month: latestMonth }).lean(),
+        EnergyBill.findOne({ site_id: siteId, year: prevYear2,  month: prevMonth2  }).lean(),
+      ])
+    : [null, null];
+  const latestBillAmount = (latestBillDoc as Record<string,unknown> | null)?.amount_euro as number ?? 0;
+  const prevBillAmount2  = (prevBillDoc  as Record<string,unknown> | null)?.amount_euro as number ?? effectiveBillAmount;
+
+  // Cost breakdown per wagen for latest and previous ingave
+  const latestCostRows = costPerWagen(latestEntry, latestBillAmount);
+  const prevCostRows   = costPerWagen(prevIngave,  prevBillAmount2);
 
   const now = new Date();
   const alertItems: AlertItem[] = tasks
@@ -688,9 +730,6 @@ export async function CarwashPage({
         {!isEmployee && (
           <>
             <Suspense fallback={null}>
-              <ParamSelector label="Periode" paramKey="period" options={PERIOD_OPTIONS} activeValue={period} />
-            </Suspense>
-            <Suspense fallback={null}>
               <ParamSelector label="Weergave" paramKey="view" options={VIEW_OPTIONS} activeValue={view} />
             </Suspense>
             {refDate && (
@@ -729,12 +768,11 @@ export async function CarwashPage({
         <aside className={styles.left}>
           <ProgrammaCard
             programs={programOptions}
-            chemieRows={chemieRows}
+            totalWagens={programOptions.reduce((s, p) => s + p.count, 0)}
+            view={view}
+            costBreakdown={latestCostRows}
+            prevCostBreakdown={prevCostRows}
           />
-          <div className={styles.twoCol}>
-            <ConsumptionCard data={zoutData} />
-            <ConsumptionCard data={blobData} />
-          </div>
         </aside>
       )}
 
@@ -745,9 +783,6 @@ export async function CarwashPage({
         </div>
       )}
       <div className={styles.foot}>
-        {!isEmployee && <ConsumptionCard data={waterData} />}
-        {!isEmployee && <ConsumptionCard data={energieData} />}
-        <WagensCard count={wagensCount} delta={tellerstandDelta} tellerstand={currentTellerstand} />
         <div className={styles.spacer} />
         <div className={styles.rankingSlot}>
           {isOwner && (
