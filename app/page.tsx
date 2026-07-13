@@ -116,7 +116,7 @@ export default async function DashboardPage({
       <div className={styles.bg} aria-hidden="true">
         <Image src="/background.png" alt="" fill style={{ objectFit: 'cover' }} priority />
       </div>
-      <NavBar sites={sites} activeSiteId={activeSiteId} activePeriod={period} activeView={view} addHref={addHref} addLabel={addLabel} settingsHref={settingsHref} />
+      <NavBar sites={sites} activeSiteId={activeSiteId} activeView={view} addHref={addHref} addLabel={addLabel} settingsHref={settingsHref} />
       {announcements.length > 0 || canManage ? (
         <div className={styles.announcementsWrap}>
           <AnnouncementBanner
