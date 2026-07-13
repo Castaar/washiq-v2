@@ -22,13 +22,46 @@ const KIND_LABEL: Record<TechniekerItem['kind'], string> = {
 
 const UNDO_TIMEOUT_MS = 6000;
 
-export function TechniekerPanel({ items: initial }: { items: TechniekerItem[] }) {
+interface AllowedSite { id: string; name: string; }
+
+export function TechniekerPanel({ items: initial, userRole = 'technician', allowedSites = [] }: { items: TechniekerItem[]; userRole?: string; allowedSites?: AllowedSite[] }) {
   const [items, setItems] = useState(initial);
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [resolvingId, setResolvingId] = useState<string | null>(null);
   const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
-  // Recently resolved items shown as undo toasts: id → { item, undoTimer }
   const [undoQueue, setUndoQueue] = useState<{ item: TechniekerItem; note: string }[]>([]);
+
+  // Add-task form (owner/developer only)
+  const canAdd = userRole === 'owner' || userRole === 'developer';
+  const [showAdd, setShowAdd] = useState(false);
+  const [addSiteId, setAddSiteId] = useState(allowedSites[0]?.id ?? '');
+  const [addDesc, setAddDesc] = useState('');
+  const [addErnst, setAddErnst] = useState<'laag' | 'medium' | 'hoog'>('medium');
+  const [addSaving, setAddSaving] = useState(false);
+
+  async function handleAddTask(e: React.FormEvent) {
+    e.preventDefault();
+    if (!addDesc.trim() || !addSiteId) return;
+    setAddSaving(true);
+    const res = await fetch('/api/incidents/defect', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ siteId: addSiteId, omschrijving: addDesc.trim(), ernst: addErnst }),
+    });
+    if (res.ok) {
+      const data = await res.json() as { id: string };
+      const siteName = allowedSites.find((s) => s.id === addSiteId)?.name ?? '';
+      setItems((prev) => [{
+        id: data.id, kind: 'defect', siteId: addSiteId, siteName,
+        title: addDesc.trim(), subtitle: '', severity: addErnst === 'hoog' ? 'high' : addErnst === 'laag' ? 'low' : 'medium',
+        date: new Date().toLocaleDateString('nl-BE', { day: '2-digit', month: '2-digit' }),
+      }, ...prev]);
+      setAddDesc('');
+      setAddErnst('medium');
+      setShowAdd(false);
+    }
+    setAddSaving(false);
+  }
 
   const sites = Array.from(new Set(items.map((i) => i.siteName)));
 
@@ -102,6 +135,44 @@ export function TechniekerPanel({ items: initial }: { items: TechniekerItem[] })
 
   return (
     <>
+      {/* ── Add task (owner/developer) ───────────────────────── */}
+      {canAdd && (
+        <div className={styles.addBlock}>
+          {!showAdd ? (
+            <button type="button" className={styles.addBtn} onClick={() => setShowAdd(true)}>
+              + Taak toevoegen
+            </button>
+          ) : (
+            <form className={styles.addForm} onSubmit={handleAddTask}>
+              {allowedSites.length > 1 && (
+                <select className={styles.addSelect} value={addSiteId} onChange={(e) => setAddSiteId(e.target.value)}>
+                  {allowedSites.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              )}
+              <input
+                className={styles.addInput}
+                type="text"
+                placeholder="Omschrijving taak..."
+                value={addDesc}
+                onChange={(e) => setAddDesc(e.target.value)}
+                autoFocus
+              />
+              <select className={styles.addSelect} value={addErnst} onChange={(e) => setAddErnst(e.target.value as 'laag' | 'medium' | 'hoog')}>
+                <option value="laag">Laag</option>
+                <option value="medium">Medium</option>
+                <option value="hoog">Hoog</option>
+              </select>
+              <div className={styles.addActions}>
+                <button type="button" className={styles.cancelBtn} onClick={() => setShowAdd(false)}>Annuleren</button>
+                <button type="submit" className={styles.submitBtn} disabled={addSaving || !addDesc.trim()}>
+                  {addSaving ? '...' : 'Toevoegen'}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+      )}
+
       {/* ── Undo toasts ─────────────────────────────────────── */}
       {undoQueue.length > 0 && (
         <div className={styles.undoStack}>

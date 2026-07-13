@@ -108,7 +108,7 @@ export async function CarwashPage({
     PriceConfig.find(filter).sort({ valid_from: -1 }).limit(1).lean(),
     ChemicalStock.find(filter).sort({ name: 1 }).lean(),
     MaintenanceTask.find(filter).lean(),
-    MaintenanceLog.find(filter).sort({ done_at: -1 }).limit(10).lean(),
+    MaintenanceLog.find(filter).sort({ done_at: -1 }).limit(10).populate('task_id', 'description').lean(),
     DailyChecklist.find(filter).sort({ submitted_at: -1 }).limit(7).lean(),
     IncidentSchade.find({ ...filter, $or: [{ is_resolved: false }, { is_resolved: { $exists: false } }] }).sort({ created_at: -1 }).limit(8).lean(),
     IncidentEhbo.find(filter).sort({ created_at: -1 }).limit(8).lean(),
@@ -459,14 +459,20 @@ export async function CarwashPage({
         payload,
       };
     }),
-    ...logs.map((l) => ({
-      id:      l._id.toString(),
-      refType: 'maintenance_log' as const,
-      siteId:  siteId ?? '',
-      title:   l.notes || 'Onderhoud uitgevoerd',
-      severity: 'low' as const,
-      iconName: 'check',
-    })),
+    ...logs.map((l) => {
+      const taskDesc = (l.task_id as unknown as { description?: string } | null)?.description ?? '';
+      const title = taskDesc
+        ? `Onderhoud: ${taskDesc}${l.notes ? ` — ${l.notes}` : ''}`
+        : l.notes ? `Onderhoud: ${l.notes}` : 'Onderhoud uitgevoerd';
+      return {
+        id:      l._id.toString(),
+        refType: 'maintenance_log' as const,
+        siteId:  siteId ?? '',
+        title,
+        severity: 'low' as const,
+        iconName: 'check',
+      };
+    }),
   ];
 
   const incidentItems: AlertItem[] = [
@@ -699,6 +705,7 @@ export async function CarwashPage({
           <Link href={`/opdrachten?site=${siteId}`} className={styles.quickBtn}>Opdrachten</Link>
           <Link href={`/planning?site=${siteId}`} className={styles.quickBtn}>Planning</Link>
           <Link href={`/incidenten?site=${siteId}`} className={styles.quickBtn}>Incidenten</Link>
+          <Link href={`/leveringen?site=${siteId}`} className={styles.quickBtn}>Leveringen</Link>
           <Link href="/diversen" className={styles.quickBtn}>Diversen</Link>
           {!isEmployee && (
             <Link href="/technieker" className={styles.quickBtn}>Technieker</Link>

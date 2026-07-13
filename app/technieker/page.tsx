@@ -98,7 +98,11 @@ export default async function TechniekerPage() {
       <NavBar centerTitle="Technieker" />
       <main className={styles.main}>
         <div className={styles.content}>
-          <TechniekerPanel items={items} />
+          <TechniekerPanel
+            items={items}
+            userRole={userRole}
+            allowedSites={allowedSites.map((s) => ({ id: (s._id as Types.ObjectId).toString(), name: s.name as string }))}
+          />
         </div>
       </main>
     </div>
