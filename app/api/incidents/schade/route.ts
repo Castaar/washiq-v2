@@ -28,6 +28,7 @@ export async function POST(req: NextRequest) {
     installatiefout: body.installatiefout ?? false,
     klant_verantwoordelijk: body.klant_verantwoordelijk ?? false,
     verzekeringsdocumenten: body.verzekeringsdocumenten ?? false,
+    photos: Array.isArray(body.photos) ? body.photos : [],
   });
 
   sendPushToAll({

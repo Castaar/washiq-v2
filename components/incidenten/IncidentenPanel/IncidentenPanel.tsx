@@ -143,39 +143,6 @@ export function IncidentenPanel({
 
   return (
     <div className={styles.wrap}>
-      {/* ── Stats bar ─────────────────────────────────────────── */}
-      <div className={styles.statsBar}>
-        <div className={styles.statItem}>
-          <span className={styles.statValue}>{stats.totalSchade}</span>
-          <span className={styles.statLabel}>schadegevallen totaal</span>
-        </div>
-        {stats.schadesPer1000 !== null && (
-          <div className={styles.statItem}>
-            <span className={styles.statValue}>{stats.schadesPer1000}</span>
-            <span className={styles.statLabel}>per 1.000 wassen</span>
-          </div>
-        )}
-        {openCount > 0 && (
-          <div className={[styles.statItem, styles.statAlert].join(' ')}>
-            <span className={styles.statValue}>{openCount}</span>
-            <span className={styles.statLabel}>open / niet opgelost</span>
-          </div>
-        )}
-      </div>
-
-      {stats.schadeLocatieStats && stats.schadeLocatieStats.length > 0 && (
-        <div className={styles.statsBar}>
-          {stats.schadeLocatieStats.map((s) => (
-            <div key={s.locatie} className={styles.statItem}>
-              <span className={styles.statValue}>
-                {s.count}{s.per1000 !== null ? ` (${s.per1000}/1000)` : ''}
-              </span>
-              <span className={styles.statLabel}>{s.locatie}</span>
-            </div>
-          ))}
-        </div>
-      )}
-
       <div className={styles.grid}>
         {/* ── Left: incident list ────────────────────────────── */}
         <div className={styles.left}>

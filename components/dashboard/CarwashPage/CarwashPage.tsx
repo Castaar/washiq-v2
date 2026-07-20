@@ -13,7 +13,7 @@ import {
   DailyChecklist,
   IncidentSchade,
   IncidentEhbo,
-  Defect,
+
   EnergyBill,
   AttendanceLog,
 } from '@/lib/models';
@@ -30,7 +30,7 @@ import type { LogEntry } from '@/components/logboek/LogboekPanel/LogboekPanel';
 import { ParamSelector } from '@/components/layout/NavBar/ParamSelector';
 import { DatePicker } from '@/components/layout/NavBar/DatePicker';
 import { SiteSelector } from '@/components/layout/NavBar/SiteSelector';
-import type { AlertItem, AlertsPanelData, VoorraadItem, ChemieRow, ConsumptionData, DagfichePayload, IncidentSchadePayload, IncidentEhboPayload, DefectPayload, MaintenanceTaskPayload } from '@/lib/types/dashboard';
+import type { AlertItem, AlertsPanelData, VoorraadItem, ChemieRow, ConsumptionData, DagfichePayload, IncidentSchadePayload, IncidentEhboPayload, MaintenanceTaskPayload } from '@/lib/types/dashboard';
 import { computeIsOverdue, computeIsApproaching, washesRemaining } from '@/lib/maintenance';
 import styles from './CarwashPage.module.scss';
 import type { Types } from 'mongoose';
@@ -97,7 +97,7 @@ export async function CarwashPage({
   // ── Fetch all data in parallel ───────────────────────────────
   const today = new Date();
 
-  const [entries, monthEntries, prevMonthEntries, lastTwoEntries, programs, priceConfigs, stocks, tasks, logs, checklists, incSchades, incEhbos, defects, energyBillCur, energyBillPrev, attendanceLogs] = await Promise.all([
+  const [entries, monthEntries, prevMonthEntries, lastTwoEntries, programs, priceConfigs, stocks, tasks, logs, checklists, incSchades, incEhbos, energyBillCur, energyBillPrev, attendanceLogs] = await Promise.all([
     period === 'week'
       ? WeeklyEntry.find({ ...filter, week_start: { $in: [curWeekStart, prevWeekStart] } }).lean()
       : Promise.resolve([]),
@@ -112,7 +112,6 @@ export async function CarwashPage({
     DailyChecklist.find(filter).sort({ submitted_at: -1 }).limit(7).lean(),
     IncidentSchade.find({ ...filter, $or: [{ is_resolved: false }, { is_resolved: { $exists: false } }] }).sort({ created_at: -1 }).limit(8).lean(),
     IncidentEhbo.find(filter).sort({ created_at: -1 }).limit(8).lean(),
-    Defect.find({ ...filter, $or: [{ is_resolved: false }, { is_resolved: { $exists: false } }] }).sort({ created_at: -1 }).limit(8).lean(),
     siteId ? EnergyBill.findOne({ site_id: siteId, year: curYear,  month: curMonth  }).lean() : null,
     siteId ? EnergyBill.findOne({ site_id: siteId, year: prevYear, month: prevMonth }).lean() : null,
     AttendanceLog.find(filter).sort({ timestamp: -1 }).limit(15).lean(),
@@ -435,30 +434,31 @@ export async function CarwashPage({
     : [];
   const userNameMap = Object.fromEntries(checklistUsers.map((u) => [(u._id as Types.ObjectId).toString(), u.name as string]));
 
+  const dagficheItems: AlertItem[] = checklists.map((cl) => {
+    const submittedDate = new Date(cl.submitted_at as Date ?? cl.date as Date);
+    const payload: DagfichePayload = {
+      type: 'dagfiche',
+      submittedBy: userNameMap[cl.user_id?.toString() ?? ''] ?? 'Onbekend',
+      submittedAt: submittedDate.toLocaleDateString('nl-BE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+      items: (cl.items as { label: string; checked: boolean; opmerking?: string }[]).map(
+        ({ label, checked, opmerking }) => ({ label, checked, opmerking }),
+      ),
+      defectNote: cl.defect_note ? String(cl.defect_note) : undefined,
+    };
+    return {
+      id:      (cl._id as Types.ObjectId).toString(),
+      refType: 'daily_checklist' as const,
+      siteId:  siteId ?? '',
+      title:   'Dagfiche ingediend',
+      subtitle: userNameMap[cl.user_id?.toString() ?? ''] ?? undefined,
+      date:    fmtDate(submittedDate),
+      severity: 'low' as const,
+      iconName: 'check',
+      payload,
+    };
+  });
+
   const onderhoudItems: AlertItem[] = [
-    ...checklists.map((cl) => {
-      const submittedDate = new Date(cl.submitted_at as Date ?? cl.date as Date);
-      const payload: DagfichePayload = {
-        type: 'dagfiche',
-        submittedBy: userNameMap[cl.user_id?.toString() ?? ''] ?? 'Onbekend',
-        submittedAt: submittedDate.toLocaleDateString('nl-BE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
-        items: (cl.items as { label: string; checked: boolean; opmerking?: string }[]).map(
-          ({ label, checked, opmerking }) => ({ label, checked, opmerking }),
-        ),
-        defectNote: cl.defect_note ? String(cl.defect_note) : undefined,
-      };
-      return {
-        id:      (cl._id as Types.ObjectId).toString(),
-        refType: 'daily_checklist' as const,
-        siteId:  siteId ?? '',
-        title:   'Dagfiche ingediend',
-        subtitle: userNameMap[cl.user_id?.toString() ?? ''] ?? undefined,
-        date:    fmtDate(submittedDate),
-        severity: 'low' as const,
-        iconName: 'check',
-        payload,
-      };
-    }),
     ...logs.map((l) => {
       const taskDesc = (l.task_id as unknown as { description?: string } | null)?.description ?? '';
       const title = taskDesc
@@ -530,27 +530,6 @@ export async function CarwashPage({
         date:    fmtDate(new Date(e.created_at as Date)),
         severity: 'medium' as const,
         iconName: 'warning',
-        payload,
-      };
-    }),
-    ...defects.map((d) => {
-      const ernstMap: Record<string, 'low' | 'medium' | 'high'> = { laag: 'low', medium: 'medium', hoog: 'high' };
-      const payload: DefectPayload = {
-        type:         'defect',
-        reportedBy:   (d.reported_by_name as string) || '',
-        date:         fmtDate(new Date(d.created_at as Date)),
-        omschrijving: (d.omschrijving as string) || '',
-        ernst:        (d.ernst as string) || '',
-      };
-      return {
-        id:      (d._id as Types.ObjectId).toString(),
-        refType: 'defect' as const,
-        siteId:  siteId ?? '',
-        title:   ((d.omschrijving as string) ?? '').slice(0, 35) || 'Defect',
-        subtitle: (d.ernst as string) || '',
-        date:    fmtDate(new Date(d.created_at as Date)),
-        severity: (ernstMap[d.ernst as string] ?? 'medium') as 'low' | 'medium' | 'high',
-        iconName: 'wrench',
         payload,
       };
     }),
@@ -651,7 +630,7 @@ export async function CarwashPage({
   const alertsPanelData: AlertsPanelData = {
     alerts: isTechnician
       ? [...consumptionAlertItems, ...alertItems, ...approachingItems, ...dagficheAlerts]
-      : [...onderhoudItems, ...incidentItems, ...attendanceAlertItems],
+      : [...dagficheItems, ...onderhoudItems, ...incidentItems, ...attendanceAlertItems],
     onderhoud: onderhoudItems,
     incident:  incidentItems,
   };

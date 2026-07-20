@@ -24,6 +24,7 @@ export async function POST(req: NextRequest) {
     ehbo_verlener: body.ehbo_verlener ?? '',
     beschrijving: body.beschrijving ?? '',
     dokter_nodig: body.dokter_nodig ?? false,
+    photos: Array.isArray(body.photos) ? body.photos : [],
   });
 
   sendPushToAll({

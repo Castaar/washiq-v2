@@ -56,7 +56,7 @@ export default async function OpdrachtenPage({
       } : {}),
     }).sort({ date: 1, created_at: 1 }).lean(),
     isOwner
-      ? User.find({ site_ids: siteId, role: { $in: ['employee', 'technician'] } }).select('_id name').lean()
+      ? User.find({ site_ids: siteId, role: { $in: ['employee', 'technician'] } }).select('_id name role').lean()
       : Promise.resolve([]),
   ]);
 
@@ -71,9 +71,10 @@ export default async function OpdrachtenPage({
     doneAt: d.done_at ? (d.done_at as Date).toISOString() : null,
   }));
 
-  const employees: SiteEmployee[] = (employeeDocs as { _id: Types.ObjectId; name: string }[]).map((u) => ({
+  const employees: SiteEmployee[] = (employeeDocs as { _id: Types.ObjectId; name: string; role?: string }[]).map((u) => ({
     id: u._id.toString(),
     name: u.name,
+    role: u.role,
   }));
 
   return (

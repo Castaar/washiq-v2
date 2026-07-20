@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { PhotoUpload } from '@/components/ui/PhotoUpload/PhotoUpload';
 import styles from './EhboForm.module.scss';
 
 interface EhboFormProps {
@@ -37,6 +38,7 @@ export function EhboForm({ siteId, userName }: EhboFormProps) {
   const [ehboVerlener, setEhboVerlener] = useState('');
   const [beschrijving, setBeschrijving] = useState('');
   const [dokterNodig, setDokterNodig] = useState(false);
+  const [photos, setPhotos] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -59,6 +61,7 @@ export function EhboForm({ siteId, userName }: EhboFormProps) {
           ehbo_verlener: ehboVerlener,
           beschrijving,
           dokter_nodig: dokterNodig,
+          photos,
         }),
       });
       if (!res.ok) { setError('Opslaan mislukt'); return; }
@@ -115,6 +118,11 @@ export function EhboForm({ siteId, userName }: EhboFormProps) {
       {/* Checkbox */}
       <div className={styles.checkRow}>
         <CheckToggle label="Dokter nodig?" value={dokterNodig} onChange={setDokterNodig} />
+      </div>
+
+      <div className={styles.checkRow}>
+        <label className={styles.fieldLabel}>Foto&apos;s</label>
+        <PhotoUpload photos={photos} onChange={setPhotos} maxPhotos={5} />
       </div>
 
       <div className={styles.metaRow}>

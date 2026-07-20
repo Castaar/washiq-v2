@@ -17,6 +17,7 @@ export interface OpdrachtItem {
 export interface SiteEmployee {
   id: string;
   name: string;
+  role?: string;
 }
 
 interface OpdrachtenPanelProps {
@@ -177,7 +178,8 @@ export function OpdrachtenPanel({ siteId, userRole, opdrachten: initial, employe
                       checked={newAssigned.includes(emp.id)}
                       onChange={() => toggleEmployee(emp.id)}
                     />
-                    {emp.name}
+                    <span className={styles.empName}>{emp.name}</span>
+                    {emp.role && <span className={styles.empRole}>{emp.role === 'technician' ? 'tech.' : 'med.'}</span>}
                   </label>
                 ))}
               </div>

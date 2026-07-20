@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { PhotoUpload } from '@/components/ui/PhotoUpload/PhotoUpload';
 import styles from './SchadeForm.module.scss';
 
 const VOERTUIG_TYPES = ['Personenwagen', 'Bestelwagen', 'Vrachtwagen', 'Motor', 'Fiets', 'Andere'];
@@ -54,6 +55,7 @@ export function SchadeForm({ siteId, userName }: SchadeFormProps) {
   const [installatiefout, setInstallatiefout] = useState(false);
   const [klantVerantwoordelijk, setKlantVerantwoordelijk] = useState(false);
   const [verzekeringsdocumenten, setVerzekeringsdocumenten] = useState(false);
+  const [photos, setPhotos] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -86,6 +88,7 @@ export function SchadeForm({ siteId, userName }: SchadeFormProps) {
           installatiefout,
           klant_verantwoordelijk: klantVerantwoordelijk,
           verzekeringsdocumenten,
+          photos,
         }),
       });
       if (!res.ok) { setError('Opslaan mislukt'); return; }
@@ -162,6 +165,11 @@ export function SchadeForm({ siteId, userName }: SchadeFormProps) {
         <CheckToggle label="Installatiefout?" value={installatiefout} onChange={setInstallatiefout} />
         <CheckToggle label="Klant verantwoordelijk?" value={klantVerantwoordelijk} onChange={setKlantVerantwoordelijk} />
         <CheckToggle label="Verzekeringsdocumenten" value={verzekeringsdocumenten} onChange={setVerzekeringsdocumenten} />
+      </div>
+
+      <div className={styles.photoSection}>
+        <label className={styles.sectionLabel}>Foto&apos;s</label>
+        <PhotoUpload photos={photos} onChange={setPhotos} maxPhotos={5} />
       </div>
 
       <div className={styles.metaRow}>
