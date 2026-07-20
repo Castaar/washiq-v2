@@ -40,12 +40,31 @@ export function ProgrammaCard({ programs, totalWagens, costBreakdown, prevCostBr
   const countSign = countDelta >= 0 ? '+' : '';
 
   const isPrijs = view !== 'liter';
-  const programChemicals = selectedId !== ALL_ID ? (selected.chemicals ?? null) : null;
-  const visibleCosts = costBreakdown.filter((c) => {
-    if (c.euroPerWagen === 0 && (c.rawPerWagen ?? 0) === 0) return false;
-    if (c.isChemical && programChemicals) return programChemicals.includes(c.label);
-    return true;
-  });
+  const isAllPrograms = selectedId === ALL_ID;
+  const programChemicals = !isAllPrograms ? (selected.chemicals ?? null) : null;
+
+  // For each chemical, compute how many wagens actually received it
+  // (sum of counts of programs that include it). This lets us correctly
+  // scale from "total / all_wagens" to "total / wagens_using_this_chem".
+  function wagensUsingChem(label: string): number {
+    return programs.reduce((s, p) => s + (p.chemicals?.includes(label) ? p.count : 0), 0);
+  }
+
+  const visibleCosts = costBreakdown
+    .filter((c) => {
+      if (c.euroPerWagen === 0 && (c.rawPerWagen ?? 0) === 0) return false;
+      if (c.isChemical && programChemicals) return programChemicals.includes(c.label);
+      return true;
+    })
+    .map((c) => {
+      if (!c.isChemical || isAllPrograms) return c;
+      // Scale to per-wash cost for programs that actually use this chemical
+      const usingWagens = wagensUsingChem(c.label);
+      if (usingWagens <= 0 || usingWagens === totalWagens) return c;
+      const scale = totalWagens / usingWagens;
+      return { ...c, euroPerWagen: Math.round(c.euroPerWagen * scale * 100) / 100 };
+    });
+
   const grandTotal = Math.round(visibleCosts.reduce((s, c) => s + c.euroPerWagen, 0) * 100) / 100;
 
   return (
@@ -87,7 +106,7 @@ export function ProgrammaCard({ programs, totalWagens, costBreakdown, prevCostBr
           {isPrijs && (
             <>
               <div className={styles.totalRow}>
-                <span className={styles.totalLabel}>Totaal kostprijs / wagen</span>
+                <span className={styles.totalLabel}>{isAllPrograms ? 'Gem. kostprijs / wagen' : 'Kostprijs basis / wagen'}</span>
                 <span className={styles.totalValue}>€ {grandTotal}</span>
               </div>
               <div className={styles.divider} />
@@ -95,7 +114,15 @@ export function ProgrammaCard({ programs, totalWagens, costBreakdown, prevCostBr
           )}
           <div className={styles.rows}>
             {visibleCosts.map((c) => {
-              const prev = prevCostBreakdown.find((p) => p.label === c.label);
+              const prevRaw = prevCostBreakdown.find((p) => p.label === c.label);
+              let prev = prevRaw;
+              if (prevRaw?.isChemical && !isAllPrograms) {
+                const usingWagens = wagensUsingChem(c.label);
+                if (usingWagens > 0 && usingWagens !== totalWagens) {
+                  const scale = totalWagens / usingWagens;
+                  prev = { ...prevRaw, euroPerWagen: Math.round(prevRaw.euroPerWagen * scale * 100) / 100 };
+                }
+              }
               const delta = prev != null ? Math.round((c.euroPerWagen - prev.euroPerWagen) * 100) / 100 : null;
               const deltaPos = delta != null && delta >= 0;
               const displayVal = isPrijs && c.euroPerWagen > 0

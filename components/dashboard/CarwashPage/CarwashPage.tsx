@@ -21,7 +21,7 @@ import { ProgrammaCard } from '@/components/dashboard/ProgrammaCard/ProgrammaCar
 import type { ProgramOption } from '@/components/dashboard/ProgrammaCard/ProgrammaCard';
 import { ConsumptionCard } from '@/components/dashboard/ConsumptionCard/ConsumptionCard';
 import { WagensCard } from '@/components/dashboard/WagensCard/WagensCard';
-import { RankingWidget } from '@/components/dashboard/RankingWidget/RankingWidget';
+
 import { CarwashHero } from '@/components/dashboard/CarwashHero/CarwashHero';
 import { AlertsPanel } from '@/components/dashboard/AlertsPanel/AlertsPanel';
 import { VoorraadPanel } from '@/components/dashboard/VoorraadPanel/VoorraadPanel';
@@ -668,31 +668,8 @@ export async function CarwashPage({
   const PERIOD_OPTIONS = [{ label: 'Week', value: 'week' }, { label: 'Maand', value: 'month' }];
   const VIEW_OPTIONS   = [{ label: 'Prijs', value: 'prijs' }, { label: 'Liter', value: 'liter' }];
 
-  // ── Ranking (owner / developer only) ─────────────────────────
   const isOwner = userRole === 'owner' || userRole === 'developer';
   const isEmployee = userRole === 'employee';
-  let ownerRank = 1;
-  let ownerTotal = 1;
-  if (isOwner && siteId && resolvedSite?.owner_id) {
-    const siblingDocs = await Site.find({ owner_id: resolvedSite.owner_id }).select('_id').lean();
-    ownerTotal = siblingDocs.length;
-    if (ownerTotal > 1) {
-      const siblingIds = siblingDocs.map((s) => (s._id as Types.ObjectId).toString());
-      const latestPerSite = await Promise.all(
-        siblingIds.map((sId) =>
-          WeeklyEntry.findOne({ site_id: sId }).sort({ week_start: -1 }).select('program_counts').lean(),
-        ),
-      );
-      const ranked = siblingIds
-        .map((sId, i) => ({
-          siteId: sId,
-          wagens: latestPerSite[i]?.program_counts?.reduce((s: number, p: { count?: number }) => s + (p.count ?? 0), 0) ?? 0,
-        }))
-        .sort((a, b) => b.wagens - a.wagens);
-      const rankIdx = ranked.findIndex((s) => s.siteId === siteId);
-      ownerRank = rankIdx >= 0 ? rankIdx + 1 : 1;
-    }
-  }
 
   return (
     <div className={styles.grid}>
@@ -706,6 +683,9 @@ export async function CarwashPage({
           <Link href={`/planning?site=${siteId}`} className={styles.quickBtn}>Planning</Link>
           <Link href={`/incidenten?site=${siteId}`} className={styles.quickBtn}>Incidenten</Link>
           <Link href={`/leveringen?site=${siteId}`} className={styles.quickBtn}>Leveringen</Link>
+          {!isEmployee && (
+            <Link href={`/onderhouden?site=${siteId}`} className={styles.quickBtn}>Onderhoud</Link>
+          )}
           <Link href="/diversen" className={styles.quickBtn}>Diversen</Link>
           {!isEmployee && (
             <Link href="/technieker" className={styles.quickBtn}>Technieker</Link>
@@ -789,19 +769,6 @@ export async function CarwashPage({
           Geen ingave voor deze periode — meest recente ingave getoond
         </div>
       )}
-      <div className={styles.foot}>
-        <div className={styles.spacer} />
-        <div className={styles.rankingSlot}>
-          {isOwner && (
-            <RankingWidget
-              rank={ownerRank}
-              total={ownerTotal}
-              isOwner={isOwner}
-              siteId={siteId ?? ''}
-            />
-          )}
-        </div>
-      </div>
     </div>
   );
 }

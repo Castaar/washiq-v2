@@ -33,7 +33,7 @@ export default async function TechniekerPage() {
     allowedSites.map((s) => [(s._id as Types.ObjectId).toString(), s.name as string]),
   );
 
-  const [defects, schades, tasks, latestEntries] = await Promise.all([
+  const [defects, schades, tasks, latestEntries, techUsers] = await Promise.all([
     Defect.find({
       site_id: { $in: siteIds },
       $or: [{ is_resolved: false }, { is_resolved: { $exists: false } }],
@@ -46,6 +46,7 @@ export default async function TechniekerPage() {
     Promise.all(
       siteIds.map((sId) => WeeklyEntry.findOne({ site_id: sId }).sort({ week_start: -1 }).select('tellerstand').lean()),
     ),
+    User.find({ site_ids: { $in: siteIds }, role: { $in: ['employee', 'technician'] } }).select('_id name').lean(),
   ]);
 
   const tellerstandBySite: Record<string, number> = {};
@@ -65,6 +66,7 @@ export default async function TechniekerPage() {
       subtitle: '',
       severity: ((d.ernst as string) === 'hoog' ? 'high' : (d.ernst as string) === 'laag' ? 'low' : 'medium') as 'low' | 'medium' | 'high',
       date: fmtDate(new Date(d.created_at as Date)),
+      assignedToName: (d.assigned_to_name as string) || undefined,
     })),
     ...schades.map((s) => ({
       id: (s._id as Types.ObjectId).toString(),
@@ -102,6 +104,7 @@ export default async function TechniekerPage() {
             items={items}
             userRole={userRole}
             allowedSites={allowedSites.map((s) => ({ id: (s._id as Types.ObjectId).toString(), name: s.name as string }))}
+            availableUsers={(techUsers as { _id: Types.ObjectId; name: string }[]).map((u) => ({ id: u._id.toString(), name: u.name }))}
           />
         </div>
       </main>

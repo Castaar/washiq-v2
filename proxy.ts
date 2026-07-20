@@ -44,7 +44,8 @@ export async function proxy(req: NextRequest) {
       pathname.startsWith('/historiek') ||
       pathname.startsWith('/instellingen') ||
       pathname.startsWith('/setup') ||
-      pathname.startsWith('/technieker')
+      pathname.startsWith('/technieker') ||
+      pathname.startsWith('/onderhouden')
     ) {
       const url = req.nextUrl.clone();
       url.pathname = '/dagfiche';

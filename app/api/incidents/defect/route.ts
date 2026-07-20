@@ -21,6 +21,7 @@ export async function POST(req: NextRequest) {
     reported_by_name: session.name,
     omschrijving: body.omschrijving ?? '',
     ernst,
+    assigned_to_name: body.assigned_to_name ?? '',
   });
 
   sendPushToAll({

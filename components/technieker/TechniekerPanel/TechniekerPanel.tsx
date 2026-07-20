@@ -12,6 +12,7 @@ export interface TechniekerItem {
   subtitle: string;
   severity: 'low' | 'medium' | 'high';
   date: string;
+  assignedToName?: string;
 }
 
 const KIND_LABEL: Record<TechniekerItem['kind'], string> = {
@@ -23,8 +24,9 @@ const KIND_LABEL: Record<TechniekerItem['kind'], string> = {
 const UNDO_TIMEOUT_MS = 6000;
 
 interface AllowedSite { id: string; name: string; }
+interface AvailableUser { id: string; name: string; }
 
-export function TechniekerPanel({ items: initial, userRole = 'technician', allowedSites = [] }: { items: TechniekerItem[]; userRole?: string; allowedSites?: AllowedSite[] }) {
+export function TechniekerPanel({ items: initial, userRole = 'technician', allowedSites = [], availableUsers = [] }: { items: TechniekerItem[]; userRole?: string; allowedSites?: AllowedSite[]; availableUsers?: AvailableUser[] }) {
   const [items, setItems] = useState(initial);
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [resolvingId, setResolvingId] = useState<string | null>(null);
@@ -37,6 +39,7 @@ export function TechniekerPanel({ items: initial, userRole = 'technician', allow
   const [addSiteId, setAddSiteId] = useState(allowedSites[0]?.id ?? '');
   const [addDesc, setAddDesc] = useState('');
   const [addErnst, setAddErnst] = useState<'laag' | 'medium' | 'hoog'>('medium');
+  const [addAssignedTo, setAddAssignedTo] = useState('');
   const [addSaving, setAddSaving] = useState(false);
 
   async function handleAddTask(e: React.FormEvent) {
@@ -46,7 +49,7 @@ export function TechniekerPanel({ items: initial, userRole = 'technician', allow
     const res = await fetch('/api/incidents/defect', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ siteId: addSiteId, omschrijving: addDesc.trim(), ernst: addErnst }),
+      body: JSON.stringify({ siteId: addSiteId, omschrijving: addDesc.trim(), ernst: addErnst, assigned_to_name: addAssignedTo }),
     });
     if (res.ok) {
       const data = await res.json() as { id: string };
@@ -58,6 +61,7 @@ export function TechniekerPanel({ items: initial, userRole = 'technician', allow
       }, ...prev]);
       setAddDesc('');
       setAddErnst('medium');
+      setAddAssignedTo('');
       setShowAdd(false);
     }
     setAddSaving(false);
@@ -82,7 +86,7 @@ export function TechniekerPanel({ items: initial, userRole = 'technician', allow
         await fetch(`/api/incidents/defect/${item.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ is_resolved: true }),
+          body: JSON.stringify({ is_resolved: true, resolve_note: note }),
         });
       } else if (item.kind === 'schade') {
         await fetch(`/api/incidents/schade/${item.id}`, {
@@ -162,6 +166,12 @@ export function TechniekerPanel({ items: initial, userRole = 'technician', allow
                 <option value="medium">Medium</option>
                 <option value="hoog">Hoog</option>
               </select>
+              {availableUsers.length > 0 && (
+                <select className={styles.addSelect} value={addAssignedTo} onChange={(e) => setAddAssignedTo(e.target.value)}>
+                  <option value="">Toewijzen aan... (optioneel)</option>
+                  {availableUsers.map((u) => <option key={u.id} value={u.name}>{u.name}</option>)}
+                </select>
+              )}
               <div className={styles.addActions}>
                 <button type="button" className={styles.cancelBtn} onClick={() => setShowAdd(false)}>Annuleren</button>
                 <button type="submit" className={styles.submitBtn} disabled={addSaving || !addDesc.trim()}>
@@ -212,11 +222,12 @@ export function TechniekerPanel({ items: initial, userRole = 'technician', allow
                     </div>
                     <p className={styles.itemTitle}>{item.title}</p>
                     {item.subtitle && <p className={styles.itemSubtitle}>{item.subtitle}</p>}
-                    {item.kind === 'maintenance' && (
+                    {item.assignedToName && <p className={styles.itemSubtitle}>Toegewezen: {item.assignedToName}</p>}
+                    {(item.kind === 'maintenance' || item.kind === 'defect') && (
                       <input
                         className={styles.noteInput}
                         type="text"
-                        placeholder="Opmerking (optioneel)"
+                        placeholder="Opmerking bij oplossen (optioneel)"
                         value={noteDrafts[item.id] ?? ''}
                         onChange={(e) => setNoteDrafts((prev) => ({ ...prev, [item.id]: e.target.value }))}
                       />

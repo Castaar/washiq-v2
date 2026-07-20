@@ -16,12 +16,29 @@ const CHECKLIST_ITEMS = [
   'Kassa ok / afgesloten?',
 ];
 
+export interface TodayEvent {
+  kind: 'inlog' | 'uitlog' | 'incident' | 'defect' | 'levering' | 'onderhoud';
+  label: string;
+  time: string;
+  detail?: string;
+}
+
+const KIND_ICON: Record<TodayEvent['kind'], string> = {
+  inlog: '→',
+  uitlog: '←',
+  incident: '⚠',
+  defect: '🔧',
+  levering: '📦',
+  onderhoud: '✓',
+};
+
 export interface DagficheFormProps {
   siteId: string;
   siteName: string;
   userName: string;
   totalWagens: number;
   maintenanceTasks?: { id: string; description: string }[];
+  todayEvents?: TodayEvent[];
 }
 
 function buildReport(
@@ -58,7 +75,7 @@ function buildReport(
   return `[Automatisch gegenereerd dagrapport: ${shortName} · ${date} · ${siteName} · ${totalWagens} wassingen${checkText}]`;
 }
 
-export function DagficheForm({ siteId, siteName, userName, totalWagens, maintenanceTasks = [] }: DagficheFormProps) {
+export function DagficheForm({ siteId, siteName, userName, totalWagens, maintenanceTasks = [], todayEvents = [] }: DagficheFormProps) {
   const router = useRouter();
   const [items, setItems] = useState(
     CHECKLIST_ITEMS.map((label) => ({ label, checked: false, opmerking: '' })),
@@ -159,6 +176,23 @@ export function DagficheForm({ siteId, siteName, userName, totalWagens, maintena
 
   return (
     <form className={styles.card} onSubmit={handleSubmit} noValidate>
+      {todayEvents.length > 0 && (
+        <div className={styles.todaySection}>
+          <h2 className={styles.sectionLabel}>Vandaag</h2>
+          <div className={styles.todayList}>
+            {todayEvents.map((ev, i) => (
+              <div key={i} className={[styles.todayItem, styles[`kind_${ev.kind}`]].join(' ')}>
+                <span className={styles.todayIcon}>{KIND_ICON[ev.kind]}</span>
+                <div className={styles.todayBody}>
+                  <span className={styles.todayLabel}>{ev.label}</span>
+                  {ev.detail && <span className={styles.todayDetail}>{ev.detail}</span>}
+                </div>
+                <span className={styles.todayTime}>{ev.time}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       <div className={styles.columns}>
         {/* ── Left: checklist ──────────────────────────────── */}
         <div className={styles.left}>

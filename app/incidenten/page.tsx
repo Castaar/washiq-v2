@@ -5,7 +5,7 @@ import { NavBar } from '@/components/layout/NavBar/NavBar';
 import { IncidentenPanel } from '@/components/incidenten/IncidentenPanel/IncidentenPanel';
 import type { IncidentListItem } from '@/components/incidenten/IncidentenPanel/IncidentenPanel';
 import { dbConnect } from '@/lib/db/mongoose';
-import { Site, IncidentSchade, IncidentEhbo, Defect, WeeklyEntry, User } from '@/lib/models';
+import { Site, IncidentSchade, IncidentEhbo, WeeklyEntry, User } from '@/lib/models';
 import { getSession } from '@/lib/session';
 import { filterSitesForUser, resolveActiveSite } from '@/lib/getUserSites';
 import styles from './page.module.scss';
@@ -37,10 +37,9 @@ export default async function IncidentenPage({
   const allowedSites = filterSitesForUser(siteDocs as Parameters<typeof filterSitesForUser>[0], userSiteIds, userRole);
   const siteId = resolveActiveSite(allowedSites, site ?? cookieSite);
 
-  const [schades, ehbos, defects, totalSchade, allSchades, latestEntry] = await Promise.all([
+  const [schades, ehbos, totalSchade, allSchades, latestEntry] = await Promise.all([
     IncidentSchade.find({ site_id: siteId }).sort({ created_at: -1 }).limit(15).lean(),
     IncidentEhbo.find({ site_id: siteId }).sort({ created_at: -1 }).limit(15).lean(),
-    Defect.find({ site_id: siteId }).sort({ created_at: -1 }).limit(15).lean(),
     IncidentSchade.countDocuments({ site_id: siteId }),
     IncidentSchade.find({ site_id: siteId }).select('schade_locaties').lean(),
     WeeklyEntry.findOne({ site_id: siteId }).sort({ week_start: -1 }).select('tellerstand').lean(),
@@ -81,15 +80,6 @@ export default async function IncidentenPage({
       date: fmtDate(new Date(e.created_at as Date)),
       is_resolved: false,
       resolved_by_name: '',
-    })),
-    ...defects.map((d) => ({
-      id: (d._id as Types.ObjectId).toString(),
-      type: 'defect' as const,
-      title: ((d.omschrijving as string) ?? '').slice(0, 40) || 'Defect',
-      subtitle: (d.ernst as string) || '',
-      date: fmtDate(new Date(d.created_at as Date)),
-      is_resolved: (d.is_resolved as boolean) ?? false,
-      resolved_by_name: (d.resolved_by_name as string) ?? '',
     })),
   ].sort((a, b) => b.date.localeCompare(a.date));
 

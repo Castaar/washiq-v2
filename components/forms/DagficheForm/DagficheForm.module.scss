@@ -330,3 +330,74 @@
   font-weight: 500;
   padding: var(--space-3) 0;
 }
+
+.todaySection {
+  margin-bottom: var(--space-5);
+  padding-bottom: var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.todayList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.todayItem {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--color-border);
+
+  &.kind_incident, &.kind_defect {
+    border-color: rgba(239, 68, 68, 0.25);
+    background: rgba(239, 68, 68, 0.04);
+  }
+
+  &.kind_levering {
+    border-color: rgba(0, 189, 149, 0.2);
+  }
+
+  &.kind_onderhoud {
+    border-color: rgba(0, 189, 149, 0.2);
+    background: rgba(0, 189, 149, 0.04);
+  }
+}
+
+.todayIcon {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  width: 16px;
+  text-align: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.todayBody {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.todayLabel {
+  font-size: 0.875rem;
+  color: var(--color-text-primary);
+  font-weight: 500;
+}
+
+.todayDetail {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.todayTime {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}

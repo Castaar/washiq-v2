@@ -326,6 +326,8 @@ export interface IDefect extends Document {
   is_resolved: boolean;
   resolved_at: Date;
   resolved_by_name: string;
+  resolve_note: string;
+  assigned_to_name: string;
   created_at: Date;
 }
 const DefectSchema = new Schema<IDefect>({
@@ -337,6 +339,8 @@ const DefectSchema = new Schema<IDefect>({
   is_resolved: { type: Boolean, default: false },
   resolved_at: Date,
   resolved_by_name: { type: String, default: '' },
+  resolve_note: { type: String, default: '' },
+  assigned_to_name: { type: String, default: '' },
   created_at: { type: Date, default: Date.now },
 });
 export const Defect = models.Defect || model<IDefect>('Defect', DefectSchema);
