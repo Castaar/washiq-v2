@@ -14,25 +14,26 @@
 
 // Variants
 .variant-default {
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-sm);
 }
 
 .variant-elevated {
   background: var(--color-surface-elevated);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-md);
 }
 
+// Accent variants: a colored top border instead of a dark-theme glow
 .variant-glow-blue {
-  border-color: rgba(79, 124, 255, 0.35);
-  box-shadow: var(--shadow-md), var(--glow-blue);
+  border-color: var(--color-accent-blue-border);
+  box-shadow: var(--shadow-sm);
 }
 
 .variant-glow-teal {
-  border-color: rgba(16, 217, 160, 0.3);
-  box-shadow: var(--shadow-md), var(--glow-teal);
+  border-color: var(--color-accent-teal);
+  box-shadow: var(--shadow-sm);
 }
 
 .variant-glow-purple {
-  border-color: rgba(167, 139, 250, 0.3);
-  box-shadow: var(--shadow-md), var(--glow-purple);
+  border-color: var(--color-accent-purple);
+  box-shadow: var(--shadow-sm);
 }

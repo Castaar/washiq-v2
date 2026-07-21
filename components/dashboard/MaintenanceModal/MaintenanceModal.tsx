@@ -1,9 +1,8 @@
 'use client';
 
-import { useEffect } from 'react';
 import type { MaintenanceTaskPayload } from '@/lib/types/dashboard';
-import { IconX } from '@/components/ui/icons';
 import { ActivitySection } from '@/components/dashboard/ActivitySection/ActivitySection';
+import { BottomSheet } from '@/components/ui/BottomSheet/BottomSheet';
 import styles from './MaintenanceModal.module.scss';
 
 interface MaintenanceModalProps {
@@ -36,31 +35,12 @@ function triggerLabel(payload: MaintenanceTaskPayload): string {
 }
 
 export function MaintenanceModal({ payload, refId, refType, siteId, onClose }: MaintenanceModalProps) {
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose();
-    }
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
   return (
-    <div className={styles.overlay} onClick={onClose}>
-      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-        <div className={styles.header}>
-          <div>
-            <div className={styles.headerTop}>
-              <span className={styles.badge}>Onderhoud</span>
-            </div>
-            <p className={styles.meta}>{payload.description}</p>
-          </div>
-          <button className={styles.closeBtn} onClick={onClose} aria-label="Sluiten">
-            <IconX size={18} />
-          </button>
-        </div>
+    <BottomSheet open onClose={onClose} title="Onderhoud">
+      <p className={styles.meta}>{payload.description}</p>
 
-        <div className={styles.body}>
-          <div className={styles.section}>
+      <div className={styles.body}>
+        <div className={styles.section}>
             <p className={styles.sectionTitle}>Details</p>
             <div className={styles.row}>
               <span className={styles.rowLabel}>Frequentie</span>
@@ -103,11 +83,10 @@ export function MaintenanceModal({ payload, refId, refType, siteId, onClose }: M
                 )}
               </>
             )}
-          </div>
-
-          <ActivitySection refId={refId} refType={refType} siteId={siteId} />
         </div>
+
+        <ActivitySection refId={refId} refType={refType} siteId={siteId} />
       </div>
-    </div>
+    </BottomSheet>
   );
 }

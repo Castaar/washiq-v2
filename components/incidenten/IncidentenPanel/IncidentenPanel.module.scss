@@ -16,20 +16,19 @@
 }
 
 .statItem {
-  background: #ffffff1a;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   padding: var(--space-3) var(--space-5);
   display: flex;
   flex-direction: column;
   gap: 2px;
+  box-shadow: var(--shadow-sm);
 }
 
 .statAlert {
-  border-color: rgba(224, 120, 68, 0.5);
-  background: rgba(224, 120, 68, 0.08);
+  border-color: var(--color-accent-amber-border);
+  background: var(--color-accent-amber-dim);
 }
 
 .statValue {
@@ -40,7 +39,7 @@
 }
 
 .statAlert .statValue {
-  color: #e07844;
+  color: var(--color-accent-amber);
 }
 
 .statLabel {
@@ -63,20 +62,19 @@
 // ── Shared card ────────────────────────────────────────────────
 .left,
 .right {
-  background: #ffffff1a;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   padding: var(--space-6);
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+  box-shadow: var(--shadow-sm);
 }
 
 .sectionTitle {
   font-size: 0.8125rem;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--color-text-secondary);
   letter-spacing: 0.02em;
 }
@@ -113,8 +111,8 @@
 }
 
 .filterTabActive {
-  border-color: var(--color-text-secondary);
-  color: var(--color-text-primary);
+  border-color: var(--color-accent-blue);
+  color: var(--color-accent-blue);
 }
 
 // ── Incident list ──────────────────────────────────────────────
@@ -137,7 +135,7 @@
   align-items: flex-start;
   padding: var(--space-3);
   border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.025);
+  background: var(--color-bg-tertiary);
   transition: opacity 0.15s;
 }
 
@@ -156,9 +154,9 @@
   flex-shrink: 0;
 }
 
-.icon_schade { background: rgba(224, 120, 68, 0.15); color: #e07844; border: 1px solid rgba(224, 120, 68, 0.3); }
-.icon_ehbo   { background: rgba(224, 68, 68, 0.15);  color: #e04444; border: 1px solid rgba(224, 68, 68, 0.3); }
-.icon_defect { background: rgba(224, 179, 68, 0.15); color: #e0b344; border: 1px solid rgba(224, 179, 68, 0.3); }
+.icon_schade { background: var(--color-accent-red-dim); color: var(--color-accent-red); border: 1px solid var(--color-accent-red-border); }
+.icon_ehbo   { background: var(--color-accent-red-dim); color: var(--color-accent-red); border: 1px solid var(--color-accent-red-border); }
+.icon_defect { background: var(--color-accent-amber-dim); color: var(--color-accent-amber); border: 1px solid var(--color-accent-amber-border); }
 
 .incBody {
   display: flex;
@@ -216,13 +214,13 @@
   flex-shrink: 0;
 }
 
-.badge_schade .badgeDot { background: #e07844; }
-.badge_ehbo   .badgeDot { background: #e04444; }
-.badge_defect .badgeDot { background: #e0b344; }
+.badge_schade .badgeDot { background: var(--color-accent-red); }
+.badge_ehbo   .badgeDot { background: var(--color-accent-red); }
+.badge_defect .badgeDot { background: var(--color-accent-amber); }
 
-.badge_schade { color: #e07844; }
-.badge_ehbo   { color: #e04444; }
-.badge_defect { color: #e0b344; }
+.badge_schade { color: var(--color-accent-red); }
+.badge_ehbo   { color: var(--color-accent-red); }
+.badge_defect { color: var(--color-accent-amber); }
 
 // ── Resolve button ─────────────────────────────────────────────
 .resolveBtn {
@@ -289,7 +287,7 @@
 .defectTextarea {
   width: 100%;
   min-height: 140px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--color-bg-tertiary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   color: var(--color-text-primary);
@@ -303,7 +301,7 @@
 
   &:focus {
     outline: none;
-    border-color: rgba(255, 255, 255, 0.2);
+    border-color: var(--color-accent-blue);
   }
 }
 
@@ -317,18 +315,6 @@
   font-size: 0.8125rem;
   color: var(--color-text-secondary);
   min-width: 36px;
-}
-
-.ernstBtn {
-  flex: 1;
-  height: 36px;
-  background: transparent;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  font-size: 0.8125rem;
-  font-family: inherit;
-  cursor: pointer;
-  transition: border-color 0.15s, color 0.15s;
 }
 
 .defectSaveBtn {
@@ -345,7 +331,7 @@
 
   &:hover:not(:disabled) {
     background: var(--color-accent-teal);
-    color: #000;
+    color: var(--color-text-inverse);
   }
 
   &:disabled {

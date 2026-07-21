@@ -42,9 +42,8 @@
 
 .activeTab {
   color: var(--color-text-primary);
-  background: rgba(16, 217, 160, 0.05);
-  border-color: rgba(16, 217, 160, 0.5);
-  box-shadow: 0 0 12px rgba(16, 217, 160, 0.1);
+  background: var(--color-accent-teal-dim);
+  border-color: var(--color-accent-teal);
 }
 
 // ─── Swipe to dismiss ────────────────────────────────────────
@@ -64,8 +63,8 @@
 .swipeBg {
   position: absolute;
   inset: 0;
-  background: rgba(240, 82, 82, 0.12);
-  border: 1px solid rgba(240, 82, 82, 0.28);
+  background: var(--color-accent-red-dim);
+  border: 1px solid var(--color-accent-red-border);
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
@@ -91,8 +90,8 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 var(--space-4);
-  background: rgba(240, 82, 82, 0.10);
-  border: 1px solid rgba(240, 82, 82, 0.30);
+  background: var(--color-accent-red-dim);
+  border: 1px solid var(--color-accent-red-border);
   border-radius: var(--radius-md);
   animation: fadeIn 0.15s ease;
 }
@@ -120,12 +119,12 @@
   font-size: 0.8125rem;
   font-weight: 600;
   cursor: pointer;
-  background: rgba(240, 82, 82, 0.18);
-  border: 1px solid rgba(240, 82, 82, 0.45);
+  background: var(--color-accent-red-dim);
+  border: 1px solid var(--color-accent-red);
   color: var(--color-accent-red);
   transition: background var(--transition-fast);
 
-  &:hover { background: rgba(240, 82, 82, 0.28); }
+  &:hover { background: var(--color-accent-red); color: var(--color-text-inverse); }
 }
 
 .confirmNo {
@@ -214,19 +213,19 @@
 .icon-medium {
   background: var(--color-accent-amber-dim);
   color: var(--color-accent-amber);
-  border-color: rgba(246, 165, 43, 0.3);
+  border-color: var(--color-accent-amber-border);
 }
 
 .icon-high {
   background: var(--color-accent-red-dim);
   color: var(--color-accent-red);
-  border-color: rgba(240, 82, 82, 0.3);
+  border-color: var(--color-accent-red-border);
 }
 
 .icon-low {
   background: var(--color-accent-teal-dim);
   color: var(--color-accent-teal);
-  border-color: rgba(16, 217, 160, 0.3);
+  border-color: var(--color-accent-teal);
 }
 
 // ─── Item body ───────────────────────────────────────────────
@@ -328,9 +327,7 @@
 .archiveOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: rgba(27, 29, 34, 0.45);
   z-index: 998;
   display: flex;
   align-items: center;

@@ -3,11 +3,10 @@
 .card {
   width: 100%;
   max-width: 620px;
-  background: #ffffff1a;
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
   overflow: hidden;
 }
 
@@ -42,7 +41,7 @@
 
 .progressBar {
   height: 3px;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--color-border);
   border-radius: 2px;
   margin-top: var(--space-3);
   overflow: hidden;
@@ -50,7 +49,7 @@
 
 .progressFill {
   height: 100%;
-  background: var(--color-accent-teal);
+  background: var(--color-accent-blue);
   border-radius: 2px;
   transition: width 0.4s ease;
 }
@@ -97,7 +96,7 @@
 .hint {
   font-size: 0.8125rem;
   color: var(--color-text-muted);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--color-bg-tertiary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   padding: var(--space-3) var(--space-4);
@@ -126,7 +125,7 @@
 .input {
   height: 40px;
   padding: 0 var(--space-3);
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--color-bg-tertiary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   color: var(--color-text-primary);
@@ -139,18 +138,18 @@
 
   &:focus {
     outline: none;
-    border-color: rgba(255, 255, 255, 0.25);
+    border-color: var(--color-accent-blue);
   }
 
   // native select styling
   &:is(select) {
     appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpolyline points='1 1 6 7 11 1'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpolyline points='1 1 6 7 11 1'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 12px center;
     padding-right: 32px;
     cursor: pointer;
-    option { background: #1a1a2e; }
+    option { background: var(--color-surface); }
   }
 }
 
@@ -205,7 +204,7 @@
 .taskRow {
   display: flex;
   flex-direction: column;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--color-bg-tertiary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   overflow: hidden;
@@ -241,7 +240,7 @@
 .taskEditPanel {
   padding: var(--space-3) var(--space-4);
   border-top: 1px solid var(--color-border);
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--color-surface);
 }
 
 .taskInfo {
@@ -274,7 +273,7 @@
   flex-shrink: 0;
   transition: color 0.15s;
 
-  &:hover { color: #e04444; }
+  &:hover { color: var(--color-accent-red); }
 }
 
 .addTaskForm {
@@ -284,7 +283,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--color-surface);
 }
 
 .addTaskActions {
@@ -315,7 +314,7 @@
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: rgba(100, 220, 180, 0.15);
+  background: var(--color-accent-teal-dim);
   border: 1px solid var(--color-accent-teal);
   color: var(--color-accent-teal);
   font-size: 1.5rem;
@@ -335,10 +334,10 @@
 .btnPrimary {
   height: 42px;
   padding: 0 var(--space-6);
-  background: var(--color-accent-teal);
+  background: var(--color-accent-blue);
   border: none;
   border-radius: var(--radius-md);
-  color: #000;
+  color: var(--color-text-inverse);
   font-size: 0.9375rem;
   font-weight: 600;
   font-family: inherit;

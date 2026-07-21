@@ -5,7 +5,7 @@
   align-items: center;
   gap: var(--space-1);
   border-radius: var(--radius-full);
-  font-weight: 600;
+  font-weight: 700;
   white-space: nowrap;
   line-height: 1;
   border: 1px solid transparent;
@@ -15,17 +15,17 @@
 .size-sm {
   font-size: 0.6875rem;
   padding: 2px var(--space-2);
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
 }
 
 .size-md {
   font-size: 0.75rem;
-  padding: 3px var(--space-2);
+  padding: 4px var(--space-3);
 }
 
 // Variants
 .variant-default {
-  background: var(--color-surface-elevated);
+  background: var(--color-bg-tertiary);
   color: var(--color-text-secondary);
   border-color: var(--color-border);
 }
@@ -33,31 +33,31 @@
 .variant-blue {
   background: var(--color-accent-blue-dim);
   color: var(--color-accent-blue);
-  border-color: rgba(79, 124, 255, 0.3);
+  border-color: var(--color-accent-blue-border);
 }
 
 .variant-teal {
   background: var(--color-accent-teal-dim);
   color: var(--color-accent-teal);
-  border-color: rgba(16, 217, 160, 0.3);
+  border-color: var(--color-accent-teal);
 }
 
 .variant-amber {
   background: var(--color-accent-amber-dim);
   color: var(--color-accent-amber);
-  border-color: rgba(246, 165, 43, 0.3);
+  border-color: var(--color-accent-amber-border);
 }
 
 .variant-red {
   background: var(--color-accent-red-dim);
   color: var(--color-accent-red);
-  border-color: rgba(240, 82, 82, 0.3);
+  border-color: var(--color-accent-red-border);
 }
 
 .variant-purple {
   background: var(--color-accent-purple-dim);
   color: var(--color-accent-purple);
-  border-color: rgba(167, 139, 250, 0.3);
+  border-color: var(--color-accent-purple);
 }
 
 // Dot variant
@@ -72,20 +72,4 @@
   border-radius: var(--radius-full);
   background: currentColor;
   flex-shrink: 0;
-
-  .variant-blue & {
-    box-shadow: 0 0 6px var(--color-accent-blue);
-  }
-
-  .variant-teal & {
-    box-shadow: 0 0 6px var(--color-accent-teal);
-  }
-
-  .variant-amber & {
-    box-shadow: 0 0 6px var(--color-accent-amber);
-  }
-
-  .variant-red & {
-    box-shadow: 0 0 6px var(--color-accent-red);
-  }
 }

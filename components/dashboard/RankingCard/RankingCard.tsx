@@ -24,7 +24,7 @@ function Sparkline({ data }: { data: number[] }) {
       <polyline
         points={pts}
         fill="none"
-        stroke={isUp ? '#10d9a0' : '#f05252'}
+        stroke={isUp ? '#0f9a78' : '#d64545'}
         strokeWidth="1.5"
         strokeLinejoin="round"
         strokeLinecap="round"

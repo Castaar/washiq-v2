@@ -12,16 +12,16 @@
 
 // ─── First-time banner ────────────────────────────────────────
 .firstTimeBanner {
-  @include glass(0.06);
+  @include glass;
   border-radius: var(--radius-lg);
   padding: var(--space-5) var(--space-6);
-  border-color: rgba(16, 217, 160, 0.25);
+  border-color: var(--color-accent-teal-dim);
 }
 
 .bannerTitle {
   display: block;
   font-size: 0.8125rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--color-accent-teal);
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -49,7 +49,7 @@
   align-items: center;
   gap: 0;
   padding: var(--space-4) var(--space-5);
-  @include glass(0.04);
+  @include glass;
   border-radius: var(--radius-lg);
 }
 
@@ -74,7 +74,7 @@
   margin: 0 var(--space-3);
   transition: background var(--transition-fast);
 
-  &.lineDone { background: rgba(16, 217, 160, 0.35); }
+  &.lineDone { background: var(--color-accent-teal); }
 }
 
 // ─── Step badge ───────────────────────────────────────────────
@@ -92,25 +92,26 @@
 }
 
 .badgeDone {
-  background: rgba(16, 217, 160, 0.15);
+  background: var(--color-accent-teal-dim);
   color: var(--color-accent-teal);
-  border: 1px solid rgba(16, 217, 160, 0.4);
+  border: 1px solid var(--color-accent-teal);
 }
 
 .badgePending {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--color-bg-tertiary);
   color: var(--color-text-secondary);
   border: 1px solid var(--color-border);
 }
 
 // ─── Section card ─────────────────────────────────────────────
 .section {
-  @include glass(0.045);
+  @include glass;
   border-radius: var(--radius-xl);
   padding: var(--space-6);
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
+  box-shadow: var(--shadow-sm);
 
   @include respond-to('mobile') {
     padding: var(--space-4);
@@ -126,7 +127,7 @@
 
 .sectionTitle {
   font-size: 0.9375rem;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--color-text-primary);
   margin: 0;
 }
@@ -166,13 +167,13 @@
   align-items: center;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--color-bg-tertiary);
   overflow: hidden;
   transition: border-color var(--transition-fast), background var(--transition-fast);
 
   &:focus-within {
-    border-color: rgba(255, 255, 255, 0.2);
-    background: rgba(255, 255, 255, 0.06);
+    border-color: var(--color-accent-blue);
+    background: var(--color-surface);
   }
 }
 
@@ -217,7 +218,7 @@
   gap: var(--space-3);
   padding: 0 var(--space-2);
   font-size: 0.6875rem;
-  font-weight: 500;
+  font-weight: 700;
   color: var(--color-text-muted);
   letter-spacing: 0.03em;
   text-transform: uppercase;
@@ -234,7 +235,7 @@
   align-items: center;
   padding: var(--space-2);
   border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.025);
+  background: var(--color-bg-tertiary);
   border: 1px solid var(--color-border);
 
   @include respond-to('mobile') {
@@ -251,7 +252,7 @@
 
 .stockInput {
   height: 36px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   color: var(--color-text-primary);
@@ -268,15 +269,14 @@
 
   &:focus {
     outline: none;
-    border-color: rgba(255, 255, 255, 0.2);
-    background: rgba(255, 255, 255, 0.06);
+    border-color: var(--color-accent-blue);
   }
 
   &::placeholder { color: var(--color-text-muted); font-weight: 400; }
 }
 
 .stockLow {
-  color: var(--color-danger, #ef4444);
+  color: var(--color-accent-red);
   font-weight: 600;
 }
 
@@ -300,20 +300,20 @@
 
 .billSelect {
   height: 40px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--color-bg-tertiary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   color: var(--color-text-primary);
   font-size: 0.875rem;
   font-family: inherit;
   padding: 0 var(--space-3);
-  color-scheme: dark;
+  color-scheme: light;
   cursor: pointer;
   transition: border-color var(--transition-fast);
 
   &:focus {
     outline: none;
-    border-color: rgba(255, 255, 255, 0.2);
+    border-color: var(--color-accent-blue);
   }
 }
 
@@ -322,11 +322,11 @@
   align-items: center;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--color-bg-tertiary);
   overflow: hidden;
   transition: border-color var(--transition-fast);
 
-  &:focus-within { border-color: rgba(255, 255, 255, 0.2); }
+  &:focus-within { border-color: var(--color-accent-blue); }
 }
 
 .billEuro {
@@ -370,7 +370,7 @@
   justify-content: space-between;
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.025);
+  background: var(--color-bg-tertiary);
 }
 
 .billPeriod {
@@ -445,7 +445,7 @@
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-2) var(--space-3);
-  background: var(--color-bg-elevated);
+  background: var(--color-bg-tertiary);
   border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
 }
@@ -475,8 +475,8 @@
   transition: color var(--transition-fast), background var(--transition-fast);
 
   &:hover {
-    color: var(--color-danger, #ef4444);
-    background: color-mix(in srgb, var(--color-danger, #ef4444) 10%, transparent);
+    color: var(--color-accent-red);
+    background: var(--color-accent-red-dim);
   }
 }
 
@@ -492,7 +492,7 @@
   min-width: 160px;
   height: 36px;
   padding: 0 var(--space-3);
-  background: var(--color-bg-elevated);
+  background: var(--color-bg-tertiary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   color: var(--color-text-primary);
@@ -506,7 +506,7 @@
 .productUnitSelect {
   height: 36px;
   padding: 0 var(--space-2);
-  background: var(--color-bg-elevated);
+  background: var(--color-bg-tertiary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   color: var(--color-text-primary);
@@ -519,7 +519,7 @@
 .errorMsg {
   margin-top: var(--space-2);
   font-size: 0.8125rem;
-  color: var(--color-danger, #ef4444);
+  color: var(--color-accent-red);
 }
 
 // ─── Maintenance tasks ─────────────────────────────────────────
@@ -534,7 +534,7 @@
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-3);
-  background: rgba(255, 255, 255, 0.025);
+  background: var(--color-bg-tertiary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
 }
@@ -563,7 +563,7 @@
   flex-direction: column;
   gap: var(--space-4);
   padding: var(--space-4);
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   margin-top: var(--space-2);
@@ -605,7 +605,7 @@
   color: var(--color-text-secondary);
   cursor: pointer;
 
-  input[type='radio'] { accent-color: var(--color-accent-teal); cursor: pointer; }
+  input[type='radio'] { accent-color: var(--color-accent-blue); cursor: pointer; }
 }
 
 .cancelBtn {
@@ -620,7 +620,7 @@
   cursor: pointer;
   transition: background var(--transition-fast), color var(--transition-fast);
 
-  &:hover { background: rgba(255, 255, 255, 0.05); color: var(--color-text-primary); }
+  &:hover { background: var(--color-surface-hover); color: var(--color-text-primary); }
 }
 
 // ─── Copy config ─────────────────────────────────────────────
@@ -646,7 +646,7 @@
 .copySelect {
   height: 36px;
   padding: 0 var(--space-3);
-  background: var(--color-bg-elevated);
+  background: var(--color-bg-tertiary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   color: var(--color-text-primary);

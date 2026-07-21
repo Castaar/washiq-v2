@@ -3,9 +3,7 @@
 .card {
   width: 100%;
   max-width: 1000px;
-  background: #ffffff1a;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   padding: var(--space-6);
@@ -13,6 +11,7 @@
   flex-direction: column;
   gap: var(--space-6);
   overflow: scroll;
+  box-shadow: var(--shadow-sm);
 }
 
 // ── Two-column layout ─────────────────────────────────────────
@@ -35,10 +34,10 @@
 
 .sectionLabel {
   font-size: 0.75rem;
-  font-weight: 500;
+  font-weight: 700;
   color: var(--color-text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
 }
 
 // ── Checklist items ───────────────────────────────────────────
@@ -52,6 +51,25 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.rowChecked {
+  background: var(--color-accent-teal-dim);
+  border-color: var(--color-accent-teal);
+}
+
+.rowRemark {
+  background: var(--color-accent-amber-dim);
+  border-color: var(--color-accent-amber-border);
+}
+
+.rowUnchecked {
+  background: var(--color-accent-red-dim);
+  border-color: var(--color-accent-red-border);
 }
 
 .itemLabel {
@@ -68,7 +86,7 @@
 .opmerkingInput {
   flex: 1;
   height: 38px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--color-bg-tertiary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   color: var(--color-text-primary);
@@ -79,7 +97,7 @@
 
   &:focus {
     outline: none;
-    border-color: rgba(255, 255, 255, 0.2);
+    border-color: var(--color-accent-blue);
   }
 
   &::placeholder {
@@ -93,7 +111,7 @@
   flex-shrink: 0;
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--color-bg-tertiary);
   color: var(--color-text-muted);
   font-size: 1rem;
   cursor: pointer;
@@ -109,7 +127,7 @@
 }
 
 .checkBtnActive {
-  background: rgba(0, 189, 149, 0.15);
+  background: var(--color-accent-teal-dim);
   border-color: var(--color-accent-teal);
   color: var(--color-accent-teal);
 }
@@ -131,7 +149,7 @@
 .reportArea {
   width: 100%;
   min-height: 160px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--color-bg-tertiary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   color: var(--color-text-secondary);
@@ -192,7 +210,7 @@
 
   &:hover:not(:disabled) {
     background: var(--color-accent-teal);
-    color: #000;
+    color: var(--color-text-inverse);
   }
 
   &:disabled {
@@ -213,7 +231,7 @@
 .defectBtn {
   height: 40px;
   padding: 0 var(--space-5);
-  background: rgba(245, 158, 11, 0.1);
+  background: var(--color-accent-amber-dim);
   border: 1px solid var(--color-accent-amber);
   border-radius: var(--radius-md);
   color: var(--color-accent-amber);
@@ -225,15 +243,15 @@
 
   &:hover {
     background: var(--color-accent-amber);
-    color: #000;
+    color: var(--color-text-inverse);
   }
 }
 
 .defectPanel {
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  border: 1px solid var(--color-accent-amber-border);
   border-radius: var(--radius-lg);
   padding: var(--space-4);
-  background: rgba(245, 158, 11, 0.05);
+  background: var(--color-accent-amber-dim);
 }
 
 .defectForm {
@@ -244,7 +262,7 @@
 
 .defectTextarea {
   width: 100%;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--color-bg-tertiary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   color: var(--color-text-primary);
@@ -268,18 +286,6 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
-}
-
-.defectSelect {
-  height: 36px;
-  padding: 0 var(--space-3);
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  color: var(--color-text-primary);
-  font-size: 0.875rem;
-  font-family: inherit;
-  cursor: pointer;
 }
 
 .cancelSmallBtn {
@@ -314,7 +320,7 @@
 
   &:hover:not(:disabled) {
     background: var(--color-accent-amber);
-    color: #000;
+    color: var(--color-text-inverse);
   }
 
   &:disabled {
@@ -350,21 +356,21 @@
   gap: var(--space-3);
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--color-bg-tertiary);
   border: 1px solid var(--color-border);
 
   &.kind_incident, &.kind_defect {
-    border-color: rgba(239, 68, 68, 0.25);
-    background: rgba(239, 68, 68, 0.04);
+    border-color: var(--color-accent-red-border);
+    background: var(--color-accent-red-dim);
   }
 
   &.kind_levering {
-    border-color: rgba(0, 189, 149, 0.2);
+    border-color: var(--color-accent-teal-dim);
   }
 
   &.kind_onderhoud {
-    border-color: rgba(0, 189, 149, 0.2);
-    background: rgba(0, 189, 149, 0.04);
+    border-color: var(--color-accent-teal-dim);
+    background: var(--color-accent-teal-dim);
   }
 }
 

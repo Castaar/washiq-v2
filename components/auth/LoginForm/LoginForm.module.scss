@@ -3,11 +3,10 @@
 .card {
   width: 100%;
   max-width: 380px;
-  background: rgba(255, 255, 255, 0.055);
-  backdrop-filter: blur(32px);
-  -webkit-backdrop-filter: blur(32px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 18px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
   padding: 36px 36px 40px;
   display: flex;
   flex-direction: column;
@@ -22,7 +21,8 @@
 
 .logoText {
   font-size: 0.875rem;
-  color: var(--color-text-muted);
+  font-weight: 700;
+  color: var(--color-text-primary);
 }
 
 .fieldGroup {
@@ -33,15 +33,15 @@
 
 .label {
   font-size: 0.8125rem;
-  font-weight: 400;
-  color: var(--color-text-primary);
+  font-weight: 500;
+  color: var(--color-text-secondary);
 }
 
 .input {
   height: 44px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 10px;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
   color: var(--color-text-primary);
   font-size: 0.9375rem;
   font-family: inherit;
@@ -50,11 +50,11 @@
 
   &:focus {
     outline: none;
-    border-color: rgba(255, 255, 255, 0.28);
+    border-color: var(--color-accent-blue);
   }
 
   &::placeholder {
-    color: var(--color-text-muted);
+    color: var(--color-text-faint);
   }
 }
 
@@ -67,9 +67,9 @@
   -webkit-appearance: none;
   width: 100%;
   height: 44px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 10px;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
   color: var(--color-text-primary);
   font-size: 0.9375rem;
   font-family: inherit;
@@ -80,11 +80,11 @@
 
   &:focus {
     outline: none;
-    border-color: rgba(255, 255, 255, 0.28);
+    border-color: var(--color-accent-blue);
   }
 
   option {
-    background: #0a0e1a;
+    background: var(--color-surface);
     color: var(--color-text-primary);
   }
 }
@@ -130,26 +130,26 @@
 
 .error {
   font-size: 0.8125rem;
-  color: var(--color-accent-amber);
+  color: var(--color-accent-red);
   margin-top: -4px;
 }
 
 .submitBtn {
   height: 44px;
-  background: var(--color-accent-teal);
+  background: var(--color-accent-blue);
   border: none;
-  border-radius: 10px;
-  color: #000;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-inverse);
   font-size: 0.9375rem;
-  font-weight: 600;
+  font-weight: 700;
   font-family: inherit;
   cursor: pointer;
   letter-spacing: 0.01em;
-  transition: opacity 0.15s;
+  transition: background-color 0.15s, opacity 0.15s;
   margin-top: 4px;
 
   &:hover:not(:disabled) {
-    opacity: 0.88;
+    background: var(--color-accent-blue-dark);
   }
 
   &:disabled {
@@ -172,7 +172,7 @@
 
   strong {
     color: var(--color-text-primary);
-    font-weight: 500;
+    font-weight: 600;
   }
 }
 
@@ -183,9 +183,9 @@
   gap: 8px;
   height: 40px;
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 10px;
-  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
   font-size: 0.875rem;
   font-weight: 500;
   font-family: inherit;
@@ -193,7 +193,7 @@
   transition: border-color 0.15s, color 0.15s;
 
   &:hover {
-    border-color: rgba(255, 255, 255, 0.3);
+    border-color: var(--color-accent-blue);
     color: var(--color-text-primary);
   }
 }

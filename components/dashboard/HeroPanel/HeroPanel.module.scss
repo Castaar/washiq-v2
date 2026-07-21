@@ -57,13 +57,11 @@
 }
 
 .dotBlue {
-  background: #4f7cff;
-  box-shadow: 0 0 6px rgba(79, 124, 255, 0.7);
+  background: var(--color-accent-blue);
 }
 
 .dotRed {
-  background: #f05252;
-  box-shadow: 0 0 6px rgba(240, 82, 82, 0.7);
+  background: var(--color-accent-red);
 }
 
 // ─── Stats row ───────────────────────────────────────────────
@@ -115,7 +113,7 @@
   &.positive {
     background: var(--color-accent-teal-dim);
     color: var(--color-accent-teal);
-    border: 1px solid rgba(16, 217, 160, 0.3);
+    border: 1px solid var(--color-accent-teal);
   }
 }
 

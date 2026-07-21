@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { SeverityChips, type Severity } from '@/components/ui/Chip/Chip';
 import styles from './DagficheForm.module.scss';
 
 const CHECKLIST_ITEMS = [
@@ -89,7 +90,7 @@ export function DagficheForm({ siteId, siteName, userName, totalWagens, maintena
 
   const [showDefect, setShowDefect] = useState(false);
   const [defectOmschrijving, setDefectOmschrijving] = useState('');
-  const [defectErnst, setDefectErnst] = useState<'laag' | 'medium' | 'hoog'>('medium');
+  const [defectErnst, setDefectErnst] = useState<Severity>('medium');
   const [defectSubmitting, setDefectSubmitting] = useState(false);
   const [defectSubmitted, setDefectSubmitted] = useState(false);
 
@@ -199,7 +200,17 @@ export function DagficheForm({ siteId, siteName, userName, totalWagens, maintena
           <h2 className={styles.sectionLabel}>Afsluit checklist</h2>
           <div className={styles.itemList}>
             {items.map((item, i) => (
-              <div key={item.label} className={styles.checklistItem}>
+              <div
+                key={item.label}
+                className={[
+                  styles.checklistItem,
+                  item.checked
+                    ? styles.rowChecked
+                    : item.opmerking.trim()
+                      ? styles.rowRemark
+                      : styles.rowUnchecked,
+                ].join(' ')}
+              >
                 <span className={styles.itemLabel}>{item.label}</span>
                 <div className={styles.itemRow}>
                   <input
@@ -227,7 +238,17 @@ export function DagficheForm({ siteId, siteName, userName, totalWagens, maintena
               <h2 className={styles.sectionLabel}>Onderhoud nodig</h2>
               <div className={styles.itemList}>
                 {maintenanceTasks.map((task) => (
-                  <div key={task.id} className={styles.checklistItem}>
+                  <div
+                    key={task.id}
+                    className={[
+                      styles.checklistItem,
+                      maintenanceChecks[task.id]?.checked
+                        ? styles.rowChecked
+                        : maintenanceChecks[task.id]?.opmerking?.trim()
+                          ? styles.rowRemark
+                          : styles.rowUnchecked,
+                    ].join(' ')}
+                  >
                     <span className={[styles.itemLabel, styles.maintenanceLabel].join(' ')}>
                       {task.description}
                     </span>
@@ -282,15 +303,7 @@ export function DagficheForm({ siteId, siteName, userName, totalWagens, maintena
                 rows={3}
               />
               <div className={styles.defectRow}>
-                <select
-                  className={styles.defectSelect}
-                  value={defectErnst}
-                  onChange={(e) => setDefectErnst(e.target.value as 'laag' | 'medium' | 'hoog')}
-                >
-                  <option value="laag">Laag</option>
-                  <option value="medium">Medium</option>
-                  <option value="hoog">Hoog</option>
-                </select>
+                <SeverityChips value={defectErnst} onChange={setDefectErnst} />
                 <button type="button" className={styles.cancelSmallBtn} onClick={() => setShowDefect(false)}>
                   Annuleren
                 </button>

@@ -58,14 +58,14 @@
   outline: none;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(16, 217, 160, 0.3);
+    background: var(--color-surface-hover);
+    border-color: var(--color-accent-teal);
 
-    .hint { color: #10d9a0; }
+    .hint { color: var(--color-accent-teal); }
   }
 
   &:focus-visible {
-    border-color: rgba(16, 217, 160, 0.5);
-    box-shadow: 0 0 0 2px rgba(16, 217, 160, 0.2);
+    border-color: var(--color-accent-teal);
+    box-shadow: 0 0 0 2px var(--color-accent-teal-dim);
   }
 }

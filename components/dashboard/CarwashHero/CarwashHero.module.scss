@@ -21,8 +21,8 @@
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 65% 40% at 50% 65%, rgba(16, 217, 160, 0.07) 0%, transparent 65%),
-    radial-gradient(ellipse 45% 30% at 30% 80%, rgba(79, 124, 255, 0.05) 0%, transparent 60%);
+    radial-gradient(ellipse 65% 40% at 50% 65%, var(--color-accent-teal-dim) 0%, transparent 65%),
+    radial-gradient(ellipse 45% 30% at 30% 80%, var(--color-accent-blue-dim) 0%, transparent 60%);
   pointer-events: none;
 }
 
@@ -31,8 +31,8 @@
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+    linear-gradient(var(--color-border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-border) 1px, transparent 1px);
   background-size: 48px 48px;
   mask-image: radial-gradient(ellipse 80% 70% at 50% 80%, black 30%, transparent 75%);
   -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 80%, black 30%, transparent 75%);

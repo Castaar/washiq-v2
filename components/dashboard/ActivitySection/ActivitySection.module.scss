@@ -67,7 +67,7 @@
   letter-spacing: 0.04em;
   color: var(--color-accent-teal);
   background: var(--color-accent-teal-dim);
-  border: 1px solid rgba(16, 217, 160, 0.2);
+  border: 1px solid var(--color-accent-teal);
   padding: 2px 7px;
   border-radius: var(--radius-full);
   flex-shrink: 0;
@@ -121,7 +121,7 @@
 
   &:focus {
     outline: none;
-    border-color: rgba(16, 217, 160, 0.4);
+    border-color: var(--color-accent-teal);
   }
 
   &:disabled {
@@ -138,13 +138,14 @@
   font-size: 0.8125rem;
   font-weight: 600;
   cursor: pointer;
-  background: rgba(16, 217, 160, 0.1);
-  border: 1px solid rgba(16, 217, 160, 0.35);
+  background: var(--color-accent-teal-dim);
+  border: 1px solid var(--color-accent-teal);
   color: var(--color-accent-teal);
   transition: background var(--transition-fast), opacity var(--transition-fast);
 
   &:hover:not(:disabled) {
-    background: rgba(16, 217, 160, 0.18);
+    background: var(--color-accent-teal);
+    color: var(--color-text-inverse);
   }
 
   &:disabled {

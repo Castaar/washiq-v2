@@ -11,7 +11,7 @@
   align-items: center;
   gap: var(--space-4);
   padding: var(--space-4) var(--space-5);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   flex-wrap: wrap;
@@ -44,7 +44,7 @@
 .tellerField {
   width: 140px;
   height: 36px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--color-bg-tertiary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   color: var(--color-text-primary);
@@ -56,23 +56,24 @@
   &::-webkit-outer-spin-button,
   &::-webkit-inner-spin-button { -webkit-appearance: none; }
 
-  &:focus { outline: none; border-color: rgba(255,255,255,0.22); }
+  &:focus { outline: none; border-color: var(--color-accent-blue); }
   &::placeholder { color: var(--color-text-muted); font-size: 0.75rem; }
 }
 
 .tellerBtn {
   height: 36px;
   padding: 0 var(--space-4);
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid var(--color-border);
+  background: var(--color-accent-blue);
+  border: 1px solid var(--color-accent-blue);
   border-radius: var(--radius-md);
-  color: var(--color-text-primary);
+  color: var(--color-text-inverse);
   font-size: 0.8125rem;
+  font-weight: 600;
   font-family: inherit;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: opacity 0.15s;
 
-  &:hover:not(:disabled) { background: rgba(255,255,255,0.1); }
+  &:hover:not(:disabled) { opacity: 0.85; }
   &:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 
@@ -99,21 +100,21 @@
   padding: var(--space-4) var(--space-5);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--color-surface);
   flex-wrap: wrap;
 
   &.overdue {
-    border-color: rgba(239, 68, 68, 0.35);
-    background: rgba(239, 68, 68, 0.04);
+    border-color: var(--color-accent-red-border);
+    background: var(--color-accent-red-dim);
   }
 
   &.approaching {
-    border-color: rgba(245, 158, 11, 0.35);
-    background: rgba(245, 158, 11, 0.04);
+    border-color: var(--color-accent-amber-border);
+    background: var(--color-accent-amber-dim);
   }
 
   &.ok {
-    border-color: rgba(0, 189, 149, 0.2);
+    border-color: var(--color-accent-teal-dim);
   }
 }
 
@@ -125,10 +126,18 @@
   min-width: 180px;
 }
 
+.taskTitleRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
 .taskTitle {
   font-size: 0.9375rem;
   font-weight: 500;
   color: var(--color-text-primary);
+  margin: 0;
 }
 
 .taskMeta {
@@ -144,14 +153,14 @@
 }
 
 .overdueLabel {
-  color: #ef4444;
+  color: var(--color-accent-red);
   font-weight: 600;
 }
 
 .noteInput {
   width: 100%;
   height: 32px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--color-bg-tertiary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   color: var(--color-text-primary);
@@ -159,14 +168,14 @@
   font-family: inherit;
   padding: 0 var(--space-3);
 
-  &:focus { outline: none; border-color: rgba(255,255,255,0.22); }
+  &:focus { outline: none; border-color: var(--color-accent-blue); }
   &::placeholder { color: var(--color-text-muted); }
 }
 
 .completeBtn {
   height: 36px;
   padding: 0 var(--space-4);
-  background: rgba(0, 189, 149, 0.08);
+  background: var(--color-accent-teal-dim);
   border: 1px solid var(--color-accent-teal);
   border-radius: var(--radius-md);
   color: var(--color-accent-teal);
@@ -179,7 +188,7 @@
 
   &:hover:not(:disabled) {
     background: var(--color-accent-teal);
-    color: #000;
+    color: var(--color-text-inverse);
   }
 
   &:disabled { opacity: 0.4; cursor: not-allowed; }
@@ -200,15 +209,15 @@
 .confirmYes {
   height: 32px;
   padding: 0 var(--space-3);
-  background: rgba(239, 68, 68, 0.12);
-  border: 1px solid #ef4444;
+  background: var(--color-accent-red-dim);
+  border: 1px solid var(--color-accent-red);
   border-radius: var(--radius-md);
-  color: #ef4444;
+  color: var(--color-accent-red);
   font-size: 0.8125rem;
   font-family: inherit;
   cursor: pointer;
 
-  &:hover:not(:disabled) { background: #ef4444; color: #fff; }
+  &:hover:not(:disabled) { background: var(--color-accent-red); color: var(--color-text-inverse); }
   &:disabled { opacity: 0.4; }
 }
 
@@ -223,7 +232,7 @@
   font-family: inherit;
   cursor: pointer;
 
-  &:hover { background: rgba(255,255,255,0.05); }
+  &:hover { background: var(--color-surface-hover); }
 }
 
 .empty {

@@ -11,14 +11,14 @@
   align-items: center;
   gap: var(--space-4);
   padding: var(--space-4) var(--space-5);
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   flex-wrap: wrap;
 
   &.low {
-    border-color: rgba(245, 158, 11, 0.35);
-    background: rgba(245, 158, 11, 0.04);
+    border-color: var(--color-accent-amber-border);
+    background: var(--color-accent-amber-dim);
   }
 }
 
@@ -52,7 +52,7 @@
   font-size: 0.6875rem;
   font-weight: 600;
   color: var(--color-accent-amber);
-  background: rgba(245, 158, 11, 0.12);
+  background: var(--color-accent-amber-dim);
   padding: 1px 6px;
   border-radius: var(--radius-sm);
 }
@@ -66,7 +66,7 @@
 .qtyInput {
   width: 120px;
   height: 36px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--color-bg-tertiary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   color: var(--color-text-primary);
@@ -81,7 +81,7 @@
 
   &:focus {
     outline: none;
-    border-color: rgba(255, 255, 255, 0.22);
+    border-color: var(--color-accent-blue);
   }
 
   &::placeholder { color: var(--color-text-muted); font-size: 0.75rem; }
@@ -90,19 +90,19 @@
 .deliverBtn {
   height: 36px;
   padding: 0 var(--space-4);
-  background: rgba(0, 189, 149, 0.08);
-  border: 1px solid var(--color-accent-teal);
+  background: var(--color-accent-blue);
+  border: 1px solid var(--color-accent-blue);
   border-radius: var(--radius-md);
-  color: var(--color-accent-teal);
+  color: var(--color-text-inverse);
   font-size: 0.8125rem;
+  font-weight: 600;
   font-family: inherit;
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.15s, color 0.15s;
+  transition: opacity 0.15s;
 
   &:hover:not(:disabled) {
-    background: var(--color-accent-teal);
-    color: #000;
+    opacity: 0.85;
   }
 
   &:disabled { opacity: 0.4; cursor: not-allowed; }

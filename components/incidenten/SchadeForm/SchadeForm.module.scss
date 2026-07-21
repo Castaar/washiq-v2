@@ -3,9 +3,7 @@
 .card {
   width: 100%;
   max-width: 1000px;
-  background: #ffffff1a;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   padding: var(--space-7) var(--space-6);
@@ -13,11 +11,12 @@
   flex-direction: column;
   gap: var(--space-5);
   align-self: flex-start;
+  box-shadow: var(--shadow-sm);
 }
 
 .cardTitle {
   font-size: 0.875rem;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--color-text-secondary);
 }
 
@@ -48,7 +47,7 @@
 .input,
 .select {
   height: 38px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--color-bg-tertiary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   color: var(--color-text-primary);
@@ -59,7 +58,7 @@
 
   &:focus {
     outline: none;
-    border-color: rgba(255, 255, 255, 0.22);
+    border-color: var(--color-accent-blue);
   }
 }
 
@@ -69,7 +68,7 @@
 }
 
 .textarea {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--color-bg-tertiary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   color: var(--color-text-primary);
@@ -83,45 +82,22 @@
 
   &:focus {
     outline: none;
-    border-color: rgba(255, 255, 255, 0.22);
+    border-color: var(--color-accent-blue);
   }
 }
 
-// ── Check toggles ──────────────────────────────────────────────
-.checkRow {
+// ── Damage-location chip grid ───────────────────────────────────
+.chipGrid {
   display: flex;
-  gap: var(--space-6);
+  gap: var(--space-2);
   flex-wrap: wrap;
 }
 
-.toggleGroup {
+// ── Toggles ──────────────────────────────────────────────────────
+.toggleRow {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  min-width: 130px;
-}
-
-.toggleLabel {
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-}
-
-.toggleBtn {
-  width: 36px;
-  height: 36px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  color: var(--color-text-muted);
-  font-size: 1rem;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
-}
-
-.toggleActive {
-  background: rgba(45, 212, 191, 0.12);
-  border-color: var(--color-accent-teal);
-  color: var(--color-accent-teal);
+  gap: var(--space-6);
+  flex-wrap: wrap;
 }
 
 // ── Meta + footer ──────────────────────────────────────────────
@@ -141,7 +117,7 @@
 
 .error {
   font-size: 0.8125rem;
-  color: var(--color-accent-amber);
+  color: var(--color-accent-red);
 }
 
 .footer {
@@ -165,7 +141,7 @@
 
   &:hover:not(:disabled) {
     background: var(--color-accent-teal);
-    color: #000;
+    color: var(--color-text-inverse);
   }
 
   &:disabled {

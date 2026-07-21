@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { PhotoUpload } from '@/components/ui/PhotoUpload/PhotoUpload';
+import { Chip } from '@/components/ui/Chip/Chip';
+import { Toggle } from '@/components/ui/Toggle/Toggle';
 import styles from './SchadeForm.module.scss';
 
 const VOERTUIG_TYPES = ['Personenwagen', 'Bestelwagen', 'Vrachtwagen', 'Motor', 'Fiets', 'Andere'];
@@ -19,22 +21,6 @@ const SCHADE_LOCATIES = [
 interface SchadeFormProps {
   siteId: string;
   userName: string;
-}
-
-function CheckToggle({ label, value, onChange }: { label: string; value: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <div className={styles.toggleGroup}>
-      <span className={styles.toggleLabel}>{label}</span>
-      <button
-        type="button"
-        className={[styles.toggleBtn, value ? styles.toggleActive : ''].join(' ')}
-        onClick={() => onChange(!value)}
-        aria-pressed={value}
-      >
-        ✓
-      </button>
-    </div>
-  );
 }
 
 export function SchadeForm({ siteId, userName }: SchadeFormProps) {
@@ -147,24 +133,26 @@ export function SchadeForm({ siteId, userName }: SchadeFormProps) {
       {/* Schade locaties */}
       <div className={styles.fieldGroup}>
         <label className={styles.fieldLabel}>Schade locatie(s)</label>
-        <div className={styles.checkRow}>
+        <div className={styles.chipGrid}>
           {SCHADE_LOCATIES.map((locatie) => (
-            <CheckToggle
+            <Chip
               key={locatie}
-              label={locatie}
-              value={schadeLocaties.includes(locatie)}
-              onChange={() => toggleLocatie(locatie)}
-            />
+              tone="blue"
+              selected={schadeLocaties.includes(locatie)}
+              onClick={() => toggleLocatie(locatie)}
+            >
+              {locatie}
+            </Chip>
           ))}
         </div>
       </div>
 
-      {/* Checkboxes */}
-      <div className={styles.checkRow}>
-        <CheckToggle label="Onbetwist?" value={onbetwist} onChange={setOnbetwist} />
-        <CheckToggle label="Installatiefout?" value={installatiefout} onChange={setInstallatiefout} />
-        <CheckToggle label="Klant verantwoordelijk?" value={klantVerantwoordelijk} onChange={setKlantVerantwoordelijk} />
-        <CheckToggle label="Verzekeringsdocumenten" value={verzekeringsdocumenten} onChange={setVerzekeringsdocumenten} />
+      {/* Toggles */}
+      <div className={styles.toggleRow}>
+        <Toggle label="Onbetwist?" checked={onbetwist} onChange={setOnbetwist} />
+        <Toggle label="Installatiefout?" checked={installatiefout} onChange={setInstallatiefout} />
+        <Toggle label="Klant verantwoordelijk?" checked={klantVerantwoordelijk} onChange={setKlantVerantwoordelijk} />
+        <Toggle label="Verzekeringsdocumenten" checked={verzekeringsdocumenten} onChange={setVerzekeringsdocumenten} />
       </div>
 
       <div className={styles.photoSection}>

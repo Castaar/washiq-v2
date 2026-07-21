@@ -8,18 +8,17 @@
   flex-direction: column;
   gap: var(--space-6);
   border-radius: var(--radius-xl);
-  overflow: scroll;
+  overflow: visible;
 }
 
 // ── Card ──────────────────────────────────────────────────────
 .card {
   width: 100%;
   max-width: 1100px;
-  background: #ffffff1a;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
   padding: var(--space-6);
   display: flex;
   flex-direction: column;
@@ -35,18 +34,19 @@
 
 .title {
   font-size: 1rem;
-  font-weight: 500;
+  font-weight: 700;
   color: var(--color-text-primary);
 }
 
 .addUserBtn {
   height: 36px;
   padding: 0 var(--space-5);
-  background: transparent;
-  border: 1px solid var(--color-accent-teal);
+  background: var(--color-accent-blue-dim);
+  border: 1px solid var(--color-accent-blue-border);
   border-radius: var(--radius-md);
-  color: var(--color-accent-teal);
+  color: var(--color-accent-blue);
   font-size: 0.8125rem;
+  font-weight: 600;
   font-family: inherit;
   cursor: pointer;
   transition:
@@ -54,14 +54,14 @@
     color 0.15s;
 
   &:hover {
-    background: var(--color-accent-teal);
-    color: #000;
+    background: var(--color-accent-blue);
+    color: var(--color-text-inverse);
   }
 }
 
 // ── Add form ──────────────────────────────────────────────────
 .addForm {
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--color-bg-tertiary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: var(--space-5);
@@ -98,8 +98,8 @@
 
 .input {
   height: 40px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-md);
   color: var(--color-text-primary);
   font-size: 0.875rem;
@@ -109,7 +109,7 @@
 
   &:focus {
     outline: none;
-    border-color: rgba(255, 255, 255, 0.22);
+    border-color: var(--color-accent-blue);
   }
 
   &::placeholder {
@@ -119,8 +119,8 @@
 
 .roleSelect {
   height: 40px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-md);
   color: var(--color-text-primary);
   font-size: 0.875rem;
@@ -131,11 +131,12 @@
 
   &:focus {
     outline: none;
-    border-color: rgba(255, 255, 255, 0.22);
+    border-color: var(--color-accent-blue);
   }
 
   option {
-    background: #080c1c;
+    background: var(--color-surface);
+    color: var(--color-text-primary);
   }
 }
 
@@ -154,7 +155,7 @@
   cursor: pointer;
 
   input[type="checkbox"] {
-    accent-color: var(--color-accent-teal);
+    accent-color: var(--color-accent-blue);
     width: 15px;
     height: 15px;
     cursor: pointer;
@@ -163,7 +164,7 @@
 
 .addError {
   font-size: 0.8125rem;
-  color: var(--color-accent-amber);
+  color: var(--color-accent-red);
 }
 
 .addFormFooter {
@@ -186,7 +187,7 @@
 
 .groupTitle {
   font-size: 0.75rem;
-  font-weight: 500;
+  font-weight: 700;
   color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -200,7 +201,7 @@
 
 // ── User card ─────────────────────────────────────────────────
 .userCard {
-  background: rgba(255, 255, 255, 0.025);
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   overflow: hidden;
@@ -218,13 +219,13 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--color-accent-purple-dim);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 0.875rem;
   font-weight: 600;
-  color: var(--color-text-secondary);
+  color: var(--color-accent-purple);
   flex-shrink: 0;
 }
 
@@ -237,7 +238,7 @@
 
 .userName {
   font-size: 0.875rem;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--color-text-primary);
   @include truncate;
 }
@@ -256,27 +257,27 @@
   padding: 0 10px;
   border-radius: var(--radius-full);
   font-size: 0.6875rem;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0.03em;
   justify-self: start;
 }
 
 .role_developer {
-  background: rgba(148, 100, 255, 0.18);
-  color: #c4a3ff;
-  border: 1px solid rgba(148, 100, 255, 0.35);
+  background: var(--color-accent-purple-dim);
+  color: var(--color-accent-purple);
+  border: 1px solid var(--color-accent-purple);
 }
 
 .role_owner {
-  background: rgba(79, 124, 255, 0.18);
-  color: #8fb3ff;
-  border: 1px solid rgba(79, 124, 255, 0.35);
+  background: var(--color-accent-blue-dim);
+  color: var(--color-accent-blue);
+  border: 1px solid var(--color-accent-blue-border);
 }
 
 .role_employee {
-  background: rgba(0, 189, 149, 0.15);
+  background: var(--color-accent-teal-dim);
   color: var(--color-accent-teal);
-  border: 1px solid rgba(0, 189, 149, 0.3);
+  border: 1px solid var(--color-accent-teal);
 }
 
 // ── Site pills ────────────────────────────────────────────────
@@ -293,7 +294,7 @@
   align-items: center;
   padding: 0 8px;
   border-radius: var(--radius-full);
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--color-bg-tertiary);
   border: 1px solid var(--color-border);
   font-size: 0.6875rem;
   color: var(--color-text-secondary);
@@ -301,8 +302,9 @@
 
 .allSitesPill {
   @extend .sitePill;
-  border-color: rgba(0, 189, 149, 0.3);
+  border-color: var(--color-accent-teal);
   color: var(--color-accent-teal);
+  background: var(--color-accent-teal-dim);
 }
 
 .noAccess {
@@ -321,8 +323,8 @@
 .editBtn {
   width: 28px;
   height: 28px;
-  background: transparent;
-  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-sm);
   color: var(--color-text-muted);
   font-size: 0.75rem;
@@ -332,18 +334,18 @@
     color 0.15s;
 
   &:hover {
-    border-color: rgba(255, 255, 255, 0.2);
-    color: var(--color-text-primary);
+    border-color: var(--color-accent-blue);
+    color: var(--color-accent-blue);
   }
 }
 
 .deleteBtn {
   width: 28px;
   height: 28px;
-  background: transparent;
-  border: 1px solid rgba(255, 80, 80, 0.3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-accent-red-border);
   border-radius: var(--radius-sm);
-  color: rgba(255, 120, 120, 0.7);
+  color: var(--color-accent-red);
   font-size: 0.75rem;
   cursor: pointer;
   transition:
@@ -352,9 +354,9 @@
     background 0.15s;
 
   &:hover {
-    background: rgba(255, 80, 80, 0.12);
-    color: #ff8080;
-    border-color: rgba(255, 80, 80, 0.5);
+    background: var(--color-accent-red-dim);
+    color: var(--color-accent-red);
+    border-color: var(--color-accent-red);
   }
 }
 
@@ -362,7 +364,7 @@
 .editPanel {
   padding: var(--space-4);
   border-top: 1px solid var(--color-border);
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--color-bg-tertiary);
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
@@ -390,23 +392,28 @@
 .cancelBtn {
   height: 32px;
   padding: 0 var(--space-5);
-  background: transparent;
-  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-md);
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   font-size: 0.8125rem;
   font-family: inherit;
   cursor: pointer;
+
+  &:hover {
+    border-color: var(--color-text-muted);
+  }
 }
 
 .saveSmallBtn {
   height: 32px;
   padding: 0 var(--space-5);
-  background: transparent;
-  border: 1px solid var(--color-accent-teal);
+  background: var(--color-accent-blue-dim);
+  border: 1px solid var(--color-accent-blue-border);
   border-radius: var(--radius-md);
-  color: var(--color-accent-teal);
+  color: var(--color-accent-blue);
   font-size: 0.8125rem;
+  font-weight: 600;
   font-family: inherit;
   cursor: pointer;
   transition:
@@ -414,8 +421,8 @@
     color 0.15s;
 
   &:hover:not(:disabled) {
-    background: var(--color-accent-teal);
-    color: #000;
+    background: var(--color-accent-blue);
+    color: var(--color-text-inverse);
   }
   &:disabled {
     opacity: 0.4;
@@ -435,7 +442,7 @@
   align-items: center;
   gap: var(--space-4);
   padding: var(--space-3) var(--space-4);
-  background: rgba(255, 255, 255, 0.025);
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
 
@@ -447,7 +454,7 @@
 
 .siteName {
   font-size: 0.875rem;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--color-text-primary);
   flex: 1;
 }
@@ -477,7 +484,7 @@
 
 .siteBlockTitle {
   font-size: 0.75rem;
-  font-weight: 500;
+  font-weight: 700;
   color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -486,7 +493,7 @@
 .addSmallBtn {
   height: 28px;
   padding: 0 var(--space-4);
-  background: transparent;
+  background: var(--color-surface);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-md);
   color: var(--color-text-secondary);
@@ -498,8 +505,8 @@
     color 0.15s;
 
   &:hover {
-    border-color: var(--color-accent-teal);
-    color: var(--color-accent-teal);
+    border-color: var(--color-accent-blue);
+    color: var(--color-accent-blue);
   }
 }
 
@@ -511,7 +518,7 @@
 }
 
 .programCard {
-  background: rgba(255, 255, 255, 0.025);
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   overflow: hidden;
@@ -529,7 +536,7 @@
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--color-bg-tertiary);
   border: 1px solid var(--color-border);
   display: flex;
   align-items: center;
@@ -542,7 +549,7 @@
 
 .programName {
   font-size: 0.875rem;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--color-text-primary);
   @include truncate;
 }
@@ -561,8 +568,8 @@
   align-items: center;
   padding: 0 8px;
   border-radius: var(--radius-full);
-  background: rgba(0, 189, 149, 0.08);
-  border: 1px solid rgba(0, 189, 149, 0.25);
+  background: var(--color-accent-teal-dim);
+  border: 1px solid var(--color-accent-teal);
   font-size: 0.6875rem;
   color: var(--color-accent-teal);
 }
@@ -573,8 +580,8 @@
   align-items: center;
   padding: 0 8px;
   border-radius: var(--radius-full);
-  background: rgba(0, 189, 149, 0.08);
-  border: 1px solid rgba(0, 189, 149, 0.25);
+  background: var(--color-accent-teal-dim);
+  border: 1px solid var(--color-accent-teal);
   font-size: 0.6875rem;
   color: var(--color-accent-teal);
   cursor: pointer;
@@ -584,9 +591,9 @@
     border-color 0.12s;
 
   &:hover {
-    background: rgba(255, 80, 80, 0.12);
-    border-color: rgba(255, 80, 80, 0.4);
-    color: #ff8080;
+    background: var(--color-accent-red-dim);
+    border-color: var(--color-accent-red);
+    color: var(--color-accent-red);
   }
 }
 
@@ -626,7 +633,7 @@
 }
 
 .taskRow {
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
 }
@@ -643,7 +650,6 @@
   font-size: 0.75rem;
   color: var(--color-text-muted);
   white-space: nowrap;
-  opacity: 0.7;
 }
 
 .taskDesc {
@@ -667,9 +673,9 @@
 
 // ── Technician role pill ───────────────────────────────────────
 .role_technician {
-  background: rgba(245, 158, 11, 0.15);
+  background: var(--color-accent-amber-dim);
   color: var(--color-accent-amber);
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  border: 1px solid var(--color-accent-amber-border);
 }
 
 // ── Inactive user ─────────────────────────────────────────────
@@ -683,11 +689,11 @@
   align-items: center;
   padding: 0 8px;
   border-radius: var(--radius-full);
-  background: rgba(239, 68, 68, 0.15);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: var(--color-accent-red-dim);
+  border: 1px solid var(--color-accent-red-border);
   font-size: 0.6875rem;
-  font-weight: 600;
-  color: #f87171;
+  font-weight: 700;
+  color: var(--color-accent-red);
   white-space: nowrap;
 }
 
@@ -700,8 +706,8 @@
 .copySmallBtn {
   height: 28px;
   padding: 0 var(--space-4);
-  background: transparent;
-  border: 1px solid rgba(245, 158, 11, 0.4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-accent-amber-border);
   border-radius: var(--radius-md);
   color: var(--color-accent-amber);
   font-size: 0.75rem;
@@ -710,7 +716,7 @@
   transition: border-color 0.15s, background 0.15s;
 
   &:hover {
-    background: rgba(245, 158, 11, 0.1);
+    background: var(--color-accent-amber-dim);
   }
 }
 

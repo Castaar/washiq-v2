@@ -6,7 +6,7 @@
 
 // ─── Registreerkaart ─────────────────────────────────────────
 .registerCard {
-  background: var(--color-bg-card);
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   padding: var(--space-6);
@@ -37,7 +37,7 @@
   width: 100%;
   height: 40px;
   padding: 0 var(--space-3);
-  background: var(--color-bg-elevated);
+  background: var(--color-bg-tertiary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   color: var(--color-text-primary);
@@ -75,10 +75,10 @@
 }
 
 .closeBtn {
-  background: var(--color-bg-elevated);
+  background: var(--color-bg-tertiary);
   border: 1px solid var(--color-border);
   color: var(--color-text-primary);
-  &:hover:not(:disabled) { background: var(--color-bg-hover); }
+  &:hover:not(:disabled) { background: var(--color-surface-hover); }
 }
 
 .confirm {
@@ -90,7 +90,7 @@
 
 .error {
   font-size: 0.8125rem;
-  color: #d9534f;
+  color: var(--color-accent-red);
   margin: 0;
 }
 
@@ -101,14 +101,14 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: #e0b344;
-  background: color-mix(in srgb, #e0b344 15%, transparent);
+  color: var(--color-accent-amber);
+  background: var(--color-accent-amber-dim);
   border-radius: var(--radius-sm);
 }
 
 // ─── Logboek overzicht ────────────────────────────────────────
 .logSection {
-  background: var(--color-bg-card);
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   padding: var(--space-6);
@@ -149,7 +149,7 @@
   font-size: 0.875rem;
 
   &.opening { background: color-mix(in srgb, var(--color-accent-teal) 8%, transparent); }
-  &.sluiting { background: var(--color-bg-elevated); }
+  &.sluiting { background: var(--color-bg-tertiary); }
 }
 
 .typeBadge {
@@ -205,7 +205,7 @@
   border-radius: var(--radius-md);
   transition: color var(--transition-fast), background var(--transition-fast);
 
-  &:hover { color: var(--color-text-primary); background: var(--color-bg-hover); }
+  &:hover { color: var(--color-text-primary); background: var(--color-surface-hover); }
 }
 
 .tabBtnActive {
@@ -216,7 +216,7 @@
 
 // ─── Maandoverzicht ───────────────────────────────────────────
 .monthCard {
-  background: var(--color-bg-card);
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   padding: var(--space-6);
@@ -235,7 +235,7 @@
 .monthSelect {
   height: 36px;
   padding: 0 var(--space-3);
-  background: var(--color-bg-elevated);
+  background: var(--color-bg-tertiary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   color: var(--color-text-primary);
@@ -283,7 +283,7 @@
   display: grid;
   grid-template-columns: 1fr 90px 80px 40px;
   padding: var(--space-2) var(--space-4);
-  background: var(--color-bg-elevated);
+  background: var(--color-bg-tertiary);
   border-bottom: 1px solid var(--color-border);
   font-size: 0.75rem;
   font-weight: 600;
@@ -305,10 +305,10 @@
   grid-template-columns: 1fr 90px 80px 40px;
   align-items: center;
   padding: var(--space-3) var(--space-4);
-  background: var(--color-bg-card);
+  background: var(--color-surface);
   transition: background var(--transition-fast);
 
-  &:hover { background: var(--color-bg-hover); }
+  &:hover { background: var(--color-surface-hover); }
 }
 
 .colName {
@@ -352,7 +352,7 @@
 
 // ─── Day detail (expanded) ────────────────────────────────────
 .dayDetail {
-  background: var(--color-bg-elevated);
+  background: var(--color-bg-tertiary);
   border-top: 1px solid var(--color-border);
   padding: var(--space-3) var(--space-4);
   display: flex;
@@ -385,7 +385,7 @@
 }
 
 .dayDetailOpen {
-  color: #e0b344;
+  color: var(--color-accent-amber);
   font-weight: 400;
   font-style: italic;
   font-size: 0.8125rem;

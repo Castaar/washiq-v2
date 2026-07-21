@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useToast } from '@/components/ui/Toast/ToastProvider';
 import styles from './LeveringenPanel.module.scss';
 
 export interface StockItem {
@@ -12,6 +13,7 @@ export interface StockItem {
 }
 
 export function LeveringenPanel({ stocks: initial }: { stocks: StockItem[] }) {
+  const { showToast } = useToast();
   const [stocks, setStocks] = useState(initial);
   const [qtyDraft, setQtyDraft] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState<string | null>(null);
@@ -33,6 +35,7 @@ export function LeveringenPanel({ stocks: initial }: { stocks: StockItem[] }) {
         setQtyDraft((prev) => { const n = { ...prev }; delete n[id]; return n; });
         setSaved(id);
         setTimeout(() => setSaved((v) => v === id ? null : v), 2000);
+        showToast('Levering geregistreerd');
       }
     } finally {
       setSaving(null);

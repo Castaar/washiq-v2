@@ -54,21 +54,13 @@ export function StockChart({ data }: StockChartProps) {
     >
       <defs>
         <linearGradient id="grad-added" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%"   stopColor="#4f7cff" stopOpacity="0.35" />
-          <stop offset="100%" stopColor="#4f7cff" stopOpacity="0.02" />
+          <stop offset="0%"   stopColor="#3762e0" stopOpacity="0.22" />
+          <stop offset="100%" stopColor="#3762e0" stopOpacity="0.02" />
         </linearGradient>
         <linearGradient id="grad-removed" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%"   stopColor="#f05252" stopOpacity="0.28" />
-          <stop offset="100%" stopColor="#f05252" stopOpacity="0.02" />
+          <stop offset="0%"   stopColor="#d64545" stopOpacity="0.18" />
+          <stop offset="100%" stopColor="#d64545" stopOpacity="0.02" />
         </linearGradient>
-        <filter id="glow-blue" x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur stdDeviation="3" result="blur" />
-          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-        </filter>
-        <filter id="glow-red" x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur stdDeviation="2.5" result="blur" />
-          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-        </filter>
       </defs>
 
       {/* Grid lines */}
@@ -77,7 +69,7 @@ export function StockChart({ data }: StockChartProps) {
           key={v}
           x1={PAD.left} y1={scaleY(v)}
           x2={W - PAD.right} y2={scaleY(v)}
-          stroke="rgba(255,255,255,0.05)"
+          stroke="#eeece7"
           strokeWidth="1"
         />
       ))}
@@ -90,7 +82,7 @@ export function StockChart({ data }: StockChartProps) {
           y={scaleY(v) + 4}
           textAnchor="end"
           fontSize="10"
-          fill="rgba(148,163,184,0.6)"
+          fill="#8a8f98"
         >
           {v}
         </text>
@@ -104,7 +96,7 @@ export function StockChart({ data }: StockChartProps) {
           y={bottomY + 20}
           textAnchor="middle"
           fontSize="10"
-          fill="rgba(148,163,184,0.7)"
+          fill="#8a8f98"
         >
           {d.day}
         </text>
@@ -115,15 +107,15 @@ export function StockChart({ data }: StockChartProps) {
       <path d={areaPath(removedPts, bottomY)} fill="url(#grad-removed)" />
 
       {/* Lines */}
-      <path d={smoothPath(addedPts)}   fill="none" stroke="#4f7cff" strokeWidth="2.5" filter="url(#glow-blue)" />
-      <path d={smoothPath(removedPts)} fill="none" stroke="#f05252" strokeWidth="2"   filter="url(#glow-red)"  />
+      <path d={smoothPath(addedPts)}   fill="none" stroke="#3762e0" strokeWidth="2.5" />
+      <path d={smoothPath(removedPts)} fill="none" stroke="#d64545" strokeWidth="2"   />
 
       {/* Data dots */}
       {addedPts.map((pt, i) => (
-        <circle key={i} cx={pt.x} cy={pt.y} r="3.5" fill="#4f7cff" filter="url(#glow-blue)" />
+        <circle key={i} cx={pt.x} cy={pt.y} r="3.5" fill="#3762e0" />
       ))}
       {removedPts.map((pt, i) => (
-        <circle key={i} cx={pt.x} cy={pt.y} r="3" fill="#f05252" filter="url(#glow-red)" />
+        <circle key={i} cx={pt.x} cy={pt.y} r="3" fill="#d64545" />
       ))}
     </svg>
   );

@@ -31,16 +31,16 @@ $bp-wide-min:    1440px;
 // ============================================================
 // Utility mixins
 // ============================================================
-@mixin glass($opacity: 0.045, $blur: 18px) {
-  background: rgba(255, 255, 255, $opacity);
-  backdrop-filter: blur($blur);
-  -webkit-backdrop-filter: blur($blur);
+// Flat surface — replaces the old blurred-glass look. Name kept as
+// `glass` so every existing @include glass call re-skins for free.
+@mixin glass($opacity: null, $blur: null) {
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
 }
 
 @mixin glow-border($color: var(--color-accent-blue)) {
   border-color: $color;
-  box-shadow: 0 0 0 1px $color, inset 0 0 16px rgba(79, 124, 255, 0.06);
+  box-shadow: 0 0 0 1px $color;
 }
 
 @mixin flex-center {
@@ -64,5 +64,5 @@ $bp-wide-min:    1440px;
 @mixin card-base {
   @include glass;
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-sm);
 }

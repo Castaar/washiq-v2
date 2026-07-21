@@ -55,17 +55,17 @@
   justify-content: space-between;
   gap: var(--space-3);
   padding: var(--space-3) var(--space-5);
-  background: rgba(251, 191, 36, 0.07);
-  border: 1px solid rgba(251, 191, 36, 0.3);
+  background: var(--color-accent-amber-dim);
+  border: 1px solid var(--color-accent-amber-border);
   border-radius: var(--radius-lg);
   font-size: 0.8125rem;
-  color: rgba(251, 191, 36, 0.85);
+  color: var(--color-accent-amber);
   text-decoration: none;
   transition: background var(--transition-fast), border-color var(--transition-fast);
 
   &:hover {
-    background: rgba(251, 191, 36, 0.11);
-    border-color: rgba(251, 191, 36, 0.45);
+    background: var(--color-accent-amber-border);
+    border-color: var(--color-accent-amber);
   }
 }
 
@@ -128,8 +128,8 @@
   height: 36px;
   padding: 0 var(--space-3);
   border-radius: var(--radius-full);
-  background: rgba(16, 217, 160, 0.08);
-  border: 1px solid rgba(16, 217, 160, 0.4);
+  background: var(--color-accent-teal-dim);
+  border: 1px solid var(--color-accent-teal);
   color: var(--color-accent-teal);
   font-size: 0.8125rem;
   font-weight: 600;
@@ -137,7 +137,7 @@
   white-space: nowrap;
   transition: background var(--transition-fast);
 
-  &:hover { background: rgba(16, 217, 160, 0.14); }
+  &:hover { background: var(--color-accent-teal); color: var(--color-text-inverse); }
 }
 
 // ─── Right ───────────────────────────────────────────────────
@@ -213,8 +213,8 @@
 .quickBtn {
   height: 36px;
   padding: 0 var(--space-4);
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   color: var(--color-text-primary);
   font-size: 0.875rem;
@@ -225,7 +225,7 @@
   transition: background var(--transition-fast), border-color var(--transition-fast);
 
   &:hover {
-    background: rgba(255, 255, 255, 0.14);
-    border-color: rgba(255, 255, 255, 0.25);
+    background: var(--color-surface-hover);
+    border-color: var(--color-border-strong);
   }
 }

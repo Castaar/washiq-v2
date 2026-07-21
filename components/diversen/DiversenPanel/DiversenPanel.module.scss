@@ -5,9 +5,10 @@
 }
 
 .section {
-  background: var(--color-bg-card);
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
   padding: var(--space-5);
   display: flex;
   flex-direction: column;
@@ -16,7 +17,7 @@
 
 .sectionTitle {
   font-size: 0.9375rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--color-text-primary);
   margin: 0;
 }
@@ -33,7 +34,7 @@
   justify-content: space-between;
   gap: var(--space-3);
   padding: var(--space-2) var(--space-3);
-  background: var(--color-bg-elevated);
+  background: var(--color-accent-purple-dim);
   border-radius: var(--radius-md);
 }
 
@@ -46,7 +47,7 @@
 .wishBtn {
   height: 32px;
   padding: 0 var(--space-3);
-  background: var(--color-accent-teal);
+  background: var(--color-accent-purple);
   border: none;
   border-radius: var(--radius-md);
   color: var(--color-text-inverse);
@@ -63,8 +64,8 @@
 .textarea {
   width: 100%;
   padding: var(--space-3);
-  background: var(--color-bg-elevated);
-  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-sm);
   color: var(--color-text-primary);
   font-size: 0.9375rem;
@@ -73,13 +74,13 @@
   box-sizing: border-box;
 
   &::placeholder { color: var(--color-text-muted); }
-  &:focus { outline: none; border-color: var(--color-accent-teal); }
+  &:focus { outline: none; border-color: var(--color-accent-blue); }
 }
 
 .postBtn {
   height: 36px;
   padding: 0 var(--space-4);
-  background: var(--color-accent-teal);
+  background: var(--color-accent-blue);
   border: none;
   border-radius: var(--radius-md);
   color: var(--color-text-inverse);
@@ -112,7 +113,7 @@
   align-items: flex-start;
   gap: var(--space-3);
   padding: var(--space-2) var(--space-3);
-  background: var(--color-bg-elevated);
+  background: var(--color-bg-tertiary);
   border-radius: var(--radius-md);
 }
 

@@ -1,0 +1,61 @@
+.group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  height: 34px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-full);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+
+  &:hover {
+    border-color: var(--color-border-strong);
+  }
+}
+
+.tone-default.selected {
+  background: var(--color-text-primary);
+  color: var(--color-text-inverse);
+  border-color: var(--color-text-primary);
+}
+
+.tone-blue.selected {
+  background: var(--color-accent-blue-dim);
+  color: var(--color-accent-blue);
+  border-color: var(--color-accent-blue-border);
+}
+
+.tone-teal.selected {
+  background: var(--color-accent-teal-dim);
+  color: var(--color-accent-teal);
+  border-color: var(--color-accent-teal);
+}
+
+.tone-amber.selected {
+  background: var(--color-accent-amber-dim);
+  color: var(--color-accent-amber);
+  border-color: var(--color-accent-amber-border);
+}
+
+.tone-red.selected {
+  background: var(--color-accent-red-dim);
+  color: var(--color-accent-red);
+  border-color: var(--color-accent-red-border);
+}
+
+.tone-purple.selected {
+  background: var(--color-accent-purple-dim);
+  color: var(--color-accent-purple);
+  border-color: var(--color-accent-purple);
+}

@@ -58,11 +58,9 @@
   height: 100%;
   border-radius: var(--radius-full);
   background: var(--color-accent-teal);
-  box-shadow: 0 0 8px rgba(16, 217, 160, 0.5);
   transition: width var(--transition-slow);
 }
 
 .barLow {
   background: var(--color-accent-amber);
-  box-shadow: 0 0 8px rgba(246, 165, 43, 0.5);
 }

@@ -32,7 +32,7 @@
 
 // Colors
 .color-default {
-  background: var(--color-surface-elevated);
+  background: var(--color-bg-tertiary);
   color: var(--color-text-secondary);
   border-color: var(--color-border);
 }
@@ -40,34 +40,29 @@
 .color-blue {
   background: var(--color-accent-blue-dim);
   color: var(--color-accent-blue);
-  border-color: rgba(79, 124, 255, 0.25);
-  box-shadow: 0 0 14px rgba(79, 124, 255, 0.12);
+  border-color: var(--color-accent-blue-border);
 }
 
 .color-teal {
   background: var(--color-accent-teal-dim);
   color: var(--color-accent-teal);
-  border-color: rgba(16, 217, 160, 0.25);
-  box-shadow: 0 0 14px rgba(16, 217, 160, 0.1);
+  border-color: var(--color-accent-teal);
 }
 
 .color-amber {
   background: var(--color-accent-amber-dim);
   color: var(--color-accent-amber);
-  border-color: rgba(246, 165, 43, 0.25);
-  box-shadow: 0 0 14px rgba(246, 165, 43, 0.1);
+  border-color: var(--color-accent-amber-border);
 }
 
 .color-red {
   background: var(--color-accent-red-dim);
   color: var(--color-accent-red);
-  border-color: rgba(240, 82, 82, 0.25);
-  box-shadow: 0 0 14px rgba(240, 82, 82, 0.1);
+  border-color: var(--color-accent-red-border);
 }
 
 .color-purple {
   background: var(--color-accent-purple-dim);
   color: var(--color-accent-purple);
-  border-color: rgba(167, 139, 250, 0.25);
-  box-shadow: 0 0 14px rgba(167, 139, 250, 0.1);
+  border-color: var(--color-accent-purple);
 }

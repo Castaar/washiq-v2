@@ -16,7 +16,7 @@
     content: "";
     position: absolute;
     inset: 0;
-    background: rgba(4, 7, 18, 0.72);
+    background: rgba(244, 243, 240, 0.92);
     z-index: 1;
   }
 }
@@ -44,9 +44,7 @@
 .card {
   width: 100%;
   max-width: 960px;
-  background: #ffffff1a;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   padding: var(--space-6);
@@ -54,6 +52,7 @@
   flex-direction: column;
   gap: var(--space-6);
   align-self: flex-start;
+  box-shadow: var(--shadow-sm);
 
   @media (max-width: 767px) {
     padding: var(--space-4) var(--space-3);

@@ -16,7 +16,7 @@
     content: '';
     position: absolute;
     inset: 0;
-    background: rgba(4, 7, 18, 0.72);
+    background: var(--color-bg);
     z-index: 1;
   }
 }

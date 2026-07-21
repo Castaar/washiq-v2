@@ -19,8 +19,8 @@
   align-items: flex-start;
   gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
-  background: rgba(255, 220, 100, 0.07);
-  border: 1px solid rgba(255, 220, 100, 0.2);
+  background: var(--color-accent-amber-dim);
+  border: 1px solid var(--color-accent-amber-border);
   border-radius: var(--radius-md);
 }
 
@@ -60,7 +60,7 @@
   flex-shrink: 0;
   transition: color 0.15s;
 
-  &:hover { color: #e04444; }
+  &:hover { color: var(--color-accent-red); }
 }
 
 // ── Add form ───────────────────────────────────────────────────
@@ -68,7 +68,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   padding: var(--space-4);
@@ -76,7 +76,7 @@
 
 .textarea {
   width: 100%;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   color: var(--color-text-primary);
@@ -85,8 +85,8 @@
   padding: var(--space-3);
   resize: vertical;
 
-  &::placeholder { color: var(--color-text-muted); }
-  &:focus { outline: none; border-color: rgba(255, 255, 255, 0.2); }
+  &::placeholder { color: var(--color-text-faint); }
+  &:focus { outline: none; border-color: var(--color-accent-blue); }
 }
 
 .formRow {
@@ -136,16 +136,16 @@
 .btnSave {
   height: 32px;
   padding: 0 var(--space-4);
-  background: rgba(255, 220, 100, 0.15);
-  border: 1px solid rgba(255, 220, 100, 0.3);
+  background: var(--color-accent-amber-dim);
+  border: 1px solid var(--color-accent-amber-border);
   border-radius: 999px;
-  color: #e0c854;
+  color: var(--color-accent-amber);
   font-size: 0.8125rem;
   font-family: inherit;
   cursor: pointer;
   transition: background 0.15s;
 
-  &:hover:not(:disabled) { background: rgba(255, 220, 100, 0.25); }
+  &:hover:not(:disabled) { background: var(--color-accent-amber); color: var(--color-text-inverse); }
   &:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 
@@ -153,9 +153,9 @@
   height: 34px;
   padding: 0 var(--space-4);
   background: transparent;
-  border: 1px dashed rgba(255, 220, 100, 0.3);
+  border: 1px dashed var(--color-accent-amber-border);
   border-radius: 999px;
-  color: rgba(255, 220, 100, 0.6);
+  color: var(--color-accent-amber);
   font-size: 0.8125rem;
   font-family: inherit;
   cursor: pointer;
@@ -164,7 +164,7 @@
   pointer-events: auto;
 
   &:hover {
-    border-color: rgba(255, 220, 100, 0.6);
-    color: rgba(255, 220, 100, 0.9);
+    border-color: var(--color-accent-amber);
+    color: var(--color-accent-amber);
   }
 }

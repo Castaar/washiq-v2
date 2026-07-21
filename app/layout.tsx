@@ -2,6 +2,9 @@ import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import { PwaRegister } from '@/components/layout/PwaRegister';
 import PushSetup from '@/components/layout/PushSetup/PushSetup';
+import { ToastProvider } from '@/components/ui/Toast/ToastProvider';
+import { BottomNav } from '@/components/layout/BottomNav/BottomNav';
+import { getSession } from '@/lib/session';
 import '../styles/globals.scss';
 
 const inter = Inter({
@@ -28,18 +31,23 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#0d0d0f',
+  themeColor: '#ffffff',
   width: 'device-width',
   initialScale: 1,
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const session = await getSession();
+
   return (
     <html lang="en" className={inter.variable}>
-      <body>
-        <PwaRegister />
-        <PushSetup />
-        {children}
+      <body className={session ? 'has-bottom-nav' : ''}>
+        <ToastProvider>
+          <PwaRegister />
+          <PushSetup />
+          {children}
+          {session && <BottomNav role={session.role} />}
+        </ToastProvider>
       </body>
     </html>
   );

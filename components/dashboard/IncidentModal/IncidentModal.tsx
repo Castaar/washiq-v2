@@ -1,9 +1,8 @@
 'use client';
 
-import { useEffect } from 'react';
 import type { IncidentPayload } from '@/lib/types/dashboard';
-import { IconX } from '@/components/ui/icons';
 import { ActivitySection } from '@/components/dashboard/ActivitySection/ActivitySection';
+import { BottomSheet } from '@/components/ui/BottomSheet/BottomSheet';
 import styles from './IncidentModal.module.scss';
 
 interface IncidentModalProps {
@@ -41,41 +40,24 @@ const ernstLabels: Record<string, string> = { laag: 'Laag', medium: 'Medium', ho
 const typeLabels: Record<string, string>  = { schade: 'Schadegeval', ehbo: 'EHBO', defect: 'Defect / Panne' };
 
 export function IncidentModal({ payload, refId, refType, siteId, onClose }: IncidentModalProps) {
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose();
-    }
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
   const typeLabel = typeLabels[payload.type] ?? payload.type;
 
   return (
-    <div className={styles.overlay} onClick={onClose}>
-      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-        {/* Header */}
-        <div className={styles.header}>
-          <div>
-            <div className={styles.headerTop}>
-              <span className={[styles.badge, styles[`badge-${payload.type}`]].join(' ')}>{typeLabel}</span>
-            </div>
-            <p className={styles.meta}>
-              <span className={styles.metaValue}>{payload.reportedBy || 'Onbekend'}</span>
-              <span className={styles.metaSep}>·</span>
-              <span className={styles.metaValue}>{payload.date}</span>
-              {payload.type === 'ehbo' && payload.uur && (
-                <><span className={styles.metaSep}>·</span><span className={styles.metaValue}>{payload.uur}</span></>
-              )}
-            </p>
-          </div>
-          <button className={styles.closeBtn} onClick={onClose} aria-label="Sluiten">
-            <IconX size={18} />
-          </button>
-        </div>
+    <BottomSheet open onClose={onClose} title={typeLabel}>
+      <div className={styles.headerTop}>
+        <span className={[styles.badge, styles[`badge-${payload.type}`]].join(' ')}>{typeLabel}</span>
+      </div>
+      <p className={styles.meta}>
+        <span className={styles.metaValue}>{payload.reportedBy || 'Onbekend'}</span>
+        <span className={styles.metaSep}>·</span>
+        <span className={styles.metaValue}>{payload.date}</span>
+        {payload.type === 'ehbo' && payload.uur && (
+          <><span className={styles.metaSep}>·</span><span className={styles.metaValue}>{payload.uur}</span></>
+        )}
+      </p>
 
-        {/* Body */}
-        <div className={styles.body}>
+      {/* Body */}
+      <div className={styles.body}>
           {payload.type === 'schade' && (
             <>
               <div className={styles.section}>
@@ -154,10 +136,9 @@ export function IncidentModal({ payload, refId, refType, siteId, onClose }: Inci
             </>
           )}
 
-          {/* Historiek + reacties */}
-          <ActivitySection refId={refId} refType={refType} siteId={siteId} />
-        </div>
+        {/* Historiek + reacties */}
+        <ActivitySection refId={refId} refType={refType} siteId={siteId} />
       </div>
-    </div>
+    </BottomSheet>
   );
 }

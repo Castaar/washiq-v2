@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { SeverityChips, type Severity } from '@/components/ui/Chip/Chip';
 import styles from './IncidentenPanel.module.scss';
 
 export interface IncidentListItem {
@@ -33,13 +34,7 @@ const TYPE_LABEL: Record<IncidentListItem['type'], string> = {
   defect: 'Defect',
 };
 
-const ERNST_COLORS: Record<string, string> = {
-  laag: 'var(--color-accent-teal)',
-  medium: '#e0b344',
-  hoog: '#e07844',
-};
-
-type Ernst = 'laag' | 'medium' | 'hoog';
+type Ernst = Severity;
 type Filter = 'open' | 'opgelost' | 'alles';
 
 export function IncidentenPanel({
@@ -227,20 +222,7 @@ export function IncidentenPanel({
           />
           <div className={styles.ernstRow}>
             <span className={styles.ernstLabel}>Ernst</span>
-            {(['laag', 'medium', 'hoog'] as Ernst[]).map((level) => (
-              <button
-                key={level}
-                type="button"
-                className={styles.ernstBtn}
-                style={{
-                  borderColor: ernst === level ? ERNST_COLORS[level] : 'var(--color-border)',
-                  color: ernst === level ? ERNST_COLORS[level] : 'var(--color-text-muted)',
-                }}
-                onClick={() => setErnst(level)}
-              >
-                {level.charAt(0).toUpperCase() + level.slice(1)}
-              </button>
-            ))}
+            <SeverityChips value={ernst} onChange={setErnst} />
           </div>
           <button
             type="button"

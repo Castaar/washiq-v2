@@ -1,78 +1,8 @@
 @use '../../../styles/variables' as *;
 
-// ─── Overlay ─────────────────────────────────────────────────
-.overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  z-index: 1200;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-5);
-}
-
-// ─── Modal ───────────────────────────────────────────────────
-.modal {
-  @include glass(0.07);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--color-border);
-  width: 100%;
-  max-width: 620px;
-  max-height: 88vh;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-
-  @include respond-to('mobile') {
-    max-height: 94vh;
-    max-width: 100%;
-  }
-}
-
-// ─── Header ──────────────────────────────────────────────────
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-  padding: var(--space-5) var(--space-5) var(--space-4);
-  border-bottom: 1px solid var(--color-border);
-  flex-shrink: 0;
-}
-
-.title {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--color-text-primary);
-  margin: 0;
-}
-
-.closeBtn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: none;
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-  flex-shrink: 0;
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.12);
-    color: var(--color-text-primary);
-  }
-}
-
 // ─── State boxes ─────────────────────────────────────────────
 .stateBox {
-  padding: var(--space-8) var(--space-5);
+  padding: var(--space-8) var(--space-2);
   text-align: center;
   color: var(--color-text-muted);
   font-size: 0.875rem;
@@ -83,7 +13,6 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-4) var(--space-5) 0;
   flex-shrink: 0;
   flex-wrap: wrap;
 }
@@ -98,7 +27,7 @@
 .toggle {
   padding: 5px 14px;
   font-size: 0.8125rem;
-  font-weight: 500;
+  font-weight: 600;
   border: none;
   background: transparent;
   color: var(--color-text-muted);
@@ -110,13 +39,13 @@
   }
 
   &:hover {
-    background: rgba(255, 255, 255, 0.07);
+    background: var(--color-bg-tertiary);
     color: var(--color-text-secondary);
   }
 
   &.active {
-    background: rgba(255, 255, 255, 0.12);
-    color: var(--color-text-primary);
+    background: var(--color-accent-blue-dim);
+    color: var(--color-accent-blue);
   }
 }
 
@@ -124,7 +53,7 @@
 .metricTabs {
   display: flex;
   gap: var(--space-1);
-  padding: var(--space-3) var(--space-5) 0;
+  padding-top: var(--space-3);
   flex-shrink: 0;
   flex-wrap: wrap;
 }
@@ -132,7 +61,7 @@
 .metricTab {
   padding: 5px 12px;
   font-size: 0.8125rem;
-  font-weight: 500;
+  font-weight: 600;
   border-radius: var(--radius-full);
   border: 1px solid var(--color-border);
   background: transparent;
@@ -141,20 +70,20 @@
   transition: background 0.15s, color 0.15s, border-color 0.15s;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.07);
+    background: var(--color-bg-tertiary);
     color: var(--color-text-secondary);
   }
 
   &.active {
-    background: rgba(16, 217, 160, 0.15);
-    border-color: #10d9a0;
-    color: #10d9a0;
+    background: var(--color-accent-teal-dim);
+    border-color: var(--color-accent-teal);
+    color: var(--color-accent-teal);
   }
 }
 
 // ─── Chart ───────────────────────────────────────────────────
 .chartWrap {
-  padding: var(--space-3) var(--space-5) 0;
+  padding-top: var(--space-3);
   flex-shrink: 0;
   overflow: hidden;
 }
@@ -171,7 +100,7 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: var(--space-3) var(--space-5) var(--space-5);
+  padding-top: var(--space-3);
   overflow-y: auto;
   flex-shrink: 0;
 }
@@ -186,12 +115,12 @@
   transition: background 0.12s;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--color-bg-tertiary);
   }
 
   &.currentSite {
-    background: rgba(16, 217, 160, 0.07);
-    border: 1px solid rgba(16, 217, 160, 0.2);
+    background: var(--color-accent-teal-dim);
+    border: 1px solid var(--color-accent-teal);
   }
 }
 
@@ -204,14 +133,14 @@
 
 .legendRank {
   font-size: 0.8125rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--color-text-secondary);
   font-variant-numeric: tabular-nums;
 }
 
 .legendName {
   font-size: 0.875rem;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--color-text-primary);
   white-space: nowrap;
   overflow: hidden;
@@ -220,7 +149,7 @@
 
 .legendVal {
   font-size: 0.8125rem;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--color-text-secondary);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;

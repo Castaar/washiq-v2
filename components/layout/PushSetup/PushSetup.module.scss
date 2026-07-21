@@ -14,11 +14,10 @@
   width: calc(100% - 32px);
   max-width: 420px;
 
-  @include glass(0.04);
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  background: var(--color-accent-blue-dim);
+  border: 1px solid var(--color-accent-blue-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
 
   animation: slideUp 0.3s ease;
 }
@@ -41,13 +40,13 @@
     margin: 0;
     font-size: 13px;
     line-height: 1.4;
-    color: var(--text-secondary);
+    color: var(--color-text-secondary);
 
     strong {
       display: block;
       font-size: 14px;
-      font-weight: 600;
-      color: var(--text-primary);
+      font-weight: 700;
+      color: var(--color-text-primary);
       margin-bottom: 2px;
     }
   }
@@ -62,14 +61,19 @@
 .enableBtn {
   height: 34px;
   padding: 0 14px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   border: none;
-  background: var(--teal);
-  color: #fff;
+  background: var(--color-accent-blue);
+  color: var(--color-text-inverse);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
+  transition: background 0.15s;
+
+  &:hover {
+    background: var(--color-accent-blue-dark);
+  }
 
   &:active {
     opacity: 0.8;
@@ -79,15 +83,19 @@
 .dismissBtn {
   height: 34px;
   width: 34px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-accent-blue-border);
   background: transparent;
-  color: var(--text-secondary);
+  color: var(--color-accent-blue);
   font-size: 16px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+
+  &:hover {
+    background: var(--color-surface);
+  }
 
   &:active {
     opacity: 0.6;

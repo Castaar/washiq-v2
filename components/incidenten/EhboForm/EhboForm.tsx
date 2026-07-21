@@ -3,27 +3,12 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { PhotoUpload } from '@/components/ui/PhotoUpload/PhotoUpload';
+import { Toggle } from '@/components/ui/Toggle/Toggle';
 import styles from './EhboForm.module.scss';
 
 interface EhboFormProps {
   siteId: string;
   userName: string;
-}
-
-function CheckToggle({ label, value, onChange }: { label: string; value: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <div className={styles.toggleGroup}>
-      <span className={styles.toggleLabel}>{label}</span>
-      <button
-        type="button"
-        className={[styles.toggleBtn, value ? styles.toggleActive : ''].join(' ')}
-        onClick={() => onChange(!value)}
-        aria-pressed={value}
-      >
-        ✓
-      </button>
-    </div>
-  );
 }
 
 export function EhboForm({ siteId, userName }: EhboFormProps) {
@@ -115,9 +100,9 @@ export function EhboForm({ siteId, userName }: EhboFormProps) {
         </div>
       </div>
 
-      {/* Checkbox */}
+      {/* Toggle */}
       <div className={styles.checkRow}>
-        <CheckToggle label="Dokter nodig?" value={dokterNodig} onChange={setDokterNodig} />
+        <Toggle label="Dokter nodig?" checked={dokterNodig} onChange={setDokterNodig} />
       </div>
 
       <div className={styles.checkRow}>

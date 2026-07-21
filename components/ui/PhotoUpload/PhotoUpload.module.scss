@@ -51,17 +51,18 @@
   align-self: flex-start;
   height: 36px;
   padding: 0 var(--space-4);
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px dashed var(--color-border);
+  background: var(--color-bg-tertiary);
+  border: 1px dashed var(--color-border-strong);
   border-radius: var(--radius-md);
   color: var(--color-text-secondary);
   font-size: 0.8125rem;
+  font-weight: 600;
   font-family: inherit;
   cursor: pointer;
   transition: border-color 0.15s, color 0.15s;
 
   &:hover {
-    border-color: rgba(255, 255, 255, 0.3);
+    border-color: var(--color-accent-blue);
     color: var(--color-text-primary);
   }
 }

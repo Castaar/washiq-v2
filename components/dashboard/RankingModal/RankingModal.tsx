@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { IconX } from '@/components/ui/icons';
+import { BottomSheet } from '@/components/ui/BottomSheet/BottomSheet';
 import styles from './RankingModal.module.scss';
 
 // ─── Types ────────────────────────────────────────────────────
@@ -51,7 +51,7 @@ interface RankingData {
 }
 
 // ─── Constants ───────────────────────────────────────────────
-const SITE_COLORS = ['#10d9a0', '#4f7cff', '#f59e0b', '#f05252', '#a855f7', '#06b6d4'];
+const SITE_COLORS = ['#0f9a78', '#3762e0', '#b8790f', '#d64545', '#8b5cf6', '#0891b2'];
 
 type Metric = 'water' | 'energy' | 'salt' | 'flock' | 'wagens';
 type Period = 'week' | 'month';
@@ -157,7 +157,7 @@ function SvgChart({ points, colors }: { points: ChartPoint[]; colors: string[] }
           x={CW / 2}
           y={CH / 2}
           textAnchor="middle"
-          fill="rgba(255,255,255,0.35)"
+          fill="rgba(27,29,34,0.35)"
           fontSize="13"
         >
           Geen data beschikbaar
@@ -202,7 +202,7 @@ function SvgChart({ points, colors }: { points: ChartPoint[]; colors: string[] }
           y1={yPos(v)}
           x2={PAD.left + IW}
           y2={yPos(v)}
-          stroke="rgba(255,255,255,0.07)"
+          stroke="rgba(27,29,34,0.08)"
           strokeWidth="1"
         />
       ))}
@@ -215,7 +215,7 @@ function SvgChart({ points, colors }: { points: ChartPoint[]; colors: string[] }
           y={yPos(v) + 4}
           textAnchor="end"
           fontSize="10"
-          fill="rgba(255,255,255,0.38)"
+          fill="rgba(27,29,34,0.42)"
         >
           {fmtYLabel(v)}
         </text>
@@ -229,7 +229,7 @@ function SvgChart({ points, colors }: { points: ChartPoint[]; colors: string[] }
           y={PAD.top + IH + 22}
           textAnchor="middle"
           fontSize="10"
-          fill="rgba(255,255,255,0.38)"
+          fill="rgba(27,29,34,0.42)"
         >
           {p.label}
         </text>
@@ -318,17 +318,7 @@ export function RankingModal({ siteId, onClose }: { siteId: string; onClose: () 
   }
 
   return (
-    <div className={styles.overlay} onClick={onClose} role="dialog" aria-modal="true" aria-label="Rangschikking">
-      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-
-        {/* Header */}
-        <div className={styles.header}>
-          <h2 className={styles.title}>Rangschikking</h2>
-          <button className={styles.closeBtn} onClick={onClose} aria-label="Sluiten" type="button">
-            <IconX size={18} />
-          </button>
-        </div>
-
+    <BottomSheet open onClose={onClose} title="Rangschikking">
         {loading ? (
           <div className={styles.stateBox}>Laden…</div>
         ) : !data || data.singleSite ? (
@@ -423,7 +413,6 @@ export function RankingModal({ siteId, onClose }: { siteId: string; onClose: () 
             </div>
           </>
         )}
-      </div>
-    </div>
+    </BottomSheet>
   );
 }

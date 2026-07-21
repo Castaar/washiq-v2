@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Badge } from '@/components/ui/Badge/Badge';
 import styles from './OnderhoudPanel.module.scss';
 
 export interface OnderhoudTask {
@@ -91,7 +92,16 @@ export function OnderhoudPanel({
     return (
       <div className={[styles.taskCard, task.isOverdue ? styles.overdue : task.isApproaching ? styles.approaching : styles.ok].join(' ')}>
         <div className={styles.taskBody}>
-          <p className={styles.taskTitle}>{task.description}</p>
+          <div className={styles.taskTitleRow}>
+            <p className={styles.taskTitle}>{task.description}</p>
+            {task.isOverdue ? (
+              <Badge variant="red" size="sm">Te laat</Badge>
+            ) : task.isApproaching ? (
+              <Badge variant="amber" size="sm">Bijna</Badge>
+            ) : (
+              <Badge variant="teal" size="sm">Op schema</Badge>
+            )}
+          </div>
           <div className={styles.taskMeta}>
             {task.triggerType === 'washes' && task.triggerValue > 0 && (
               <span>Elke {task.triggerValue.toLocaleString('nl-BE')} {TRIGGER_LABEL[task.triggerType]}</span>

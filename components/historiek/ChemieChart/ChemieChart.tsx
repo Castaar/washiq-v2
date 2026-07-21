@@ -63,7 +63,7 @@ export function ChemieChart({ data, products }: ChemieChartProps) {
 
       <ResponsiveContainer width="100%" height={280}>
         <LineChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 4 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.07)" />
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(27,29,34,0.08)" />
           <XAxis
             dataKey="week"
             tick={{ fontSize: 11, fill: 'var(--color-text-muted)' }}
@@ -78,7 +78,7 @@ export function ChemieChart({ data, products }: ChemieChartProps) {
           />
           <Tooltip
             contentStyle={{
-              background: 'var(--color-bg-card)',
+              background: 'var(--color-surface)',
               border: '1px solid var(--color-border)',
               borderRadius: '8px',
               fontSize: '0.8125rem',

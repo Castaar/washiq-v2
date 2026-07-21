@@ -10,30 +10,30 @@
   position: relative;
   overflow: hidden;
 
-  // Decorative top-edge glow line
+  // Decorative top-edge accent line
   &::before {
     content: '';
     position: absolute;
     top: 0;
     left: var(--space-6);
     right: var(--space-6);
-    height: 1px;
-    background: linear-gradient(90deg, transparent, var(--glow-line-color, rgba(79,124,255,0.6)), transparent);
-    opacity: 0.7;
+    height: 2px;
+    border-radius: var(--radius-full);
+    background: var(--accent-line-color, var(--color-accent-blue));
   }
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--shadow-md);
   }
 }
 
 // Accent color overrides
-.accent-blue  { --glow-line-color: rgba(79,  124, 255, 0.6); }
-.accent-teal  { --glow-line-color: rgba(16,  217, 160, 0.5); }
-.accent-amber { --glow-line-color: rgba(246, 165, 43,  0.5); }
-.accent-purple{ --glow-line-color: rgba(167, 139, 250, 0.5); }
-.accent-red   { --glow-line-color: rgba(240, 82,  82,  0.5); }
+.accent-blue  { --accent-line-color: var(--color-accent-blue); }
+.accent-teal  { --accent-line-color: var(--color-accent-teal); }
+.accent-amber { --accent-line-color: var(--color-accent-amber); }
+.accent-purple{ --accent-line-color: var(--color-accent-purple); }
+.accent-red   { --accent-line-color: var(--color-accent-red); }
 
 // ─── Inner elements ──────────────────────────────────────────
 .header {

@@ -28,11 +28,12 @@
   }
 }
 
+.tab {
+  border-radius: var(--radius-full);
+}
+
 .active {
-  color: var(--color-text-primary);
-  background: rgba(16, 217, 160, 0.05);
-  border-color: rgba(16, 217, 160, 0.5);
-  box-shadow:
-    0 0 14px rgba(16, 217, 160, 0.12),
-    inset 0 0 16px rgba(16, 217, 160, 0.04);
+  color: var(--color-accent-blue);
+  background: var(--color-accent-blue-dim);
+  border-color: var(--color-accent-blue-border);
 }

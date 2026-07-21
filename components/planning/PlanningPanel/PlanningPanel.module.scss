@@ -13,7 +13,7 @@
 }
 
 .navBtn {
-  background: var(--color-bg-elevated);
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   padding: var(--space-2) var(--space-3);
@@ -23,7 +23,7 @@
   cursor: pointer;
   transition: all var(--transition-fast);
 
-  &:hover { background: var(--color-bg-hover); color: var(--color-text-primary); }
+  &:hover { background: var(--color-surface-hover); color: var(--color-text-primary); }
 }
 
 .weekLabel {
@@ -39,7 +39,7 @@
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: var(--space-2);
-  background: var(--color-bg-card);
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   padding: var(--space-4);
@@ -98,8 +98,8 @@
 }
 
 .shiftChip {
-  background: color-mix(in srgb, var(--color-accent-teal) 12%, var(--color-bg-elevated) 88%);
-  border: 1px solid color-mix(in srgb, var(--color-accent-teal) 30%, var(--color-border) 70%);
+  background: var(--color-accent-blue-dim);
+  border: 1px solid var(--color-accent-blue-border);
   border-radius: var(--radius-sm);
   padding: var(--space-2);
   font-size: 0.75rem;
@@ -138,12 +138,12 @@
   border-radius: 2px;
   transition: color var(--transition-fast);
 
-  &:hover { color: var(--color-danger, #ef4444); }
+  &:hover { color: var(--color-accent-red); }
 }
 
 // ─── Uren & weekend overzicht ────────────────────────────────
 .hoursTable {
-  background: #ffffff12;
+  background: var(--color-bg-tertiary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   padding: var(--space-4) var(--space-5);
@@ -193,14 +193,14 @@
 }
 
 .weekendWarn {
-  border-color: rgba(224, 120, 68, 0.5);
-  color: #e07844;
-  background: rgba(224, 120, 68, 0.08);
+  border-color: var(--color-accent-amber-border);
+  color: var(--color-accent-amber);
+  background: var(--color-accent-amber-dim);
 }
 
 // ─── Formulier ───────────────────────────────────────────────
 .addForm {
-  background: var(--color-bg-card);
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   padding: var(--space-5);
@@ -243,20 +243,20 @@
 .input, .select {
   height: 36px;
   padding: 0 var(--space-3);
-  background: var(--color-bg-elevated);
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   color: var(--color-text-primary);
   font-size: 0.875rem;
   font-family: inherit;
 
-  &:focus { outline: none; border-color: var(--color-accent-teal); }
+  &:focus { outline: none; border-color: var(--color-accent-blue); }
 }
 
 .submitBtn {
   height: 40px;
   padding: 0 var(--space-5);
-  background: var(--color-accent-teal);
+  background: var(--color-accent-blue);
   border: none;
   border-radius: var(--radius-md);
   color: var(--color-text-inverse);
@@ -273,7 +273,7 @@
 
 // ─── Medewerker weergave ─────────────────────────────────────
 .myShiftsCard {
-  background: var(--color-bg-card);
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   padding: var(--space-6);
@@ -301,7 +301,7 @@
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
-  background: var(--color-bg-elevated);
+  background: var(--color-bg-tertiary);
   align-items: center;
 
   &.past {
@@ -310,7 +310,7 @@
 
   &.isToday {
     border-color: var(--color-accent-teal);
-    background: color-mix(in srgb, var(--color-accent-teal) 8%, var(--color-bg-elevated) 92%);
+    background: var(--color-accent-teal-dim);
   }
 }
 
