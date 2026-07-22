@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { Toggle } from '@/components/ui/Toggle/Toggle';
 import styles from './ProgrammaCard.module.scss';
 
 export interface ProgramOption {
@@ -30,6 +32,16 @@ interface ProgrammaCardProps {
 const ALL_ID = '__all__';
 
 export function ProgrammaCard({ programs, totalWagens, costBreakdown, prevCostBreakdown = [], view = 'prijs' }: ProgrammaCardProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  function togglePerLiter(checked: boolean) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('view', checked ? 'liter' : 'prijs');
+    router.push(`${pathname}?${params.toString()}`);
+  }
+
   const totalPrevCount = programs.reduce((s, p) => s + p.prevCount, 0);
   const allOption: ProgramOption = { id: ALL_ID, name: "Alle programma's", count: totalWagens, prevCount: totalPrevCount };
   const options = [allOption, ...programs];
@@ -69,6 +81,11 @@ export function ProgrammaCard({ programs, totalWagens, costBreakdown, prevCostBr
 
   return (
     <div className={styles.card}>
+      <div className={styles.header}>
+        <span className={styles.headerLabel}>Wasprogramma&apos;s</span>
+        <Toggle checked={view === 'liter'} onChange={togglePerLiter} label="per liter" className={styles.perLiterToggle} />
+      </div>
+
       <div className={styles.header}>
         <span className={styles.headerLabel}>Programma</span>
         <div className={styles.selectorPill}>

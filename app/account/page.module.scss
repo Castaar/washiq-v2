@@ -1,3 +1,5 @@
+@use '../../styles/variables' as *;
+
 .root {
   display: flex;
   flex-direction: column;
@@ -7,32 +9,16 @@
   background: var(--color-bg);
 }
 
-.bg {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  opacity: 0.35;
-
-  &::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(180deg, var(--color-bg) 0%, rgba(255, 255, 255, 0.55) 55%, var(--color-bg) 100%);
-    z-index: 1;
-  }
-}
-
-.root > :not(.bg) {
-  position: relative;
-  z-index: 1;
-}
-
 .main {
   flex: 1;
   overflow-y: auto;
   display: flex;
   justify-content: center;
+  align-items: flex-start;
   padding: var(--space-6);
   padding-top: var(--space-6);
+
+  @include respond-to('tablet-down') {
+    padding-bottom: calc(var(--bottomnav-height) + var(--space-6));
+  }
 }

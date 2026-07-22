@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import type { Types } from 'mongoose';
 import { dbConnect } from '@/lib/db/mongoose';
 import { Site } from '@/lib/models';
@@ -15,9 +14,6 @@ export default async function LoginPage() {
 
   return (
     <div className={styles.root}>
-      <div className={styles.bg} aria-hidden="true">
-        <Image src="/background.png" alt="" fill style={{ objectFit: 'cover' }} priority />
-      </div>
       <main className={styles.main}>
         <LoginForm sites={siteList} />
       </main>

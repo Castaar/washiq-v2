@@ -55,6 +55,7 @@ export function IncidentenPanel({
   const [resolvingId, setResolvingId] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [allLoaded, setAllLoaded] = useState(initialIncidents.length < 45);
+  const [defectFormOpen, setDefectFormOpen] = useState(false);
 
   async function handleDefectSave() {
     if (!omschrijving.trim()) return;
@@ -81,7 +82,7 @@ export function IncidentenPanel({
         setOmschrijving('');
         setErnst('medium');
         setSaved(true);
-        setTimeout(() => setSaved(false), 2000);
+        setTimeout(() => { setSaved(false); setDefectFormOpen(false); }, 1200);
       }
     } finally {
       setSaving(false);
@@ -138,102 +139,111 @@ export function IncidentenPanel({
 
   return (
     <div className={styles.wrap}>
-      <div className={styles.grid}>
-        {/* ── Left: incident list ────────────────────────────── */}
-        <div className={styles.left}>
-          <div className={styles.listHeader}>
-            <h2 className={styles.sectionTitle}>Recente incidenten</h2>
-            <div className={styles.filterTabs}>
-              {(['open', 'opgelost', 'alles'] as Filter[]).map((f) => (
-                <button
-                  key={f}
-                  type="button"
-                  className={[styles.filterTab, filter === f ? styles.filterTabActive : ''].filter(Boolean).join(' ')}
-                  onClick={() => setFilter(f)}
-                >
-                  {f.charAt(0).toUpperCase() + f.slice(1)}
-                </button>
-              ))}
+      {/* ── Report tabs ───────────────────────────────────────── */}
+      <div className={styles.reportBtns}>
+        <Link href={schadeHref} className={styles.reportBtn}>Schade</Link>
+        <Link href={ehboHref} className={styles.reportBtn}>EHBO</Link>
+      </div>
+
+      {/* ── Incident list ─────────────────────────────────────── */}
+      <div className={styles.listHeader}>
+        <h2 className={styles.sectionTitle}>Recente incidenten</h2>
+        <div className={styles.filterTabs}>
+          {(['open', 'opgelost', 'alles'] as Filter[]).map((f) => (
+            <button
+              key={f}
+              type="button"
+              className={[styles.filterTab, filter === f ? styles.filterTabActive : ''].filter(Boolean).join(' ')}
+              onClick={() => setFilter(f)}
+            >
+              {f.charAt(0).toUpperCase() + f.slice(1)}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className={styles.list}>
+        {filteredIncidents.length === 0 && (
+          <p className={styles.empty}>
+            {filter === 'open' ? 'Geen openstaande incidenten.' : 'Geen incidenten gevonden.'}
+          </p>
+        )}
+        {filteredIncidents.map((inc) => (
+          <div
+            key={inc.id}
+            className={[styles.incidentCard, inc.is_resolved ? styles.incidentCardResolved : ''].filter(Boolean).join(' ')}
+          >
+            <span className={[styles.incIcon, styles[`icon_${inc.type}`]].join(' ')} aria-hidden="true">⚠</span>
+            <div className={styles.incBody}>
+              <div className={styles.incTop}>
+                <span className={styles.incTitle}>{inc.title}</span>
+                <span className={styles.incDate}>{inc.date}</span>
+              </div>
+              <span className={styles.incSubtitle}>{inc.subtitle}</span>
+              <div className={styles.incFooter}>
+                <span className={[styles.incBadge, styles[`badge_${inc.type}`]].join(' ')}>
+                  <span className={styles.badgeDot} aria-hidden="true" />
+                  {TYPE_LABEL[inc.type]}
+                </span>
+                {(inc.type === 'defect' || inc.type === 'schade') && (
+                  <button
+                    type="button"
+                    className={[styles.resolveBtn, inc.is_resolved ? styles.resolveBtnDone : ''].filter(Boolean).join(' ')}
+                    onClick={() => handleToggleResolve(inc)}
+                    disabled={resolvingId === inc.id}
+                  >
+                    {inc.is_resolved ? '✓ Opgelost' : 'Opgelost?'}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
-          <div className={styles.list}>
-            {filteredIncidents.length === 0 && (
-              <p className={styles.empty}>
-                {filter === 'open' ? 'Geen openstaande incidenten.' : 'Geen incidenten gevonden.'}
-              </p>
-            )}
-            {filteredIncidents.map((inc) => (
-              <div
-                key={inc.id}
-                className={[styles.incidentCard, inc.is_resolved ? styles.incidentCardResolved : ''].filter(Boolean).join(' ')}
-              >
-                <span className={[styles.incIcon, styles[`icon_${inc.type}`]].join(' ')} aria-hidden="true">⚠</span>
-                <div className={styles.incBody}>
-                  <div className={styles.incTop}>
-                    <span className={styles.incTitle}>{inc.title}</span>
-                    <span className={styles.incDate}>{inc.date}</span>
-                  </div>
-                  <span className={styles.incSubtitle}>{inc.subtitle}</span>
-                  <div className={styles.incFooter}>
-                    <span className={[styles.incBadge, styles[`badge_${inc.type}`]].join(' ')}>
-                      <span className={styles.badgeDot} aria-hidden="true" />
-                      {TYPE_LABEL[inc.type]}
-                    </span>
-                    {(inc.type === 'defect' || inc.type === 'schade') && (
-                      <button
-                        type="button"
-                        className={[styles.resolveBtn, inc.is_resolved ? styles.resolveBtnDone : ''].filter(Boolean).join(' ')}
-                        onClick={() => handleToggleResolve(inc)}
-                        disabled={resolvingId === inc.id}
-                      >
-                        {inc.is_resolved ? '✓ Opgelost' : 'Opgelost?'}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-          {!allLoaded && (
-            <button
-              type="button"
-              className={styles.loadMoreBtn}
-              onClick={handleLoadMore}
-              disabled={loadingMore}
-            >
-              {loadingMore ? 'Laden...' : 'Laad meer incidenten'}
-            </button>
-          )}
-          <div className={styles.reportBtns}>
-            <Link href={schadeHref} className={styles.reportBtn}>Schade melden</Link>
-            <Link href={ehboHref} className={styles.reportBtn}>EHBO melden</Link>
-          </div>
-        </div>
+        ))}
+      </div>
+      {!allLoaded && (
+        <button
+          type="button"
+          className={styles.loadMoreBtn}
+          onClick={handleLoadMore}
+          disabled={loadingMore}
+        >
+          {loadingMore ? 'Laden...' : 'Laad meer incidenten'}
+        </button>
+      )}
 
-        {/* ── Right: defect form ─────────────────────────────── */}
-        <div className={styles.right}>
+      {/* ── Defect quick-report (collapsible, like Dagfiche) ──── */}
+      {defectFormOpen ? (
+        <div className={styles.defectPanel}>
           <h2 className={styles.sectionTitle}>Technisch defect melden</h2>
           <textarea
             className={styles.defectTextarea}
             placeholder="Korte omschrijving van het technisch probleem..."
             value={omschrijving}
             onChange={(e) => setOmschrijving(e.target.value)}
-            rows={6}
+            rows={3}
           />
           <div className={styles.ernstRow}>
             <span className={styles.ernstLabel}>Ernst</span>
             <SeverityChips value={ernst} onChange={setErnst} />
           </div>
-          <button
-            type="button"
-            className={styles.defectSaveBtn}
-            onClick={handleDefectSave}
-            disabled={saving || !omschrijving.trim()}
-          >
-            {saved ? 'Opgeslagen ✓' : saving ? 'Bezig...' : 'Defect opslaan'}
-          </button>
+          <div className={styles.defectFormActions}>
+            <button type="button" className={styles.defectCancelBtn} onClick={() => setDefectFormOpen(false)}>
+              Annuleren
+            </button>
+            <button
+              type="button"
+              className={styles.defectSaveBtn}
+              onClick={handleDefectSave}
+              disabled={saving || !omschrijving.trim()}
+            >
+              {saved ? 'Opgeslagen ✓' : saving ? 'Bezig...' : 'Defect opslaan'}
+            </button>
+          </div>
         </div>
-      </div>
+      ) : (
+        <button type="button" className={styles.openDefectBtn} onClick={() => setDefectFormOpen(true)}>
+          + Defect melden
+        </button>
+      )}
     </div>
   );
 }

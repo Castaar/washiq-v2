@@ -247,6 +247,19 @@
   }
 }
 
+// ─── Tellerstand validation ───────────────────────────────────
+.tellerstandOk {
+  font-size: 0.8125rem;
+  color: var(--color-accent-teal);
+  margin-top: var(--space-2);
+}
+
+.tellerstandError {
+  font-size: 0.8125rem;
+  color: var(--color-accent-red);
+  margin-top: var(--space-2);
+}
+
 // ─── Maintenance warnings ─────────────────────────────────────
 .maintenanceWarnings {
   display: flex;

@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import { cookies } from 'next/headers';
 import { NavBar } from '@/components/layout/NavBar/NavBar';
 import { HistoryList } from '@/components/forms/HistoryList/HistoryList';
@@ -6,7 +5,7 @@ import type { HistoryEntry, HistoryProgram } from '@/components/forms/HistoryLis
 import { ChemieChart } from '@/components/historiek/ChemieChart/ChemieChart';
 import type { ChemieDataPoint } from '@/components/historiek/ChemieChart/ChemieChart';
 import { dbConnect } from '@/lib/db/mongoose';
-import { Site, WashProgram, WeeklyEntry, ChemicalStock, User } from '@/lib/models';
+import { Site, WashProgram, WeeklyEntry, ChemicalStock, User, EnergyBill } from '@/lib/models';
 import { getSession } from '@/lib/session';
 import type { Types } from 'mongoose';
 import { filterSitesForUser, resolveActiveSite } from '@/lib/getUserSites';
@@ -39,11 +38,17 @@ export default async function HistoriekPage({
   const startCarCount = (siteDoc?.start_car_count as number) ?? 0;
   const filter = siteId ? { site_id: siteId } : {};
 
-  const [programDocs, entryDocs, stockDocs] = await Promise.all([
+  const [programDocs, entryDocs, stockDocs, energyBillDocs] = await Promise.all([
     WashProgram.find(filter).select('_id name tier chemicals').sort({ tier: 1 }).lean(),
     WeeklyEntry.find(filter).sort({ week_start: 1 }).lean(),
     ChemicalStock.find(filter).select('name unit').sort({ name: 1 }).lean(),
+    EnergyBill.find(filter).select('year month amount_euro').lean(),
   ]);
+
+  const energyBillsByMonth: Record<string, number> = {};
+  for (const b of energyBillDocs) {
+    energyBillsByMonth[`${b.year}-${b.month}`] = (b.amount_euro as number) ?? 0;
+  }
 
   const programs: HistoryProgram[] = programDocs.map((p) => ({
     id: (p._id as Types.ObjectId).toString(),
@@ -55,7 +60,9 @@ export default async function HistoriekPage({
     id: (e._id as Types.ObjectId).toString(),
     weekStart: (e.week_start as Date).toISOString(),
     createdAt: e.created_at ? (e.created_at as Date).toISOString() : undefined,
+    tellerstand: (e as Record<string, unknown>).tellerstand as number ?? 0,
     waterLiters: e.water_liters ?? 0,
+    waterTellerstand: (e as Record<string, unknown>).water_tellerstand as number ?? 0,
     energyKw: e.energy_kw ?? 0,
     saltKg: e.salt_kg ?? 0,
     blobLiters: (e as Record<string, unknown>).blob_liters as number ?? 0,
@@ -114,9 +121,6 @@ export default async function HistoriekPage({
 
   return (
     <div className={styles.root}>
-      <div className={styles.bg} aria-hidden="true">
-        <Image src="/background.png" alt="" fill style={{ objectFit: 'cover' }} priority />
-      </div>
       <NavBar sites={allowedSites} activeSiteId={siteId ?? ''} backHref={backHref} />
       <main className={styles.main}>
 
@@ -136,7 +140,7 @@ export default async function HistoriekPage({
           <div className={styles.header}>
             <h1 className={styles.title}>Maandelijkse Ingaves — {siteName}</h1>
           </div>
-          <HistoryList entries={entries} programs={programs} startCarCount={startCarCount} />
+          <HistoryList entries={entries} programs={programs} startCarCount={startCarCount} siteId={siteId ?? ''} energyBillsByMonth={energyBillsByMonth} />
         </div>
       </main>
     </div>

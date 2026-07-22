@@ -241,6 +241,21 @@
   color: var(--color-accent-red);
 }
 
+.lastValueHint {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.tellerstandOk {
+  font-size: 0.8125rem;
+  color: var(--color-accent-teal);
+}
+
+.tellerstandError {
+  font-size: 0.8125rem;
+  color: var(--color-accent-red);
+}
+
 .editFooter {
   display: flex;
   justify-content: flex-end;

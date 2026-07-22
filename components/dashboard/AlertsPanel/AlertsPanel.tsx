@@ -11,17 +11,17 @@ import styles from './AlertsPanel.module.scss';
 type AlertTab = 'alerts' | 'onderhoud' | 'incident';
 
 const tabLabels: Record<AlertTab, string> = {
-  alerts:    'Alerts',
+  alerts:    'Meldingen',
   onderhoud: 'Onderhoud',
-  incident:  'Incident',
+  incident:  'Incidenten',
 };
 
 const tabs: AlertTab[] = ['alerts', 'onderhoud', 'incident'];
 
 const severityLabel: Record<string, string> = {
-  medium: 'Medium',
-  high:   'High',
-  low:    'Low',
+  medium: 'Midden',
+  high:   'Hoog',
+  low:    'Laag',
 };
 
 // ─── Persistent dismiss via localStorage ─────────────────────

@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import type { Types } from 'mongoose';
 import { NavBar } from '@/components/layout/NavBar/NavBar';
 import { DeveloperPanel } from '@/components/developer/DeveloperPanel/DeveloperPanel';
@@ -70,9 +69,6 @@ export default async function DeveloperPage() {
 
   return (
     <div className={styles.root}>
-      <div className={styles.bg} aria-hidden="true">
-        <Image src="/background.png" alt="" fill style={{ objectFit: 'cover' }} priority />
-      </div>
       <NavBar centerTitle="Developer" backHref="/" />
       <main className={styles.main}>
         <DeveloperPanel users={users} sites={sites} programs={programs} maintenanceTasks={maintenanceTasks} stockItems={stockItems} />

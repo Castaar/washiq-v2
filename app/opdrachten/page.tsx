@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import { NavBar } from '@/components/layout/NavBar/NavBar';
 import { OpdrachtenPanel } from '@/components/opdrachten/OpdrachtenPanel/OpdrachtenPanel';
 import type { OpdrachtItem, SiteEmployee } from '@/components/opdrachten/OpdrachtenPanel/OpdrachtenPanel';
@@ -79,9 +78,6 @@ export default async function OpdrachtenPage({
 
   return (
     <div className={styles.root}>
-      <div className={styles.bg} aria-hidden="true">
-        <Image src="/background.png" alt="" fill style={{ objectFit: 'cover' }} priority />
-      </div>
       <NavBar centerTitle={`Opdrachten — ${siteName}`} backHref="/" />
       <main className={styles.main}>
         <div className={styles.content}>

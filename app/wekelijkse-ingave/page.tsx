@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import { cookies } from 'next/headers';
 import { NavBar } from '@/components/layout/NavBar/NavBar';
 import { WeeklyEntryForm } from '@/components/forms/WeeklyEntryForm/WeeklyEntryForm';
@@ -68,6 +67,7 @@ export default async function WekelijkseIngavePage({
     ? {
         tellerstand: (last as Record<string, unknown>).tellerstand as number ?? 0,
         waterLiters: last.water_liters,
+        waterTellerstand: (last as Record<string, unknown>).water_tellerstand as number ?? 0,
         energyKw: last.energy_kw,
         saltKg: last.salt_kg,
         blobLiters: (last as Record<string, unknown>).blob_liters as number ?? 0,
@@ -96,9 +96,6 @@ export default async function WekelijkseIngavePage({
 
   return (
     <div className={styles.root}>
-      <div className={styles.bg} aria-hidden="true">
-        <Image src="/background.png" alt="" fill style={{ objectFit: 'cover' }} priority />
-      </div>
       <NavBar sites={allowedSites} activeSiteId={siteId ?? ''} backHref="/" />
       <main className={styles.main}>
         <WeeklyEntryForm

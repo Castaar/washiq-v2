@@ -188,20 +188,21 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
         <button className={styles.navBtn} onClick={nextWeek}>Volgende week →</button>
       </div>
 
-      {/* Week grid */}
-      <div className={styles.weekGrid}>
+      {/* Week day list (single column — agenda style) */}
+      <div className={styles.dayList}>
         {weekDays.map((date, i) => {
           const dayShifts = weekShifts.filter((s) => s.date === date);
           const isToday = date === today;
           return (
-            <div key={date} className={[styles.dayCol, isToday ? styles.todayCol : ''].join(' ')}>
+            <div key={date} className={[styles.dayRow, isToday ? styles.todayCol : ''].join(' ')}>
               <div className={styles.dayHeader}>
                 <span className={styles.dayName}>{DAY_NAMES[i]}</span>
                 <span className={styles.dayDate}>{fmtDayLabel(date)}</span>
+                {isToday && <span className={styles.todayBadge}>Vandaag</span>}
               </div>
               <div className={styles.dayShifts}>
                 {dayShifts.length === 0 && (
-                  <span className={styles.emptyDay}>—</span>
+                  <span className={styles.emptyDay}>Geen shiften gepland</span>
                 )}
                 {dayShifts.map((s) => (
                   <div key={s.id} className={styles.shiftChip}>

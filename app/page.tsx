@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import type { Types } from 'mongoose';
 import { redirect } from 'next/navigation';
 import { dbConnect } from '@/lib/db/mongoose';
@@ -113,20 +112,18 @@ export default async function DashboardPage({
 
   return (
     <div className={styles.root}>
-      <div className={styles.bg} aria-hidden="true">
-        <Image src="/background.png" alt="" fill style={{ objectFit: 'cover' }} priority />
+      <NavBar sites={sites} activeSiteId={activeSiteId} addHref={addHref} addLabel={addLabel} settingsHref={settingsHref} />
+      <div className={styles.scrollArea}>
+        {announcements.length > 0 ? (
+          <div className={styles.announcementsWrap}>
+            <AnnouncementBanner
+              initialAnnouncements={announcements}
+              canManage={canManage}
+            />
+          </div>
+        ) : null}
+        <CarwashPage siteId={activeSiteId} period={period} view={view} usage={usage} refDate={refDate} sites={sites} addHref={addHref} addLabel={addLabel} userRole={userRole} recentLogs={recentLogs} userName={session?.name ?? ''} />
       </div>
-      <NavBar sites={sites} activeSiteId={activeSiteId} activeView={view} addHref={addHref} addLabel={addLabel} settingsHref={settingsHref} />
-      {announcements.length > 0 || canManage ? (
-        <div className={styles.announcementsWrap}>
-          <AnnouncementBanner
-            siteId={activeSiteId}
-            initialAnnouncements={announcements}
-            canManage={canManage}
-          />
-        </div>
-      ) : null}
-      <CarwashPage siteId={activeSiteId} period={period} view={view} usage={usage} refDate={refDate} sites={sites} addHref={addHref} addLabel={addLabel} userRole={userRole} recentLogs={recentLogs} userName={session?.name ?? ''} />
     </div>
   );
 }

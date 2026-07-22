@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import { NavBar } from '@/components/layout/NavBar/NavBar';
 import { HandleidingContent } from '@/components/handleiding/HandleidingContent/HandleidingContent';
 import { getSession } from '@/lib/session';
@@ -17,9 +16,6 @@ export default async function HandleidingPage({
 
   return (
     <div className={styles.root}>
-      <div className={styles.bg} aria-hidden="true">
-        <Image src="/background.png" alt="" fill style={{ objectFit: 'cover' }} priority />
-      </div>
       <NavBar
         centerTitle="Handleiding"
         backHref={site ? `/?site=${site}` : '/'}

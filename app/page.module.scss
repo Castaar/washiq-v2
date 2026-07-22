@@ -4,29 +4,17 @@
   height: 100vh;
   overflow: hidden;
   position: relative;
-
-  @media (max-width: 767px) {
-    height: auto;
-    min-height: 100dvh;
-    overflow: visible;
-  }
 }
 
-.bg {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
+.scrollArea {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 
-  @media (max-width: 767px) {
-    top: 150px;
-    height: 55vh;
+  @media (max-width: 1023px) {
+    padding-bottom: calc(var(--bottomnav-height) + var(--space-6));
   }
-}
-
-.root > :not(.bg) {
-  position: relative;
-  z-index: 1;
 }
 
 .announcementsWrap {

@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import type { Types } from 'mongoose';
 import { NavBar } from '@/components/layout/NavBar/NavBar';
 import { AccountForm } from '@/components/account/AccountForm/AccountForm';
@@ -93,9 +92,6 @@ export default async function AccountPage({
 
   return (
     <div className={styles.root}>
-      <div className={styles.bg} aria-hidden="true">
-        <Image src="/background.png" alt="" fill style={{ objectFit: 'cover' }} priority />
-      </div>
       <NavBar
         centerTitle={sites.find((s) => s.id === siteId)?.name ? `Account — ${sites.find((s) => s.id === siteId)!.name}` : 'Account'}
         sites={sessionRole !== 'technician' ? sites : undefined}

@@ -28,15 +28,21 @@ export async function PATCH(
   const body = await req.json();
   await dbConnect();
 
-  await WeeklyEntry.findByIdAndUpdate(id, {
+  const update: Record<string, unknown> = {
     water_liters: body.water_liters ?? 0,
+    water_tellerstand: body.water_tellerstand ?? 0,
     energy_kw: body.energy_kw ?? 0,
     salt_kg: body.salt_kg ?? 0,
     flock_kg: body.flock_kg ?? 0,
     cloth_units: body.cloth_units ?? 0,
+    blob_liters: body.blob_liters ?? 0,
     program_counts: body.program_counts ?? [],
     chemical_usages: body.chemical_usages ?? [],
-  });
+  };
+  if (body.tellerstand !== undefined) update.tellerstand = body.tellerstand;
+  if (body.week_start) update.week_start = new Date(body.week_start);
+
+  await WeeklyEntry.findByIdAndUpdate(id, update);
 
   return NextResponse.json({ ok: true });
 }

@@ -2,34 +2,64 @@
 
 .card {
   width: 100%;
-  max-width: 1000px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-xl);
-  padding: var(--space-6);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-6);
-  overflow: scroll;
-  box-shadow: var(--shadow-sm);
-}
-
-// ── Two-column layout ─────────────────────────────────────────
-.columns {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-6);
-  align-items: start;
-  @include respond-to('mobile') {
-    grid-template-columns: 1fr;
-  }
-}
-
-.left,
-.right {
+  max-width: 640px;
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+}
+
+// ── Header ──────────────────────────────────────────────────
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.title {
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  letter-spacing: -0.01em;
+}
+
+.subline {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  margin-top: 2px;
+}
+
+.washCount {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+}
+
+.washCountValue {
+  font-size: 1.375rem;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  line-height: 1;
+}
+
+.washCountLabel {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+// ── Sections ──────────────────────────────────────────────────
+.section {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  box-shadow: var(--shadow-sm);
 }
 
 .sectionLabel {
@@ -38,61 +68,45 @@
   color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  margin-bottom: var(--space-1);
 }
 
 // ── Checklist items ───────────────────────────────────────────
 .itemList {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
 }
 
 .checklistItem {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-md);
-  border: 1px solid transparent;
-  transition: background 0.15s, border-color 0.15s;
-}
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--color-bg-tertiary);
 
-.rowChecked {
-  background: var(--color-accent-teal-dim);
-  border-color: var(--color-accent-teal);
-}
-
-.rowRemark {
-  background: var(--color-accent-amber-dim);
-  border-color: var(--color-accent-amber-border);
-}
-
-.rowUnchecked {
-  background: var(--color-accent-red-dim);
-  border-color: var(--color-accent-red-border);
+  &:last-child {
+    border-bottom: none;
+  }
 }
 
 .itemLabel {
+  flex: 1;
   font-size: 0.8125rem;
-  color: var(--color-text-secondary);
-}
-
-.itemRow {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
+  font-weight: 600;
+  color: var(--color-text-primary);
 }
 
 .opmerkingInput {
-  flex: 1;
-  height: 38px;
+  flex: 1 1 120px;
+  min-width: 0;
+  height: 32px;
   background: var(--color-bg-tertiary);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   color: var(--color-text-primary);
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   font-family: inherit;
-  padding: 0 var(--space-3);
+  padding: 0 var(--space-2);
   transition: border-color 0.15s;
 
   &:focus {
@@ -106,145 +120,59 @@
 }
 
 .checkBtn {
-  width: 38px;
-  height: 38px;
+  width: 22px;
+  height: 22px;
   flex-shrink: 0;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
+  margin-top: 2px;
+  border-radius: 7px;
+  border: none;
   background: var(--color-bg-tertiary);
-  color: var(--color-text-muted);
-  font-size: 1rem;
+  color: transparent;
+  font-size: 0.75rem;
   cursor: pointer;
-  transition:
-    background 0.15s,
-    border-color 0.15s,
-    color 0.15s;
-
-  &:hover {
-    border-color: var(--color-accent-teal);
-    color: var(--color-accent-teal);
-  }
+  transition: background 0.15s, color 0.15s;
 }
 
 .checkBtnActive {
-  background: var(--color-accent-teal-dim);
-  border-color: var(--color-accent-teal);
-  color: var(--color-accent-teal);
+  background: var(--color-accent-teal);
+  color: #fff;
 }
 
-// ── Maintenance section ───────────────────────────────────────
-.maintenanceSection {
+// ── Gemelde defecten ───────────────────────────────────────────
+.defectRow {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-  padding-top: var(--space-4);
-  border-top: 1px solid var(--color-border);
+  align-items: baseline;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--color-bg-tertiary);
+
+  &:last-child {
+    border-bottom: none;
+  }
 }
 
-.maintenanceLabel {
-  color: var(--color-accent-amber);
-}
-
-// ── Dagrapport ────────────────────────────────────────────────
-.reportArea {
-  width: 100%;
-  min-height: 160px;
-  background: var(--color-bg-tertiary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  color: var(--color-text-secondary);
+.defectDesc {
   font-size: 0.8125rem;
-  font-family: inherit;
-  line-height: 1.6;
-  padding: var(--space-4);
-  resize: none;
-  overflow: hidden;
-  cursor: default;
-}
-
-// ── Footer ────────────────────────────────────────────────────
-.footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-top: var(--space-2);
-  border-top: 1px solid var(--color-border);
-}
-
-.incidentBtn {
-  height: 34px;
-  padding: 0 var(--space-5);
-  background: transparent;
-  border: 1px solid var(--color-border-strong);
-  border-radius: 999px;
-  color: var(--color-text-muted);
-  font-size: 0.8125rem;
-  font-family: inherit;
-  cursor: pointer;
-  text-decoration: none;
-  display: flex;
-  align-items: center;
-  transition:
-    border-color 0.15s,
-    color 0.15s;
-
-  &:hover {
-    border-color: var(--color-text-secondary);
-    color: var(--color-text-primary);
-  }
-}
-
-.submitBtn {
-  height: 40px;
-  padding: 0 var(--space-6);
-  background: transparent;
-  border: 1px solid var(--color-accent-teal);
-  border-radius: var(--radius-md);
-  color: var(--color-accent-teal);
-  font-size: 0.875rem;
-  font-family: inherit;
-  cursor: pointer;
-  transition:
-    background 0.15s,
-    color 0.15s;
-
-  &:hover:not(:disabled) {
-    background: var(--color-accent-teal);
-    color: var(--color-text-inverse);
-  }
-
-  &:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-}
-
-.success {
-  text-align: center;
-  color: var(--color-accent-teal);
-  font-size: 1rem;
+  color: var(--color-text-primary);
   font-weight: 500;
-  padding: var(--space-6) 0;
+}
+
+.defectDetail {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
 }
 
 // ── Defect quick-report ───────────────────────────────────────
-.defectBtn {
-  height: 40px;
-  padding: 0 var(--space-5);
-  background: var(--color-accent-amber-dim);
-  border: 1px solid var(--color-accent-amber);
-  border-radius: var(--radius-md);
-  color: var(--color-accent-amber);
-  font-size: 0.875rem;
+.openDefectBtn {
+  border: 1.5px dashed var(--color-border-strong);
+  background: var(--color-bg-secondary);
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-secondary);
+  font-size: 0.8125rem;
+  font-weight: 700;
   font-family: inherit;
-  font-weight: 500;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-
-  &:hover {
-    background: var(--color-accent-amber);
-    color: var(--color-text-inverse);
-  }
 }
 
 .defectPanel {
@@ -262,7 +190,7 @@
 
 .defectTextarea {
   width: 100%;
-  background: var(--color-bg-tertiary);
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   color: var(--color-text-primary);
@@ -282,46 +210,35 @@
   }
 }
 
-.defectRow {
+.defectFormActions {
   display: flex;
-  align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
 }
 
 .cancelSmallBtn {
-  height: 36px;
-  padding: 0 var(--space-4);
+  flex: 1;
+  height: 40px;
   background: transparent;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   font-size: 0.8125rem;
+  font-weight: 700;
   font-family: inherit;
   cursor: pointer;
-  margin-left: auto;
-
-  &:hover {
-    border-color: var(--color-text-secondary);
-    color: var(--color-text-primary);
-  }
 }
 
 .defectSubmitBtn {
-  height: 36px;
-  padding: 0 var(--space-5);
-  background: transparent;
-  border: 1px solid var(--color-accent-amber);
+  flex: 1;
+  height: 40px;
+  background: var(--color-text-primary);
+  border: none;
   border-radius: var(--radius-md);
-  color: var(--color-accent-amber);
-  font-size: 0.875rem;
+  color: #fff;
+  font-size: 0.8125rem;
+  font-weight: 700;
   font-family: inherit;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-
-  &:hover:not(:disabled) {
-    background: var(--color-accent-amber);
-    color: var(--color-text-inverse);
-  }
 
   &:disabled {
     opacity: 0.4;
@@ -337,73 +254,134 @@
   padding: var(--space-3) 0;
 }
 
-.todaySection {
-  margin-bottom: var(--space-5);
-  padding-bottom: var(--space-5);
-  border-bottom: 1px solid var(--color-border);
-}
-
-.todayList {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  margin-top: var(--space-3);
-}
-
-.todayItem {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-3);
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-md);
+// ── Dagrapport ────────────────────────────────────────────────
+.reportArea {
+  width: 100%;
   background: var(--color-bg-tertiary);
   border: 1px solid var(--color-border);
-
-  &.kind_incident, &.kind_defect {
-    border-color: var(--color-accent-red-border);
-    background: var(--color-accent-red-dim);
-  }
-
-  &.kind_levering {
-    border-color: var(--color-accent-teal-dim);
-  }
-
-  &.kind_onderhoud {
-    border-color: var(--color-accent-teal-dim);
-    background: var(--color-accent-teal-dim);
-  }
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  font-family: inherit;
+  line-height: 1.5;
+  padding: var(--space-3);
+  resize: none;
+  cursor: default;
 }
 
-.todayIcon {
-  font-size: 0.875rem;
-  color: var(--color-text-muted);
-  width: 16px;
-  text-align: center;
-  flex-shrink: 0;
-  margin-top: 1px;
-}
-
-.todayBody {
-  flex: 1;
+// ── Timeline ──────────────────────────────────────────────────
+.timeline {
   display: flex;
   flex-direction: column;
-  gap: 1px;
 }
 
-.todayLabel {
-  font-size: 0.875rem;
+.timelineRow {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.timelineRail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.timelineDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-accent-blue);
+  margin-top: 5px;
+  flex-shrink: 0;
+}
+
+.timelineLine {
+  width: 1.5px;
+  flex: 1;
+  background: var(--color-border);
+}
+
+.timelineBody {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: var(--space-3);
+}
+
+.timelineTime {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.timelineLabel {
+  font-size: 0.8125rem;
   color: var(--color-text-primary);
-  font-weight: 500;
+  margin-top: 2px;
 }
 
-.todayDetail {
+.timelineDetail {
   font-size: 0.75rem;
   color: var(--color-text-secondary);
 }
 
-.todayTime {
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-  white-space: nowrap;
-  flex-shrink: 0;
+// ── Footer ────────────────────────────────────────────────────
+.footer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.incidentBtn {
+  flex: 1;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: none;
+  transition: border-color 0.15s, color 0.15s;
+
+  &:hover {
+    border-color: var(--color-text-secondary);
+    color: var(--color-text-primary);
+  }
+}
+
+.submitBtn {
+  flex: 2;
+  height: 44px;
+  background: var(--color-accent-blue);
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--color-text-inverse);
+  font-size: 0.875rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:hover:not(:disabled) {
+    background: var(--color-accent-blue-dark);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.success {
+  text-align: center;
+  color: var(--color-accent-teal);
+  font-size: 1rem;
+  font-weight: 500;
+  padding: var(--space-6) 0;
 }

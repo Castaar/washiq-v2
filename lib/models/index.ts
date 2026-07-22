@@ -99,6 +99,7 @@ export interface IWeeklyEntry extends Document {
   week_start: Date;
   tellerstand: number;
   water_liters: number;
+  water_tellerstand: number;
   energy_kw: number;
   salt_kg: number;
   flock_kg: number;
@@ -115,6 +116,7 @@ const WeeklyEntrySchema = new Schema<IWeeklyEntry>({
   week_start: Date,
   tellerstand: { type: Number, default: 0 },
   water_liters: Number,
+  water_tellerstand: { type: Number, default: 0 },
   energy_kw: Number,
   salt_kg: Number,
   flock_kg: Number,

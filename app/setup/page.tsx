@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import type { Types } from 'mongoose';
 import { redirect } from 'next/navigation';
 import { dbConnect } from '@/lib/db/mongoose';
@@ -57,9 +56,6 @@ export default async function SetupPage({
 
   return (
     <div className={styles.root}>
-      <div className={styles.bg} aria-hidden="true">
-        <Image src="/background.png" alt="" fill style={{ objectFit: 'cover' }} priority />
-      </div>
       <main className={styles.main}>
         <SetupWizard
           siteId={siteId}

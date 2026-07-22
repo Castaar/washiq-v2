@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import { NavBar } from '@/components/layout/NavBar/NavBar';
 import { SchadeForm } from '@/components/incidenten/SchadeForm/SchadeForm';
 import { getSession } from '@/lib/session';
@@ -15,9 +14,6 @@ export default async function SchadePage({
 
   return (
     <div className={styles.root}>
-      <div className={styles.bg} aria-hidden="true">
-        <Image src="/background.png" alt="" fill style={{ objectFit: 'cover' }} priority />
-      </div>
       <NavBar centerTitle="Schaderapport" backHref={`/incidenten?site=${siteId}`} />
       <main className={styles.main}>
         <SchadeForm siteId={siteId} userName={session?.name ?? ''} />

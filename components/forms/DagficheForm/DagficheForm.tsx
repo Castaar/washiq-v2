@@ -24,15 +24,6 @@ export interface TodayEvent {
   detail?: string;
 }
 
-const KIND_ICON: Record<TodayEvent['kind'], string> = {
-  inlog: '→',
-  uitlog: '←',
-  incident: '⚠',
-  defect: '🔧',
-  levering: '📦',
-  onderhoud: '✓',
-};
-
 export interface DagficheFormProps {
   siteId: string;
   siteName: string;
@@ -175,137 +166,113 @@ export function DagficheForm({ siteId, siteName, userName, totalWagens, maintena
     );
   }
 
+  const reportedDefects = todayEvents.filter((ev) => ev.kind === 'defect');
+
   return (
     <form className={styles.card} onSubmit={handleSubmit} noValidate>
-      {todayEvents.length > 0 && (
-        <div className={styles.todaySection}>
-          <h2 className={styles.sectionLabel}>Vandaag</h2>
-          <div className={styles.todayList}>
-            {todayEvents.map((ev, i) => (
-              <div key={i} className={[styles.todayItem, styles[`kind_${ev.kind}`]].join(' ')}>
-                <span className={styles.todayIcon}>{KIND_ICON[ev.kind]}</span>
-                <div className={styles.todayBody}>
-                  <span className={styles.todayLabel}>{ev.label}</span>
-                  {ev.detail && <span className={styles.todayDetail}>{ev.detail}</span>}
-                </div>
-                <span className={styles.todayTime}>{ev.time}</span>
+      <div className={styles.header}>
+        <div>
+          <h1 className={styles.title}>Dagfiche</h1>
+          <p className={styles.subline}>{siteName}</p>
+        </div>
+        <div className={styles.washCount}>
+          <span className={styles.washCountValue}>{totalWagens}</span>
+          <span className={styles.washCountLabel}>wassen vandaag</span>
+        </div>
+      </div>
+
+      {/* ── Checklist ────────────────────────────────────── */}
+      <div className={styles.section}>
+        <h2 className={styles.sectionLabel}>
+          Controlepunten ({items.filter((i) => i.checked).length}/{items.length})
+        </h2>
+        <div className={styles.itemList}>
+          {items.map((item, i) => (
+            <div key={item.label} className={styles.checklistItem}>
+              <button
+                type="button"
+                className={[styles.checkBtn, item.checked ? styles.checkBtnActive : ''].join(' ')}
+                onClick={() => toggleChecked(i)}
+                aria-label={item.checked ? 'Gezien' : 'Markeer als gezien'}
+              >
+                ✓
+              </button>
+              <span className={styles.itemLabel}>{item.label}</span>
+              <input
+                className={styles.opmerkingInput}
+                type="text"
+                placeholder="Opmerking toevoegen..."
+                value={item.opmerking}
+                onChange={(e) => setOpmerking(i, e.target.value)}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Onderhoud vandaag ────────────────────────────── */}
+      {maintenanceTasks.length > 0 && (
+        <div className={styles.section}>
+          <h2 className={styles.sectionLabel}>Onderhoud vandaag</h2>
+          <div className={styles.itemList}>
+            {maintenanceTasks.map((task) => (
+              <div key={task.id} className={styles.checklistItem}>
+                <button
+                  type="button"
+                  className={[styles.checkBtn, maintenanceChecks[task.id]?.checked ? styles.checkBtnActive : ''].join(' ')}
+                  onClick={() => toggleMaintenance(task.id)}
+                  aria-label={maintenanceChecks[task.id]?.checked ? 'Uitgevoerd' : 'Markeer als uitgevoerd'}
+                >
+                  ✓
+                </button>
+                <span className={styles.itemLabel}>{task.description}</span>
+                <input
+                  className={styles.opmerkingInput}
+                  type="text"
+                  placeholder="Opmerking toevoegen..."
+                  value={maintenanceChecks[task.id]?.opmerking ?? ''}
+                  onChange={(e) => setMaintenanceOpmerking(task.id, e.target.value)}
+                />
               </div>
             ))}
           </div>
         </div>
       )}
-      <div className={styles.columns}>
-        {/* ── Left: checklist ──────────────────────────────── */}
-        <div className={styles.left}>
-          <h2 className={styles.sectionLabel}>Afsluit checklist</h2>
+
+      {/* ── Gemelde defecten ─────────────────────────────── */}
+      {reportedDefects.length > 0 && (
+        <div className={styles.section}>
+          <h2 className={styles.sectionLabel}>Gemelde defecten</h2>
           <div className={styles.itemList}>
-            {items.map((item, i) => (
-              <div
-                key={item.label}
-                className={[
-                  styles.checklistItem,
-                  item.checked
-                    ? styles.rowChecked
-                    : item.opmerking.trim()
-                      ? styles.rowRemark
-                      : styles.rowUnchecked,
-                ].join(' ')}
-              >
-                <span className={styles.itemLabel}>{item.label}</span>
-                <div className={styles.itemRow}>
-                  <input
-                    className={styles.opmerkingInput}
-                    type="text"
-                    placeholder="Opmerking"
-                    value={item.opmerking}
-                    onChange={(e) => setOpmerking(i, e.target.value)}
-                  />
-                  <button
-                    type="button"
-                    className={[styles.checkBtn, item.checked ? styles.checkBtnActive : ''].join(' ')}
-                    onClick={() => toggleChecked(i)}
-                    aria-label={item.checked ? 'Gezien' : 'Markeer als gezien'}
-                  >
-                    ✓
-                  </button>
-                </div>
+            {reportedDefects.map((ev, i) => (
+              <div key={i} className={styles.defectRow}>
+                <span className={styles.defectDesc}>{ev.label}</span>
+                {ev.detail && <span className={styles.defectDetail}>{ev.detail}</span>}
               </div>
             ))}
           </div>
-
-          {maintenanceTasks.length > 0 && (
-            <div className={styles.maintenanceSection}>
-              <h2 className={styles.sectionLabel}>Onderhoud nodig</h2>
-              <div className={styles.itemList}>
-                {maintenanceTasks.map((task) => (
-                  <div
-                    key={task.id}
-                    className={[
-                      styles.checklistItem,
-                      maintenanceChecks[task.id]?.checked
-                        ? styles.rowChecked
-                        : maintenanceChecks[task.id]?.opmerking?.trim()
-                          ? styles.rowRemark
-                          : styles.rowUnchecked,
-                    ].join(' ')}
-                  >
-                    <span className={[styles.itemLabel, styles.maintenanceLabel].join(' ')}>
-                      {task.description}
-                    </span>
-                    <div className={styles.itemRow}>
-                      <input
-                        className={styles.opmerkingInput}
-                        type="text"
-                        placeholder="Opmerking"
-                        value={maintenanceChecks[task.id]?.opmerking ?? ''}
-                        onChange={(e) => setMaintenanceOpmerking(task.id, e.target.value)}
-                      />
-                      <button
-                        type="button"
-                        className={[styles.checkBtn, maintenanceChecks[task.id]?.checked ? styles.checkBtnActive : ''].join(' ')}
-                        onClick={() => toggleMaintenance(task.id)}
-                        aria-label={maintenanceChecks[task.id]?.checked ? 'Uitgevoerd' : 'Markeer als uitgevoerd'}
-                      >
-                        ✓
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
+      )}
 
-        {/* ── Right: dagrapport ────────────────────────────── */}
-        <div className={styles.right}>
-          <h2 className={styles.sectionLabel}>Dagrapport</h2>
-          <textarea
-            ref={reportRef}
-            className={styles.reportArea}
-            value={dagrapport}
-            readOnly
-            rows={5}
-          />
-        </div>
-      </div>
-
-      {showDefect && (
+      {/* ── Defect quick-report (collapsible) ────────────── */}
+      {showDefect ? (
         <div className={styles.defectPanel}>
           {defectSubmitted ? (
             <p className={styles.defectSuccess}>Defect gemeld ✓</p>
           ) : (
             <form onSubmit={handleDefectSubmit} noValidate className={styles.defectForm}>
+              <h2 className={styles.sectionLabel}>Defect melden</h2>
               <textarea
                 className={styles.defectTextarea}
-                placeholder="Omschrijving van het defect..."
+                placeholder="Omschrijf het defect..."
                 value={defectOmschrijving}
                 onChange={(e) => setDefectOmschrijving(e.target.value)}
-                rows={3}
+                rows={2}
               />
-              <div className={styles.defectRow}>
-                <SeverityChips value={defectErnst} onChange={setDefectErnst} />
+              <SeverityChips value={defectErnst} onChange={setDefectErnst} />
+              <div className={styles.defectFormActions}>
                 <button type="button" className={styles.cancelSmallBtn} onClick={() => setShowDefect(false)}>
-                  Annuleren
+                  Annuleer
                 </button>
                 <button type="submit" className={styles.defectSubmitBtn} disabled={defectSubmitting || !defectOmschrijving.trim()}>
                   {defectSubmitting ? 'Bezig...' : 'Melden'}
@@ -314,19 +281,50 @@ export function DagficheForm({ siteId, siteName, userName, totalWagens, maintena
             </form>
           )}
         </div>
+      ) : (
+        <button type="button" className={styles.openDefectBtn} onClick={() => setShowDefect(true)}>
+          + Defect melden
+        </button>
+      )}
+
+      {/* ── Dagrapport (auto-gegenereerd) ─────────────────── */}
+      <div className={styles.section}>
+        <h2 className={styles.sectionLabel}>Dagrapport</h2>
+        <textarea
+          ref={reportRef}
+          className={styles.reportArea}
+          value={dagrapport}
+          readOnly
+          rows={3}
+        />
+      </div>
+
+      {/* ── Gebeurtenissen vandaag (timeline) ─────────────── */}
+      {todayEvents.length > 0 && (
+        <div className={styles.section}>
+          <h2 className={styles.sectionLabel}>Gebeurtenissen vandaag</h2>
+          <div className={styles.timeline}>
+            {todayEvents.map((ev, i) => (
+              <div key={i} className={styles.timelineRow}>
+                <div className={styles.timelineRail}>
+                  <span className={styles.timelineDot} aria-hidden="true" />
+                  {i < todayEvents.length - 1 && <span className={styles.timelineLine} aria-hidden="true" />}
+                </div>
+                <div className={styles.timelineBody}>
+                  <span className={styles.timelineTime}>{ev.time}</span>
+                  <span className={styles.timelineLabel}>{ev.label}</span>
+                  {ev.detail && <span className={styles.timelineDetail}>{ev.detail}</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       <div className={styles.footer}>
         <Link href={`/incidenten?site=${siteId}`} className={styles.incidentBtn}>
           Incidenten melden
         </Link>
-        <button
-          type="button"
-          className={styles.defectBtn}
-          onClick={() => setShowDefect((v) => !v)}
-        >
-          Defect melden
-        </button>
         <button type="submit" className={styles.submitBtn} disabled={submitting}>
           {submitting ? 'Bezig...' : 'Verzenden'}
         </button>

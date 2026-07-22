@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import type { Types } from 'mongoose';
 import { NavBar } from '@/components/layout/NavBar/NavBar';
 import { DiversenPanel } from '@/components/diversen/DiversenPanel/DiversenPanel';
@@ -41,9 +40,6 @@ export default async function DiversenPage() {
 
   return (
     <div className={styles.root}>
-      <div className={styles.bg} aria-hidden="true">
-        <Image src="/background.png" alt="" fill style={{ objectFit: 'cover' }} priority />
-      </div>
       <NavBar centerTitle="Diversen" backHref="/" />
       <main className={styles.main}>
         <div className={styles.content}>

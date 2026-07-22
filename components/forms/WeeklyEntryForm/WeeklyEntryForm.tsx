@@ -28,6 +28,7 @@ export interface WashesTask {
 export interface LastEntryData {
   tellerstand: number;
   waterLiters: number;
+  waterTellerstand: number;
   energyKw: number;
   saltKg: number;
   blobLiters: number;
@@ -136,7 +137,9 @@ export function WeeklyEntryForm({ siteId, programs, lastEntry, washesTasks = [],
   const [programCounts, setProgramCounts] = useState<Record<string, string>>(
     () => Object.fromEntries(programs.map((p) => [p.id, ''])),
   );
-  const [waterLiters, setWaterLiters] = useState('');
+  const [newTellerstand, setNewTellerstand] = useState('');
+  const [electricityAmount, setElectricityAmount] = useState('');
+  const [newWaterTellerstand, setNewWaterTellerstand] = useState('');
   const [energyKw, setEnergyKw] = useState('');
   const [saltKg, setSaltKg] = useState('');
   const [blobLiters, setBlobLiters] = useState('');
@@ -145,18 +148,26 @@ export function WeeklyEntryForm({ siteId, programs, lastEntry, washesTasks = [],
   );
   const [pickedDate, setPickedDate] = useState<string>(() => dateToDateString(new Date()));
   const [saving, setSaving] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
-  // Auto-compute tellerstand from previous (or startCarCount on first entry) + this week's program counts
-  const computedTellerstand = (lastEntry?.tellerstand ?? startCarCount) +
-    programs.reduce((sum, p) => sum + (parseFloat(programCounts[p.id] ?? '') || 0), 0);
+  const previousTellerstand = lastEntry?.tellerstand ?? startCarCount;
+  const newTellerstandNum = newTellerstand.trim() === '' ? null : parseFloat(newTellerstand);
+  const programCountSum = programs.reduce((sum, p) => sum + (parseFloat(programCounts[p.id] ?? '') || 0), 0);
+  const expectedDiff = newTellerstandNum !== null ? newTellerstandNum - previousTellerstand : null;
+  const tellerstandMismatch = expectedDiff !== null && programCountSum !== expectedDiff;
+
+  const previousWaterTellerstand = lastEntry?.waterTellerstand ?? 0;
+  const newWaterTellerstandNum = newWaterTellerstand.trim() === '' ? null : parseFloat(newWaterTellerstand);
+  const waterUsage = newWaterTellerstandNum !== null ? newWaterTellerstandNum - previousWaterTellerstand : 0;
 
   const maintenanceWarnings = washesTasks
     .map((t) => {
+      const effectiveTellerstand = newTellerstandNum ?? previousTellerstand;
       const due = t.washesAtLastDone + t.triggerValue;
-      const remaining = due - computedTellerstand;
+      const remaining = due - effectiveTellerstand;
       const threshold = Math.max(500, Math.round(t.triggerValue * 0.1));
-      if (computedTellerstand >= due) return { task: t, type: 'overdue' as const, remaining: 0 };
-      if (computedTellerstand >= due - threshold) return { task: t, type: 'approaching' as const, remaining };
+      if (effectiveTellerstand >= due) return { task: t, type: 'overdue' as const, remaining: 0 };
+      if (effectiveTellerstand >= due - threshold) return { task: t, type: 'approaching' as const, remaining };
       return null;
     })
     .filter((w): w is NonNullable<typeof w> => w !== null);
@@ -179,6 +190,19 @@ export function WeeklyEntryForm({ siteId, programs, lastEntry, washesTasks = [],
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setSubmitError('');
+
+    if (newTellerstandNum === null) {
+      setSubmitError('Vul de nieuwe tellerstand in.');
+      return;
+    }
+    if (tellerstandMismatch) {
+      setSubmitError(
+        `Som van de tellerstanden per programma (${programCountSum.toLocaleString('nl-BE')}) komt niet overeen met het verschil tussen nieuwe en vorige tellerstand (${(expectedDiff ?? 0).toLocaleString('nl-BE')}).`,
+      );
+      return;
+    }
+
     setSaving(true);
 
     const monday = dateStringToMonday(pickedDate);
@@ -186,8 +210,9 @@ export function WeeklyEntryForm({ siteId, programs, lastEntry, washesTasks = [],
     const body = {
       site_id: siteId,
       week_start: monday.toISOString(),
-      tellerstand: computedTellerstand,
-      water_liters: parseFloat(waterLiters) || 0,
+      tellerstand: newTellerstandNum,
+      water_liters: waterUsage,
+      water_tellerstand: newWaterTellerstandNum ?? previousWaterTellerstand,
       energy_kw: parseFloat(energyKw) || 0,
       salt_kg: parseFloat(saltKg) || 0,
       blob_liters: parseFloat(blobLiters) || 0,
@@ -210,10 +235,26 @@ export function WeeklyEntryForm({ siteId, programs, lastEntry, washesTasks = [],
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
-      if (res.ok) {
-        router.push('/');
-        router.refresh();
+      if (!res.ok) {
+        setSubmitError('Opslaan mislukt — probeer opnieuw.');
+        return;
       }
+
+      if (electricityAmount.trim() !== '') {
+        await fetch('/api/energy-bills', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            siteId,
+            year: monday.getUTCFullYear(),
+            month: monday.getUTCMonth() + 1,
+            amount_euro: parseFloat(electricityAmount) || 0,
+          }),
+        });
+      }
+
+      router.push('/');
+      router.refresh();
     } finally {
       setSaving(false);
     }
@@ -242,16 +283,19 @@ export function WeeklyEntryForm({ siteId, programs, lastEntry, washesTasks = [],
         </span>
       </div>
 
-      {/* ── Section 0: Tellerstand (auto-computed) ──────────── */}
+      {/* ── Section 0: Tellerstand (manueel ingegeven) ──────── */}
       <section className={styles.section}>
         <SectionTitle>Tellerstand</SectionTitle>
         <div className={styles.tellerstandDisplay}>
-          {lastEntry?.tellerstand != null && (
-            <span className={styles.lastValue}>Vorige: {lastEntry.tellerstand.toLocaleString('nl-BE')}</span>
-          )}
-          <span className={styles.tellerstandValue}>
-            Nieuw totaal: <strong>{computedTellerstand.toLocaleString('nl-BE')}</strong>
-          </span>
+          <span className={styles.lastValue}>Vorige tellerstand totaal: {previousTellerstand.toLocaleString('nl-BE')}</span>
+        </div>
+        <div className={styles.fieldsRow}>
+          <EntryField
+            label="Nieuwe tellerstand"
+            value={newTellerstand}
+            onChange={setNewTellerstand}
+            delta={null}
+          />
         </div>
         {maintenanceWarnings.length > 0 && (
           <div className={styles.maintenanceWarnings}>
@@ -284,20 +328,50 @@ export function WeeklyEntryForm({ siteId, programs, lastEntry, washesTasks = [],
             <p className={styles.emptyHint}>Geen programma&apos;s gevonden. Voeg eerst programma&apos;s toe in de database.</p>
           )}
         </div>
+        {newTellerstandNum !== null && (
+          <p className={tellerstandMismatch ? styles.tellerstandError : styles.tellerstandOk}>
+            Som per programma: {programCountSum.toLocaleString('nl-BE')} — verwacht verschil: {(expectedDiff ?? 0).toLocaleString('nl-BE')}
+            {tellerstandMismatch ? ' — komt niet overeen!' : ' ✓'}
+          </p>
+        )}
+      </section>
+
+      {/* ── Section 1b: Elektriciteitsfactuur ───────────────── */}
+      <section className={styles.section}>
+        <SectionTitle>Elektriciteitsfactuur</SectionTitle>
+        <div className={styles.fieldsRow}>
+          <EntryField
+            label="Bedrag (€)"
+            value={electricityAmount}
+            onChange={setElectricityAmount}
+            delta={null}
+          />
+        </div>
+      </section>
+
+      {/* ── Section 1c: Tellerstand water ────────────────────── */}
+      <section className={styles.section}>
+        <SectionTitle>Tellerstand water</SectionTitle>
+        <div className={styles.tellerstandDisplay}>
+          <span className={styles.lastValue}>Vorige tellerstand water: {previousWaterTellerstand.toLocaleString('nl-BE')} m³</span>
+        </div>
+        <div className={styles.fieldsRow}>
+          <EntryField
+            label="Nieuwe tellerstand water (m³)"
+            value={newWaterTellerstand}
+            onChange={setNewWaterTellerstand}
+            delta={null}
+          />
+        </div>
+        {newWaterTellerstandNum !== null && (
+          <p className={styles.tellerstandOk}>Verbruik deze periode: {waterUsage.toLocaleString('nl-BE')} m³</p>
+        )}
       </section>
 
       {/* ── Section 2: Verbruik ──────────────────────────────── */}
       <section className={styles.section}>
         <SectionTitle>Verbruik — geldt voor alle programma&apos;s</SectionTitle>
         <div className={styles.fieldsRow}>
-          <EntryField
-            label="Water (m³)"
-            value={waterLiters}
-            onChange={setWaterLiters}
-            delta={getDelta(waterLiters, lastEntry?.waterLiters)}
-            lastValue={lastEntry?.waterLiters ?? null}
-          />
-
           <EntryField
             label="Zoutverzachter (kg)"
             value={saltKg}
@@ -336,6 +410,7 @@ export function WeeklyEntryForm({ siteId, programs, lastEntry, washesTasks = [],
       )}
 
       {/* ── Footer ───────────────────────────────────────────── */}
+      {submitError && <p className={styles.tellerstandError}>{submitError}</p>}
       <div className={styles.footer}>
         <Link href={`/historiek${siteId ? `?site=${siteId}` : ''}`} className={styles.historyLink}>
           Historiek bekijken

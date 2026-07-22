@@ -1,38 +1,18 @@
-@use '../../../styles/variables' as *;
-
 .wrap {
-  @include glass(0.04);
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  height: 36px;
-  border-radius: var(--radius-full);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  padding: 0 var(--space-4);
-  gap: 0;
   position: relative;
   cursor: pointer;
-  overflow: hidden;
-  white-space: nowrap;
-  width: auto;
+  width: fit-content;
 }
 
-.label {
-  font-size: 0.75rem;
+.staticValue {
+  font-size: 0.6875rem;
   font-weight: 500;
   color: var(--color-text-muted);
-  padding-right: var(--space-3);
 }
 
-.divider {
-  width: 1px;
-  height: 16px;
-  background: var(--color-border);
-  margin-right: var(--space-3);
-  flex-shrink: 0;
-}
-
-// The actual <select> is invisible but covers the whole pill for clicking
+// The actual <select> is invisible but covers the label for tapping
 .select {
   position: absolute;
   inset: 0;
@@ -44,24 +24,20 @@
 }
 
 .value {
-  font-size: 0.8125rem;
-  font-weight: 500;
-  color: var(--color-text-primary);
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--color-accent-blue);
   pointer-events: none;
-  // padding-right: var(--space-4);
+}
 
-  // chevron
-  &::after {
-    content: '';
-    display: inline-block;
-    width: 0;
-    height: 0;
-    border-left: 4px solid transparent;
-    border-right: 4px solid transparent;
-    border-top: 5px solid var(--color-text-muted);
-    margin-left: var(--space-2);
-    vertical-align: middle;
-    position: relative;
-    top: -1px;
-  }
+.chevron {
+  display: inline-block;
+  width: 0;
+  height: 0;
+  border-left: 3.5px solid transparent;
+  border-right: 3.5px solid transparent;
+  border-top: 4px solid var(--color-accent-blue);
+  margin-left: var(--space-1);
 }

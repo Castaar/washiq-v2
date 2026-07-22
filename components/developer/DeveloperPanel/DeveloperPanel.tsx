@@ -431,7 +431,18 @@ function MaintenanceTaskRow({
 }
 
 // ── Main panel ────────────────────────────────────────────────
+type DevTab = 'sites' | 'users' | 'programs' | 'stock' | 'maintenance';
+
+const DEV_TABS: { id: DevTab; label: string }[] = [
+  { id: 'sites', label: 'Sites' },
+  { id: 'users', label: 'Gebruikers' },
+  { id: 'programs', label: "Programma's" },
+  { id: 'stock', label: 'Voorraad' },
+  { id: 'maintenance', label: 'Onderhoud' },
+];
+
 export function DeveloperPanel({ users: initialUsers, sites: initialSites, programs: initialPrograms, maintenanceTasks: initialTasks, stockItems: initialStock }: DeveloperPanelProps) {
+  const [activeTab, setActiveTab] = useState<DevTab>('sites');
   const [users, setUsers] = useState(initialUsers);
   const [sites, setSites] = useState(initialSites);
   const [programs, setPrograms] = useState(initialPrograms);
@@ -692,7 +703,22 @@ export function DeveloperPanel({ users: initialUsers, sites: initialSites, progr
 
   return (
     <div className={styles.panelWrapper}>
+      {/* ── Section tabs ─────────────────────────────────────── */}
+      <div className={styles.devTabs}>
+        {DEV_TABS.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            className={[styles.devTab, activeTab === t.id ? styles.devTabActive : ''].filter(Boolean).join(' ')}
+            onClick={() => setActiveTab(t.id)}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
       {/* ══ CARWASHES ══════════════════════════════════════ */}
+      {activeTab === 'sites' && (
       <div className={styles.card}>
         <div className={styles.header}>
           <h1 className={styles.title}>Carwashes</h1>
@@ -737,8 +763,10 @@ export function DeveloperPanel({ users: initialUsers, sites: initialSites, progr
           ))}
         </div>
       </div>
+      )}
 
-      {/* ══ PRODUCTEN ══════════════════════════════════════ */}
+      {/* ══ PRODUCTEN (Voorraad) ═════════════════════════════ */}
+      {activeTab === 'stock' && (
       <div className={styles.card}>
         <div className={styles.header}>
           <h1 className={styles.title}>Producten</h1>
@@ -756,8 +784,10 @@ export function DeveloperPanel({ users: initialUsers, sites: initialSites, progr
           );
         })}
       </div>
+      )}
 
       {/* ══ PROGRAMMA'S ════════════════════════════════════ */}
+      {activeTab === 'programs' && (
       <div className={styles.card}>
         <div className={styles.header}>
           <h1 className={styles.title}>Programma&apos;s &amp; Chemie</h1>
@@ -775,8 +805,10 @@ export function DeveloperPanel({ users: initialUsers, sites: initialSites, progr
           />
         ))}
       </div>
+      )}
 
       {/* ══ GEBRUIKERS ═════════════════════════════════════ */}
+      {activeTab === 'users' && (
       <div className={styles.card}>
         <div className={styles.header}>
           <h1 className={styles.title}>Gebruikers</h1>
@@ -854,8 +886,10 @@ export function DeveloperPanel({ users: initialUsers, sites: initialSites, progr
           )
         ))}
       </div>
+      )}
 
       {/* ══ ONDERHOUD INSTALLATIE ══════════════════════════ */}
+      {activeTab === 'maintenance' && (
       <div className={styles.card}>
         <div className={styles.header}>
           <h1 className={styles.title}>Onderhoud installatie</h1>
@@ -1018,6 +1052,7 @@ export function DeveloperPanel({ users: initialUsers, sites: initialSites, progr
             ))}
         </div>
       </div>
+      )}
     </div>
   );
 }

@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import { cookies } from 'next/headers';
 import { NavBar } from '@/components/layout/NavBar/NavBar';
 import { LogboekPanel } from '@/components/logboek/LogboekPanel/LogboekPanel';
@@ -56,9 +55,6 @@ export default async function LogboekPage({
 
   return (
     <div className={styles.root}>
-      <div className={styles.bg} aria-hidden="true">
-        <Image src="/background.png" alt="" fill style={{ objectFit: 'cover' }} priority />
-      </div>
       <NavBar sites={allowedSites} activeSiteId={siteId} backHref="/" />
       <main className={styles.main}>
         <div className={styles.content}>

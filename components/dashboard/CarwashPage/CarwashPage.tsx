@@ -1,4 +1,3 @@
-import { Suspense } from 'react';
 import Link from 'next/link';
 import { dbConnect } from '@/lib/db/mongoose';
 import {
@@ -19,17 +18,10 @@ import {
 } from '@/lib/models';
 import { ProgrammaCard } from '@/components/dashboard/ProgrammaCard/ProgrammaCard';
 import type { ProgramOption } from '@/components/dashboard/ProgrammaCard/ProgrammaCard';
-import { ConsumptionCard } from '@/components/dashboard/ConsumptionCard/ConsumptionCard';
-import { WagensCard } from '@/components/dashboard/WagensCard/WagensCard';
-
-import { CarwashHero } from '@/components/dashboard/CarwashHero/CarwashHero';
 import { AlertsPanel } from '@/components/dashboard/AlertsPanel/AlertsPanel';
 import { VoorraadPanel } from '@/components/dashboard/VoorraadPanel/VoorraadPanel';
 import { LogboekPanel } from '@/components/logboek/LogboekPanel/LogboekPanel';
 import type { LogEntry } from '@/components/logboek/LogboekPanel/LogboekPanel';
-import { ParamSelector } from '@/components/layout/NavBar/ParamSelector';
-import { DatePicker } from '@/components/layout/NavBar/DatePicker';
-import { SiteSelector } from '@/components/layout/NavBar/SiteSelector';
 import type { AlertItem, AlertsPanelData, VoorraadItem, ChemieRow, ConsumptionData, DagfichePayload, IncidentSchadePayload, IncidentEhboPayload, MaintenanceTaskPayload } from '@/lib/types/dashboard';
 import { computeIsOverdue, computeIsApproaching, washesRemaining } from '@/lib/maintenance';
 import styles from './CarwashPage.module.scss';
@@ -72,8 +64,9 @@ export async function CarwashPage({
 
   // ── Resolve site ─────────────────────────────────────────────
   const resolvedSite = propSiteId
-    ? await Site.findById(propSiteId).select('_id owner_id start_car_count').lean()
-    : await Site.findOne({}).select('_id owner_id start_car_count').lean();
+    ? await Site.findById(propSiteId).select('_id name owner_id start_car_count').lean()
+    : await Site.findOne({}).select('_id name owner_id start_car_count').lean();
+  const siteName = (resolvedSite as Record<string, unknown>)?.name as string ?? '';
   const siteId = resolvedSite ? (resolvedSite._id as Types.ObjectId).toString() : null;
   const filter = siteId ? { site_id: siteId } : {};
 
@@ -644,33 +637,25 @@ export async function CarwashPage({
     unit: s.unit,
   }));
 
-  const PERIOD_OPTIONS = [{ label: 'Week', value: 'week' }, { label: 'Maand', value: 'month' }];
-  const VIEW_OPTIONS   = [{ label: 'Prijs', value: 'prijs' }, { label: 'Liter', value: 'liter' }];
-
   const isOwner = userRole === 'owner' || userRole === 'developer';
   const isEmployee = userRole === 'employee';
 
-  return (
-    <div className={styles.grid}>
+  // ── Greeting hero ─────────────────────────────────────────────
+  const hour = new Date().getHours();
+  const daypart = hour < 12 ? 'Goedemorgen' : hour < 18 ? 'Goedemiddag' : 'Goedenavond';
+  const firstName = userName.trim().split(' ')[0] || '';
+  const heroGreeting = firstName ? `${daypart}, ${firstName}` : daypart;
+  const heroSubline = isEmployee
+    ? (siteName ? `Klaar voor je shift op ${siteName}?` : 'Klaar voor je shift?')
+    : isTechnician
+      ? 'Hier is je openstaande werklijst.'
+      : (siteName ? `Overzicht voor ${siteName}.` : 'Overzicht van vandaag.');
 
-      {/* ── Quick-access bar ─────────────────────────────────── */}
-      {siteId && (
-        <div className={styles.employeeQuickBar}>
-          <Link href={`/dagfiche?site=${siteId}`} className={styles.quickBtn}>Dagfiche</Link>
-          <Link href={`/logboek?site=${siteId}`} className={styles.quickBtn}>Logboek</Link>
-          <Link href={`/opdrachten?site=${siteId}`} className={styles.quickBtn}>Opdrachten</Link>
-          <Link href={`/planning?site=${siteId}`} className={styles.quickBtn}>Planning</Link>
-          <Link href={`/incidenten?site=${siteId}`} className={styles.quickBtn}>Incidenten</Link>
-          <Link href={`/leveringen?site=${siteId}`} className={styles.quickBtn}>Leveringen</Link>
-          {!isEmployee && (
-            <Link href={`/onderhouden?site=${siteId}`} className={styles.quickBtn}>Onderhoud</Link>
-          )}
-          <Link href="/diversen" className={styles.quickBtn}>Diversen</Link>
-          {!isEmployee && (
-            <Link href="/technieker" className={styles.quickBtn}>Technieker</Link>
-          )}
-        </div>
-      )}
+  // Top consumption anomaly (owner/developer only — technicians already see these merged into their alerts tab)
+  const topAnomaly = !isTechnician ? consumptionAlertItems[0] : undefined;
+
+  return (
+    <div className={styles.stack}>
 
       {/* ── Setup banner (shown when no price config exists) ─── */}
       {!price && (userRole === 'owner' || userRole === 'developer') && (
@@ -683,66 +668,58 @@ export async function CarwashPage({
         </Link>
       )}
 
-      {/* ── Mobile-only selector row ─────────────────────────── */}
-      <div className={styles.mobileSelectors}>
-        {sites && sites.length > 0 && propSiteId && (
-          <Suspense fallback={null}>
-            <SiteSelector sites={sites} activeSiteId={propSiteId} />
-          </Suspense>
-        )}
-        {addHref && addLabel && (
-          <Link href={addHref} className={styles.mobileAddBtn}>{addLabel}</Link>
-        )}
-        {!isEmployee && (
-          <>
-            <Suspense fallback={null}>
-              <ParamSelector label="Weergave" paramKey="view" options={VIEW_OPTIONS} activeValue={view} />
-            </Suspense>
-            {refDate && (
-              <Suspense fallback={null}>
-                <DatePicker activeDate={refDate} />
-              </Suspense>
-            )}
-          </>
-        )}
-      </div>
-
-      {/* ── Centre hero ─────────────────────────────────────── */}
+      {/* ── Greeting hero ─────────────────────────────────────── */}
       <div className={styles.hero}>
-        <CarwashHero />
+        <div className={styles.heroGreeting}>{heroGreeting}</div>
+        <div className={styles.heroSubline}>{heroSubline}</div>
       </div>
 
-      {/* ── Right column ────────────────────────────────────── */}
-      <aside className={styles.right}>
-        {isEmployee ? (
-          <LogboekPanel
-            siteId={siteId ?? ''}
-            userRole={userRole}
-            userName={userName}
-            recentLogs={recentLogs}
-          />
-        ) : (
-          <>
-            <AlertsPanel data={alertsPanelData} />
-            <VoorraadPanel items={voorraad} />
-          </>
-        )}
-      </aside>
-
-      {/* ── Left column (owner/developer only) ──────────────── */}
-      {!isEmployee && (
-        <aside className={styles.left}>
-          <ProgrammaCard
-            programs={programOptions}
-            totalWagens={programOptions.reduce((s, p) => s + p.count, 0)}
-            view={view}
-            costBreakdown={latestCostRows}
-            prevCostBreakdown={prevCostRows}
-          />
-        </aside>
+      {/* ── Employee: logbook clock card ─────────────────────── */}
+      {isEmployee && (
+        <LogboekPanel
+          siteId={siteId ?? ''}
+          userRole={userRole}
+          userName={userName}
+          recentLogs={recentLogs}
+        />
       )}
 
-      {/* ── Bottom bar ──────────────────────────────────────── */}
+      {/* ── Technician: link to the full cross-site worklist ─── */}
+      {isTechnician && (
+        <Link href="/technieker" className={styles.techWorklistLink}>
+          <span>Bekijk je volledige werklijst</span>
+          <span className={styles.setupArrow}>→</span>
+        </Link>
+      )}
+
+      {/* ── Owner/developer: anomaly ──────────────────────────── */}
+      {isOwner && topAnomaly && (
+        <div className={styles.anomalyBanner}>
+          <span className={styles.anomalyTitle}>{topAnomaly.title}</span>
+          {topAnomaly.subtitle && <span className={styles.anomalySubtitle}>{topAnomaly.subtitle}</span>}
+        </div>
+      )}
+
+      {/* ── Alerts + stock (owner/developer/technician) ──────── */}
+      {!isEmployee && (
+        <>
+          <AlertsPanel data={alertsPanelData} />
+          <VoorraadPanel items={voorraad} />
+        </>
+      )}
+
+      {/* ── Wash program breakdown (owner/developer only) ────── */}
+      {isOwner && (
+        <ProgrammaCard
+          programs={programOptions}
+          totalWagens={programOptions.reduce((s, p) => s + p.count, 0)}
+          view={view}
+          costBreakdown={latestCostRows}
+          prevCostBreakdown={prevCostRows}
+        />
+      )}
+
+      {/* ── Fallback note ─────────────────────────────────────── */}
       {noCurrentData && latestEntry && (
         <div className={styles.fallbackNote}>
           Geen ingave voor deze periode — meest recente ingave getoond

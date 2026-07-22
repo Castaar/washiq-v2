@@ -34,6 +34,7 @@ export async function POST(req: NextRequest) {
     week_start: new Date(body.week_start),
     tellerstand,
     water_liters: body.water_liters ?? 0,
+    water_tellerstand: body.water_tellerstand ?? 0,
     energy_kw: body.energy_kw ?? 0,
     salt_kg: body.salt_kg ?? 0,
     flock_kg: body.flock_kg ?? 0,

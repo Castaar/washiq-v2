@@ -1,3 +1,5 @@
+@use '../../styles/variables' as *;
+
 .root {
   display: flex;
   flex-direction: column;
@@ -6,23 +8,16 @@
   position: relative;
 }
 
-.bg {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-}
-
-.root > :not(.bg) {
-  position: relative;
-  z-index: 1;
-}
-
 .main {
   flex: 1;
   overflow-y: auto;
   display: flex;
   justify-content: center;
+  align-items: flex-start;
   padding: var(--space-6);
   padding-top: var(--space-6);
+
+  @include respond-to('tablet-down') {
+    padding-bottom: calc(var(--bottomnav-height) + var(--space-6));
+  }
 }

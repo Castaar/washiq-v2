@@ -19,7 +19,9 @@ export interface HistoryEntry {
   id: string;
   weekStart: string;
   createdAt?: string;
+  tellerstand: number;
   waterLiters: number;
+  waterTellerstand: number;
   energyKw: number;
   saltKg: number;
   blobLiters: number;
@@ -32,6 +34,20 @@ interface HistoryListProps {
   entries: HistoryEntry[];
   programs: HistoryProgram[];
   startCarCount?: number;
+  siteId: string;
+  energyBillsByMonth: Record<string, number>;
+}
+
+function dateToDateString(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+// Monday (00:00 UTC) of the ISO week containing the given YYYY-MM-DD date string
+function dateStringToMonday(dateStr: string): Date {
+  const d = new Date(`${dateStr}T00:00:00Z`);
+  const dayOfWeek = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() - (dayOfWeek - 1));
+  return d;
 }
 
 function formatDate(iso: string): string {
@@ -43,9 +59,17 @@ function formatDate(iso: string): string {
 function EntryRow({
   entry,
   programs,
+  previousTellerstand,
+  previousWaterTellerstand,
+  siteId,
+  initialElectricityAmount,
 }: {
   entry: HistoryEntry;
   programs: HistoryProgram[];
+  previousTellerstand: number;
+  previousWaterTellerstand: number;
+  siteId: string;
+  initialElectricityAmount: number | undefined;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -53,7 +77,12 @@ function EntryRow({
   const [error, setError] = useState('');
 
   // form state
-  const [waterLiters, setWaterLiters] = useState(String(entry.waterLiters));
+  const [weekDate, setWeekDate] = useState(dateToDateString(new Date(entry.weekStart)));
+  const [newTellerstand, setNewTellerstand] = useState(String(entry.tellerstand ?? 0));
+  const [electricityAmount, setElectricityAmount] = useState(
+    initialElectricityAmount != null ? String(initialElectricityAmount) : '',
+  );
+  const [newWaterTellerstand, setNewWaterTellerstand] = useState(String(entry.waterTellerstand ?? 0));
   const [energyKw, setEnergyKw] = useState(String(entry.energyKw));
   const [saltKg, setSaltKg] = useState(String(entry.saltKg));
   const [blobLiters, setBlobLiters] = useState(String(entry.blobLiters ?? 0));
@@ -87,12 +116,35 @@ function EntryRow({
   const totalWagens = entry.programCounts.reduce((s, pc) => s + pc.count, 0);
   const hasChemicals = uniqueChemicals.length > 0;
 
+  const newTellerstandNum = newTellerstand.trim() === '' ? null : parseFloat(newTellerstand);
+  const programCountSum = programs.reduce((sum, p) => sum + (parseFloat(programCounts[p.id] ?? '') || 0), 0);
+  const expectedDiff = newTellerstandNum !== null ? newTellerstandNum - previousTellerstand : null;
+  const tellerstandMismatch = expectedDiff !== null && programCountSum !== expectedDiff;
+
+  const newWaterTellerstandNum = newWaterTellerstand.trim() === '' ? null : parseFloat(newWaterTellerstand);
+  const waterUsage = newWaterTellerstandNum !== null ? newWaterTellerstandNum - previousWaterTellerstand : 0;
+
   async function handleSave() {
-    setSaving(true);
     setError('');
+    if (newTellerstandNum === null) {
+      setError('Vul de nieuwe tellerstand in.');
+      return;
+    }
+    if (tellerstandMismatch) {
+      setError(
+        `Som van de tellerstanden per programma (${programCountSum.toLocaleString('nl-BE')}) komt niet overeen met het verschil tussen nieuwe en vorige tellerstand (${(expectedDiff ?? 0).toLocaleString('nl-BE')}).`,
+      );
+      return;
+    }
+
+    setSaving(true);
     try {
+      const monday = dateStringToMonday(weekDate);
       const body = {
-        water_liters: parseFloat(waterLiters) || 0,
+        week_start: monday.toISOString(),
+        tellerstand: newTellerstandNum,
+        water_liters: waterUsage,
+        water_tellerstand: newWaterTellerstandNum ?? previousWaterTellerstand,
         energy_kw: parseFloat(energyKw) || 0,
         salt_kg: parseFloat(saltKg) || 0,
         blob_liters: parseFloat(blobLiters) || 0,
@@ -114,6 +166,19 @@ function EntryRow({
         body: JSON.stringify(body),
       });
       if (!res.ok) { setError('Opslaan mislukt'); return; }
+
+      if (electricityAmount.trim() !== '') {
+        await fetch('/api/energy-bills', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            siteId,
+            year: monday.getUTCFullYear(),
+            month: monday.getUTCMonth() + 1,
+            amount_euro: parseFloat(electricityAmount) || 0,
+          }),
+        });
+      }
       setEditing(false);
     } finally {
       setSaving(false);
@@ -155,7 +220,38 @@ function EntryRow({
           {editing ? (
             <>
               <div className={styles.editSection}>
+                <p className={styles.editSectionTitle}>Datum</p>
+                <div className={styles.fieldsRow}>
+                  <div className={styles.fieldGroup}>
+                    <label className={styles.fieldLabel}>Week van</label>
+                    <input
+                      className={styles.input}
+                      type="date"
+                      value={weekDate}
+                      onChange={(e) => setWeekDate(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className={styles.editSection}>
                 <p className={styles.editSectionTitle}>Tellerstand</p>
+                <p className={styles.lastValueHint}>Vorige tellerstand totaal: {previousTellerstand.toLocaleString('nl-BE')}</p>
+                <div className={styles.fieldsRow}>
+                  <div className={styles.fieldGroup}>
+                    <label className={styles.fieldLabel}>Nieuwe tellerstand</label>
+                    <input
+                      className={styles.input}
+                      type="number"
+                      value={newTellerstand}
+                      onChange={(e) => setNewTellerstand(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className={styles.editSection}>
+                <p className={styles.editSectionTitle}>Tellerstand — aantal wassingen per programma</p>
                 <div className={styles.fieldsRow}>
                   {programs.map((p) => (
                     <div key={p.id} className={styles.fieldGroup}>
@@ -169,6 +265,46 @@ function EntryRow({
                     </div>
                   ))}
                 </div>
+                {newTellerstandNum !== null && (
+                  <p className={tellerstandMismatch ? styles.tellerstandError : styles.tellerstandOk}>
+                    Som per programma: {programCountSum.toLocaleString('nl-BE')} — verwacht verschil: {(expectedDiff ?? 0).toLocaleString('nl-BE')}
+                    {tellerstandMismatch ? ' — komt niet overeen!' : ' ✓'}
+                  </p>
+                )}
+              </div>
+
+              <div className={styles.editSection}>
+                <p className={styles.editSectionTitle}>Elektriciteitsfactuur</p>
+                <div className={styles.fieldsRow}>
+                  <div className={styles.fieldGroup}>
+                    <label className={styles.fieldLabel}>Bedrag (€)</label>
+                    <input
+                      className={styles.input}
+                      type="number"
+                      value={electricityAmount}
+                      onChange={(e) => setElectricityAmount(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className={styles.editSection}>
+                <p className={styles.editSectionTitle}>Tellerstand water</p>
+                <p className={styles.lastValueHint}>Vorige tellerstand water: {previousWaterTellerstand.toLocaleString('nl-BE')} m³</p>
+                <div className={styles.fieldsRow}>
+                  <div className={styles.fieldGroup}>
+                    <label className={styles.fieldLabel}>Nieuwe tellerstand water (m³)</label>
+                    <input
+                      className={styles.input}
+                      type="number"
+                      value={newWaterTellerstand}
+                      onChange={(e) => setNewWaterTellerstand(e.target.value)}
+                    />
+                  </div>
+                </div>
+                {newWaterTellerstandNum !== null && (
+                  <p className={styles.tellerstandOk}>Verbruik deze periode: {waterUsage.toLocaleString('nl-BE')} m³</p>
+                )}
               </div>
 
               <div className={styles.editSection}>
@@ -176,7 +312,6 @@ function EntryRow({
                 <div className={styles.fieldsRow}>
                   {[
                     { label: 'Energie (kWh)', value: energyKw, set: setEnergyKw },
-                    { label: 'Water (m³)', value: waterLiters, set: setWaterLiters },
                     { label: 'Zoutverzachter (kg)', value: saltKg, set: setSaltKg },
                     { label: 'Blob (liter)', value: blobLiters, set: setBlobLiters },
                   ].map(({ label, value, set }) => (
@@ -259,16 +394,30 @@ function EntryRow({
 }
 
 // ── Main list ─────────────────────────────────────────────────
-export function HistoryList({ entries, programs, startCarCount = 0 }: HistoryListProps) {
+export function HistoryList({ entries, programs, startCarCount = 0, siteId, energyBillsByMonth }: HistoryListProps) {
   if (entries.length === 0) {
     return <p className={styles.empty}>Nog geen ingaves gevonden voor deze carwash.</p>;
   }
 
   return (
     <div className={styles.list}>
-      {entries.map((e) => (
-        <EntryRow key={e.id} entry={e} programs={programs} />
-      ))}
+      {entries.map((e, i) => {
+        const previousTellerstand = i < entries.length - 1 ? entries[i + 1].tellerstand : startCarCount;
+        const previousWaterTellerstand = i < entries.length - 1 ? entries[i + 1].waterTellerstand : 0;
+        const weekDate = new Date(e.weekStart);
+        const billKey = `${weekDate.getUTCFullYear()}-${weekDate.getUTCMonth() + 1}`;
+        return (
+          <EntryRow
+            key={e.id}
+            entry={e}
+            programs={programs}
+            previousTellerstand={previousTellerstand}
+            previousWaterTellerstand={previousWaterTellerstand}
+            siteId={siteId}
+            initialElectricityAmount={energyBillsByMonth[billKey]}
+          />
+        );
+      })}
       {startCarCount > 0 && (
         <div className={styles.startRow}>
           <span className={styles.startLabel}>Beginsaldo</span>

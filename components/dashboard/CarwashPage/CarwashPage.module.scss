@@ -1,55 +1,26 @@
 @use '../../../styles/variables' as *;
 
-// ─── Main grid ───────────────────────────────────────────────
-// Areas:
-//   left  | hero  | right
-//   foot  | foot  | right   ← right spans both rows
-// ─────────────────────────────────────────────────────────────
-.grid {
+// ─── Main stack ──────────────────────────────────────────────
+// Single-column mobile-app flow: quick bar, hero, role-specific
+// panels, all stacked with consistent gaps.
+.stack {
   flex: 1;
-  display: grid;
-  // grid-template-columns: 240px 1fr 280px;
-  grid-template-columns: 2fr 5fr 3fr;
-  grid-template-rows: 1fr auto;
-  grid-template-areas:
-    "left hero right"
-    "foot foot right";
+  display: flex;
+  flex-direction: column;
   gap: var(--space-4);
-  padding: var(--space-4) var(--space-6);
-  min-height: 0;
-  overflow: hidden;
-
-  @include respond-to('tablet') {
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: auto auto auto auto;
-    grid-template-areas:
-      "left   right"
-      "hero   right"
-      "hero   right"
-      "foot   foot";
-    overflow-y: auto;
-    padding: var(--space-4) var(--space-4);
-  }
+  padding: var(--space-4) var(--space-6) var(--space-10);
+  max-width: 640px;
+  width: 100%;
+  margin: 0 auto;
 
   @include respond-to('mobile') {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto;
-    grid-template-areas:
-      "qbar"
-      "msel"
-      "hero"
-      "right"
-      "left"
-      "foot";
-    overflow: visible;
-    padding: var(--space-3);
-    gap: var(--space-3);
+    padding: var(--space-4) var(--space-4) var(--space-8);
+    gap: var(--space-4);
   }
 }
 
 // ─── Setup banner ────────────────────────────────────────────
 .setupBanner {
-  grid-column: 1 / -1;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -74,158 +45,72 @@
   font-size: 1rem;
 }
 
-// ─── Left ────────────────────────────────────────────────────
-.left {
-  grid-area: left;
+// ─── Greeting hero ───────────────────────────────────────────
+.hero {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
-  min-height: 0;
+  gap: 2px;
 }
 
-.twoCol {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-3);
-
-  @include respond-to('mobile') {
-    grid-template-columns: 1fr 1fr 1fr;
-  }
+.heroGreeting {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  letter-spacing: -0.01em;
+  line-height: 1.25;
 }
 
-// ─── Hero ────────────────────────────────────────────────────
-.hero {
-  grid-area: hero;
-  min-height: 0;
-
-  @include respond-to('mobile') {
-    height: 200px;
-    min-height: 200px;
-    max-height: 200px;
-  }
+.heroSubline {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
 }
 
-// ─── Mobile selectors row ────────────────────────────────────
-.mobileSelectors {
-  display: none;
-
-  @include respond-to('mobile') {
-    display: grid;
-    grid-area: msel;
-    flex-wrap: wrap;
-    gap: var(--space-2);
-    grid-template-columns: repeat(2, 1fr);
-
-    > * { flex: 1 1 auto; }
-  }
-}
-
-.mobileAddBtn {
-  @include glass(0.04);
+// ─── Technician worklist link ────────────────────────────────
+.techWorklistLink {
   display: flex;
   align-items: center;
-  justify-content: center;
-  height: 36px;
-  padding: 0 var(--space-3);
-  border-radius: var(--radius-full);
-  background: var(--color-accent-teal-dim);
-  border: 1px solid var(--color-accent-teal);
-  color: var(--color-accent-teal);
-  font-size: 0.8125rem;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  background: var(--color-accent-blue-dim);
+  border: 1px solid var(--color-accent-blue-border);
+  border-radius: var(--radius-lg);
+  font-size: 0.875rem;
   font-weight: 600;
+  color: var(--color-accent-blue);
   text-decoration: none;
-  white-space: nowrap;
   transition: background var(--transition-fast);
 
-  &:hover { background: var(--color-accent-teal); color: var(--color-text-inverse); }
+  &:hover { background: var(--color-accent-blue-border); }
 }
 
-// ─── Right ───────────────────────────────────────────────────
-.right {
-  grid-area: right;
+// ─── Period row (owner/developer) ────────────────────────────
+// ─── Anomaly banner ──────────────────────────────────────────
+.anomalyBanner {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
-  min-height: 0;
-  overflow: hidden;
-  justify-content: space-between;
-
-  &::-webkit-scrollbar { width: 3px; }
-  &::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 2px; }
+  gap: 2px;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-accent-amber-dim);
+  border: 1px solid var(--color-accent-amber-border);
+  border-radius: var(--radius-lg);
 }
 
-// ─── Bottom bar ──────────────────────────────────────────────
-.foot {
-  grid-area: foot;
-  display: flex;
-  align-items: flex-end;
-  gap: var(--space-3);
-
-  // Force every card to the same unit size as a twoCol card: (240px - gap) / 2
-  > :not(.spacer) {
-    width: calc((240px - var(--space-3)) / 2);
-    flex-shrink: 0;
-  }
-
-  @include respond-to('mobile') {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    align-items: stretch;
-
-    > :not(.spacer) { width: 100%; }
-  }
+.anomalyTitle {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--color-accent-amber);
 }
 
-.rankingSlot {
-  @include respond-to('mobile') {
-    display: none;
-  }
-}
-
-.spacer {
-  flex: 1;
-
-  @include respond-to('mobile') { display: none; }
+.anomalySubtitle {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
 }
 
 .fallbackNote {
-  grid-area: foot;
   font-size: 0.75rem;
   color: var(--color-text-muted);
-  margin-bottom: var(--space-2);
   font-style: italic;
-}
-
-// ─── Employee quick-access bar ───────────────────────────────
-.employeeQuickBar {
-  grid-column: 1 / -1;
-  display: flex;
-  gap: var(--space-2);
-  flex-wrap: wrap;
-  padding-bottom: var(--space-2);
-
-  @include respond-to('mobile') {
-    grid-column: auto;
-    grid-area: qbar;
-  }
-}
-
-.quickBtn {
-  height: 36px;
-  padding: 0 var(--space-4);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  color: var(--color-text-primary);
-  font-size: 0.875rem;
-  font-weight: 500;
-  text-decoration: none;
-  display: flex;
-  align-items: center;
-  transition: background var(--transition-fast), border-color var(--transition-fast);
-
-  &:hover {
-    background: var(--color-surface-hover);
-    border-color: var(--color-border-strong);
-  }
 }

@@ -25,42 +25,13 @@ const TRIGGER_LABEL: Record<string, string> = {
 
 export function OnderhoudPanel({
   tasks: initial,
-  siteId,
-  currentTellerstand,
 }: {
   tasks: OnderhoudTask[];
-  siteId: string;
-  currentTellerstand: number;
 }) {
   const [tasks, setTasks] = useState(initial);
-  const [tellerstand, setTellerstand] = useState(currentTellerstand);
-  const [tellerDraft, setTellerDraft] = useState('');
-  const [tellerSaving, setTellerSaving] = useState(false);
-  const [tellerSaved, setTellerSaved] = useState(false);
   const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
   const [completing, setCompleting] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
-
-  async function handleUpdateTellerstand() {
-    const val = parseInt(tellerDraft, 10);
-    if (isNaN(val) || val < 0) return;
-    setTellerSaving(true);
-    try {
-      const res = await fetch(`/api/sites/${siteId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ start_car_count: val }),
-      });
-      if (res.ok) {
-        setTellerstand(val);
-        setTellerDraft('');
-        setTellerSaved(true);
-        setTimeout(() => setTellerSaved(false), 2000);
-      }
-    } finally {
-      setTellerSaving(false);
-    }
-  }
 
   async function handleComplete(task: OnderhoudTask) {
     setCompleting(task.id);
@@ -149,32 +120,6 @@ export function OnderhoudPanel({
 
   return (
     <div className={styles.wrap}>
-      {/* Tellerstand */}
-      <div className={styles.tellerCard}>
-        <div className={styles.tellerInfo}>
-          <span className={styles.tellerLabel}>Huidige tellerstand</span>
-          <span className={styles.tellerValue}>{tellerstand.toLocaleString('nl-BE')} wassen</span>
-        </div>
-        <div className={styles.tellerInput}>
-          <input
-            className={styles.tellerField}
-            type="number"
-            min="0"
-            placeholder="Nieuwe stand..."
-            value={tellerDraft}
-            onChange={(e) => setTellerDraft(e.target.value)}
-          />
-          <button
-            type="button"
-            className={styles.tellerBtn}
-            onClick={handleUpdateTellerstand}
-            disabled={tellerSaving || !tellerDraft}
-          >
-            {tellerSaved ? '✓' : tellerSaving ? '...' : 'Bijwerken'}
-          </button>
-        </div>
-      </div>
-
       {overdue.length > 0 && (
         <div className={styles.section}>
           <h2 className={styles.sectionTitle}>Verlopen</h2>
