@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: 'Carwash dashboard voor stock en verbruiksbeheer.',
     start_url: '/',
     display: 'standalone',
-    background_color: '#0d0d0f',
-    theme_color: '#0d0d0f',
+    background_color: '#1d1c1a',
+    theme_color: '#1d1c1a',
     orientation: 'portrait',
     icons: [
       {

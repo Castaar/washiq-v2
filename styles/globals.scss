@@ -7,45 +7,45 @@
 // Consumed by every component via var(--token-name)
 // ============================================================
 :root {
-  // Backgrounds — light, warm-neutral
-  --color-bg:               #ffffff;
-  --color-bg-secondary:     #faf9f7;
-  --color-bg-tertiary:      #f4f3f0;
+  // Backgrounds — dark, warm-neutral (not pure black)
+  --color-bg:               #1d1c1a;
+  --color-bg-secondary:     #26241f;
+  --color-bg-tertiary:      #2e2b26;
 
-  // Surfaces (flat cards, not glass — kept the same var names so every
+  // Surfaces (flat cards — kept the same var names so every
   // .module.scss that already consumes them re-skins automatically)
-  --color-surface:          #ffffff;
-  --color-surface-hover:    #f4f3f0;
-  --color-surface-elevated: #ffffff;
-  --color-surface-sidebar:  #faf9f7;
+  --color-surface:          #26241f;
+  --color-surface-hover:    #302d27;
+  --color-surface-elevated: #2c2924;
+  --color-surface-sidebar:  #221f1b;
 
   // Borders
-  --color-border:           #eeece7;
-  --color-border-strong:    #e7e5e0;
-  --color-border-active:    #3762e0;
+  --color-border:           #3a362f;
+  --color-border-strong:    #48433a;
+  --color-border-active:    #5b84ff;
 
-  // Accent palette
-  --color-accent-blue:       #3762e0;
-  --color-accent-blue-dark:  #2949b3;
-  --color-accent-blue-dim:   #eaf1ff;
-  --color-accent-blue-border:#c7dafd;
-  --color-accent-purple:     #8b5cf6;
-  --color-accent-purple-dim: #f2edfe;
-  --color-accent-teal:       #0f9a78;
-  --color-accent-teal-dim:   #e6f8f3;
-  --color-accent-amber:      #b8790f;
-  --color-accent-amber-dim:  #fdf3e2;
-  --color-accent-amber-border:#f5e0b3;
-  --color-accent-red:        #d64545;
-  --color-accent-red-dim:    #fdeaea;
-  --color-accent-red-border: #f7c9c9;
+  // Accent palette (brightened slightly for contrast on dark surfaces)
+  --color-accent-blue:       #5b84ff;
+  --color-accent-blue-dark:  #7d9dff;
+  --color-accent-blue-dim:   #23304f;
+  --color-accent-blue-border:#3a4d80;
+  --color-accent-purple:     #a78bfa;
+  --color-accent-purple-dim: #2f2745;
+  --color-accent-teal:       #2dd4a8;
+  --color-accent-teal-dim:   #163c34;
+  --color-accent-amber:      #e0a83a;
+  --color-accent-amber-dim:  #3d3018;
+  --color-accent-amber-border:#5c4a24;
+  --color-accent-red:        #f0716f;
+  --color-accent-red-dim:    #3d2323;
+  --color-accent-red-border: #5c3232;
 
   // Text hierarchy
-  --color-text-primary:     #1b1d22;
-  --color-text-secondary:   #6b7280;
-  --color-text-muted:       #8a8f98;
-  --color-text-faint:       #b3b7bf;
-  --color-text-inverse:     #ffffff;
+  --color-text-primary:     #f3f1ec;
+  --color-text-secondary:   #b6b0a3;
+  --color-text-muted:       #8c8779;
+  --color-text-faint:       #6c6759;
+  --color-text-inverse:     #1d1c1a;
 
   // Glow — the light design has no neon glow; kept as no-ops so any
   // stray var(--glow-*) usage degrades gracefully instead of breaking.
@@ -75,9 +75,9 @@
   --radius-full: 9999px;
 
   // Shadows — subtle, cards are defined by border more than shadow
-  --shadow-sm: 0 1px 2px rgba(20, 20, 30, 0.03);
-  --shadow-md: 0 4px 16px rgba(20, 20, 30, 0.08);
-  --shadow-lg: 0 12px 32px rgba(20, 20, 30, 0.14);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.18);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.28);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.4);
 
   // Layout
   --sidebar-width:           240px;
