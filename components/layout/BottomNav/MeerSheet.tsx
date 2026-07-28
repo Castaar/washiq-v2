@@ -1,13 +1,19 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { BottomSheet } from '@/components/ui/BottomSheet/BottomSheet';
 import {
   IconBarChart, IconClipboard, IconCalendar, IconGrid, IconUser,
-  IconSettings, IconMessageSquare, IconCheck, IconWrench, IconCart, IconBox,
+  IconSettings, IconMessageSquare, IconCheck, IconWrench, IconCart, IconBox, IconDownload,
 } from '@/components/ui/icons';
 import type { UserRole } from './BottomNav';
 import styles from './MeerSheet.module.scss';
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt(): Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
 
 interface MeerLink {
   href: string;
@@ -52,6 +58,35 @@ function linksForRole(role: UserRole): MeerLink[] {
 export function MeerSheet({ role, open, onClose }: { role: UserRole; open: boolean; onClose: () => void }) {
   const links = linksForRole(role);
 
+  const [installPrompt, setInstallPrompt] = useState<Event | null>(null);
+  const [isStandalone, setIsStandalone] = useState(true);
+  const [isSafari, setIsSafari] = useState(false);
+  const [showSafariTip, setShowSafariTip] = useState(false);
+
+  useEffect(() => {
+    setIsStandalone(window.matchMedia('(display-mode: standalone)').matches);
+    setIsSafari(/^((?!chrome|android).)*safari/i.test(navigator.userAgent));
+
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  async function handleInstall() {
+    if (installPrompt) {
+      (installPrompt as BeforeInstallPromptEvent).prompt();
+      const { outcome } = await (installPrompt as BeforeInstallPromptEvent).userChoice;
+      if (outcome === 'accepted') setInstallPrompt(null);
+    } else if (isSafari) {
+      setShowSafariTip((v) => !v);
+    }
+  }
+
+  const canInstall = !isStandalone && (installPrompt || isSafari);
+
   return (
     <BottomSheet open={open} onClose={onClose} title="Meer">
       <div className={styles.grid}>
@@ -61,7 +96,18 @@ export function MeerSheet({ role, open, onClose }: { role: UserRole; open: boole
             <span className={styles.label}>{link.label}</span>
           </Link>
         ))}
+        {canInstall && (
+          <button type="button" className={styles.item} onClick={handleInstall}>
+            <span className={styles.iconCircle}><IconDownload size={19} /></span>
+            <span className={styles.label}>App installeren</span>
+          </button>
+        )}
       </div>
+      {showSafariTip && (
+        <p className={styles.safariTip}>
+          Op Safari: kies <strong>Bestand → Voeg toe aan Dock</strong> (macOS) of gebruik de deelknop → <strong>Zet op beginscherm</strong> (iOS).
+        </p>
+      )}
     </BottomSheet>
   );
 }

@@ -313,7 +313,7 @@ export function WeeklyEntryForm({ siteId, programs, lastEntry, washesTasks = [],
 
       {/* ── Section 1: Tellerstand per programma ─────────── */}
       <section className={styles.section}>
-        <SectionTitle>Tellerstand — aantal wassingen per programma</SectionTitle>
+        <SectionTitle>Aantal wassingen per programma</SectionTitle>
         <div className={styles.fieldsRow}>
           {programs.length > 0 ? programs.map((p) => (
             <EntryField

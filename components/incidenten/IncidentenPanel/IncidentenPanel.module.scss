@@ -119,6 +119,15 @@
   opacity: 0.5;
 }
 
+.incidentCardClickable {
+  cursor: pointer;
+  transition: opacity 0.15s, background 0.15s;
+
+  &:hover {
+    background: var(--color-surface-hover);
+  }
+}
+
 .incIcon {
   width: 36px;
   height: 36px;

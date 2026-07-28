@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { SeverityChips, type Severity } from '@/components/ui/Chip/Chip';
+import { IncidentModal } from '@/components/dashboard/IncidentModal/IncidentModal';
+import type { IncidentPayload } from '@/lib/types/dashboard';
 import styles from './IncidentenPanel.module.scss';
 
 export interface IncidentListItem {
@@ -13,6 +15,8 @@ export interface IncidentListItem {
   date: string;
   is_resolved: boolean;
   resolved_by_name: string;
+  payload?: IncidentPayload;
+  refType?: string;
 }
 
 export interface SchadeLocatieStat {
@@ -56,6 +60,7 @@ export function IncidentenPanel({
   const [loadingMore, setLoadingMore] = useState(false);
   const [allLoaded, setAllLoaded] = useState(initialIncidents.length < 45);
   const [defectFormOpen, setDefectFormOpen] = useState(false);
+  const [openIncident, setOpenIncident] = useState<IncidentListItem | null>(null);
 
   async function handleDefectSave() {
     if (!omschrijving.trim()) return;
@@ -139,6 +144,16 @@ export function IncidentenPanel({
 
   return (
     <div className={styles.wrap}>
+      {openIncident?.payload && (
+        <IncidentModal
+          payload={openIncident.payload}
+          refId={openIncident.id}
+          refType={openIncident.refType ?? openIncident.type}
+          siteId={siteId}
+          onClose={() => setOpenIncident(null)}
+        />
+      )}
+
       {/* ── Report tabs ───────────────────────────────────────── */}
       <div className={styles.reportBtns}>
         <Link href={schadeHref} className={styles.reportBtn}>Schade</Link>
@@ -170,7 +185,10 @@ export function IncidentenPanel({
         {filteredIncidents.map((inc) => (
           <div
             key={inc.id}
-            className={[styles.incidentCard, inc.is_resolved ? styles.incidentCardResolved : ''].filter(Boolean).join(' ')}
+            className={[styles.incidentCard, inc.is_resolved ? styles.incidentCardResolved : '', inc.payload ? styles.incidentCardClickable : ''].filter(Boolean).join(' ')}
+            onClick={inc.payload ? () => setOpenIncident(inc) : undefined}
+            role={inc.payload ? 'button' : undefined}
+            tabIndex={inc.payload ? 0 : undefined}
           >
             <span className={[styles.incIcon, styles[`icon_${inc.type}`]].join(' ')} aria-hidden="true">⚠</span>
             <div className={styles.incBody}>
@@ -188,7 +206,7 @@ export function IncidentenPanel({
                   <button
                     type="button"
                     className={[styles.resolveBtn, inc.is_resolved ? styles.resolveBtnDone : ''].filter(Boolean).join(' ')}
-                    onClick={() => handleToggleResolve(inc)}
+                    onClick={(e) => { e.stopPropagation(); handleToggleResolve(inc); }}
                     disabled={resolvingId === inc.id}
                   >
                     {inc.is_resolved ? '✓ Opgelost' : 'Opgelost?'}

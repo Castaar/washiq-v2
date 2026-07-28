@@ -251,7 +251,7 @@ function EntryRow({
               </div>
 
               <div className={styles.editSection}>
-                <p className={styles.editSectionTitle}>Tellerstand — aantal wassingen per programma</p>
+                <p className={styles.editSectionTitle}>Aantal wassingen per programma</p>
                 <div className={styles.fieldsRow}>
                   {programs.map((p) => (
                     <div key={p.id} className={styles.fieldGroup}>
