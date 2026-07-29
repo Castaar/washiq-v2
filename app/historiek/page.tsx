@@ -98,6 +98,7 @@ export default async function HistoriekPage({
     const found = chartProducts.find((p) => p.name === name);
     return found ?? { name, unit: 'L' };
   });
+  allProducts.push({ name: 'Water', unit: 'm³/wassing' }, { name: 'Elektriciteit', unit: '€/wassing' });
 
   function weekLabel(date: Date): string {
     const d = new Date(date);
@@ -108,6 +109,14 @@ export default async function HistoriekPage({
     const row: ChemieDataPoint = { week: weekLabel(new Date(e.week_start as Date)) };
     for (const cu of (e.chemical_usages ?? []) as { name?: string; amount?: number }[]) {
       if (cu.name) row[cu.name] = cu.amount ?? 0;
+    }
+    const totalWagens = ((e.program_counts ?? []) as { count?: number }[]).reduce((s, pc) => s + (pc.count ?? 0), 0);
+    if (totalWagens > 0) {
+      const weekStart = new Date(e.week_start as Date);
+      const billKey = `${weekStart.getUTCFullYear()}-${weekStart.getUTCMonth() + 1}`;
+      const billAmount = energyBillsByMonth[billKey] ?? 0;
+      row['Water'] = Math.round(((e.water_liters ?? 0) / totalWagens) * 1000) / 1000;
+      row['Elektriciteit'] = Math.round((billAmount / totalWagens) * 100) / 100;
     }
     return row;
   });
@@ -128,8 +137,8 @@ export default async function HistoriekPage({
         {allProducts.length > 0 && (
           <div className={styles.card}>
             <div className={styles.header}>
-              <h2 className={styles.title}>Verbruik chemie — {siteName}</h2>
-              <p className={styles.subtitle}>Wekelijks verbruik per product (in eenheid)</p>
+              <h2 className={styles.title}>Verbruik — {siteName}</h2>
+              <p className={styles.subtitle}>Wekelijks verbruik per product, plus water en elektriciteit per wassing</p>
             </div>
             <ChemieChart data={chartData} products={allProducts} />
           </div>

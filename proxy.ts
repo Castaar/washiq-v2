@@ -59,11 +59,13 @@ export async function proxy(req: NextRequest) {
     // /logboek, /opdrachten, /planning are accessible for employees
   }
 
-  // Technicians: only /technieker and /account (+ API routes)
+  // Technicians: /technieker, /account, /logboek, /leveringen (+ API routes)
   if (session.role === 'technician') {
     const allowed =
       pathname.startsWith('/technieker') ||
       pathname.startsWith('/account') ||
+      pathname.startsWith('/logboek') ||
+      pathname.startsWith('/leveringen') ||
       pathname.startsWith('/api/');
     if (!allowed) {
       const url = req.nextUrl.clone();

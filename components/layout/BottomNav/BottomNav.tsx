@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  IconHome, IconFileText, IconWarning, IconMoreHorizontal,
+  IconHome, IconFileText, IconWarning, IconMoreHorizontal, IconCheck, IconCart,
 } from '@/components/ui/icons';
 import { MeerSheet } from './MeerSheet';
 import styles from './BottomNav.module.scss';
@@ -27,6 +27,8 @@ export function BottomNav({ role }: BottomNavProps) {
   if (role === 'technician') {
     const tabs = [
       { href: '/technieker', label: 'Werklijst', icon: IconHome },
+      { href: '/logboek', label: 'Logboek', icon: IconCheck },
+      { href: '/leveringen', label: 'Leveringen', icon: IconCart },
       { href: '/account', label: 'Account', icon: IconFileText },
     ];
     return (
