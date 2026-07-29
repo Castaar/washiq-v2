@@ -109,28 +109,3 @@
   }
 }
 
-.iconBtn {
-  @include flex-center;
-  width: 34px;
-  height: 34px;
-  border-radius: var(--radius-full);
-  background: var(--color-bg-tertiary);
-  color: var(--color-text-muted);
-  text-decoration: none;
-  transition: background var(--transition-fast), color var(--transition-fast);
-
-  &:hover {
-    background: var(--color-surface-hover);
-    color: var(--color-text-primary);
-  }
-}
-
-.avatar {
-  @include flex-center;
-  width: 34px;
-  height: 34px;
-  border-radius: var(--radius-full);
-  background: var(--color-accent-purple-dim);
-  color: var(--color-accent-purple);
-  text-decoration: none;
-}

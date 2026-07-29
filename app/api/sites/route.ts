@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
-import { Site } from '@/lib/models';
+import { Site, User } from '@/lib/models';
 import { getSessionFromRequest } from '@/lib/session';
 import type { Types } from 'mongoose';
 
@@ -12,7 +12,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const session = await getSessionFromRequest(req);
-  if (!session || session.role !== 'developer') {
+  if (!session || (session.role !== 'developer' && session.role !== 'owner')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
@@ -28,8 +28,12 @@ export async function POST(req: NextRequest) {
     created_at: new Date(),
   });
 
+  if (session.role === 'owner') {
+    await User.findByIdAndUpdate(session.userId, { $addToSet: { site_ids: doc._id } });
+  }
+
   return NextResponse.json(
-    { id: (doc._id as Types.ObjectId).toString() },
+    { id: (doc._id as Types.ObjectId).toString(), name: doc.name, location: doc.location },
     { status: 201 },
   );
 }

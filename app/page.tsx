@@ -67,9 +67,6 @@ export default async function DashboardPage({
     : '/wekelijkse-ingave';
   const addHref = userRole === 'developer' ? '/developer' : (activeSiteId ? `${addBase}?site=${activeSiteId}` : addBase);
   const addLabel = userRole === 'developer' ? 'Developer' : userRole === 'employee' ? 'Dagfiche' : 'Maandelijkse Ingave';
-  const settingsHref = (userRole === 'owner' || userRole === 'developer')
-    ? (activeSiteId ? `/instellingen?site=${activeSiteId}` : '/instellingen')
-    : undefined;
 
   // Fetch recent attendance logs for employees (shown on dashboard instead of alerts panel)
   let recentLogs: { id: string; userName: string; type: 'opening' | 'sluiting'; personType: 'employee' | 'technician_extern'; registeredByName: string; timestamp: string; note: string }[] = [];
@@ -112,7 +109,7 @@ export default async function DashboardPage({
 
   return (
     <div className={styles.root}>
-      <NavBar sites={sites} activeSiteId={activeSiteId} addHref={addHref} addLabel={addLabel} settingsHref={settingsHref} />
+      <NavBar sites={sites} activeSiteId={activeSiteId} addHref={addHref} addLabel={addLabel} />
       <div className={styles.scrollArea}>
         {announcements.length > 0 ? (
           <div className={styles.announcementsWrap}>

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import styles from './AccountForm.module.scss';
 import { IconEye, IconEyeOff } from '@/components/ui/icons';
 
@@ -43,7 +44,47 @@ export interface AccountFormProps {
 
 // ── Main component ────────────────────────────────────────────
 export function AccountForm({ users: initialUsers, siteId, currentUser, role, maintenanceTasks: initialTasks, currentTotalWashes, energyBills: initialBills, allowedSites = [] }: AccountFormProps) {
+  const router = useRouter();
   const isEmployee = role === 'employee' || role === 'technician';
+  const canAddSite = role === 'owner' || role === 'developer';
+
+  // ── Nieuwe carwash toevoegen ───────────────────────────────
+  const [newSiteName, setNewSiteName] = useState('');
+  const [newSiteLocation, setNewSiteLocation] = useState('');
+  const [addingSite, setAddingSite] = useState(false);
+  const [addSiteError, setAddSiteError] = useState('');
+  const [addSiteSuccess, setAddSiteSuccess] = useState('');
+
+  async function handleAddSite(e: React.MouseEvent) {
+    e.preventDefault();
+    setAddSiteError('');
+    setAddSiteSuccess('');
+    if (!newSiteName.trim() || !newSiteLocation.trim()) {
+      setAddSiteError('Vul naam en locatie in.');
+      return;
+    }
+    setAddingSite(true);
+    try {
+      const res = await fetch('/api/sites', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newSiteName.trim(), location: newSiteLocation.trim() }),
+      });
+      const data = await res.json() as { id?: string; error?: string };
+      if (res.ok && data.id) {
+        setNewSiteName('');
+        setNewSiteLocation('');
+        setAddSiteSuccess(`${newSiteName.trim()} is toegevoegd.`);
+        router.refresh();
+      } else {
+        setAddSiteError(data.error ?? `Fout (${res.status}) — probeer opnieuw.`);
+      }
+    } catch {
+      setAddSiteError('Netwerkfout — probeer opnieuw.');
+    } finally {
+      setAddingSite(false);
+    }
+  }
 
   // ── Copy config state ─────────────────────────────────────
   const canCopy = (role === 'owner' || role === 'developer') && allowedSites.length >= 2;
@@ -406,6 +447,39 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
           </div>
         </div>
       </section>
+
+      {/* ── Carwash toevoegen ────────────────────────────────── */}
+      {canAddSite && (
+        <section className={styles.section}>
+          <h2 className={styles.sectionLabel}>Carwash toevoegen</h2>
+          <div className={styles.addUserRow}>
+            <input
+              className={styles.input}
+              type="text"
+              placeholder="Naam (bv. Dodane Aalst)"
+              value={newSiteName}
+              onChange={(e) => setNewSiteName(e.target.value)}
+            />
+            <input
+              className={styles.input}
+              type="text"
+              placeholder="Locatie"
+              value={newSiteLocation}
+              onChange={(e) => setNewSiteLocation(e.target.value)}
+            />
+          </div>
+          <button
+            type="button"
+            className={styles.addUserBtn}
+            onClick={handleAddSite}
+            disabled={addingSite}
+          >
+            {addingSite ? 'Bezig...' : 'Opslaan'}
+          </button>
+          {addSiteError && <p className={styles.addUserError}>{addSiteError}</p>}
+          {addSiteSuccess && <p className={styles.addUserSuccess}>{addSiteSuccess}</p>}
+        </section>
+      )}
 
       {/* ── Energiefacturen ─────────────────────────────────── */}
       <section className={styles.section}>

@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
-import { IconChevronLeft, IconUser, IconSettings } from '@/components/ui/icons';
+import { IconChevronLeft } from '@/components/ui/icons';
 import { SiteSelector } from './SiteSelector';
 import { LogoutButton } from './LogoutButton';
 import styles from './NavBar.module.scss';
@@ -18,10 +18,9 @@ interface NavBarProps {
   addHref?: string;
   addLabel?: string;
   backHref?: string;
-  settingsHref?: string;
 }
 
-export function NavBar({ centerTitle, sites, activeSiteId, addHref, addLabel, backHref, settingsHref }: NavBarProps) {
+export function NavBar({ centerTitle, sites, activeSiteId, addHref, addLabel, backHref }: NavBarProps) {
   return (
     <header className={styles.nav}>
       <div className={styles.left}>
@@ -56,14 +55,6 @@ export function NavBar({ centerTitle, sites, activeSiteId, addHref, addLabel, ba
             <span aria-hidden="true">+</span>
           </Link>
         )}
-        {settingsHref && (
-          <Link href={settingsHref} className={styles.iconBtn} aria-label="Instellingen">
-            <IconSettings size={16} />
-          </Link>
-        )}
-        <Link href="/account" className={styles.avatar} aria-label="Account">
-          <IconUser size={15} />
-        </Link>
         <LogoutButton />
       </div>
     </header>
