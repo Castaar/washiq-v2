@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { SeverityChips, type Severity } from '@/components/ui/Chip/Chip';
+import { PhotoUpload } from '@/components/ui/PhotoUpload/PhotoUpload';
 import styles from './DagficheForm.module.scss';
 
 const CHECKLIST_ITEMS = [
@@ -82,6 +83,7 @@ export function DagficheForm({ siteId, siteName, userName, totalWagens, maintena
   const [showDefect, setShowDefect] = useState(false);
   const [defectOmschrijving, setDefectOmschrijving] = useState('');
   const [defectErnst, setDefectErnst] = useState<Severity>('medium');
+  const [defectPhotos, setDefectPhotos] = useState<string[]>([]);
   const [defectSubmitting, setDefectSubmitting] = useState(false);
   const [defectSubmitted, setDefectSubmitted] = useState(false);
 
@@ -93,10 +95,11 @@ export function DagficheForm({ siteId, siteName, userName, totalWagens, maintena
       await fetch('/api/incidents/defect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ siteId, omschrijving: defectOmschrijving.trim(), ernst: defectErnst }),
+        body: JSON.stringify({ siteId, omschrijving: defectOmschrijving.trim(), ernst: defectErnst, photos: defectPhotos }),
       });
       setDefectSubmitted(true);
       setDefectOmschrijving('');
+      setDefectPhotos([]);
       setTimeout(() => { setDefectSubmitted(false); setShowDefect(false); }, 1500);
     } finally {
       setDefectSubmitting(false);
@@ -270,6 +273,7 @@ export function DagficheForm({ siteId, siteName, userName, totalWagens, maintena
                 rows={2}
               />
               <SeverityChips value={defectErnst} onChange={setDefectErnst} />
+              <PhotoUpload photos={defectPhotos} onChange={setDefectPhotos} maxPhotos={5} />
               <div className={styles.defectFormActions}>
                 <button type="button" className={styles.cancelSmallBtn} onClick={() => setShowDefect(false)}>
                   Annuleer

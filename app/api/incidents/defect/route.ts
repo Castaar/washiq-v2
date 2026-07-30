@@ -22,6 +22,7 @@ export async function POST(req: NextRequest) {
     omschrijving: body.omschrijving ?? '',
     ernst,
     assigned_to_name: body.assigned_to_name ?? '',
+    photos: Array.isArray(body.photos) ? body.photos : [],
   });
 
   sendPushToAll({
