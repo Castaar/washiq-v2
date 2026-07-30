@@ -44,8 +44,7 @@ export async function proxy(req: NextRequest) {
       pathname.startsWith('/historiek') ||
       pathname.startsWith('/instellingen') ||
       pathname.startsWith('/setup') ||
-      pathname.startsWith('/technieker') ||
-      pathname.startsWith('/onderhouden')
+      pathname.startsWith('/technieker')
     ) {
       const url = req.nextUrl.clone();
       url.pathname = '/dagfiche';
@@ -56,7 +55,7 @@ export async function proxy(req: NextRequest) {
       url.pathname = '/';
       return NextResponse.redirect(url);
     }
-    // /logboek, /opdrachten, /planning are accessible for employees
+    // /logboek, /opdrachten, /planning, /onderhouden are accessible for employees
   }
 
   // Technicians: /technieker, /account, /logboek, /leveringen (+ API routes)

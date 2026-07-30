@@ -14,11 +14,10 @@
   border-top: 1px solid var(--color-border);
   box-shadow: 0 -2px 12px rgba(20, 20, 30, 0.04);
 
-  @include respond-to('desktop') {
-    display: none;
-  }
-
-  @include respond-to('wide') {
+  // Only hide on real mouse-driven desktops. Touch tablets (iPad
+  // landscape lands in the same width range as small desktop windows)
+  // keep the bottom nav — there's no alternative nav for them.
+  @media (min-width: $bp-desktop-min) and (hover: hover) and (pointer: fine) {
     display: none;
   }
 }

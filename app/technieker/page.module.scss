@@ -16,7 +16,7 @@
   align-items: flex-start;
   padding: var(--space-6);
 
-  @include respond-to('tablet-down') {
+  @include bottom-nav-space {
     padding-bottom: calc(var(--bottomnav-height) + var(--space-6));
   }
 }
@@ -24,4 +24,8 @@
 .content {
   width: 100%;
   max-width: 760px;
+
+  @include respond-to('tablet') {
+    max-width: 1000px;
+  }
 }

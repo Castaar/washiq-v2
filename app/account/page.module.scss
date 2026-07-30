@@ -18,7 +18,7 @@
   padding: var(--space-6);
   padding-top: var(--space-6);
 
-  @include respond-to('tablet-down') {
+  @include bottom-nav-space {
     padding-bottom: calc(var(--bottomnav-height) + var(--space-6));
   }
 }

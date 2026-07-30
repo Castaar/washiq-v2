@@ -44,6 +44,7 @@ const EMPLOYEE_LINKS: MeerLink[] = [
   { href: '/opdrachten', label: 'Opdrachten', icon: IconClipboard },
   { href: '/planning', label: 'Planning', icon: IconCalendar },
   { href: '/leveringen', label: 'Leveringen', icon: IconCart },
+  { href: '/onderhouden', label: 'Onderhoud', icon: IconWrench },
   { href: '/diversen', label: 'Diversen', icon: IconGrid },
   { href: '/account', label: 'Account', icon: IconUser },
   { href: '/handleiding', label: 'Handleiding', icon: IconMessageSquare },

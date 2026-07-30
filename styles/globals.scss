@@ -107,7 +107,7 @@ body {
 }
 
 body.has-bottom-nav {
-  @include respond-to('tablet-down') {
+  @include bottom-nav-space {
     padding-bottom: calc(var(--bottomnav-height) + var(--space-6));
   }
 }

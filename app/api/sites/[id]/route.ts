@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
 import {
   Site,
+  User,
   WashProgram,
   WeeklyEntry,
   ChemicalStock,
@@ -47,7 +48,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getSessionFromRequest(req);
-  if (!session || session.role !== 'developer') {
+  if (!session || (session.role !== 'developer' && session.role !== 'owner')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
@@ -64,6 +65,7 @@ export async function DELETE(
     MaintenanceLog.deleteMany({ site_id: id }),
     DailyChecklist.deleteMany({ site_id: id }),
     PriceConfig.deleteMany({ site_id: id }),
+    User.updateMany({}, { $pull: { site_ids: id } }),
   ]);
 
   await Site.findByIdAndDelete(id);

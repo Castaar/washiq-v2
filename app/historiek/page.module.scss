@@ -22,7 +22,7 @@
     padding: var(--space-3) var(--space-2);
   }
 
-  @include respond-to('tablet-down') {
+  @include bottom-nav-space {
     padding-bottom: calc(var(--bottomnav-height) + var(--space-6));
   }
 }

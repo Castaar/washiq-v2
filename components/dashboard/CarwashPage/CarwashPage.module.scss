@@ -17,6 +17,10 @@
     padding: var(--space-4) var(--space-4) var(--space-8);
     gap: var(--space-4);
   }
+
+  @include respond-to('tablet') {
+    max-width: 900px;
+  }
 }
 
 // ─── Setup banner ────────────────────────────────────────────

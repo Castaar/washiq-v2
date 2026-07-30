@@ -54,6 +54,22 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
   const [addingSite, setAddingSite] = useState(false);
   const [addSiteError, setAddSiteError] = useState('');
   const [addSiteSuccess, setAddSiteSuccess] = useState('');
+  const [sitesList, setSitesList] = useState(allowedSites);
+  const [deletingSiteId, setDeletingSiteId] = useState<string | null>(null);
+
+  async function handleDeleteSite(id: string, name: string) {
+    if (id === siteId) return;
+    if (!window.confirm(`Carwash "${name}" en alle bijhorende data permanent verwijderen?`)) return;
+    setDeletingSiteId(id);
+    try {
+      const res = await fetch(`/api/sites/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setSitesList((prev) => prev.filter((s) => s.id !== id));
+      }
+    } finally {
+      setDeletingSiteId(null);
+    }
+  }
 
   async function handleAddSite(e: React.MouseEvent) {
     e.preventDefault();
@@ -70,8 +86,9 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: newSiteName.trim(), location: newSiteLocation.trim() }),
       });
-      const data = await res.json() as { id?: string; error?: string };
+      const data = await res.json() as { id?: string; name?: string; error?: string };
       if (res.ok && data.id) {
+        setSitesList((prev) => [...prev, { id: data.id!, name: data.name ?? newSiteName.trim() }]);
         setNewSiteName('');
         setNewSiteLocation('');
         setAddSiteSuccess(`${newSiteName.trim()} is toegevoegd.`);
@@ -478,6 +495,28 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
           </button>
           {addSiteError && <p className={styles.addUserError}>{addSiteError}</p>}
           {addSiteSuccess && <p className={styles.addUserSuccess}>{addSiteSuccess}</p>}
+
+          <div className={styles.stockList} style={{ marginTop: 12 }}>
+            {sitesList.map((s) => (
+              <div key={s.id} className={styles.stockRow}>
+                <span className={styles.stockName}>{s.name}</span>
+                <div className={styles.stockActions}>
+                  {s.id === siteId ? (
+                    <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>Actief — kan niet verwijderd worden</span>
+                  ) : (
+                    <button
+                      type="button"
+                      className={styles.deleteStockBtn}
+                      onClick={() => handleDeleteSite(s.id, s.name)}
+                      disabled={deletingSiteId === s.id}
+                    >
+                      {deletingSiteId === s.id ? '...' : '✕'}
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
         </section>
       )}
 

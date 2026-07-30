@@ -28,6 +28,15 @@ $bp-wide-min:    1440px;
   }
 }
 
+// Matches exactly when BottomNav.tsx renders (mobile/tablet widths, plus
+// any touch device — e.g. an iPad in landscape lands in the desktop width
+// range but still only has the bottom nav, no alternative nav).
+@mixin bottom-nav-space {
+  @media (max-width: $bp-tablet-max), (min-width: $bp-desktop-min) and (pointer: coarse) {
+    @content;
+  }
+}
+
 // ============================================================
 // Utility mixins
 // ============================================================
