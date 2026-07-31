@@ -35,6 +35,15 @@
   cursor: pointer;
   text-decoration: none;
   font-family: inherit;
+  transition: color var(--transition-base);
+
+  svg {
+    transition: transform var(--transition-base);
+  }
+
+  &:active svg {
+    transform: scale(0.88);
+  }
 }
 
 .tabLabel {
@@ -44,4 +53,9 @@
 
 .active {
   color: var(--color-accent-blue);
+
+  svg {
+    transform: scale(1.08);
+    filter: drop-shadow(0 0 6px rgba(91, 132, 255, 0.5));
+  }
 }

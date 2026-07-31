@@ -41,9 +41,10 @@
 }
 
 .activeTab {
-  color: var(--color-text-primary);
-  background: var(--color-accent-teal-dim);
+  color: var(--color-text-inverse);
+  background: var(--gradient-teal);
   border-color: var(--color-accent-teal);
+  box-shadow: var(--glow-teal);
 }
 
 // ─── Swipe to dismiss ────────────────────────────────────────
@@ -190,8 +191,15 @@
 
 .clickable {
   cursor: pointer;
+  transition: background var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
 
-  &:hover { background: var(--color-surface-hover); }
+  &:hover {
+    background: var(--color-surface-hover);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+  }
+
+  &:active { transform: translateY(0); }
 }
 
 .itemDismissed {

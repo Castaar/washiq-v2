@@ -31,10 +31,11 @@
   width: 30px;
   height: 30px;
   border-radius: var(--radius-sm);
-  background: var(--color-accent-blue-dim);
-  color: var(--color-accent-blue);
+  background: var(--gradient-blue);
+  color: var(--color-text-inverse);
   font-size: 0.8125rem;
   font-weight: 700;
+  box-shadow: var(--glow-blue);
 }
 
 .backBtn {

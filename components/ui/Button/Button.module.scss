@@ -8,11 +8,16 @@
   cursor: pointer;
   transition: background var(--transition-fast),
               border-color var(--transition-fast),
-              box-shadow var(--transition-fast),
+              box-shadow var(--transition-base),
+              transform var(--transition-fast),
               opacity var(--transition-fast);
   white-space: nowrap;
   position: relative;
   border: 1px solid transparent;
+
+  &:active:not(:disabled) {
+    transform: scale(0.97);
+  }
 
   &:disabled {
     opacity: 0.45;
@@ -55,14 +60,15 @@
 
 // Variants
 .variant-primary {
-  background: var(--color-accent-blue);
+  background: var(--gradient-blue);
   color: var(--color-text-inverse);
   border-color: var(--color-accent-blue);
   font-weight: 700;
 
   &:hover:not(:disabled) {
-    background: var(--color-accent-blue-dark);
     border-color: var(--color-accent-blue-dark);
+    box-shadow: var(--glow-blue);
+    transform: translateY(-1px);
   }
 }
 

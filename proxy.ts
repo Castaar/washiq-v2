@@ -58,9 +58,10 @@ export async function proxy(req: NextRequest) {
     // /logboek, /opdrachten, /planning, /onderhouden are accessible for employees
   }
 
-  // Technicians: /technieker, /account, /logboek, /leveringen (+ API routes)
+  // Technicians: /, /technieker, /account, /logboek, /leveringen (+ API routes)
   if (session.role === 'technician') {
     const allowed =
+      pathname === '/' ||
       pathname.startsWith('/technieker') ||
       pathname.startsWith('/account') ||
       pathname.startsWith('/logboek') ||

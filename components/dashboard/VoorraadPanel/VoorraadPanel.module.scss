@@ -57,10 +57,10 @@
 .barFill {
   height: 100%;
   border-radius: var(--radius-full);
-  background: var(--color-accent-teal);
+  background: var(--gradient-teal);
   transition: width var(--transition-slow);
 }
 
 .barLow {
-  background: var(--color-accent-amber);
+  background: linear-gradient(135deg, #f0b84a 0%, #d99420 100%);
 }

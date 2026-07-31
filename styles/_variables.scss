@@ -45,11 +45,27 @@ $bp-wide-min:    1440px;
 @mixin glass($opacity: null, $blur: null) {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
 }
 
 @mixin glow-border($color: var(--color-accent-blue)) {
   border-color: $color;
   box-shadow: 0 0 0 1px $color;
+}
+
+// Lift a card/row on hover — subtle press-forward feel for tappable surfaces
+@mixin hover-lift {
+  transition: transform var(--transition-base), box-shadow var(--transition-base), border-color var(--transition-base);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+
+  &:active {
+    transform: translateY(0);
+    box-shadow: var(--shadow-sm);
+  }
 }
 
 @mixin flex-center {

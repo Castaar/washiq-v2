@@ -686,10 +686,16 @@ export async function CarwashPage({
 
       {/* ── Technician: link to the full cross-site worklist ─── */}
       {isTechnician && (
-        <Link href="/technieker" className={styles.techWorklistLink}>
-          <span>Bekijk je volledige werklijst</span>
-          <span className={styles.setupArrow}>→</span>
-        </Link>
+        <>
+          <Link href="/technieker" className={styles.techWorklistLink}>
+            <span>Bekijk je volledige werklijst</span>
+            <span className={styles.setupArrow}>→</span>
+          </Link>
+          <div className={styles.heroImageWrap}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/carwash-illustration.png" alt="" className={styles.heroImage} />
+          </div>
+        </>
       )}
 
       {/* ── Owner/developer: anomaly ──────────────────────────── */}
