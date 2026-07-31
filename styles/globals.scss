@@ -9,18 +9,18 @@
 :root {
   // Backgrounds — dark, warm-neutral (not pure black)
   --color-bg:               #1d1c1a;
-  --color-bg-secondary:     #26241f;
-  --color-bg-tertiary:      #2e2b26;
+  --color-bg-secondary:     #1d1c1a;
+  --color-bg-tertiary:      #1d1c1a;
 
   // Surfaces (flat cards — kept the same var names so every
   // .module.scss that already consumes them re-skins automatically)
-  --color-surface:          #26241f;
+  --color-surface:          #1f2126;
   --color-surface-hover:    #302d27;
   --color-surface-elevated: #2c2924;
   --color-surface-sidebar:  #221f1b;
 
   // Borders
-  --color-border:           #3a362f;
+  --color-border:           #15161a;
   --color-border-strong:    #48433a;
   --color-border-active:    #5b84ff;
 
