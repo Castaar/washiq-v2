@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { SeverityChips, type Severity } from '@/components/ui/Chip/Chip';
+import { PhotoUpload } from '@/components/ui/PhotoUpload/PhotoUpload';
 import { IncidentModal } from '@/components/dashboard/IncidentModal/IncidentModal';
 import type { IncidentPayload } from '@/lib/types/dashboard';
 import styles from './IncidentenPanel.module.scss';
@@ -54,6 +55,7 @@ export function IncidentenPanel({
   const [filter, setFilter] = useState<Filter>('open');
   const [omschrijving, setOmschrijving] = useState('');
   const [ernst, setErnst] = useState<Ernst>('medium');
+  const [defectPhotos, setDefectPhotos] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [resolvingId, setResolvingId] = useState<string | null>(null);
@@ -69,7 +71,7 @@ export function IncidentenPanel({
       const res = await fetch('/api/incidents/defect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ siteId, omschrijving, ernst }),
+        body: JSON.stringify({ siteId, omschrijving, ernst, photos: defectPhotos }),
       });
       if (res.ok) {
         const today = new Date();
@@ -86,6 +88,7 @@ export function IncidentenPanel({
         setIncidents((prev) => [newItem, ...prev]);
         setOmschrijving('');
         setErnst('medium');
+        setDefectPhotos([]);
         setSaved(true);
         setTimeout(() => { setSaved(false); setDefectFormOpen(false); }, 1200);
       }
@@ -243,6 +246,7 @@ export function IncidentenPanel({
             <span className={styles.ernstLabel}>Ernst</span>
             <SeverityChips value={ernst} onChange={setErnst} />
           </div>
+          <PhotoUpload photos={defectPhotos} onChange={setDefectPhotos} maxPhotos={5} />
           <div className={styles.defectFormActions}>
             <button type="button" className={styles.defectCancelBtn} onClick={() => setDefectFormOpen(false)}>
               Annuleren
