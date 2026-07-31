@@ -12,6 +12,48 @@
   overflow-x: scroll;
 }
 
+// ─── Day switcher ────────────────────────────────────────────
+.daySwitcher {
+  @include flex-between;
+  gap: var(--space-2);
+  padding-bottom: var(--space-1);
+}
+
+.dayNavBtn {
+  @include flex-center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-full);
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+  transition: background var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
+
+  &:hover {
+    background: var(--color-surface-hover);
+    color: var(--color-text-primary);
+  }
+
+  &:active { transform: scale(0.92); }
+}
+
+.dayLabel {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  text-transform: capitalize;
+}
+
+.dayLabelLink {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--color-accent-blue);
+  text-transform: capitalize;
+  text-decoration: none;
+
+  &:hover { text-decoration: underline; }
+}
+
 // ─── Tabs ────────────────────────────────────────────────────
 .tabs {
   display: flex;

@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
+import Link from 'next/link';
 import type { AlertItem, AlertsPanelData, DagfichePayload, IncidentPayload, MaintenanceTaskPayload } from '@/lib/types/dashboard';
-import { DynamicIcon, IconTrash, IconMessageSquare, IconX } from '@/components/ui/icons';
+import { DynamicIcon, IconTrash, IconMessageSquare, IconX, IconChevronLeft, IconChevronRight } from '@/components/ui/icons';
 import { DagficheModal } from '@/components/dashboard/DagficheModal/DagficheModal';
 import { IncidentModal } from '@/components/dashboard/IncidentModal/IncidentModal';
 import { MaintenanceModal } from '@/components/dashboard/MaintenanceModal/MaintenanceModal';
@@ -277,11 +278,20 @@ type IncidentModalState     = { payload: IncidentPayload; refId: string; refType
 type MaintenanceModalState  = { payload: MaintenanceTaskPayload; refId: string; refType: string; siteId: string };
 
 // ─── Panel ───────────────────────────────────────────────────
-interface AlertsPanelProps {
-  data: AlertsPanelData;
+interface DayLog {
+  label: string;
+  isToday: boolean;
+  prevHref: string;
+  nextHref: string;
+  todayHref: string;
 }
 
-export function AlertsPanel({ data }: AlertsPanelProps) {
+interface AlertsPanelProps {
+  data: AlertsPanelData;
+  dayLog?: DayLog;
+}
+
+export function AlertsPanel({ data, dayLog }: AlertsPanelProps) {
   const [active, setActive]               = useState<AlertTab>('alerts');
   const [archiveOpen, setArchiveOpen]     = useState(false);
   const [dagficheOpen, setDagficheOpen]   = useState<DagficheModalState | null>(null);
@@ -356,6 +366,23 @@ export function AlertsPanel({ data }: AlertsPanelProps) {
       )}
 
       <div className={styles.panel}>
+        {/* ── Day switcher (Meldingen tab only) ────────────── */}
+        {dayLog && active === 'alerts' && (
+          <div className={styles.daySwitcher}>
+            <Link href={dayLog.prevHref} className={styles.dayNavBtn} aria-label="Vorige dag">
+              <IconChevronLeft size={16} />
+            </Link>
+            {dayLog.isToday ? (
+              <span className={styles.dayLabel}>Vandaag · {dayLog.label}</span>
+            ) : (
+              <Link href={dayLog.todayHref} className={styles.dayLabelLink}>{dayLog.label}</Link>
+            )}
+            <Link href={dayLog.nextHref} className={styles.dayNavBtn} aria-label="Volgende dag">
+              <IconChevronRight size={16} />
+            </Link>
+          </div>
+        )}
+
         {/* ── Tabs ────────────────────────────────────────── */}
         <div className={styles.tabs} role="tablist">
           {tabs.map(tab => (

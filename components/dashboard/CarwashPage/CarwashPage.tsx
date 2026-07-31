@@ -12,7 +12,8 @@ import {
   DailyChecklist,
   IncidentSchade,
   IncidentEhbo,
-
+  Defect,
+  StockDelivery,
   EnergyBill,
   AttendanceLog,
 } from '@/lib/models';
@@ -22,7 +23,7 @@ import { AlertsPanel } from '@/components/dashboard/AlertsPanel/AlertsPanel';
 import { VoorraadPanel } from '@/components/dashboard/VoorraadPanel/VoorraadPanel';
 import { LogboekPanel } from '@/components/logboek/LogboekPanel/LogboekPanel';
 import type { LogEntry } from '@/components/logboek/LogboekPanel/LogboekPanel';
-import type { AlertItem, AlertsPanelData, VoorraadItem, ChemieRow, ConsumptionData, DagfichePayload, IncidentSchadePayload, IncidentEhboPayload, MaintenanceTaskPayload } from '@/lib/types/dashboard';
+import type { AlertItem, AlertsPanelData, VoorraadItem, ChemieRow, ConsumptionData, DagfichePayload, IncidentSchadePayload, IncidentEhboPayload, DefectPayload, MaintenanceTaskPayload } from '@/lib/types/dashboard';
 import { computeIsOverdue, computeIsApproaching, washesRemaining } from '@/lib/maintenance';
 import styles from './CarwashPage.module.scss';
 import type { Types } from 'mongoose';
@@ -72,6 +73,12 @@ export async function CarwashPage({
 
   // ── Reference date: which period the owner is currently viewing ──
   const viewedDate = refDate && /^\d{4}-\d{2}-\d{2}$/.test(refDate) ? new Date(`${refDate}T00:00:00Z`) : new Date();
+  const logDateStr = viewedDate.toISOString().slice(0, 10);
+  const dayStart = new Date(Date.UTC(viewedDate.getUTCFullYear(), viewedDate.getUTCMonth(), viewedDate.getUTCDate()));
+  const dayEnd = new Date(dayStart); dayEnd.setUTCDate(dayEnd.getUTCDate() + 1);
+  const prevDayStr = new Date(dayStart.getTime() - 86400000).toISOString().slice(0, 10);
+  const nextDayStr = new Date(dayEnd).toISOString().slice(0, 10);
+  const todayStr = new Date().toISOString().slice(0, 10);
   const curYear = viewedDate.getUTCFullYear();
   const curMonth = viewedDate.getUTCMonth() + 1;
   const prevMonth = curMonth === 1 ? 12 : curMonth - 1;
@@ -90,7 +97,7 @@ export async function CarwashPage({
   // ── Fetch all data in parallel ───────────────────────────────
   const today = new Date();
 
-  const [entries, monthEntries, prevMonthEntries, lastTwoEntries, programs, priceConfigs, stocks, tasks, logs, checklists, incSchades, incEhbos, energyBillCur, energyBillPrev, attendanceLogs] = await Promise.all([
+  const [entries, monthEntries, prevMonthEntries, lastTwoEntries, programs, priceConfigs, stocks, tasks, logs, checklists, incSchades, incEhbos, energyBillCur, energyBillPrev] = await Promise.all([
     period === 'week'
       ? WeeklyEntry.find({ ...filter, week_start: { $in: [curWeekStart, prevWeekStart] } }).lean()
       : Promise.resolve([]),
@@ -107,7 +114,17 @@ export async function CarwashPage({
     IncidentEhbo.find(filter).sort({ created_at: -1 }).limit(8).lean(),
     siteId ? EnergyBill.findOne({ site_id: siteId, year: curYear,  month: curMonth  }).lean() : null,
     siteId ? EnergyBill.findOne({ site_id: siteId, year: prevYear, month: prevMonth }).lean() : null,
-    AttendanceLog.find(filter).sort({ timestamp: -1 }).limit(15).lean(),
+  ]);
+
+  // ── Day log (owner/developer "Meldingen" tab: only the selected day) ──
+  const [dayAttendance, dayDeliveries, dayChecklists, dayMaintenanceLogs, daySchades, dayEhbos, dayDefects] = await Promise.all([
+    AttendanceLog.find({ ...filter, timestamp: { $gte: dayStart, $lt: dayEnd } }).sort({ timestamp: -1 }).lean(),
+    StockDelivery.find({ ...filter, delivered_at: { $gte: dayStart, $lt: dayEnd } }).sort({ delivered_at: -1 }).populate('chemical_id', 'name').populate('logged_by', 'name').lean(),
+    DailyChecklist.find({ ...filter, submitted_at: { $gte: dayStart, $lt: dayEnd } }).sort({ submitted_at: -1 }).lean(),
+    MaintenanceLog.find({ ...filter, done_at: { $gte: dayStart, $lt: dayEnd } }).sort({ done_at: -1 }).populate('task_id', 'description').lean(),
+    IncidentSchade.find({ ...filter, created_at: { $gte: dayStart, $lt: dayEnd } }).sort({ created_at: -1 }).lean(),
+    IncidentEhbo.find({ ...filter, created_at: { $gte: dayStart, $lt: dayEnd } }).sort({ created_at: -1 }).lean(),
+    Defect.find({ ...filter, created_at: { $gte: dayStart, $lt: dayEnd } }).sort({ created_at: -1 }).lean(),
   ]);
 
   const latestEntry = lastTwoEntries[0] ?? null;
@@ -421,35 +438,11 @@ export async function CarwashPage({
   }
 
   // Resolve user names for checklists
-  const checklistUserIds = [...new Set(checklists.map((cl) => cl.user_id?.toString()).filter(Boolean))];
+  const checklistUserIds = [...new Set([...checklists, ...dayChecklists].map((cl) => cl.user_id?.toString()).filter(Boolean))];
   const checklistUsers = checklistUserIds.length
     ? await User.find({ _id: { $in: checklistUserIds } }).select('_id name').lean()
     : [];
   const userNameMap = Object.fromEntries(checklistUsers.map((u) => [(u._id as Types.ObjectId).toString(), u.name as string]));
-
-  const dagficheItems: AlertItem[] = checklists.map((cl) => {
-    const submittedDate = new Date(cl.submitted_at as Date ?? cl.date as Date);
-    const payload: DagfichePayload = {
-      type: 'dagfiche',
-      submittedBy: userNameMap[cl.user_id?.toString() ?? ''] ?? 'Onbekend',
-      submittedAt: submittedDate.toLocaleDateString('nl-BE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
-      items: (cl.items as { label: string; checked: boolean; opmerking?: string }[]).map(
-        ({ label, checked, opmerking }) => ({ label, checked, opmerking }),
-      ),
-      defectNote: cl.defect_note ? String(cl.defect_note) : undefined,
-    };
-    return {
-      id:      (cl._id as Types.ObjectId).toString(),
-      refType: 'daily_checklist' as const,
-      siteId:  siteId ?? '',
-      title:   'Dagfiche ingediend',
-      subtitle: userNameMap[cl.user_id?.toString() ?? ''] ?? undefined,
-      date:    fmtDate(submittedDate),
-      severity: 'low' as const,
-      iconName: 'check',
-      payload,
-    };
-  });
 
   const onderhoudItems: AlertItem[] = [
     ...logs.map((l) => {
@@ -576,45 +569,204 @@ export async function CarwashPage({
     });
   }
 
-  // Check-in / check-out events, used to keep the owner's feed limited to
-  // completions, incidents and attendance — not proactive maintenance nagging.
-  const attendanceAlertItems: AlertItem[] = attendanceLogs.map((l) => {
+  // ── Day log (owner/developer "Meldingen" tab): only the selected day's
+  // events — check-in/out, deliveries, dagfiche, onderhoud done, incidents.
+  const dayLogEntries: { ts: number; item: AlertItem }[] = [];
+
+  for (const l of dayAttendance) {
     const ts = new Date(l.timestamp as Date);
     const isExtern = (l.person_type as string) === 'technician_extern';
     const isDeparture = l.type === 'sluiting';
-
-    // For departures: find the most recent arrival of same person before this timestamp
     let workedHours: string | undefined;
     if (isDeparture) {
-      const arrival = attendanceLogs.find(
-        (a) =>
-          a.type === 'opening' &&
-          (a.user_name as string) === (l.user_name as string) &&
-          new Date(a.timestamp as Date).getTime() < ts.getTime(),
+      const arrival = dayAttendance.find(
+        (a) => a.type === 'opening' && (a.user_name as string) === (l.user_name as string) && new Date(a.timestamp as Date).getTime() < ts.getTime(),
       );
       if (arrival) {
         const ms = ts.getTime() - new Date(arrival.timestamp as Date).getTime();
-        const arrivalTime = fmtTime(new Date(arrival.timestamp as Date));
-        workedHours = `${arrivalTime} → ${fmtTime(ts)} · ${fmtDuration(ms)} gewerkt`;
+        workedHours = `${fmtTime(new Date(arrival.timestamp as Date))} → ${fmtTime(ts)} · ${fmtDuration(ms)} gewerkt`;
       }
     }
-
     const subtitleParts = [
       isExtern ? 'Externe technieker' : undefined,
       !isDeparture ? fmtTime(ts) : undefined,
       isDeparture && workedHours ? workedHours : undefined,
     ].filter(Boolean);
+    dayLogEntries.push({
+      ts: ts.getTime(),
+      item: {
+        id: `attendance-${(l._id as Types.ObjectId).toString()}`,
+        siteId: siteId ?? '',
+        title: `${l.user_name ?? 'Onbekend'} is ${isDeparture ? 'vertrokken' : 'aangekomen'}`,
+        subtitle: subtitleParts.length > 0 ? subtitleParts.join(' · ') : undefined,
+        date: fmtTime(ts),
+        severity: 'low' as const,
+        iconName: 'check',
+      },
+    });
+  }
 
-    return {
-      id:       `attendance-${(l._id as Types.ObjectId).toString()}`,
-      siteId:   siteId ?? '',
-      title:    `${l.user_name ?? 'Onbekend'} is ${isDeparture ? 'vertrokken' : 'aangekomen'}`,
-      subtitle: subtitleParts.length > 0 ? subtitleParts.join(' · ') : undefined,
-      date:     `${fmtDate(ts)} ${fmtTime(ts)}`,
-      severity: 'low' as const,
-      iconName: 'check',
+  for (const d of dayDeliveries) {
+    const ts = new Date(d.delivered_at as Date);
+    const chemName = ((d.chemical_id as unknown as { name?: string } | null)?.name) ?? 'Product';
+    const loggedByName = ((d.logged_by as unknown as { name?: string } | null)?.name) ?? '';
+    dayLogEntries.push({
+      ts: ts.getTime(),
+      item: {
+        id: `delivery-${(d._id as Types.ObjectId).toString()}`,
+        siteId: siteId ?? '',
+        title: `Levering: ${chemName}`,
+        subtitle: [`${d.quantity ?? 0}`, loggedByName ? `door ${loggedByName}` : undefined].filter(Boolean).join(' · '),
+        date: fmtTime(ts),
+        severity: 'low' as const,
+        iconName: 'package',
+      },
+    });
+  }
+
+  for (const cl of dayChecklists) {
+    const ts = new Date(cl.submitted_at as Date ?? cl.date as Date);
+    const clItems = (cl.items as { label: string; checked: boolean; opmerking?: string }[]) ?? [];
+    const uncheckedCount = clItems.filter((it) => !it.checked).length;
+    const payload: DagfichePayload = {
+      type: 'dagfiche',
+      submittedBy: userNameMap[cl.user_id?.toString() ?? ''] ?? 'Onbekend',
+      submittedAt: ts.toLocaleDateString('nl-BE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+      items: clItems.map(({ label, checked, opmerking }) => ({ label, checked, opmerking })),
+      defectNote: cl.defect_note ? String(cl.defect_note) : undefined,
     };
-  });
+    dayLogEntries.push({
+      ts: ts.getTime(),
+      item: {
+        id: (cl._id as Types.ObjectId).toString(),
+        refType: 'daily_checklist' as const,
+        siteId: siteId ?? '',
+        title: 'Dagfiche ingediend',
+        subtitle: userNameMap[cl.user_id?.toString() ?? ''] ?? undefined,
+        date: fmtTime(ts),
+        severity: (uncheckedCount > 0 ? 'medium' : 'low') as 'medium' | 'low',
+        iconName: 'clipboard',
+        payload,
+      },
+    });
+  }
+
+  for (const l of dayMaintenanceLogs) {
+    const ts = new Date(l.done_at as Date);
+    const taskDesc = (l.task_id as unknown as { description?: string } | null)?.description ?? '';
+    const title = taskDesc
+      ? `Onderhoud: ${taskDesc}${l.notes ? ` — ${l.notes}` : ''}`
+      : l.notes ? `Onderhoud: ${l.notes}` : 'Onderhoud uitgevoerd';
+    dayLogEntries.push({
+      ts: ts.getTime(),
+      item: {
+        id: `daylog-${l._id.toString()}`,
+        siteId: siteId ?? '',
+        title,
+        date: fmtTime(ts),
+        severity: 'low' as const,
+        iconName: 'check',
+      },
+    });
+  }
+
+  for (const s of daySchades) {
+    const ts = new Date(s.created_at as Date);
+    const id = (s._id as Types.ObjectId).toString();
+    const payload: IncidentSchadePayload = {
+      type: 'schade',
+      reportedBy: (s.reported_by_name as string) || '',
+      date: fmtDate(ts),
+      typeVoertuig: (s.type_voertuig as string) || '',
+      merkModel: (s.merk_model as string) || '',
+      nummerplaat: (s.nummerplaat as string) || '',
+      naamEigenaar: (s.naam_eigenaar as string) || '',
+      telGsm: (s.tel_gsm as string) || '',
+      email: (s.email as string) || '',
+      omschrijving: (s.omschrijving as string) || '',
+      onbetwist: Boolean(s.onbetwist),
+      installatiefout: Boolean(s.installatiefout),
+      klantVerantwoordelijk: Boolean(s.klant_verantwoordelijk),
+      verzekeringsdocumenten: Boolean(s.verzekeringsdocumenten),
+    };
+    dayLogEntries.push({
+      ts: ts.getTime(),
+      item: {
+        id, refId: id, refType: 'incident_schade' as const, siteId: siteId ?? '',
+        title: (s.merk_model as string) || 'Schade',
+        subtitle: (s.omschrijving as string) || '',
+        date: fmtTime(ts),
+        severity: 'high' as const,
+        iconName: 'warning',
+        payload,
+      },
+    });
+  }
+
+  for (const e of dayEhbos) {
+    const ts = new Date(e.created_at as Date);
+    const payload: IncidentEhboPayload = {
+      type: 'ehbo',
+      reportedBy: (e.reported_by_name as string) || '',
+      date: fmtDate(ts),
+      uur: (e.uur as string) || '',
+      naamSlachtoffer: (e.naam_slachtoffer as string) || '',
+      afdelingLocatie: (e.afdeling_locatie as string) || '',
+      verwonding: (e.verwonding as string) || '',
+      ehboHandeling: (e.ehbo_handeling as string) || '',
+      ehboVerlener: (e.ehbo_verlener as string) || '',
+      beschrijving: (e.beschrijving as string) || '',
+      dokterNodig: Boolean(e.dokter_nodig),
+    };
+    dayLogEntries.push({
+      ts: ts.getTime(),
+      item: {
+        id: (e._id as Types.ObjectId).toString(),
+        refType: 'incident_ehbo' as const, siteId: siteId ?? '',
+        title: (e.naam_slachtoffer as string) || 'EHBO',
+        subtitle: (e.verwonding as string) || '',
+        date: fmtTime(ts),
+        severity: 'medium' as const,
+        iconName: 'warning',
+        payload,
+      },
+    });
+  }
+
+  for (const d of dayDefects) {
+    const ts = new Date(d.created_at as Date);
+    const id = (d._id as Types.ObjectId).toString();
+    const payload: DefectPayload = {
+      type: 'defect',
+      reportedBy: (d.reported_by_name as string) || '',
+      date: fmtDate(ts),
+      omschrijving: (d.omschrijving as string) || '',
+      ernst: (d.ernst as string) || 'medium',
+    };
+    dayLogEntries.push({
+      ts: ts.getTime(),
+      item: {
+        id, refId: id, refType: 'defect' as const, siteId: siteId ?? '',
+        title: (d.omschrijving as string)?.slice(0, 40) || 'Defect',
+        subtitle: d.ernst as string,
+        date: fmtTime(ts),
+        severity: d.ernst === 'hoog' ? 'high' as const : 'medium' as const,
+        iconName: 'wrench',
+        payload,
+      },
+    });
+  }
+
+  const dayLogItems: AlertItem[] = dayLogEntries.sort((a, b) => b.ts - a.ts).map((e) => e.item);
+
+  const WEEKDAYS_NL = ['zondag', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag'];
+  const MONTHS_NL_SHORT = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
+  const dayLogLabel = `${WEEKDAYS_NL[viewedDate.getUTCDay()]} ${viewedDate.getUTCDate()} ${MONTHS_NL_SHORT[viewedDate.getUTCMonth()]}`;
+  const dayLogIsToday = logDateStr === todayStr;
+  const dayLogSiteQuery = siteId ? `&site=${siteId}` : '';
+  const dayLogPrevHref = `/?date=${prevDayStr}${dayLogSiteQuery}`;
+  const dayLogNextHref = `/?date=${nextDayStr}${dayLogSiteQuery}`;
+  const dayLogTodayHref = `/?date=${todayStr}${dayLogSiteQuery}`;
 
   // Technicians need to see proactive "this is due" maintenance warnings to act on them.
   // The owner only needs to know once something is actually done, an incident happened,
@@ -623,7 +775,7 @@ export async function CarwashPage({
   const alertsPanelData: AlertsPanelData = {
     alerts: isTechnician
       ? [...consumptionAlertItems, ...alertItems, ...approachingItems, ...dagficheAlerts]
-      : [...dagficheItems, ...onderhoudItems, ...incidentItems, ...attendanceAlertItems],
+      : dayLogItems,
     onderhoud: onderhoudItems,
     incident:  incidentItems,
   };
@@ -709,7 +861,16 @@ export async function CarwashPage({
       {/* ── Alerts + stock (owner/developer/technician) ──────── */}
       {!isEmployee && (
         <>
-          <AlertsPanel data={alertsPanelData} />
+          <AlertsPanel
+            data={alertsPanelData}
+            dayLog={!isTechnician ? {
+              label: dayLogLabel,
+              isToday: dayLogIsToday,
+              prevHref: dayLogPrevHref,
+              nextHref: dayLogNextHref,
+              todayHref: dayLogTodayHref,
+            } : undefined}
+          />
           <VoorraadPanel items={voorraad} />
         </>
       )}
