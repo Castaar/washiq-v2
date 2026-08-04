@@ -22,6 +22,68 @@
   @include respond-to('tablet') {
     max-width: 900px;
   }
+
+  @include respond-to('desktop') {
+    max-width: 1240px;
+  }
+
+  @include respond-to('wide') {
+    max-width: 1360px;
+  }
+}
+
+// ─── Desktop dashboard split ─────────────────────────────────
+// Mobile/tablet: transparent wrappers, children flow as plain
+// stack items. Desktop+: real multi-column dashboard layout.
+.desktopGrid {
+  display: contents;
+
+  @include respond-to('desktop') {
+    display: grid;
+    align-items: start;
+    gap: var(--space-5);
+  }
+
+  &.twoCol {
+    @include respond-to('desktop') {
+      grid-template-columns: minmax(0, 1fr) 320px;
+    }
+
+    @include respond-to('wide') {
+      grid-template-columns: minmax(0, 1fr) 360px;
+    }
+  }
+
+  &.threeCol {
+    @include respond-to('desktop') {
+      grid-template-columns: 260px minmax(0, 1fr) 320px;
+    }
+
+    @include respond-to('wide') {
+      grid-template-columns: 300px minmax(0, 1fr) 360px;
+    }
+  }
+}
+
+.gridLeft,
+.gridCenter,
+.gridRight {
+  display: contents;
+
+  @include respond-to('desktop') {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    min-width: 0;
+  }
+}
+
+.gridLeft,
+.gridRight {
+  @include respond-to('desktop') {
+    position: sticky;
+    top: var(--space-4);
+  }
 }
 
 // ─── Setup banner ────────────────────────────────────────────
@@ -124,12 +186,22 @@
   color: var(--color-text-secondary);
 }
 
-// ─── Technician hero illustration (full-bleed) ──────────────
+// ─── Technician hero illustration ────────────────────────────
+// Full-bleed edge-to-edge on mobile/tablet (single-column feel);
+// contained within its own card on desktop's two-column layout.
 .heroImageWrap {
   width: 100vw;
   margin-left: calc(50% - 50vw);
   margin-right: calc(50% - 50vw);
   line-height: 0;
+
+  @include respond-to('desktop') {
+    width: 100%;
+    margin: 0;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+  }
 }
 
 .heroImage {

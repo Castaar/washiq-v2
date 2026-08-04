@@ -4,6 +4,7 @@ import { PwaRegister } from '@/components/layout/PwaRegister';
 import PushSetup from '@/components/layout/PushSetup/PushSetup';
 import { ToastProvider } from '@/components/ui/Toast/ToastProvider';
 import { BottomNav } from '@/components/layout/BottomNav/BottomNav';
+import { DesktopNav } from '@/components/layout/DesktopNav/DesktopNav';
 import { getSession } from '@/lib/session';
 import '../styles/globals.scss';
 
@@ -47,6 +48,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <PushSetup />
           {children}
           {session && <BottomNav role={session.role} />}
+          {session && <DesktopNav role={session.role} />}
         </ToastProvider>
       </body>
     </html>

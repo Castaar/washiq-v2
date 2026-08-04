@@ -820,76 +820,87 @@ export async function CarwashPage({
         </Link>
       )}
 
-      {/* ── Greeting hero ─────────────────────────────────────── */}
-      <div className={styles.hero}>
-        <div className={styles.heroGreeting}>{heroGreeting}</div>
-        <div className={styles.heroSubline}>{heroSubline}</div>
-      </div>
-
-      {/* ── Employee: logbook clock card ─────────────────────── */}
+      {/* ── Employee: simple single-column flow (no desktop split) ── */}
       {isEmployee && (
-        <LogboekPanel
-          siteId={siteId ?? ''}
-          userRole={userRole}
-          userName={userName}
-          recentLogs={recentLogs}
-        />
-      )}
-
-      {/* ── Technician: link to the full cross-site worklist ─── */}
-      {isTechnician && (
         <>
-          <Link href="/technieker" className={styles.techWorklistLink}>
-            <span>Bekijk je volledige werklijst</span>
-            <span className={styles.setupArrow}>→</span>
-          </Link>
-          <div className={styles.heroImageWrap}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/carwash-illustration.png" alt="" className={styles.heroImage} />
+          <div className={styles.hero}>
+            <div className={styles.heroGreeting}>{heroGreeting}</div>
+            <div className={styles.heroSubline}>{heroSubline}</div>
           </div>
-        </>
-      )}
-
-      {/* ── Owner/developer: anomaly ──────────────────────────── */}
-      {isOwner && topAnomaly && (
-        <div className={styles.anomalyBanner}>
-          <span className={styles.anomalyTitle}>{topAnomaly.title}</span>
-          {topAnomaly.subtitle && <span className={styles.anomalySubtitle}>{topAnomaly.subtitle}</span>}
-        </div>
-      )}
-
-      {/* ── Alerts + stock (owner/developer/technician) ──────── */}
-      {!isEmployee && (
-        <>
-          <AlertsPanel
-            data={alertsPanelData}
-            dayLog={!isTechnician ? {
-              label: dayLogLabel,
-              isToday: dayLogIsToday,
-              prevHref: dayLogPrevHref,
-              nextHref: dayLogNextHref,
-              todayHref: dayLogTodayHref,
-            } : undefined}
+          <LogboekPanel
+            siteId={siteId ?? ''}
+            userRole={userRole}
+            userName={userName}
+            recentLogs={recentLogs}
           />
-          <VoorraadPanel items={voorraad} />
         </>
       )}
 
-      {/* ── Wash program breakdown (owner/developer only) ────── */}
-      {isOwner && (
-        <ProgrammaCard
-          programs={programOptions}
-          totalWagens={programOptions.reduce((s, p) => s + p.count, 0)}
-          view={view}
-          costBreakdown={latestCostRows}
-          prevCostBreakdown={prevCostRows}
-        />
-      )}
+      {/* ── Owner/developer/technician: 3-col desktop dashboard;
+          mobile/tablet: plain stack (wrappers become transparent) ── */}
+      {!isEmployee && (
+        <div className={[styles.desktopGrid, isOwner ? styles.threeCol : styles.twoCol].join(' ')}>
+          {/* ── Left column: wash-program cost breakdown (owner only) ── */}
+          {isOwner && (
+            <div className={styles.gridLeft}>
+              <ProgrammaCard
+                programs={programOptions}
+                totalWagens={programOptions.reduce((s, p) => s + p.count, 0)}
+                view={view}
+                costBreakdown={latestCostRows}
+                prevCostBreakdown={prevCostRows}
+              />
+            </div>
+          )}
 
-      {/* ── Fallback note ─────────────────────────────────────── */}
-      {noCurrentData && latestEntry && (
-        <div className={styles.fallbackNote}>
-          Geen ingave voor deze periode — meest recente ingave getoond
+          {/* ── Center column: hero + illustration/worklist ──────── */}
+          <div className={styles.gridCenter}>
+            <div className={styles.hero}>
+              <div className={styles.heroGreeting}>{heroGreeting}</div>
+              <div className={styles.heroSubline}>{heroSubline}</div>
+            </div>
+
+            {isTechnician && (
+              <>
+                <Link href="/technieker" className={styles.techWorklistLink}>
+                  <span>Bekijk je volledige werklijst</span>
+                  <span className={styles.setupArrow}>→</span>
+                </Link>
+                <div className={styles.heroImageWrap}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/carwash-illustration.png" alt="" className={styles.heroImage} />
+                </div>
+              </>
+            )}
+
+            {isOwner && topAnomaly && (
+              <div className={styles.anomalyBanner}>
+                <span className={styles.anomalyTitle}>{topAnomaly.title}</span>
+                {topAnomaly.subtitle && <span className={styles.anomalySubtitle}>{topAnomaly.subtitle}</span>}
+              </div>
+            )}
+
+            {noCurrentData && latestEntry && (
+              <div className={styles.fallbackNote}>
+                Geen ingave voor deze periode — meest recente ingave getoond
+              </div>
+            )}
+          </div>
+
+          {/* ── Right column: alerts + stock ─────────────────────── */}
+          <div className={styles.gridRight}>
+            <AlertsPanel
+              data={alertsPanelData}
+              dayLog={!isTechnician ? {
+                label: dayLogLabel,
+                isToday: dayLogIsToday,
+                prevHref: dayLogPrevHref,
+                nextHref: dayLogNextHref,
+                todayHref: dayLogTodayHref,
+              } : undefined}
+            />
+            <VoorraadPanel items={voorraad} />
+          </div>
         </div>
       )}
     </div>
