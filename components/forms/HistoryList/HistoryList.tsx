@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import styles from './HistoryList.module.scss';
 
 export interface HistoryChemical {
@@ -71,6 +72,7 @@ function EntryRow({
   siteId: string;
   initialElectricityAmount: number | undefined;
 }) {
+  const router = useRouter();
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -180,6 +182,7 @@ function EntryRow({
         });
       }
       setEditing(false);
+      router.refresh();
     } finally {
       setSaving(false);
     }
