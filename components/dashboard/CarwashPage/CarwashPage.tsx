@@ -833,6 +833,10 @@ export async function CarwashPage({
             userName={userName}
             recentLogs={recentLogs}
           />
+          <div className={styles.heroImageWrap}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/carwash-illustration.png" alt="" className={styles.heroImage} />
+          </div>
         </>
       )}
 
@@ -851,17 +855,16 @@ export async function CarwashPage({
             </div>
 
             {isTechnician && (
-              <>
-                <Link href="/technieker" className={styles.techWorklistLink}>
-                  <span>Bekijk je volledige werklijst</span>
-                  <span className={styles.setupArrow}>→</span>
-                </Link>
-                <div className={styles.heroImageWrap}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/carwash-illustration.png" alt="" className={styles.heroImage} />
-                </div>
-              </>
+              <Link href="/technieker" className={styles.techWorklistLink}>
+                <span>Bekijk je volledige werklijst</span>
+                <span className={styles.setupArrow}>→</span>
+              </Link>
             )}
+
+            <div className={styles.heroImageWrap}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/carwash-illustration.png" alt="" className={styles.heroImage} />
+            </div>
 
             {isOwner && topAnomaly && (
               <div className={styles.anomalyBanner}>

@@ -8,9 +8,9 @@
 // ============================================================
 :root {
   // Backgrounds — dark, warm-neutral (not pure black)
-  --color-bg:               #1d1c1a;
-  --color-bg-secondary:     #1d1c1a;
-  --color-bg-tertiary:      #1d1c1a;
+  --color-bg:               #04090d;
+  --color-bg-secondary:     #04090d;
+  --color-bg-tertiary:      #04090d;
 
   // Surfaces (flat cards — kept the same var names so every
   // .module.scss that already consumes them re-skins automatically)
