@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { dbConnect } from '@/lib/db/mongoose';
 import {
   WeeklyEntry,
@@ -834,8 +835,14 @@ export async function CarwashPage({
             recentLogs={recentLogs}
           />
           <div className={styles.heroImageWrap}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/carwash-illustration.png" alt="" className={styles.heroImage} />
+            <Image
+              src="/carwash-illustration.webp"
+              alt=""
+              width={1600}
+              height={1066}
+              sizes="(min-width: 1024px) 700px, 100vw"
+              className={styles.heroImage}
+            />
           </div>
         </>
       )}
@@ -862,8 +869,14 @@ export async function CarwashPage({
             )}
 
             <div className={styles.heroImageWrap}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/carwash-illustration.png" alt="" className={styles.heroImage} />
+              <Image
+                src="/carwash-illustration.webp"
+                alt=""
+                width={1600}
+                height={1066}
+                sizes="(min-width: 1024px) 700px, 100vw"
+                className={styles.heroImage}
+              />
             </div>
 
             {isOwner && topAnomaly && (
