@@ -760,6 +760,81 @@ export async function CarwashPage({
 
   const dayLogItems: AlertItem[] = dayLogEntries.sort((a, b) => b.ts - a.ts).map((e) => e.item);
 
+  // Onderhoud/Incidenten tabs, scoped to the same selected day as Meldingen
+  const dayOnderhoudItems: AlertItem[] = dayMaintenanceLogs.map((l) => {
+    const taskDesc = (l.task_id as unknown as { description?: string } | null)?.description ?? '';
+    const title = taskDesc
+      ? `Onderhoud: ${taskDesc}${l.notes ? ` — ${l.notes}` : ''}`
+      : l.notes ? `Onderhoud: ${l.notes}` : 'Onderhoud uitgevoerd';
+    return {
+      id:      l._id.toString(),
+      refType: 'maintenance_log' as const,
+      siteId:  siteId ?? '',
+      title,
+      date:    fmtTime(new Date(l.done_at as Date)),
+      severity: 'low' as const,
+      iconName: 'check',
+    };
+  });
+
+  const dayIncidentItems: AlertItem[] = [
+    ...daySchades.map((s) => {
+      const id = (s._id as Types.ObjectId).toString();
+      const ts = new Date(s.created_at as Date);
+      const payload: IncidentSchadePayload = {
+        type: 'schade',
+        reportedBy: (s.reported_by_name as string) || '',
+        date: fmtDate(ts),
+        typeVoertuig: (s.type_voertuig as string) || '',
+        merkModel: (s.merk_model as string) || '',
+        nummerplaat: (s.nummerplaat as string) || '',
+        naamEigenaar: (s.naam_eigenaar as string) || '',
+        telGsm: (s.tel_gsm as string) || '',
+        email: (s.email as string) || '',
+        omschrijving: (s.omschrijving as string) || '',
+        onbetwist: Boolean(s.onbetwist),
+        installatiefout: Boolean(s.installatiefout),
+        klantVerantwoordelijk: Boolean(s.klant_verantwoordelijk),
+        verzekeringsdocumenten: Boolean(s.verzekeringsdocumenten),
+      };
+      return {
+        id, refId: id, refType: 'incident_schade' as const, siteId: siteId ?? '',
+        title: (s.merk_model as string) || 'Schade',
+        subtitle: (s.omschrijving as string) || '',
+        date: fmtDate(ts),
+        severity: 'high' as const,
+        iconName: 'warning',
+        payload,
+      };
+    }),
+    ...dayEhbos.map((e) => {
+      const ts = new Date(e.created_at as Date);
+      const payload: IncidentEhboPayload = {
+        type: 'ehbo',
+        reportedBy: (e.reported_by_name as string) || '',
+        date: fmtDate(ts),
+        uur: (e.uur as string) || '',
+        naamSlachtoffer: (e.naam_slachtoffer as string) || '',
+        afdelingLocatie: (e.afdeling_locatie as string) || '',
+        verwonding: (e.verwonding as string) || '',
+        ehboHandeling: (e.ehbo_handeling as string) || '',
+        ehboVerlener: (e.ehbo_verlener as string) || '',
+        beschrijving: (e.beschrijving as string) || '',
+        dokterNodig: Boolean(e.dokter_nodig),
+      };
+      return {
+        id: (e._id as Types.ObjectId).toString(),
+        refType: 'incident_ehbo' as const, siteId: siteId ?? '',
+        title: (e.naam_slachtoffer as string) || 'EHBO',
+        subtitle: (e.verwonding as string) || '',
+        date: fmtDate(ts),
+        severity: 'medium' as const,
+        iconName: 'warning',
+        payload,
+      };
+    }),
+  ];
+
   const WEEKDAYS_NL = ['zondag', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag'];
   const MONTHS_NL_SHORT = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
   const dayLogLabel = `${WEEKDAYS_NL[viewedDate.getUTCDay()]} ${viewedDate.getUTCDate()} ${MONTHS_NL_SHORT[viewedDate.getUTCMonth()]}`;
@@ -777,8 +852,8 @@ export async function CarwashPage({
     alerts: isTechnician
       ? [...consumptionAlertItems, ...alertItems, ...approachingItems, ...dagficheAlerts]
       : dayLogItems,
-    onderhoud: onderhoudItems,
-    incident:  incidentItems,
+    onderhoud: isTechnician ? onderhoudItems : dayOnderhoudItems,
+    incident:  isTechnician ? incidentItems  : dayIncidentItems,
   };
 
   // ── Voorraad ─────────────────────────────────────────────────

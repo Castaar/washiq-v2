@@ -367,7 +367,7 @@ export function AlertsPanel({ data, dayLog }: AlertsPanelProps) {
 
       <div className={styles.panel}>
         {/* ── Day switcher (Meldingen tab only) ────────────── */}
-        {dayLog && active === 'alerts' && (
+        {dayLog && (
           <div className={styles.daySwitcher}>
             <Link href={dayLog.prevHref} className={styles.dayNavBtn} aria-label="Vorige dag">
               <IconChevronLeft size={16} />
