@@ -840,20 +840,10 @@ export async function CarwashPage({
           mobile/tablet: plain stack (wrappers become transparent) ── */}
       {!isEmployee && (
         <div className={[styles.desktopGrid, isOwner ? styles.threeCol : styles.twoCol].join(' ')}>
-          {/* ── Left column: wash-program cost breakdown (owner only) ── */}
-          {isOwner && (
-            <div className={styles.gridLeft}>
-              <ProgrammaCard
-                programs={programOptions}
-                totalWagens={programOptions.reduce((s, p) => s + p.count, 0)}
-                view={view}
-                costBreakdown={latestCostRows}
-                prevCostBreakdown={prevCostRows}
-              />
-            </div>
-          )}
-
           {/* ── Center column: hero + illustration/worklist ──────── */}
+          {/* Rendered first in DOM so mobile/tablet (where the grid
+              wrappers are transparent) shows the hero before the side
+              cards; desktop reorders visually via grid-column. ──── */}
           <div className={styles.gridCenter}>
             <div className={styles.hero}>
               <div className={styles.heroGreeting}>{heroGreeting}</div>
@@ -901,6 +891,19 @@ export async function CarwashPage({
             />
             <VoorraadPanel items={voorraad} />
           </div>
+
+          {/* ── Left column: wash-program cost breakdown (owner only) ── */}
+          {isOwner && (
+            <div className={styles.gridLeft}>
+              <ProgrammaCard
+                programs={programOptions}
+                totalWagens={programOptions.reduce((s, p) => s + p.count, 0)}
+                view={view}
+                costBreakdown={latestCostRows}
+                prevCostBreakdown={prevCostRows}
+              />
+            </div>
+          )}
         </div>
       )}
     </div>

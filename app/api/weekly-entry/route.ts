@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
 import { WeeklyEntry, ChemicalStock, MaintenanceTask, PriceConfig } from '@/lib/models';
+import { computeTotalCost } from '@/lib/weeklyEntryCost';
 
 export async function POST(req: NextRequest) {
   await dbConnect();
@@ -14,20 +15,8 @@ export async function POST(req: NextRequest) {
   const tellerstand: number = body.tellerstand ?? 0;
 
   // Calculate total cost using the latest PriceConfig for this site
-  let total_cost = 0;
   const priceConfig = await PriceConfig.findOne({ site_id: body.site_id }).sort({ valid_from: -1 }).lean();
-  if (priceConfig) {
-    total_cost += (body.water_liters ?? 0) * ((priceConfig.water_per_liter as number) ?? 0);
-    total_cost += (body.energy_kw ?? 0) * ((priceConfig.energy_per_kw as number) ?? 0);
-    total_cost += (body.salt_kg ?? 0) * ((priceConfig.salt_per_kg as number) ?? 0);
-    total_cost += (body.flock_kg ?? 0) * ((priceConfig.flock_per_kg as number) ?? 0);
-    total_cost += (body.cloth_units ?? 0) * ((priceConfig.cloth_per_unit as number) ?? 0);
-    const chemPrices = (priceConfig.chemicals as { name: string; price_per_unit: number }[]) ?? [];
-    for (const usage of (body.chemical_usages ?? []) as { name: string; amount: number }[]) {
-      const cp = chemPrices.find((c) => c.name === usage.name);
-      if (cp) total_cost += (usage.amount ?? 0) * (cp.price_per_unit ?? 0);
-    }
-  }
+  const total_cost = computeTotalCost(body, priceConfig as Record<string, unknown> | null);
 
   const entry = await WeeklyEntry.create({
     site_id: body.site_id,
@@ -41,7 +30,7 @@ export async function POST(req: NextRequest) {
     cloth_units: body.cloth_units ?? 0,
     program_counts: body.program_counts ?? [],
     chemical_usages: body.chemical_usages ?? [],
-    total_cost: Math.round(total_cost * 100) / 100,
+    total_cost,
   });
 
   // Update is_overdue for all washes-based maintenance tasks for this site

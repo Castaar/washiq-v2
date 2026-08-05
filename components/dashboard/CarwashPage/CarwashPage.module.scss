@@ -24,11 +24,11 @@
   }
 
   @include respond-to('desktop') {
-    max-width: 1240px;
+    max-width: unset;
   }
 
   @include respond-to('wide') {
-    max-width: 1360px;
+    max-width: unset;
   }
 }
 
@@ -83,6 +83,24 @@
   @include respond-to('desktop') {
     position: sticky;
     top: var(--space-4);
+  }
+}
+
+// Explicit column placement — DOM order (center, right, left) stays
+// correct for mobile/tablet's plain stack, while desktop's grid still
+// visually reads left → center → right regardless of source order.
+.threeCol {
+  @include respond-to('desktop') {
+    .gridLeft   { grid-column: 1; grid-row: 1; }
+    .gridCenter { grid-column: 2; grid-row: 1; }
+    .gridRight  { grid-column: 3; grid-row: 1; }
+  }
+}
+
+.twoCol {
+  @include respond-to('desktop') {
+    .gridCenter { grid-column: 1; grid-row: 1; }
+    .gridRight  { grid-column: 2; grid-row: 1; }
   }
 }
 
