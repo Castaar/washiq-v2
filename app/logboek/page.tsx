@@ -6,7 +6,7 @@ import { dbConnect } from '@/lib/db/mongoose';
 import { Site, AttendanceLog, User } from '@/lib/models';
 import { getSession } from '@/lib/session';
 import type { Types } from 'mongoose';
-import { filterSitesForUser, resolveActiveSite } from '@/lib/getUserSites';
+import { filterSitesForUser, resolveActiveSite, redirectIfSetupNeeded } from '@/lib/getUserSites';
 import styles from './page.module.scss';
 
 export default async function LogboekPage({
@@ -30,6 +30,7 @@ export default async function LogboekPage({
   const userSiteIds = ((userDoc?.site_ids as Types.ObjectId[]) ?? []).map((id) => id.toString());
   const allowedSites = filterSitesForUser(siteDocs as Parameters<typeof filterSitesForUser>[0], userSiteIds, userRole);
   const siteId = resolveActiveSite(allowedSites, site ?? cookieSite);
+  await redirectIfSetupNeeded(siteId ?? '', userRole);
 
   const isOwner = userRole === 'owner' || userRole === 'developer';
 

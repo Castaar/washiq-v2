@@ -5,7 +5,7 @@ import { dbConnect } from '@/lib/db/mongoose';
 import { Site, PriceConfig, ChemicalStock, EnergyBill, User, MaintenanceTask, WeeklyEntry, WashProgram } from '@/lib/models';
 import { getSession } from '@/lib/session';
 import type { Types } from 'mongoose';
-import { filterSitesForUser, resolveActiveSite } from '@/lib/getUserSites';
+import { filterSitesForUser, resolveActiveSite, redirectIfSetupNeeded } from '@/lib/getUserSites';
 import styles from './page.module.scss';
 
 export default async function InstellingenPage({
@@ -30,6 +30,7 @@ export default async function InstellingenPage({
   const userSiteIds = ((userDoc?.site_ids as Types.ObjectId[]) ?? []).map((id) => id.toString());
   const allowedSites = filterSitesForUser(siteDocs as Parameters<typeof filterSitesForUser>[0], userSiteIds, userRole);
   const siteId = resolveActiveSite(allowedSites, site ?? cookieSite) || null;
+  await redirectIfSetupNeeded(siteId ?? '', userRole);
 
   const siteDoc = siteDocs.find((s) => (s._id as Types.ObjectId).toString() === siteId);
   const siteName = (siteDoc?.name as string) ?? '';

@@ -83,8 +83,10 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
 
   // New shift form
   const [newSiteId, setNewSiteId] = useState(siteId);
-  const siteEmployees = employees.filter((e) => !e.siteIds || e.siteIds.includes(newSiteId));
-  const [newUserId, setNewUserId] = useState(employees.find((e) => !e.siteIds || e.siteIds.includes(siteId))?.id ?? employees[0]?.id ?? '');
+  // Any employee can be scheduled at any carwash — not just the sites they're
+  // currently assigned to.
+  const siteEmployees = employees;
+  const [newUserId, setNewUserId] = useState(employees[0]?.id ?? '');
   const [newDate, setNewDate] = useState(initialWeekStart);
   const [newStart, setNewStart] = useState('08:00');
   const [newEnd, setNewEnd] = useState('17:00');
@@ -259,12 +261,7 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
               <select
                 className={styles.select}
                 value={newSiteId}
-                onChange={(e) => {
-                  const sid = e.target.value;
-                  setNewSiteId(sid);
-                  const first = employees.find((em) => !em.siteIds || em.siteIds.includes(sid));
-                  setNewUserId(first?.id ?? '');
-                }}
+                onChange={(e) => setNewSiteId(e.target.value)}
               >
                 {allowedSites.map((s) => (
                   <option key={s.id} value={s.id}>{s.name}</option>

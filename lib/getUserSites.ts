@@ -1,4 +1,7 @@
 import type { Types } from 'mongoose';
+import { redirect } from 'next/navigation';
+import { dbConnect } from '@/lib/db/mongoose';
+import { Site, PriceConfig } from '@/lib/models';
 
 interface RawSiteDoc {
   _id: Types.ObjectId | { toString(): string };
@@ -39,4 +42,21 @@ export function resolveActiveSite(
     return requestedSiteId;
   }
   return allowedSites[0]?.id ?? '';
+}
+
+/**
+ * Sends owners/developers to the setup wizard whenever the active site hasn't
+ * been configured yet — no matter which page they were switching *from* or
+ * navigated to directly. Call this right after resolving `siteId` on every
+ * page that renders site-scoped data.
+ */
+export async function redirectIfSetupNeeded(siteId: string, userRole: string): Promise<void> {
+  if (!siteId || (userRole !== 'owner' && userRole !== 'developer')) return;
+
+  await dbConnect();
+  const siteDoc = await Site.findById(siteId).select('setup_done').lean();
+  if (!siteDoc || siteDoc.setup_done) return;
+
+  const existingPrice = await PriceConfig.findOne({ site_id: siteId }).select('_id').lean();
+  if (!existingPrice) redirect(`/setup?site=${siteId}`);
 }

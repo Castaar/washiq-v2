@@ -6,7 +6,7 @@ import type { StockItem } from '@/components/leveringen/LeveringenPanel/Levering
 import { dbConnect } from '@/lib/db/mongoose';
 import { Site, ChemicalStock, User } from '@/lib/models';
 import { getSession } from '@/lib/session';
-import { filterSitesForUser, resolveActiveSite } from '@/lib/getUserSites';
+import { filterSitesForUser, resolveActiveSite, redirectIfSetupNeeded } from '@/lib/getUserSites';
 import styles from './page.module.scss';
 
 export default async function LeveringenPage({
@@ -30,6 +30,7 @@ export default async function LeveringenPage({
   const userSiteIds = ((userDoc?.site_ids as Types.ObjectId[]) ?? []).map((id) => id.toString());
   const allowedSites = filterSitesForUser(siteDocs as Parameters<typeof filterSitesForUser>[0], userSiteIds, userRole);
   const siteId = resolveActiveSite(allowedSites, site ?? cookieSite) || null;
+  await redirectIfSetupNeeded(siteId ?? '', userRole);
   const siteName = allowedSites.find((s) => s.id === siteId)?.name ?? '';
 
   const stockDocs = siteId

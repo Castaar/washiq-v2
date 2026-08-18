@@ -6,7 +6,7 @@ import { dbConnect } from '@/lib/db/mongoose';
 import { Site, Planning, User } from '@/lib/models';
 import { getSession } from '@/lib/session';
 import type { Types } from 'mongoose';
-import { filterSitesForUser, resolveActiveSite } from '@/lib/getUserSites';
+import { filterSitesForUser, resolveActiveSite, redirectIfSetupNeeded } from '@/lib/getUserSites';
 import styles from './page.module.scss';
 
 export default async function PlanningPage({
@@ -30,6 +30,7 @@ export default async function PlanningPage({
   const userSiteIds = ((userDoc?.site_ids as Types.ObjectId[]) ?? []).map((id) => id.toString());
   const allowedSites = filterSitesForUser(siteDocs as Parameters<typeof filterSitesForUser>[0], userSiteIds, userRole);
   const siteId = resolveActiveSite(allowedSites, site ?? cookieSite);
+  await redirectIfSetupNeeded(siteId ?? '', userRole);
 
   const isOwner = userRole === 'owner' || userRole === 'developer';
 
@@ -49,8 +50,10 @@ export default async function PlanningPage({
       date: { $gte: from, $lte: twoWeeksLater },
       ...(!isOwner && session?.userId ? { user_id: session.userId } : {}),
     }).sort({ date: 1, start_time: 1 }).lean(),
+    // Any employee account can be scheduled at any carwash, not just the
+    // sites they're currently assigned to — so fetch every employee.
     isOwner
-      ? User.find({ site_ids: { $in: allSiteIds }, role: 'employee' }).select('_id name site_ids').lean()
+      ? User.find({ role: 'employee' }).select('_id name site_ids').lean()
       : Promise.resolve([]),
   ]);
 
