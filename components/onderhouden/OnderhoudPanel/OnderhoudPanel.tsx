@@ -59,90 +59,139 @@ export function OnderhoudPanel({
   const approaching = tasks.filter((t) => !t.isOverdue && t.isApproaching);
   const ok = tasks.filter((t) => !t.isOverdue && !t.isApproaching);
 
-  function TaskCard({ task }: { task: OnderhoudTask }) {
-    return (
-      <div className={[styles.taskCard, task.isOverdue ? styles.overdue : task.isApproaching ? styles.approaching : styles.ok].join(' ')}>
-        <div className={styles.taskBody}>
-          <div className={styles.taskTitleRow}>
-            <p className={styles.taskTitle}>{task.description}</p>
-            {task.isOverdue ? (
-              <Badge variant="red" size="sm">Te laat</Badge>
-            ) : task.isApproaching ? (
-              <Badge variant="amber" size="sm">Bijna</Badge>
-            ) : (
-              <Badge variant="teal" size="sm">Op schema</Badge>
-            )}
-          </div>
-          <div className={styles.taskMeta}>
-            {task.triggerType === 'washes' && task.triggerValue > 0 && (
-              <span>Elke {task.triggerValue.toLocaleString('nl-BE')} {TRIGGER_LABEL[task.triggerType]}</span>
-            )}
-            {task.triggerType === 'months' && task.triggerValue > 0 && (
-              <span>Elke {task.triggerValue} {TRIGGER_LABEL[task.triggerType]}</span>
-            )}
-            {task.lastDoneAt && <span>Laatste keer: {task.lastDoneAt}</span>}
-            {task.washesRemaining != null && task.washesRemaining > 0 && (
-              <span className={styles.remaining}>Nog {task.washesRemaining.toLocaleString('nl-BE')} wassen</span>
-            )}
-            {task.isOverdue && task.washesRemaining != null && task.washesRemaining <= 0 && (
-              <span className={styles.overdueLabel}>Verlopen</span>
-            )}
-          </div>
-          <input
-            className={styles.noteInput}
-            type="text"
-            placeholder="Opmerking (optioneel)"
-            value={noteDrafts[task.id] ?? ''}
-            onChange={(e) => setNoteDrafts((prev) => ({ ...prev, [task.id]: e.target.value }))}
-          />
-        </div>
-        {confirmId === task.id ? (
-          <div className={styles.confirmRow}>
-            <span className={styles.confirmText}>Bevestigen?</span>
-            <button type="button" className={styles.confirmYes} onClick={() => handleComplete(task)} disabled={completing === task.id}>
-              {completing === task.id ? '...' : 'Ja'}
-            </button>
-            <button type="button" className={styles.confirmNo} onClick={() => setConfirmId(null)}>Nee</button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            className={styles.completeBtn}
-            onClick={() => setConfirmId(task.id)}
-            disabled={completing === task.id}
-          >
-            Uitgevoerd
-          </button>
-        )}
-      </div>
-    );
-  }
-
   return (
     <div className={styles.wrap}>
       {overdue.length > 0 && (
         <div className={styles.section}>
           <h2 className={styles.sectionTitle}>Verlopen</h2>
-          {overdue.map((t) => <TaskCard key={t.id} task={t} />)}
+          {overdue.map((t) => (
+            <TaskCard
+              key={t.id}
+              task={t}
+              note={noteDrafts[t.id] ?? ''}
+              onNoteChange={(v) => setNoteDrafts((prev) => ({ ...prev, [t.id]: v }))}
+              confirming={confirmId === t.id}
+              onConfirmToggle={(v) => setConfirmId(v ? t.id : null)}
+              onComplete={() => handleComplete(t)}
+              completing={completing === t.id}
+            />
+          ))}
         </div>
       )}
 
       {approaching.length > 0 && (
         <div className={styles.section}>
           <h2 className={styles.sectionTitle}>Binnenkort</h2>
-          {approaching.map((t) => <TaskCard key={t.id} task={t} />)}
+          {approaching.map((t) => (
+            <TaskCard
+              key={t.id}
+              task={t}
+              note={noteDrafts[t.id] ?? ''}
+              onNoteChange={(v) => setNoteDrafts((prev) => ({ ...prev, [t.id]: v }))}
+              confirming={confirmId === t.id}
+              onConfirmToggle={(v) => setConfirmId(v ? t.id : null)}
+              onComplete={() => handleComplete(t)}
+              completing={completing === t.id}
+            />
+          ))}
         </div>
       )}
 
       {ok.length > 0 && (
         <div className={styles.section}>
           <h2 className={styles.sectionTitle}>In orde</h2>
-          {ok.map((t) => <TaskCard key={t.id} task={t} />)}
+          {ok.map((t) => (
+            <TaskCard
+              key={t.id}
+              task={t}
+              note={noteDrafts[t.id] ?? ''}
+              onNoteChange={(v) => setNoteDrafts((prev) => ({ ...prev, [t.id]: v }))}
+              confirming={confirmId === t.id}
+              onConfirmToggle={(v) => setConfirmId(v ? t.id : null)}
+              onComplete={() => handleComplete(t)}
+              completing={completing === t.id}
+            />
+          ))}
         </div>
       )}
 
       {tasks.length === 0 && (
         <p className={styles.empty}>Geen onderhoudstaken gevonden. Voeg taken toe in instellingen.</p>
+      )}
+    </div>
+  );
+}
+
+function TaskCard({
+  task,
+  note,
+  onNoteChange,
+  confirming,
+  onConfirmToggle,
+  onComplete,
+  completing,
+}: {
+  task: OnderhoudTask;
+  note: string;
+  onNoteChange: (value: string) => void;
+  confirming: boolean;
+  onConfirmToggle: (value: boolean) => void;
+  onComplete: () => void;
+  completing: boolean;
+}) {
+  return (
+    <div className={[styles.taskCard, task.isOverdue ? styles.overdue : task.isApproaching ? styles.approaching : styles.ok].join(' ')}>
+      <div className={styles.taskBody}>
+        <div className={styles.taskTitleRow}>
+          <p className={styles.taskTitle}>{task.description}</p>
+          {task.isOverdue ? (
+            <Badge variant="red" size="sm">Te laat</Badge>
+          ) : task.isApproaching ? (
+            <Badge variant="amber" size="sm">Bijna</Badge>
+          ) : (
+            <Badge variant="teal" size="sm">Op schema</Badge>
+          )}
+        </div>
+        <div className={styles.taskMeta}>
+          {task.triggerType === 'washes' && task.triggerValue > 0 && (
+            <span>Elke {task.triggerValue.toLocaleString('nl-BE')} {TRIGGER_LABEL[task.triggerType]}</span>
+          )}
+          {task.triggerType === 'months' && task.triggerValue > 0 && (
+            <span>Elke {task.triggerValue} {TRIGGER_LABEL[task.triggerType]}</span>
+          )}
+          {task.lastDoneAt && <span>Laatste keer: {task.lastDoneAt}</span>}
+          {task.washesRemaining != null && task.washesRemaining > 0 && (
+            <span className={styles.remaining}>Nog {task.washesRemaining.toLocaleString('nl-BE')} wassen</span>
+          )}
+          {task.isOverdue && task.washesRemaining != null && task.washesRemaining <= 0 && (
+            <span className={styles.overdueLabel}>Verlopen</span>
+          )}
+        </div>
+        <input
+          className={styles.noteInput}
+          type="text"
+          placeholder="Opmerking (optioneel)"
+          value={note}
+          onChange={(e) => onNoteChange(e.target.value)}
+        />
+      </div>
+      {confirming ? (
+        <div className={styles.confirmRow}>
+          <span className={styles.confirmText}>Bevestigen?</span>
+          <button type="button" className={styles.confirmYes} onClick={onComplete} disabled={completing}>
+            {completing ? '...' : 'Ja'}
+          </button>
+          <button type="button" className={styles.confirmNo} onClick={() => onConfirmToggle(false)}>Nee</button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          className={styles.completeBtn}
+          onClick={() => onConfirmToggle(true)}
+          disabled={completing}
+        >
+          Uitgevoerd
+        </button>
       )}
     </div>
   );

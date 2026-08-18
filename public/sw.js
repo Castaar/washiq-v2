@@ -1,13 +1,17 @@
-const CACHE = 'dodane-v2';
+const CACHE = 'dodane-v3';
 
 const PRECACHE = [
   '/',
-  '/background.png',
 ];
 
 self.addEventListener('install', (event) => {
+  // Precache each resource independently — one missing/failing asset must
+  // never fail the whole install (cache.addAll is all-or-nothing and can
+  // silently strand every client on the old cached version forever).
   event.waitUntil(
-    caches.open(CACHE).then((cache) => cache.addAll(PRECACHE)),
+    caches.open(CACHE).then((cache) =>
+      Promise.all(PRECACHE.map((url) => cache.add(url).catch(() => {}))),
+    ),
   );
   self.skipWaiting();
 });
