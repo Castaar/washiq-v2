@@ -33,6 +33,7 @@ export interface IUser extends Document {
   birthday: string;
   is_active: boolean;
   created_at: Date;
+  pending_deletion_at: Date | null;
 }
 const UserSchema = new Schema<IUser>({
   name: String,
@@ -45,6 +46,10 @@ const UserSchema = new Schema<IUser>({
   birthday: { type: String, default: '' }, // MM-DD, no year needed
   is_active: { type: Boolean, default: true },
   created_at: { type: Date, default: Date.now },
+  // Set when this user's last site access is revoked (site_ids becomes
+  // empty) — 30 days later a cron job permanently deletes the account.
+  // Cleared if the user is re-added to a site before that.
+  pending_deletion_at: { type: Date, default: null },
 });
 export const User = models.User || model<IUser>('User', UserSchema);
 

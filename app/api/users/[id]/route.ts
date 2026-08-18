@@ -67,6 +67,25 @@ export async function PATCH(
   if (body.addSiteId)    arrayOps['$addToSet'] = { site_ids: new mongoose.Types.ObjectId(body.addSiteId) };
   if (body.removeSiteId) arrayOps['$pull']     = { site_ids: new mongoose.Types.ObjectId(body.removeSiteId) };
 
+  // Losing access to a carwash (removeSiteId) can leave the account with no
+  // site at all — schedule it for permanent deletion 30 days out. Re-adding
+  // a site (here or later) clears the schedule again.
+  if (body.removeSiteId || body.addSiteId || body.siteIds) {
+    const current = await User.findById(id).select('site_ids').lean();
+    const currentIds = ((current?.site_ids as mongoose.Types.ObjectId[]) ?? []).map((s) => s.toString());
+    let resultingIds = body.siteIds ?? currentIds;
+    if (body.removeSiteId) resultingIds = resultingIds.filter((s) => s !== body.removeSiteId);
+    if (body.addSiteId && !resultingIds.includes(body.addSiteId)) resultingIds = [...resultingIds, body.addSiteId];
+
+    if (resultingIds.length === 0) {
+      const in30Days = new Date();
+      in30Days.setDate(in30Days.getDate() + 30);
+      update.pending_deletion_at = in30Days;
+    } else {
+      update.pending_deletion_at = null;
+    }
+  }
+
   const setOp = Object.keys(update).length ? { $set: update } : {};
   await User.findByIdAndUpdate(id, { ...setOp, ...arrayOps });
 

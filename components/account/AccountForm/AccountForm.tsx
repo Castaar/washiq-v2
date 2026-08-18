@@ -9,6 +9,7 @@ import { IconEye, IconEyeOff } from '@/components/ui/icons';
 interface UserItem {
   id: string;
   name: string;
+  email: string;
   role: string;
 }
 
@@ -267,7 +268,7 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
       });
       const data = await res.json() as { id?: string; error?: string };
       if (res.ok && data.id) {
-        setUsers((prev) => [...prev, { id: data.id!, name: newName.trim(), role: newRole }]);
+        setUsers((prev) => [...prev, { id: data.id!, name: newName.trim(), email: newEmail.trim(), role: newRole }]);
         setNewName('');
         setNewEmail('');
         setNewPassword('');
@@ -632,7 +633,10 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
               : 'Medewerker';
             return (
               <div key={u.id} className={styles.userRow}>
-                <span className={styles.userName}>{u.name}</span>
+                <span className={styles.userNameGroup}>
+                  <span className={styles.userName}>{u.name}</span>
+                  {u.email && <span className={styles.userEmail}>{u.email}</span>}
+                </span>
                 {canChangeRole ? (
                   <select
                     className={`${styles.roleSelect} ${styles[`role_${u.role}`]}`}

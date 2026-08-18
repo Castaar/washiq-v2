@@ -178,10 +178,21 @@
   gap: var(--space-4);
 }
 
+.userNameGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 120px;
+}
+
 .userName {
   font-size: 0.875rem;
   color: var(--color-text-primary);
-  min-width: 120px;
+}
+
+.userEmail {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
 }
 
 .roleSelect {
