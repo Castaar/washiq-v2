@@ -47,6 +47,21 @@ select {
   outline: none;
 }
 
+// Native <select> popups are a separate OS-rendered layer that doesn't
+// follow `background: none` — on Windows Chrome it falls back to a white
+// popup, and the inherited light text becomes white-on-white. Give the
+// element (and its options, which Chromium reads independently) an
+// explicit dark background/color so the popup stays legible everywhere.
+select {
+  color: var(--color-text-primary);
+  background-color: var(--color-surface);
+
+  option {
+    color: var(--color-text-primary);
+    background-color: var(--color-surface);
+  }
+}
+
 img,
 svg {
   display: block;
