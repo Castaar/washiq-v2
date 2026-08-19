@@ -37,22 +37,27 @@ interface PlanningPanelProps {
 const DAY_NAMES = ['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za', 'Zo'];
 const DAY_NAMES_LONG = ['Maandag', 'Dinsdag', 'Woensdag', 'Donderdag', 'Vrijdag', 'Zaterdag', 'Zondag'];
 
+// All date-only strings are treated as UTC calendar dates throughout —
+// parsing/formatting via local-time Date methods (getDay/setDate/
+// toISOString round-trips) silently shifts the date by one day for any
+// browser timezone ahead of UTC (e.g. Belgium in CEST), so every helper
+// here uses the UTC variants instead.
 function addDays(dateStr: string, n: number): string {
-  const d = new Date(dateStr + 'T00:00:00');
-  d.setDate(d.getDate() + n);
+  const d = new Date(`${dateStr}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
   return d.toISOString().slice(0, 10);
 }
 
 function getMondayOf(dateStr: string): string {
-  const d = new Date(dateStr + 'T00:00:00');
-  const day = d.getDay() || 7;
-  d.setDate(d.getDate() - (day - 1));
+  const d = new Date(`${dateStr}T00:00:00Z`);
+  const day = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() - (day - 1));
   return d.toISOString().slice(0, 10);
 }
 
 function fmtDayLabel(dateStr: string): string {
-  const d = new Date(dateStr + 'T00:00:00');
-  return d.toLocaleDateString('nl-BE', { day: 'numeric', month: 'short' });
+  const d = new Date(`${dateStr}T00:00:00Z`);
+  return d.toLocaleDateString('nl-BE', { day: 'numeric', month: 'short', timeZone: 'UTC' });
 }
 
 function shiftHours(startTime: string, endTime: string): number {
@@ -62,17 +67,17 @@ function shiftHours(startTime: string, endTime: string): number {
 }
 
 function isWeekend(dateStr: string): boolean {
-  const d = new Date(dateStr + 'T00:00:00').getDay();
+  const d = new Date(`${dateStr}T00:00:00Z`).getUTCDay();
   return d === 0 || d === 6;
 }
 
 // Count weekend days worked in the last N weeks for a given employee across all shifts
 function weekendsInWindow(shifts: Shift[], userId: string, windowWeeks: number, refDate: string): number {
-  const ref = new Date(refDate + 'T00:00:00');
+  const ref = new Date(`${refDate}T00:00:00Z`);
   const from = new Date(ref);
-  from.setDate(from.getDate() - windowWeeks * 7);
+  from.setUTCDate(from.getUTCDate() - windowWeeks * 7);
   const days = new Set(
-    shifts.filter((s) => s.userId === userId && isWeekend(s.date) && new Date(s.date + 'T00:00:00') >= from).map((s) => s.date),
+    shifts.filter((s) => s.userId === userId && isWeekend(s.date) && new Date(`${s.date}T00:00:00Z`) >= from).map((s) => s.date),
   );
   return days.size;
 }
@@ -165,7 +170,7 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
                     className={[styles.myShift, isPast ? styles.past : '', isToday ? styles.isToday : ''].join(' ')}
                   >
                     <div className={styles.myShiftDate}>
-                      <span className={styles.myShiftDay}>{DAY_NAMES_LONG[new Date(s.date + 'T00:00:00').getDay() - 1 >= 0 ? new Date(s.date + 'T00:00:00').getDay() - 1 : 6]}</span>
+                      <span className={styles.myShiftDay}>{DAY_NAMES_LONG[(new Date(`${s.date}T00:00:00Z`).getUTCDay() + 6) % 7]}</span>
                       <span className={styles.myShiftDateStr}>{fmtDayLabel(s.date)}</span>
                       {isToday && <span className={styles.todayBadge}>Vandaag</span>}
                     </div>
