@@ -42,11 +42,11 @@ export default async function PlanningPage({
   const from = new Date(today);
   from.setDate(from.getDate() - 7);
 
-  const allSiteIds = allowedSites.map((s) => s.id);
-
   const [shiftDocs, employeeDocs] = await Promise.all([
+    // Scoped to the currently active carwash only — matches the site
+    // selector in the top bar, same as every other page.
     Planning.find({
-      site_id: { $in: isOwner ? allSiteIds : [siteId] },
+      site_id: siteId,
       date: { $gte: from, $lte: twoWeeksLater },
       ...(!isOwner && session?.userId ? { user_id: session.userId } : {}),
     }).sort({ date: 1, start_time: 1 }).lean(),

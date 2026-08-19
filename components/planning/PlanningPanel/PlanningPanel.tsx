@@ -127,7 +127,12 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
     });
     if (res.ok) {
       const shift = (await res.json()) as Shift;
-      setShifts((prev) => [...prev, shift]);
+      // Only show it in this week view if it belongs to the carwash
+      // currently being viewed — the form can add a shift for a different
+      // site without switching the page away from it.
+      if (newSiteId === siteId) {
+        setShifts((prev) => [...prev, shift]);
+      }
       setNewNote('');
     }
     setSaving(false);
