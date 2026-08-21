@@ -6,6 +6,7 @@ import { NavBar } from '@/components/layout/NavBar/NavBar';
 import { CarwashPage } from '@/components/dashboard/CarwashPage/CarwashPage';
 import { AnnouncementBanner } from '@/components/dashboard/AnnouncementBanner/AnnouncementBanner';
 import { getSession } from '@/lib/session';
+import { redirectWithSiteParam } from '@/lib/getUserSites';
 import styles from './page.module.scss';
 
 export default async function DashboardPage({
@@ -13,7 +14,8 @@ export default async function DashboardPage({
 }: {
   searchParams: Promise<{ site?: string; period?: string; view?: string; usage?: string; date?: string }>;
 }) {
-  const { site, period: periodParam, view: viewParam, usage: usageParam, date: dateParam } = await searchParams;
+  const rawParams = await searchParams;
+  const { site, period: periodParam, view: viewParam, usage: usageParam, date: dateParam } = rawParams;
   const period = (periodParam === 'week' ? 'week' : 'month') as 'week' | 'month';
   const view = (viewParam === 'liter' ? 'liter' : 'prijs') as 'prijs' | 'liter';
   const usage = (usageParam === 'totaal' ? 'totaal' : 'wagen') as 'totaal' | 'wagen';
@@ -45,6 +47,8 @@ export default async function DashboardPage({
   const activeSiteId = site && sites.find((s) => s.id === site)
     ? site
     : (sites[0]?.id ?? '');
+
+  redirectWithSiteParam('/', rawParams, activeSiteId);
 
   // Redirect owners/developers to setup wizard if active site has not been configured.
   // Also check that no PriceConfig exists yet (fallback for sites created before this feature).

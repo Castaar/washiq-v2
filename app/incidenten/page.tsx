@@ -6,7 +6,7 @@ import type { IncidentListItem } from '@/components/incidenten/IncidentenPanel/I
 import { dbConnect } from '@/lib/db/mongoose';
 import { Site, IncidentSchade, IncidentEhbo, Defect, WeeklyEntry, User } from '@/lib/models';
 import { getSession } from '@/lib/session';
-import { filterSitesForUser, resolveActiveSite, redirectIfSetupNeeded } from '@/lib/getUserSites';
+import { filterSitesForUser, resolveActiveSite, redirectIfSetupNeeded, redirectWithSiteParam } from '@/lib/getUserSites';
 import type { IncidentSchadePayload, IncidentEhboPayload, DefectPayload } from '@/lib/types/dashboard';
 import styles from './page.module.scss';
 
@@ -37,6 +37,7 @@ export default async function IncidentenPage({
   const allowedSites = filterSitesForUser(siteDocs as Parameters<typeof filterSitesForUser>[0], userSiteIds, userRole);
   const siteId = resolveActiveSite(allowedSites, site ?? cookieSite);
   await redirectIfSetupNeeded(siteId ?? '', userRole);
+  redirectWithSiteParam('/incidenten', { site }, siteId ?? '');
 
   const [schades, ehbos, defects, totalSchade, allSchades, latestEntry] = await Promise.all([
     IncidentSchade.find({ site_id: siteId }).sort({ created_at: -1 }).limit(15).lean(),

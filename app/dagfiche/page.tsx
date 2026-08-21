@@ -7,7 +7,7 @@ import { dbConnect } from '@/lib/db/mongoose';
 import { Site, WeeklyEntry, MaintenanceTask, MaintenanceLog, User, IncidentSchade, IncidentEhbo, Defect, StockDelivery, ChemicalStock, AttendanceLog } from '@/lib/models';
 import { getSession } from '@/lib/session';
 import { computeIsOverdue } from '@/lib/maintenance';
-import { filterSitesForUser, resolveActiveSite, redirectIfSetupNeeded } from '@/lib/getUserSites';
+import { filterSitesForUser, resolveActiveSite, redirectIfSetupNeeded, redirectWithSiteParam } from '@/lib/getUserSites';
 import styles from './page.module.scss';
 
 function fmtTime(d: Date) {
@@ -37,6 +37,7 @@ export default async function DagfichePage({
   const allowedSites = filterSitesForUser(siteDocs as Parameters<typeof filterSitesForUser>[0], userSiteIds, userRole);
   const siteId = resolveActiveSite(allowedSites, site ?? cookieSite);
   await redirectIfSetupNeeded(siteId ?? '', userRole);
+  redirectWithSiteParam('/dagfiche', { site }, siteId ?? '');
 
   const siteDoc = allowedSites.find((s) => s.id === siteId);
   const siteName = siteDoc?.name ?? 'Carwash';

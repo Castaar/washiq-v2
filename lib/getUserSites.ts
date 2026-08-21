@@ -60,3 +60,25 @@ export async function redirectIfSetupNeeded(siteId: string, userRole: string): P
   const existingPrice = await PriceConfig.findOne({ site_id: siteId }).select('_id').lean();
   if (!existingPrice) redirect(`/setup?site=${siteId}`);
 }
+
+/**
+ * Makes sure `?site=` is always present in the URL — if the page was loaded
+ * without it (first load, a bookmark, a shared link), redirect once to the
+ * same URL with the resolved site appended so the address bar always
+ * reflects which carwash is active. Any other query params are preserved.
+ * No-op if `site` is already set or there's no resolvable site.
+ */
+export function redirectWithSiteParam(
+  pathname: string,
+  rawParams: Record<string, string | undefined>,
+  siteId: string,
+): void {
+  if (rawParams.site || !siteId) return;
+
+  const qs = new URLSearchParams();
+  for (const [key, value] of Object.entries(rawParams)) {
+    if (value !== undefined) qs.set(key, value);
+  }
+  qs.set('site', siteId);
+  redirect(`${pathname}?${qs.toString()}`);
+}
