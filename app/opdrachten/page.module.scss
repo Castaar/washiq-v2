@@ -29,3 +29,13 @@
   //   max-width: 960px;
   // }
 }
+
+.header {
+  margin-bottom: var(--space-4);
+}
+
+.title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}

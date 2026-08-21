@@ -1,4 +1,5 @@
 import type { Types } from 'mongoose';
+import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { dbConnect } from '@/lib/db/mongoose';
 import { Site, User, Announcement, PriceConfig, AttendanceLog } from '@/lib/models';
@@ -21,6 +22,8 @@ export default async function DashboardPage({
   const usage = (usageParam === 'totaal' ? 'totaal' : 'wagen') as 'totaal' | 'wagen';
   const refDate = dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam) ? dateParam : new Date().toISOString().slice(0, 10);
   const session = await getSession();
+  const cookieStore = await cookies();
+  const cookieSite = cookieStore.get('dodane_active_site')?.value;
 
   await dbConnect();
 
@@ -44,8 +47,9 @@ export default async function DashboardPage({
       ? allSites
       : allSites.filter((s) => userSiteIds.includes(s.id));
 
-  const activeSiteId = site && sites.find((s) => s.id === site)
-    ? site
+  const requestedSiteId = site ?? cookieSite;
+  const activeSiteId = requestedSiteId && sites.find((s) => s.id === requestedSiteId)
+    ? requestedSiteId
     : (sites[0]?.id ?? '');
 
   redirectWithSiteParam('/', rawParams, activeSiteId);

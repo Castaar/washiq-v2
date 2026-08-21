@@ -76,7 +76,6 @@ export function PhotoUpload({ photos, onChange, maxPhotos = 5 }: PhotoUploadProp
             type="file"
             accept="image/*"
             multiple
-            capture="environment"
             className={styles.hidden}
             onChange={(e) => handleFiles(e.target.files)}
           />
