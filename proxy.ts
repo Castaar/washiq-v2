@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionFromRequest } from '@/lib/session';
 
-// Public paths that don't require auth
-const PUBLIC_PATHS = ['/login', '/api/auth/login', '/docs/washiq-handleiding.pdf', '/robots.txt'];
+// Public paths that don't require a login session — /api/cron/* protects
+// itself via its own CRON_SECRET check (Vercel Cron calls it with no
+// session cookie at all, so it must bypass the session gate here).
+const PUBLIC_PATHS = ['/login', '/api/auth/login', '/api/cron/', '/docs/washiq-handleiding.pdf', '/robots.txt'];
 
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;

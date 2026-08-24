@@ -10,8 +10,10 @@ import { computeIsOverdue } from '@/lib/maintenance';
 import { filterSitesForUser, resolveActiveSite, redirectIfSetupNeeded, redirectWithSiteParam } from '@/lib/getUserSites';
 import styles from './page.module.scss';
 
+// Runs server-side (Vercel = UTC) — pin the timezone so times aren't off by
+// 1-2 hours vs. Belgian local time.
 function fmtTime(d: Date) {
-  return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+  return d.toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Brussels' });
 }
 
 export default async function DagfichePage({

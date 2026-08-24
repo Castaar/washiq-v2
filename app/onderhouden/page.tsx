@@ -73,7 +73,7 @@ export default async function OnderhoudPage({
           <div className={styles.header}>
             <h1 className={styles.title}>Onderhoud — {siteName}</h1>
           </div>
-          <OnderhoudPanel tasks={tasks} />
+          <OnderhoudPanel tasks={tasks} siteId={siteId ?? ''} />
         </div>
       </main>
     </div>

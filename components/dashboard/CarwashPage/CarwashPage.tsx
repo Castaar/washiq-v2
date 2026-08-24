@@ -306,12 +306,16 @@ export async function CarwashPage({
   });
 
   // ── Alerts panel ─────────────────────────────────────────────
+  // This runs server-side (Vercel = UTC), so plain getHours()/getDate()
+  // would show UTC time instead of Belgian local time — always pin the
+  // timezone explicitly.
   function fmtDate(d: Date) {
-    return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}`;
+    const parts = d.toLocaleDateString('nl-BE', { day: '2-digit', month: '2-digit', timeZone: 'Europe/Brussels' }).split('/');
+    return `${parts[0]}/${parts[1]}`;
   }
 
   function fmtTime(d: Date) {
-    return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+    return d.toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Brussels' });
   }
 
   function fmtDuration(ms: number) {
@@ -869,7 +873,9 @@ export async function CarwashPage({
   const isEmployee = userRole === 'employee';
 
   // ── Greeting hero ─────────────────────────────────────────────
-  const hour = new Date().getHours();
+  // Runs server-side (Vercel = UTC) — pin the timezone, else "Goedemorgen"
+  // shows during the Belgian afternoon.
+  const hour = Number(new Date().toLocaleString('nl-BE', { hour: '2-digit', hour12: false, timeZone: 'Europe/Brussels' }).split(':')[0]);
   const daypart = hour < 12 ? 'Goedemorgen' : hour < 18 ? 'Goedemiddag' : 'Goedenavond';
   const firstName = userName.trim().split(' ')[0] || '';
   const heroGreeting = firstName ? `${daypart}, ${firstName}` : daypart;

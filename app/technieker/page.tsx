@@ -5,11 +5,14 @@ import type { TechniekerItem } from '@/components/technieker/TechniekerPanel/Tec
 import { dbConnect } from '@/lib/db/mongoose';
 import { Site, User, Defect, IncidentSchade, MaintenanceTask, WeeklyEntry } from '@/lib/models';
 import { getSession } from '@/lib/session';
-import { computeIsOverdue } from '@/lib/maintenance';
+import { computeIsOverdue, computeIsApproaching, washesRemaining } from '@/lib/maintenance';
 import styles from './page.module.scss';
 
+// Runs server-side (Vercel = UTC) — pin the timezone so dates near midnight
+// don't roll over a day early/late vs. Belgian local time.
 function fmtDate(d: Date) {
-  return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}`;
+  const parts = d.toLocaleDateString('nl-BE', { day: '2-digit', month: '2-digit', timeZone: 'Europe/Brussels' }).split('/');
+  return `${parts[0]}/${parts[1]}`;
 }
 
 export default async function TechniekerPage() {
@@ -89,6 +92,27 @@ export default async function TechniekerPage() {
         severity: 'medium' as const,
         date: '',
       })),
+    // Not yet due, but close enough that the technician should plan for it
+    // during the next site visit rather than only seeing overdue work.
+    ...tasks
+      .filter((t) => {
+        const tellerstand = tellerstandBySite[(t.site_id as Types.ObjectId).toString()] || 0;
+        return !computeIsOverdue(t, now, tellerstand || undefined) && computeIsApproaching(t, tellerstand);
+      })
+      .map((t) => {
+        const tellerstand = tellerstandBySite[(t.site_id as Types.ObjectId).toString()] || 0;
+        const remaining = washesRemaining(t, tellerstand);
+        return {
+          id: `approaching-${(t._id as Types.ObjectId).toString()}`,
+          kind: 'maintenance' as const,
+          siteId: (t.site_id as Types.ObjectId).toString(),
+          siteName: siteNameById[(t.site_id as Types.ObjectId).toString()] ?? '',
+          title: t.description as string,
+          subtitle: remaining !== null ? `Binnenkort — nog ${remaining.toLocaleString('nl-BE')} wassen` : 'Binnenkort',
+          severity: 'low' as const,
+          date: '',
+        };
+      }),
   ].sort((a, b) => a.siteName.localeCompare(b.siteName));
 
   return (

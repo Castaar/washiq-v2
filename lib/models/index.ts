@@ -526,3 +526,19 @@ const AnnouncementSchema = new Schema<IAnnouncement>({
   created_at: { type: Date, default: Date.now },
 });
 export const Announcement = models.Announcement || model<IAnnouncement>('Announcement', AnnouncementSchema);
+
+// ─── ClosingReminderSent ────────────────────────────────────────
+// Dedupe marker so the closing-checklist cron only pushes once per
+// site per day, even though it runs every few minutes.
+export interface IClosingReminderSent extends Document {
+  site_id: Types.ObjectId;
+  date: string; // YYYY-MM-DD (Europe/Brussels)
+  sent_at: Date;
+}
+const ClosingReminderSentSchema = new Schema<IClosingReminderSent>({
+  site_id: { type: Schema.Types.ObjectId, ref: 'Site', required: true },
+  date: { type: String, required: true },
+  sent_at: { type: Date, default: Date.now },
+});
+ClosingReminderSentSchema.index({ site_id: 1, date: 1 }, { unique: true });
+export const ClosingReminderSent = models.ClosingReminderSent || model<IClosingReminderSent>('ClosingReminderSent', ClosingReminderSentSchema);

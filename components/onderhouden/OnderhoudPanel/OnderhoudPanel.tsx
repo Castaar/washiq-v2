@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { Badge } from '@/components/ui/Badge/Badge';
 import styles from './OnderhoudPanel.module.scss';
 
@@ -25,8 +26,10 @@ const TRIGGER_LABEL: Record<string, string> = {
 
 export function OnderhoudPanel({
   tasks: initial,
+  siteId = '',
 }: {
   tasks: OnderhoudTask[];
+  siteId?: string;
 }) {
   const [tasks, setTasks] = useState(initial);
   const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
@@ -74,6 +77,7 @@ export function OnderhoudPanel({
               onConfirmToggle={(v) => setConfirmId(v ? t.id : null)}
               onComplete={() => handleComplete(t)}
               completing={completing === t.id}
+              siteId={siteId}
             />
           ))}
         </div>
@@ -92,6 +96,7 @@ export function OnderhoudPanel({
               onConfirmToggle={(v) => setConfirmId(v ? t.id : null)}
               onComplete={() => handleComplete(t)}
               completing={completing === t.id}
+              siteId={siteId}
             />
           ))}
         </div>
@@ -110,6 +115,7 @@ export function OnderhoudPanel({
               onConfirmToggle={(v) => setConfirmId(v ? t.id : null)}
               onComplete={() => handleComplete(t)}
               completing={completing === t.id}
+              siteId={siteId}
             />
           ))}
         </div>
@@ -130,6 +136,7 @@ function TaskCard({
   onConfirmToggle,
   onComplete,
   completing,
+  siteId,
 }: {
   task: OnderhoudTask;
   note: string;
@@ -138,6 +145,7 @@ function TaskCard({
   onConfirmToggle: (value: boolean) => void;
   onComplete: () => void;
   completing: boolean;
+  siteId: string;
 }) {
   return (
     <div className={[styles.taskCard, task.isOverdue ? styles.overdue : task.isApproaching ? styles.approaching : styles.ok].join(' ')}>
@@ -152,6 +160,9 @@ function TaskCard({
             <Badge variant="teal" size="sm">Op schema</Badge>
           )}
         </div>
+        <Link href={`/onderhouden/${task.id}?site=${siteId}`} className={styles.historyLink}>
+          Historiek bekijken →
+        </Link>
         <div className={styles.taskMeta}>
           {task.triggerType === 'washes' && task.triggerValue > 0 && (
             <span>Elke {task.triggerValue.toLocaleString('nl-BE')} {TRIGGER_LABEL[task.triggerType]}</span>

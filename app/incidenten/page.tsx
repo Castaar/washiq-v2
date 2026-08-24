@@ -10,8 +10,11 @@ import { filterSitesForUser, resolveActiveSite, redirectIfSetupNeeded, redirectW
 import type { IncidentSchadePayload, IncidentEhboPayload, DefectPayload } from '@/lib/types/dashboard';
 import styles from './page.module.scss';
 
+// Runs server-side (Vercel = UTC) — pin the timezone so dates near midnight
+// don't roll over a day early/late vs. Belgian local time.
 function fmtDate(d: Date) {
-  return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}`;
+  const parts = d.toLocaleDateString('nl-BE', { day: '2-digit', month: '2-digit', timeZone: 'Europe/Brussels' }).split('/');
+  return `${parts[0]}/${parts[1]}`;
 }
 
 export default async function IncidentenPage({
