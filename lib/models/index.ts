@@ -51,6 +51,8 @@ const UserSchema = new Schema<IUser>({
   // Cleared if the user is re-added to a site before that.
   pending_deletion_at: { type: Date, default: null },
 });
+UserSchema.index({ email: 1 }, { unique: true });
+UserSchema.index({ site_ids: 1 });
 export const User = models.User || model<IUser>('User', UserSchema);
 
 // ─── PriceConfig ──────────────────────────────────────────────
@@ -74,6 +76,7 @@ const PriceConfigSchema = new Schema<IPriceConfig>({
   chemicals: [{ name: String, price_per_unit: Number }],
   valid_from: Date,
 });
+PriceConfigSchema.index({ site_id: 1, valid_from: -1 });
 export const PriceConfig = models.PriceConfig || model<IPriceConfig>('PriceConfig', PriceConfigSchema);
 
 // ─── WashProgram ──────────────────────────────────────────────
@@ -95,6 +98,7 @@ const WashProgramSchema = new Schema<IWashProgram>({
   includes_cloth: Boolean,
   cloth_cost: Number,
 });
+WashProgramSchema.index({ site_id: 1 });
 export const WashProgram = models.WashProgram || model<IWashProgram>('WashProgram', WashProgramSchema);
 
 // ─── WeeklyEntry ──────────────────────────────────────────────
@@ -136,6 +140,7 @@ const WeeklyEntrySchema = new Schema<IWeeklyEntry>({
 if (process.env.NODE_ENV === 'development' && models.WeeklyEntry) {
   mongoose.deleteModel('WeeklyEntry');
 }
+WeeklyEntrySchema.index({ site_id: 1, week_start: -1 });
 export const WeeklyEntry = models.WeeklyEntry || model<IWeeklyEntry>('WeeklyEntry', WeeklyEntrySchema);
 
 // ─── ChemicalStock ────────────────────────────────────────────
@@ -155,6 +160,7 @@ const ChemicalStockSchema = new Schema<IChemicalStock>({
   unit: String,
   last_updated: { type: Date, default: Date.now },
 });
+ChemicalStockSchema.index({ site_id: 1 });
 export const ChemicalStock = models.ChemicalStock || model<IChemicalStock>('ChemicalStock', ChemicalStockSchema);
 
 // ─── StockDelivery ────────────────────────────────────────────
@@ -174,6 +180,7 @@ const StockDeliverySchema = new Schema<IStockDelivery>({
   delivered_at: Date,
   logged_by: { type: Schema.Types.ObjectId, ref: 'User' },
 });
+StockDeliverySchema.index({ site_id: 1, delivered_at: -1 });
 export const StockDelivery = models.StockDelivery || model<IStockDelivery>('StockDelivery', StockDeliverySchema);
 
 // ─── MaintenanceTask ──────────────────────────────────────────
@@ -203,6 +210,7 @@ const MaintenanceTaskSchema = new Schema<IMaintenanceTask>({
   washes_at_last_done: { type: Number, default: 0 },
   is_overdue: Boolean,
 });
+MaintenanceTaskSchema.index({ site_id: 1 });
 export const MaintenanceTask = models.MaintenanceTask || model<IMaintenanceTask>('MaintenanceTask', MaintenanceTaskSchema);
 
 // ─── MaintenanceLog ───────────────────────────────────────────
@@ -220,6 +228,8 @@ const MaintenanceLogSchema = new Schema<IMaintenanceLog>({
   done_at: Date,
   notes: String,
 });
+MaintenanceLogSchema.index({ task_id: 1 });
+MaintenanceLogSchema.index({ site_id: 1, done_at: -1 });
 export const MaintenanceLog = models.MaintenanceLog || model<IMaintenanceLog>('MaintenanceLog', MaintenanceLogSchema);
 
 // ─── DailyChecklist ───────────────────────────────────────────
@@ -241,6 +251,8 @@ const DailyChecklistSchema = new Schema<IDailyChecklist>({
   damage_report: Schema.Types.Mixed,
   submitted_at: Date,
 });
+DailyChecklistSchema.index({ site_id: 1, submitted_at: -1 });
+DailyChecklistSchema.index({ user_id: 1 });
 export const DailyChecklist = models.DailyChecklist || model<IDailyChecklist>('DailyChecklist', DailyChecklistSchema);
 
 // ─── IncidentSchade ───────────────────────────────────────────
@@ -290,6 +302,7 @@ const IncidentSchadeSchema = new Schema<IIncidentSchade>({
   photos: { type: [String], default: [] },
   created_at: { type: Date, default: Date.now },
 });
+IncidentSchadeSchema.index({ site_id: 1, created_at: -1 });
 export const IncidentSchade = models.IncidentSchade || model<IIncidentSchade>('IncidentSchade', IncidentSchadeSchema);
 
 // ─── IncidentEhbo ─────────────────────────────────────────────
@@ -325,6 +338,7 @@ const IncidentEhboSchema = new Schema<IIncidentEhbo>({
   photos: { type: [String], default: [] },
   created_at: { type: Date, default: Date.now },
 });
+IncidentEhboSchema.index({ site_id: 1, created_at: -1 });
 export const IncidentEhbo = models.IncidentEhbo || model<IIncidentEhbo>('IncidentEhbo', IncidentEhboSchema);
 
 // ─── Defect ───────────────────────────────────────────────────
@@ -356,6 +370,7 @@ const DefectSchema = new Schema<IDefect>({
   photos: { type: [String], default: [] },
   created_at: { type: Date, default: Date.now },
 });
+DefectSchema.index({ site_id: 1, created_at: -1 });
 export const Defect = models.Defect || model<IDefect>('Defect', DefectSchema);
 
 // ─── PushSubscription ─────────────────────────────────────────
@@ -373,6 +388,8 @@ const PushSubscriptionSchema = new Schema<IPushSubscription>({
   site_ids: [{ type: Schema.Types.ObjectId, ref: 'Site' }],
   created_at: { type: Date, default: Date.now },
 });
+PushSubscriptionSchema.index({ user_id: 1 });
+PushSubscriptionSchema.index({ site_ids: 1 });
 export const PushSubscription = models.PushSubscription || model<IPushSubscription>('PushSubscription', PushSubscriptionSchema);
 
 // ─── ActivityLog ──────────────────────────────────────────────
@@ -431,6 +448,7 @@ const EnergyBillSchema = new Schema<IEnergyBill>({
   amount_euro: Number,
   created_at: { type: Date, default: Date.now },
 });
+EnergyBillSchema.index({ site_id: 1, year: -1, month: -1 });
 export const EnergyBill = models.EnergyBill || model<IEnergyBill>('EnergyBill', EnergyBillSchema);
 
 // ─── AttendanceLog ────────────────────────────────────────────
@@ -454,6 +472,8 @@ const AttendanceLogSchema = new Schema<IAttendanceLog>({
   timestamp: { type: Date, default: Date.now },
   note: { type: String, default: '' },
 });
+AttendanceLogSchema.index({ site_id: 1, timestamp: -1 });
+AttendanceLogSchema.index({ user_id: 1 });
 export const AttendanceLog = models.AttendanceLog || model<IAttendanceLog>('AttendanceLog', AttendanceLogSchema);
 
 // ─── Opdracht ─────────────────────────────────────────────────
@@ -481,6 +501,7 @@ const OpdrachtSchema = new Schema<IOpdracht>({
   done_at: Date,
   created_at: { type: Date, default: Date.now },
 });
+OpdrachtSchema.index({ site_id: 1, date: -1 });
 export const Opdracht = models.Opdracht || model<IOpdracht>('Opdracht', OpdrachtSchema);
 
 // ─── Planning ─────────────────────────────────────────────────
@@ -506,6 +527,8 @@ const PlanningSchema = new Schema<IPlanning>({
   created_by: { type: Schema.Types.ObjectId, ref: 'User' },
   created_at: { type: Date, default: Date.now },
 });
+PlanningSchema.index({ site_id: 1, date: 1 });
+PlanningSchema.index({ user_id: 1 });
 export const Planning = models.Planning || model<IPlanning>('Planning', PlanningSchema);
 
 // ─── Announcement ─────────────────────────────────────────────
@@ -525,6 +548,8 @@ const AnnouncementSchema = new Schema<IAnnouncement>({
   site_ids: [{ type: Schema.Types.ObjectId, ref: 'Site' }],
   created_at: { type: Date, default: Date.now },
 });
+AnnouncementSchema.index({ site_ids: 1 });
+AnnouncementSchema.index({ created_at: -1 });
 export const Announcement = models.Announcement || model<IAnnouncement>('Announcement', AnnouncementSchema);
 
 // ─── ClosingReminderSent ────────────────────────────────────────
