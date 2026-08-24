@@ -2,8 +2,8 @@ import type { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Dodane — Inventory Suite',
-    short_name: 'Dodane',
+    name: 'WashIQ — Inventory Suite',
+    short_name: 'WashIQ',
     description: 'Carwash dashboard voor stock en verbruiksbeheer.',
     start_url: '/',
     display: 'standalone',

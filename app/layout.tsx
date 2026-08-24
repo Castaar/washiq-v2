@@ -15,12 +15,12 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'Dodane — Inventory Suite',
+  title: 'WashIQ — Inventory Suite',
   description: 'Carwash dashboard voor stock en verbruiksbeheer.',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'Dodane',
+    title: 'WashIQ',
   },
   icons: {
     apple: '/icons/apple-touch-icon.png',
