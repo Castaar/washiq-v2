@@ -34,7 +34,9 @@ export interface HistoryEntry {
 interface HistoryListProps {
   entries: HistoryEntry[];
   programs: HistoryProgram[];
+  products: HistoryChemical[];
   startCarCount?: number;
+  startWaterCount?: number;
   siteId: string;
   energyBillsByMonth: Record<string, number>;
 }
@@ -60,6 +62,7 @@ function formatDate(iso: string): string {
 function EntryRow({
   entry,
   programs,
+  products,
   previousTellerstand,
   previousWaterTellerstand,
   siteId,
@@ -67,6 +70,7 @@ function EntryRow({
 }: {
   entry: HistoryEntry;
   programs: HistoryProgram[];
+  products: HistoryChemical[];
   previousTellerstand: number;
   previousWaterTellerstand: number;
   siteId: string;
@@ -86,8 +90,6 @@ function EntryRow({
   );
   const [newWaterTellerstand, setNewWaterTellerstand] = useState(String(entry.waterTellerstand ?? 0));
   const [energyKw, setEnergyKw] = useState(String(entry.energyKw));
-  const [saltKg, setSaltKg] = useState(String(entry.saltKg));
-  const [blobLiters, setBlobLiters] = useState(String(entry.blobLiters ?? 0));
   const [programCounts, setProgramCounts] = useState<Record<string, string>>(
     Object.fromEntries(
       programs.map((p) => {
@@ -96,11 +98,11 @@ function EntryRow({
       }),
     ),
   );
-  // Deduplicate chemicals across programs (same as WeeklyEntryForm)
+  // Products configured for this site (same source as Instellingen), deduplicated
   const uniqueChemicals = (() => {
     const seen = new Set<string>();
-    return programs.flatMap((p) => p.chemicals).filter((c) => {
-      if (seen.has(c.id) || c.name.toLowerCase() === 'blob') return false;
+    return products.filter((c) => {
+      if (seen.has(c.id)) return false;
       seen.add(c.id);
       return true;
     });
@@ -110,7 +112,11 @@ function EntryRow({
     Object.fromEntries(
       uniqueChemicals.map((c) => {
         const found = entry.chemicalUsages.find((cu) => cu.chemicalId === c.id || cu.name === c.name);
-        return [c.id, String(found?.amount ?? 0)];
+        if (found) return [c.id, String(found.amount)];
+        // Bridge legacy fixed fields for entries recorded before Zoutverzachter/Blob became regular products
+        if (c.name.toLowerCase() === 'zoutverzachter') return [c.id, String(entry.saltKg ?? 0)];
+        if (c.name.toLowerCase() === 'blob') return [c.id, String(entry.blobLiters ?? 0)];
+        return [c.id, '0'];
       }),
     ),
   );
@@ -148,8 +154,6 @@ function EntryRow({
         water_liters: waterUsage,
         water_tellerstand: newWaterTellerstandNum ?? previousWaterTellerstand,
         energy_kw: parseFloat(energyKw) || 0,
-        salt_kg: parseFloat(saltKg) || 0,
-        blob_liters: parseFloat(blobLiters) || 0,
         program_counts: programs.map((p) => ({
           program_id: p.id,
           name: p.name,
@@ -197,7 +201,6 @@ function EntryRow({
           <span className={styles.summaryItem}><span className={styles.summaryLabel}>Wagens</span>{totalWagens}</span>
           <span className={styles.summaryItem}><span className={styles.summaryLabel}>Water</span>{entry.waterLiters} m³</span>
           <span className={styles.summaryItem}><span className={styles.summaryLabel}>Energie</span>{entry.energyKw} kWh</span>
-          <span className={styles.summaryItem}><span className={styles.summaryLabel}>Zout</span>{entry.saltKg} kg</span>
           {entry.totalCost > 0 && (
             <span className={[styles.summaryItem, styles.costItem].join(' ')}>
               <span className={styles.summaryLabel}>Kostprijs</span>
@@ -315,8 +318,6 @@ function EntryRow({
                 <div className={styles.fieldsRow}>
                   {[
                     { label: 'Energie (kWh)', value: energyKw, set: setEnergyKw },
-                    { label: 'Zoutverzachter (kg)', value: saltKg, set: setSaltKg },
-                    { label: 'Blob (liter)', value: blobLiters, set: setBlobLiters },
                   ].map(({ label, value, set }) => (
                     <div key={label} className={styles.fieldGroup}>
                       <label className={styles.fieldLabel}>{label}</label>
@@ -371,8 +372,12 @@ function EntryRow({
                 <div className={styles.detailGrid}>
                   <span className={styles.detailItem}><span className={styles.detailLabel}>Energie</span><span className={styles.detailValue}>{entry.energyKw} kWh</span></span>
                   <span className={styles.detailItem}><span className={styles.detailLabel}>Water</span><span className={styles.detailValue}>{entry.waterLiters} m³</span></span>
-                  <span className={styles.detailItem}><span className={styles.detailLabel}>Zoutverzachter</span><span className={styles.detailValue}>{entry.saltKg} kg</span></span>
-                  {(entry.blobLiters ?? 0) > 0 && <span className={styles.detailItem}><span className={styles.detailLabel}>Blob</span><span className={styles.detailValue}>{entry.blobLiters} L</span></span>}
+                  {entry.saltKg > 0 && !entry.chemicalUsages.some((cu) => cu.name.toLowerCase() === 'zoutverzachter') && (
+                    <span className={styles.detailItem}><span className={styles.detailLabel}>Zoutverzachter</span><span className={styles.detailValue}>{entry.saltKg} kg</span></span>
+                  )}
+                  {(entry.blobLiters ?? 0) > 0 && !entry.chemicalUsages.some((cu) => cu.name.toLowerCase() === 'blob') && (
+                    <span className={styles.detailItem}><span className={styles.detailLabel}>Blob</span><span className={styles.detailValue}>{entry.blobLiters} L</span></span>
+                  )}
                 </div>
               </div>
               {entry.chemicalUsages.length > 0 && (
@@ -397,7 +402,7 @@ function EntryRow({
 }
 
 // ── Main list ─────────────────────────────────────────────────
-export function HistoryList({ entries, programs, startCarCount = 0, siteId, energyBillsByMonth }: HistoryListProps) {
+export function HistoryList({ entries, programs, products, startCarCount = 0, startWaterCount = 0, siteId, energyBillsByMonth }: HistoryListProps) {
   if (entries.length === 0) {
     return <p className={styles.empty}>Nog geen ingaves gevonden voor deze carwash.</p>;
   }
@@ -406,7 +411,7 @@ export function HistoryList({ entries, programs, startCarCount = 0, siteId, ener
     <div className={styles.list}>
       {entries.map((e, i) => {
         const previousTellerstand = i < entries.length - 1 ? entries[i + 1].tellerstand : startCarCount;
-        const previousWaterTellerstand = i < entries.length - 1 ? entries[i + 1].waterTellerstand : 0;
+        const previousWaterTellerstand = i < entries.length - 1 ? entries[i + 1].waterTellerstand : startWaterCount;
         const weekDate = new Date(e.weekStart);
         const billKey = `${weekDate.getUTCFullYear()}-${weekDate.getUTCMonth() + 1}`;
         return (
@@ -414,6 +419,7 @@ export function HistoryList({ entries, programs, startCarCount = 0, siteId, ener
             key={e.id}
             entry={e}
             programs={programs}
+            products={products}
             previousTellerstand={previousTellerstand}
             previousWaterTellerstand={previousWaterTellerstand}
             siteId={siteId}

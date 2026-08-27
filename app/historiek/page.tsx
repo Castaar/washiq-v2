@@ -25,7 +25,7 @@ export default async function HistoriekPage({
   const cookieSite = cookieStore.get('dodane_active_site')?.value;
 
   const [siteDocs, userDoc] = await Promise.all([
-    Site.find({}).select('_id name location start_car_count').lean(),
+    Site.find({}).select('_id name location start_car_count start_water_count').lean(),
     session ? User.findById(session.userId).select('site_ids role').lean() : null,
   ]);
 
@@ -38,6 +38,7 @@ export default async function HistoriekPage({
   const siteName = allowedSites.find((s) => s.id === siteId)?.name ?? '';
   const siteDoc = siteDocs.find((s) => (s._id as Types.ObjectId).toString() === siteId);
   const startCarCount = (siteDoc?.start_car_count as number) ?? 0;
+  const startWaterCount = (siteDoc?.start_water_count as number) ?? 0;
   const filter = siteId ? { site_id: siteId } : {};
 
   const [programDocs, entryDocs, stockDocs, energyBillDocs] = await Promise.all([
@@ -51,6 +52,12 @@ export default async function HistoriekPage({
   for (const b of energyBillDocs) {
     energyBillsByMonth[`${b.year}-${b.month}`] = (b.amount_euro as number) ?? 0;
   }
+
+  const products = stockDocs.map((s) => ({
+    id: s.name as string,
+    name: s.name as string,
+    unit: (s.unit as string) ?? 'L',
+  }));
 
   const programs: HistoryProgram[] = programDocs.map((p) => ({
     id: (p._id as Types.ObjectId).toString(),
@@ -151,7 +158,7 @@ export default async function HistoriekPage({
           <div className={styles.header}>
             <h1 className={styles.title}>Maandelijkse Ingaves — {siteName}</h1>
           </div>
-          <HistoryList entries={entries} programs={programs} startCarCount={startCarCount} siteId={siteId ?? ''} energyBillsByMonth={energyBillsByMonth} />
+          <HistoryList entries={entries} programs={programs} products={products} startCarCount={startCarCount} startWaterCount={startWaterCount} siteId={siteId ?? ''} energyBillsByMonth={energyBillsByMonth} />
         </div>
       </main>
     </div>

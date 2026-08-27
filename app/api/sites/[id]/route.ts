@@ -33,6 +33,10 @@ export async function PATCH(
     update.start_car_count = body.start_car_count;
   }
 
+  if (typeof body.start_water_count === 'number') {
+    update.start_water_count = body.start_water_count;
+  }
+
   if (Object.keys(update).length === 0) {
     return NextResponse.json({ error: 'Geen geldige velden' }, { status: 400 });
   }
@@ -40,7 +44,7 @@ export async function PATCH(
   const site = await Site.findByIdAndUpdate(id, { $set: update }, { new: true });
   if (!site) return NextResponse.json({ error: 'Niet gevonden' }, { status: 404 });
 
-  return NextResponse.json({ ok: true, start_car_count: site.start_car_count });
+  return NextResponse.json({ ok: true, start_car_count: site.start_car_count, start_water_count: site.start_water_count });
 }
 
 export async function DELETE(

@@ -39,9 +39,11 @@ export interface LastEntryData {
 export interface WeeklyEntryFormProps {
   siteId: string;
   programs: Program[];
+  products: Chemical[];
   lastEntry: LastEntryData | null;
   washesTasks?: WashesTask[];
   startCarCount?: number;
+  startWaterCount?: number;
 }
 
 // Monday (00:00 UTC) of the ISO week containing the given YYYY-MM-DD date string
@@ -120,19 +122,17 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 }
 
 // ─── Main form ────────────────────────────────────────────────
-export function WeeklyEntryForm({ siteId, programs, lastEntry, washesTasks = [], startCarCount = 0 }: WeeklyEntryFormProps) {
+export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesTasks = [], startCarCount = 0, startWaterCount = 0 }: WeeklyEntryFormProps) {
   const router = useRouter();
 
   const uniqueChemicals = useMemo(() => {
     const seen = new Set<string>();
     const result: Chemical[] = [];
-    for (const p of programs) {
-      for (const c of p.chemicals) {
-        if (!seen.has(c.id) && c.name.toLowerCase() !== 'blob') { seen.add(c.id); result.push(c); }
-      }
+    for (const c of products) {
+      if (!seen.has(c.id)) { seen.add(c.id); result.push(c); }
     }
     return result;
-  }, [programs]);
+  }, [products]);
 
   const [programCounts, setProgramCounts] = useState<Record<string, string>>(
     () => Object.fromEntries(programs.map((p) => [p.id, ''])),
@@ -141,8 +141,6 @@ export function WeeklyEntryForm({ siteId, programs, lastEntry, washesTasks = [],
   const [electricityAmount, setElectricityAmount] = useState('');
   const [newWaterTellerstand, setNewWaterTellerstand] = useState('');
   const [energyKw, setEnergyKw] = useState('');
-  const [saltKg, setSaltKg] = useState('');
-  const [blobLiters, setBlobLiters] = useState('');
   const [chemicalUsages, setChemicalUsages] = useState<Record<string, string>>(
     () => Object.fromEntries(uniqueChemicals.map((c) => [c.id, ''])),
   );
@@ -156,7 +154,7 @@ export function WeeklyEntryForm({ siteId, programs, lastEntry, washesTasks = [],
   const expectedDiff = newTellerstandNum !== null ? newTellerstandNum - previousTellerstand : null;
   const tellerstandMismatch = expectedDiff !== null && programCountSum !== expectedDiff;
 
-  const previousWaterTellerstand = lastEntry?.waterTellerstand ?? 0;
+  const previousWaterTellerstand = lastEntry?.waterTellerstand ?? startWaterCount;
   const newWaterTellerstandNum = newWaterTellerstand.trim() === '' ? null : parseFloat(newWaterTellerstand);
   const waterUsage = newWaterTellerstandNum !== null ? newWaterTellerstandNum - previousWaterTellerstand : 0;
 
@@ -214,8 +212,6 @@ export function WeeklyEntryForm({ siteId, programs, lastEntry, washesTasks = [],
       water_liters: waterUsage,
       water_tellerstand: newWaterTellerstandNum ?? previousWaterTellerstand,
       energy_kw: parseFloat(energyKw) || 0,
-      salt_kg: parseFloat(saltKg) || 0,
-      blob_liters: parseFloat(blobLiters) || 0,
       program_counts: programs.map((p) => ({
         program_id: p.id,
         name: p.name,
@@ -366,27 +362,6 @@ export function WeeklyEntryForm({ siteId, programs, lastEntry, washesTasks = [],
         {newWaterTellerstandNum !== null && (
           <p className={styles.tellerstandOk}>Verbruik deze periode: {waterUsage.toLocaleString('nl-BE')} m³</p>
         )}
-      </section>
-
-      {/* ── Section 2: Verbruik ──────────────────────────────── */}
-      <section className={styles.section}>
-        <SectionTitle>Verbruik — geldt voor alle programma&apos;s</SectionTitle>
-        <div className={styles.fieldsRow}>
-          <EntryField
-            label="Zoutverzachter (kg)"
-            value={saltKg}
-            onChange={setSaltKg}
-            delta={getDelta(saltKg, lastEntry?.saltKg)}
-            lastValue={lastEntry?.saltKg ?? null}
-          />
-          <EntryField
-            label="Blob (liter)"
-            value={blobLiters}
-            onChange={setBlobLiters}
-            delta={getDelta(blobLiters, lastEntry?.blobLiters)}
-            lastValue={lastEntry?.blobLiters ?? null}
-          />
-        </div>
       </section>
 
       {/* ── Section 3: Chemie totaal per product ────────────── */}

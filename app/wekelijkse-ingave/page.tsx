@@ -22,7 +22,7 @@ export default async function WekelijkseIngavePage({
   const cookieSite = cookieStore.get('dodane_active_site')?.value;
 
   const [siteDocs, userDoc] = await Promise.all([
-    Site.find({}).select('_id name location start_car_count').lean(),
+    Site.find({}).select('_id name location start_car_count start_water_count').lean(),
     session ? User.findById(session.userId).select('site_ids role').lean() : null,
   ]);
 
@@ -35,6 +35,7 @@ export default async function WekelijkseIngavePage({
   const siteName = allowedSites.find((s) => s.id === siteId)?.name ?? '';
   const siteDoc = siteDocs.find((s) => (s._id as Types.ObjectId).toString() === siteId);
   const startCarCount = (siteDoc?.start_car_count as number) ?? 0;
+  const startWaterCount = (siteDoc?.start_water_count as number) ?? 0;
   const filter = siteId ? { site_id: siteId } : {};
 
   const [programs, lastEntries, stockDocs, washesTasks] = await Promise.all([
@@ -51,6 +52,13 @@ export default async function WekelijkseIngavePage({
       unit: (s.unit as string) ?? '',
     };
   }
+
+  const products = stockDocs.map((s) => ({
+    id: s.name as string,
+    name: s.name as string,
+    unit: (s.unit as string) ?? '',
+    current_stock: (s.current_stock as number) ?? 0,
+  }));
 
   const programsWithChemicals = programs.map((p) => ({
     id: (p._id as Types.ObjectId).toString(),
@@ -103,9 +111,11 @@ export default async function WekelijkseIngavePage({
         <WeeklyEntryForm
           siteId={siteId ?? ''}
           programs={programsWithChemicals}
+          products={products}
           lastEntry={lastEntryData}
           washesTasks={washesTasksData}
           startCarCount={startCarCount}
+          startWaterCount={startWaterCount}
         />
       </main>
     </div>

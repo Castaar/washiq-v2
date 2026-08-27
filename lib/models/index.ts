@@ -7,6 +7,7 @@ export interface ISite extends Document {
   owner_id: Types.ObjectId;
   start_car_count: number;
   start_car_count_date?: Date;
+  start_water_count: number;
   setup_done: boolean;
   created_at: Date;
 }
@@ -16,6 +17,7 @@ const SiteSchema = new Schema<ISite>({
   owner_id: { type: Schema.Types.ObjectId, ref: 'User' },
   start_car_count: { type: Number, default: 0 },
   start_car_count_date: { type: Date },
+  start_water_count: { type: Number, default: 0 },
   setup_done: { type: Boolean, default: false },
   created_at: { type: Date, default: Date.now },
 });

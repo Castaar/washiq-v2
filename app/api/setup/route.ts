@@ -14,6 +14,7 @@ export async function POST(req: NextRequest) {
     siteId: string;
     tellerstand: number;
     tellerstandDate?: string;
+    waterTellerstand?: number;
     prices?: {
       water_per_liter: number;
       energy_per_kw: number;
@@ -44,6 +45,7 @@ export async function POST(req: NextRequest) {
     Site.findByIdAndUpdate(body.siteId, {
       start_car_count: body.tellerstand ?? 0,
       start_car_count_date: body.tellerstandDate ? new Date(body.tellerstandDate) : new Date(),
+      start_water_count: body.waterTellerstand ?? 0,
       setup_done: true,
     }),
   );

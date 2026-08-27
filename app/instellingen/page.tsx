@@ -22,7 +22,7 @@ export default async function InstellingenPage({
   const cookieSite = cookieStore.get('dodane_active_site')?.value;
 
   const [siteDocs, userDoc] = await Promise.all([
-    Site.find({}).select('_id name location start_car_count').lean(),
+    Site.find({}).select('_id name location start_car_count start_water_count').lean(),
     session ? User.findById(session.userId).select('site_ids role').lean() : null,
   ]);
 
@@ -36,16 +36,22 @@ export default async function InstellingenPage({
   const siteDoc = siteDocs.find((s) => (s._id as Types.ObjectId).toString() === siteId);
   const siteName = (siteDoc?.name as string) ?? '';
   const startCarCount = (siteDoc?.start_car_count as number) ?? 0;
+  const startWaterCount = (siteDoc?.start_water_count as number) ?? 0;
   const filter = siteId ? { site_id: siteId } : {};
 
-  const [priceConfigDoc, stockDocs, energyBillDocs, taskDocs, weeklyEntries, programDocs] = await Promise.all([
+  const [priceConfigDoc, stockDocs, energyBillDocs, taskDocs, weeklyEntries, programDocs, allStockDocs] = await Promise.all([
     PriceConfig.findOne(filter).sort({ valid_from: -1 }).lean(),
     ChemicalStock.find(filter).sort({ name: 1 }).lean(),
     EnergyBill.find(filter).sort({ year: -1, month: -1 }).limit(12).lean(),
     MaintenanceTask.find(filter).sort({ description: 1 }).lean(),
     WeeklyEntry.find(filter).select('program_counts').lean(),
     WashProgram.find(filter).sort({ tier: 1 }).lean(),
+    ChemicalStock.find({}).select('name unit').sort({ name: 1 }).lean(),
   ]);
+
+  const existingProductNames = Array.from(
+    new Map(allStockDocs.map((s) => [s.name as string, { name: s.name as string, unit: (s.unit as string) ?? 'L' }])).values(),
+  );
 
   const priceConfig = priceConfigDoc
     ? {
@@ -112,6 +118,8 @@ export default async function InstellingenPage({
           stocks={stocks}
           energyBills={energyBills}
           startCarCount={startCarCount}
+          startWaterCount={startWaterCount}
+          existingProductNames={existingProductNames}
           maintenanceTasks={maintenanceTasks}
           currentTotalWashes={currentTotalWashes}
           programs={programs}

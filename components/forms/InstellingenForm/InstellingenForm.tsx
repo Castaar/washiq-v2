@@ -61,6 +61,8 @@ interface InstellingenFormProps {
   stocks: StockItem[];
   energyBills: EnergyBillData[];
   startCarCount: number;
+  startWaterCount: number;
+  existingProductNames?: { name: string; unit: string }[];
   maintenanceTasks: MaintenanceTaskItem[];
   currentTotalWashes: number;
   programs: WashProgramItem[];
@@ -134,7 +136,7 @@ function PriceField({
 
 // ─── Main component ───────────────────────────────────────────
 
-export function InstellingenForm({ siteId, siteName, priceConfig, stocks, energyBills, startCarCount, maintenanceTasks: initialTasks, currentTotalWashes, programs: initialPrograms, allowedSites = [] }: InstellingenFormProps) {
+export function InstellingenForm({ siteId, siteName, priceConfig, stocks, energyBills, startCarCount, startWaterCount, existingProductNames = [], maintenanceTasks: initialTasks, currentTotalWashes, programs: initialPrograms, allowedSites = [] }: InstellingenFormProps) {
   const isFirstTime = !priceConfig;
 
   // ── Wasprogramma's state ──────────────────────────────────
@@ -249,6 +251,60 @@ export function InstellingenForm({ siteId, siteName, priceConfig, stocks, energy
     }
   }
 
+  // ── Transfer (verplaatsing tussen carwashes) state ─────────
+  const otherSites = allowedSites.filter((s) => s.id !== siteId);
+  const [transferOpen, setTransferOpen] = useState<Record<string, { toSiteId: string; qty: string }>>({});
+  const [savingTransfer, setSavingTransfer] = useState<string | null>(null);
+  const [transferError, setTransferError] = useState<Record<string, string>>({});
+  const [transferTargetHasProduct, setTransferTargetHasProduct] = useState<Record<string, boolean | null>>({});
+
+  async function checkTransferTarget(stockId: string, toSiteId: string, name: string) {
+    if (!toSiteId) {
+      setTransferTargetHasProduct((prev) => ({ ...prev, [stockId]: null }));
+      return;
+    }
+    try {
+      const res = await fetch(`/api/stock?siteId=${toSiteId}`);
+      const stocks = res.ok ? ((await res.json()) as { name: string }[]) : [];
+      setTransferTargetHasProduct((prev) => ({ ...prev, [stockId]: stocks.some((s) => s.name === name) }));
+    } catch {
+      setTransferTargetHasProduct((prev) => ({ ...prev, [stockId]: null }));
+    }
+  }
+
+  async function handleConfirmTransfer(stockId: string, name: string) {
+    const t = transferOpen[stockId];
+    const qty = parseFloat(t?.qty ?? '');
+    if (!t?.toSiteId || !qty || qty <= 0) return;
+    if (transferTargetHasProduct[stockId] === false) {
+      const targetName = otherSites.find((s) => s.id === t.toSiteId)?.name ?? 'de andere carwash';
+      const ok = confirm(
+        `"${name}" bestaat nog niet bij ${targetName}. Het wordt daar automatisch aangemaakt, maar zonder prijs en zonder koppeling aan een wasprogramma — dat moet je nadien nog zelf instellen. Doorgaan?`,
+      );
+      if (!ok) return;
+    }
+    setSavingTransfer(stockId);
+    setTransferError((prev) => { const n = { ...prev }; delete n[stockId]; return n; });
+    try {
+      const res = await fetch('/api/stock/transfer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fromSiteId: siteId, toSiteId: t.toSiteId, name, quantity: qty }),
+      });
+      if (res.ok) {
+        const data = (await res.json()) as { from: { current_stock: number } };
+        setProductList((prev) => prev.map((s) => (s.id === stockId ? { ...s, current_stock: data.from.current_stock } : s)));
+        setTransferOpen((prev) => { const n = { ...prev }; delete n[stockId]; return n; });
+        setTransferTargetHasProduct((prev) => { const n = { ...prev }; delete n[stockId]; return n; });
+      } else {
+        const err = (await res.json().catch(() => null)) as { error?: string } | null;
+        setTransferError((prev) => ({ ...prev, [stockId]: err?.error ?? 'Verplaatsen mislukt' }));
+      }
+    } finally {
+      setSavingTransfer(null);
+    }
+  }
+
   // ── Car count state ───────────────────────────────────────
   const [carCount, setCarCount] = useState(startCarCount > 0 ? String(startCarCount) : '');
   const [savingCarCount, setSavingCarCount] = useState(false);
@@ -265,6 +321,24 @@ export function InstellingenForm({ siteId, siteName, priceConfig, stocks, energy
     });
     setSavingCarCount(false);
     setCarCountSaved(true);
+  }
+
+  // ── Water count state ────────────────────────────────────
+  const [waterCount, setWaterCount] = useState(startWaterCount > 0 ? String(startWaterCount) : '');
+  const [savingWaterCount, setSavingWaterCount] = useState(false);
+  const [waterCountSaved, setWaterCountSaved] = useState(false);
+
+  async function handleSaveWaterCount(e: React.FormEvent) {
+    e.preventDefault();
+    setSavingWaterCount(true);
+    setWaterCountSaved(false);
+    await fetch(`/api/sites/${siteId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ start_water_count: parseInt(waterCount) || 0 }),
+    });
+    setSavingWaterCount(false);
+    setWaterCountSaved(true);
   }
 
   // ── Maintenance task state ─────────────────────────────────
@@ -507,10 +581,22 @@ export function InstellingenForm({ siteId, siteName, priceConfig, stocks, energy
           <input
             className={styles.productInput}
             type="text"
+            list="existing-product-names"
             value={newProductName}
-            onChange={(e) => { setNewProductName(e.target.value); setProductError(''); }}
+            onChange={(e) => {
+              const val = e.target.value;
+              setNewProductName(val);
+              setProductError('');
+              const match = existingProductNames.find((p) => p.name.toLowerCase() === val.trim().toLowerCase());
+              if (match) setNewProductUnit(match.unit);
+            }}
             placeholder="Productnaam (bv. Shampoo Pro)"
           />
+          <datalist id="existing-product-names">
+            {existingProductNames.map((p) => (
+              <option key={p.name} value={p.name} />
+            ))}
+          </datalist>
           <select
             className={styles.productUnitSelect}
             value={newProductUnit}
@@ -531,6 +617,24 @@ export function InstellingenForm({ siteId, siteName, priceConfig, stocks, energy
           </button>
         </form>
         {productError && <p className={styles.errorMsg}>{productError}</p>}
+        {!productError && (() => {
+          const trimmed = newProductName.trim();
+          if (!trimmed) return null;
+          const caseMatch = existingProductNames.find((p) => p.name.toLowerCase() === trimmed.toLowerCase());
+          if (!caseMatch || caseMatch.name === trimmed) return null;
+          return (
+            <p className={styles.sectionHint} style={{ margin: '4px 0 0' }}>
+              Bestaat elders als &quot;{caseMatch.name}&quot; —{' '}
+              <button
+                type="button"
+                onClick={() => { setNewProductName(caseMatch.name); setNewProductUnit(caseMatch.unit); }}
+                style={{ background: 'none', border: 'none', padding: 0, color: 'inherit', textDecoration: 'underline', cursor: 'pointer' }}
+              >
+                gebruik dezelfde schrijfwijze
+              </button>
+            </p>
+          );
+        })()}
       </div>
 
       {/* ── Sectie 1c: Wasprogramma's ────────────────────────── */}
@@ -616,7 +720,7 @@ export function InstellingenForm({ siteId, siteName, priceConfig, stocks, energy
           <h2 className={styles.sectionTitle}>Chemie voorraad</h2>
         </div>
         <p className={styles.sectionHint}>
-          Registreer een levering om de voorraad bij te werken.
+          Registreer een levering om de voorraad bij te werken, of verplaats voorraad naar een andere carwash.
         </p>
         {productList.length === 0 ? (
           <p className={styles.emptyHint}>Geen producten gevonden. Voeg eerst producten toe via &quot;Producten beheren&quot; hierboven.</p>
@@ -629,7 +733,8 @@ export function InstellingenForm({ siteId, siteName, priceConfig, stocks, energy
               <span></span>
             </div>
             {productList.map((s) => {
-              const isOpen = s.id in deliveryOpen;
+              const isDeliveryOpen = s.id in deliveryOpen;
+              const isTransferOpen = s.id in transferOpen;
               const isLow = s.min_stock_alert > 0 && s.current_stock <= s.min_stock_alert;
               return (
                 <div key={s.id} className={styles.stockRow}>
@@ -638,7 +743,7 @@ export function InstellingenForm({ siteId, siteName, priceConfig, stocks, energy
                     {s.current_stock}
                   </span>
                   <span className={styles.stockUnit}>{s.unit}</span>
-                  {isOpen ? (
+                  {isDeliveryOpen ? (
                     <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                       <input
                         className={styles.stockInput}
@@ -668,15 +773,82 @@ export function InstellingenForm({ siteId, siteName, priceConfig, stocks, energy
                         ✕
                       </button>
                     </div>
+                  ) : isTransferOpen ? (
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                      <select
+                        className={styles.stockInput}
+                        value={transferOpen[s.id].toSiteId}
+                        onChange={(e) => {
+                          const toSiteId = e.target.value;
+                          setTransferOpen((prev) => ({ ...prev, [s.id]: { ...prev[s.id], toSiteId } }));
+                          checkTransferTarget(s.id, toSiteId, s.name);
+                        }}
+                        style={{ width: 140 }}
+                      >
+                        <option value="">Naar carwash...</option>
+                        {otherSites.map((os) => (
+                          <option key={os.id} value={os.id}>{os.name}</option>
+                        ))}
+                      </select>
+                      <input
+                        className={styles.stockInput}
+                        type="number"
+                        min="0"
+                        step="any"
+                        placeholder={s.unit}
+                        value={transferOpen[s.id].qty}
+                        onChange={(e) => setTransferOpen((prev) => ({ ...prev, [s.id]: { ...prev[s.id], qty: e.target.value } }))}
+                        style={{ width: 90 }}
+                      />
+                      <button
+                        type="button"
+                        className={styles.saveBtn}
+                        onClick={() => handleConfirmTransfer(s.id, s.name)}
+                        disabled={savingTransfer === s.id}
+                        style={{ padding: '4px 10px' }}
+                      >
+                        {savingTransfer === s.id ? '...' : 'OK'}
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.deleteProductBtn}
+                        onClick={() => {
+                          setTransferOpen((prev) => { const n = { ...prev }; delete n[s.id]; return n; });
+                          setTransferTargetHasProduct((prev) => { const n = { ...prev }; delete n[s.id]; return n; });
+                        }}
+                      >
+                        ✕
+                      </button>
+                      {transferTargetHasProduct[s.id] === false && (
+                        <span className={styles.sectionHint} style={{ width: '100%', margin: 0 }}>
+                          Bestaat nog niet bij deze carwash — wordt automatisch aangemaakt zonder prijs en zonder wasprogramma-koppeling.
+                        </span>
+                      )}
+                      {transferError[s.id] && (
+                        <span className={styles.errorMsg} style={{ width: '100%' }}>{transferError[s.id]}</span>
+                      )}
+                    </div>
                   ) : (
-                    <button
-                      type="button"
-                      className={styles.saveBtn}
-                      onClick={() => setDeliveryOpen((prev) => ({ ...prev, [s.id]: '' }))}
-                      style={{ padding: '4px 10px' }}
-                    >
-                      + Levering
-                    </button>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button
+                        type="button"
+                        className={styles.saveBtn}
+                        onClick={() => setDeliveryOpen((prev) => ({ ...prev, [s.id]: '' }))}
+                        style={{ padding: '4px 10px' }}
+                      >
+                        + Levering
+                      </button>
+                      {otherSites.length > 0 && (
+                        <button
+                          type="button"
+                          className={styles.saveBtn}
+                          onClick={() => setTransferOpen((prev) => ({ ...prev, [s.id]: { toSiteId: '', qty: '' } }))}
+                          style={{ padding: '4px 10px' }}
+                        >
+                          ⇄ Verplaatsen
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
               );
@@ -746,6 +918,39 @@ export function InstellingenForm({ siteId, siteName, priceConfig, stocks, energy
           </div>
         )}
       </div>
+
+      {/* ── Sectie 3b: Watervoorraad ──────────────────────────── */}
+      <form className={styles.section} onSubmit={handleSaveWaterCount} noValidate>
+        <div className={styles.sectionHead}>
+          <h2 className={styles.sectionTitle}>Watervoorraad</h2>
+        </div>
+        <p className={styles.sectionHint}>
+          Geef de start tellerstand water in van vóór u met deze app begon te registreren. Dit wordt gebruikt als vorige tellerstand voor de eerste ingave.
+        </p>
+
+        <div className={styles.priceField}>
+          <label className={styles.priceLabel}>Tellerstand water</label>
+          <div className={styles.priceInputWrap}>
+            <input
+              className={styles.priceInput}
+              type="number"
+              min="0"
+              step="1"
+              value={waterCount}
+              onChange={(e) => { setWaterCount(e.target.value); setWaterCountSaved(false); }}
+              placeholder="0"
+            />
+            <span className={styles.priceUnit}>m³</span>
+          </div>
+        </div>
+
+        <div className={styles.sectionFooter}>
+          {waterCountSaved && <span className={styles.savedMsg}>Opgeslagen</span>}
+          <button type="submit" className={styles.saveBtn} disabled={savingWaterCount}>
+            {savingWaterCount ? 'Opslaan...' : 'Opslaan'}
+          </button>
+        </div>
+      </form>
 
       {/* ── Sectie 4: Start hoeveelheid wagens ──────────────── */}
       <form className={styles.section} onSubmit={handleSaveCarCount} noValidate>

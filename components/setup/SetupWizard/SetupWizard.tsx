@@ -58,6 +58,7 @@ export function SetupWizard({ siteId, siteName, sites, initialPrices, initialTas
 
   const [tellerstand, setTellerstand] = useState(0);
   const [tellerstandDate, setTellerstandDate] = useState(new Date().toISOString().slice(0, 10));
+  const [waterTellerstand, setWaterTellerstand] = useState(0);
   const [prices, setPrices] = useState<Prices>(initialPrices);
   const [priceRaw, setPriceRaw] = useState<Record<keyof Prices, string>>({
     water_per_liter: initialPrices.water_per_liter ? String(initialPrices.water_per_liter) : '',
@@ -102,6 +103,7 @@ export function SetupWizard({ siteId, siteName, sites, initialPrices, initialTas
           siteId,
           tellerstand,
           tellerstandDate,
+          waterTellerstand,
           prices,
           maintenanceTasks: tasks.map((t) => ({
             description: t.description,
@@ -192,6 +194,20 @@ export function SetupWizard({ siteId, siteName, sites, initialPrices, initialTas
               className={styles.input}
               value={tellerstandDate}
               onChange={(e) => setTellerstandDate(e.target.value)}
+            />
+          </div>
+          <div className={styles.fieldGroup}>
+            <label className={styles.label} htmlFor="waterTellerstand">
+              Huidige tellerstand water (m³)
+            </label>
+            <input
+              id="waterTellerstand"
+              type="number"
+              min={0}
+              className={styles.input}
+              value={waterTellerstand || ''}
+              placeholder="bijv. 4500"
+              onChange={(e) => setWaterTellerstand(parseInt(e.target.value) || 0)}
             />
           </div>
           <div className={styles.navRow}>
@@ -478,6 +494,7 @@ export function SetupWizard({ siteId, siteName, sites, initialPrices, initialTas
           </p>
           <ul className={styles.checkList}>
             <li>Tellerstand opgeslagen: {tellerstand.toLocaleString('nl-BE')} wassen</li>
+            <li>Tellerstand water opgeslagen: {waterTellerstand.toLocaleString('nl-BE')} m³</li>
             <li>{tasks.length} onderhoudstaak{tasks.length !== 1 ? 'en' : ''} geconfigureerd</li>
             <li>Kostprijzen ingesteld</li>
           </ul>
