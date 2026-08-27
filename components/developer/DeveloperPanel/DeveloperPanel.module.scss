@@ -445,6 +445,42 @@
   }
 }
 
+// ── Back-up (export/import) ────────────────────────────────────
+.backupActions {
+  display: flex;
+}
+
+.backupImportSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.deleteBtnWide {
+  height: 32px;
+  padding: 0 var(--space-5);
+  background: var(--color-surface);
+  border: 1px solid var(--color-accent-red-border);
+  border-radius: var(--radius-md);
+  color: var(--color-accent-red);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+
+  &:hover:not(:disabled) {
+    background: var(--color-accent-red);
+    color: var(--color-text-inverse);
+  }
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
 .saveSmallBtn {
   height: 32px;
   padding: 0 var(--space-5);

@@ -431,7 +431,7 @@ function MaintenanceTaskRow({
 }
 
 // ── Main panel ────────────────────────────────────────────────
-type DevTab = 'sites' | 'users' | 'programs' | 'stock' | 'maintenance';
+type DevTab = 'sites' | 'users' | 'programs' | 'stock' | 'maintenance' | 'backup';
 
 const DEV_TABS: { id: DevTab; label: string }[] = [
   { id: 'sites', label: 'Sites' },
@@ -439,7 +439,14 @@ const DEV_TABS: { id: DevTab; label: string }[] = [
   { id: 'programs', label: "Programma's" },
   { id: 'stock', label: 'Voorraad' },
   { id: 'maintenance', label: 'Onderhoud' },
+  { id: 'backup', label: 'Back-up' },
 ];
+
+interface ImportPreview {
+  meta: { ownerName?: string; ownerEmail?: string; exportedAt?: string; siteNames?: string[] };
+  currentCounts: Record<string, number>;
+  importCounts: Record<string, number>;
+}
 
 export function DeveloperPanel({ users: initialUsers, sites: initialSites, programs: initialPrograms, maintenanceTasks: initialTasks, stockItems: initialStock }: DeveloperPanelProps) {
   const [activeTab, setActiveTab] = useState<DevTab>('sites');
@@ -448,6 +455,100 @@ export function DeveloperPanel({ users: initialUsers, sites: initialSites, progr
   const [programs, setPrograms] = useState(initialPrograms);
   const [tasks, setTasks] = useState(initialTasks);
   const [stockItems, setStockItems] = useState(initialStock);
+
+  // ── Back-up (export/import) state ───────────────────────────
+  const owners = users.filter((u) => u.role === 'owner');
+  const [backupOwnerId, setBackupOwnerId] = useState(owners[0]?.id ?? '');
+  const [exporting, setExporting] = useState(false);
+  const [importPayload, setImportPayload] = useState<Record<string, unknown> | null>(null);
+  const [importFileName, setImportFileName] = useState('');
+  const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
+  const [checkingImport, setCheckingImport] = useState(false);
+  const [restoring, setRestoring] = useState(false);
+  const [backupError, setBackupError] = useState('');
+  const [restoreDone, setRestoreDone] = useState(false);
+
+  async function handleExport() {
+    if (!backupOwnerId) return;
+    setExporting(true);
+    setBackupError('');
+    try {
+      const res = await fetch(`/api/developer/export?ownerId=${backupOwnerId}`);
+      if (!res.ok) {
+        const err = await res.json().catch(() => null) as { error?: string } | null;
+        setBackupError(err?.error ?? 'Export mislukt');
+        return;
+      }
+      const blob = await res.blob();
+      const disposition = res.headers.get('Content-Disposition') ?? '';
+      const match = disposition.match(/filename="(.+)"/);
+      const filename = match?.[1] ?? 'washiq-backup.json';
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  async function handleImportFileSelected(file: File) {
+    setBackupError('');
+    setImportPreview(null);
+    setRestoreDone(false);
+    setImportFileName(file.name);
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text) as Record<string, unknown>;
+      setImportPayload(parsed);
+      setCheckingImport(true);
+      const res = await fetch('/api/developer/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dryRun: true, payload: parsed }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => null) as { error?: string } | null;
+        setBackupError(err?.error ?? 'Bestand kon niet gelezen worden');
+        setImportPayload(null);
+        return;
+      }
+      const data = (await res.json()) as { currentCounts: Record<string, number>; importCounts: Record<string, number>; meta: ImportPreview['meta'] };
+      setImportPreview({ meta: data.meta, currentCounts: data.currentCounts, importCounts: data.importCounts });
+    } catch {
+      setBackupError('Ongeldig back-up bestand');
+      setImportPayload(null);
+    } finally {
+      setCheckingImport(false);
+    }
+  }
+
+  async function handleConfirmRestore() {
+    if (!importPayload) return;
+    if (!confirm('Dit overschrijft alle huidige data van deze carwash(es) met de back-up. Deze actie kan niet ongedaan gemaakt worden. Doorgaan?')) return;
+    setRestoring(true);
+    setBackupError('');
+    try {
+      const res = await fetch('/api/developer/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dryRun: false, payload: importPayload }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => null) as { error?: string } | null;
+        setBackupError(err?.error ?? 'Herstellen mislukt');
+        return;
+      }
+      setRestoreDone(true);
+      setImportPayload(null);
+      setImportPreview(null);
+      setImportFileName('');
+    } finally {
+      setRestoring(false);
+    }
+  }
 
   // ── Site add state ──────────────────────────────────────────
   const [showAddSite, setShowAddSite] = useState(false);
@@ -1051,6 +1152,90 @@ export function DeveloperPanel({ users: initialUsers, sites: initialSites, progr
               />
             ))}
         </div>
+      </div>
+      )}
+
+      {/* ══ BACK-UP (EXPORT/IMPORT) ═══════════════════════════ */}
+      {activeTab === 'backup' && (
+      <div className={styles.card}>
+        <div className={styles.header}>
+          <h1 className={styles.title}>Back-up per eigenaar</h1>
+        </div>
+
+        {owners.length === 0 ? (
+          <p className={styles.noAccess}>Geen eigenaars gevonden.</p>
+        ) : (
+          <>
+            <div className={styles.addFormRow}>
+              <div className={styles.addFieldFull}>
+                <label className={styles.addLabel}>Eigenaar</label>
+                <select
+                  className={styles.roleSelect}
+                  value={backupOwnerId}
+                  onChange={(e) => setBackupOwnerId(e.target.value)}
+                >
+                  {owners.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.name} ({o.email}) — {o.siteNames.join(', ') || 'geen carwashes'}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className={styles.backupActions}>
+              <button type="button" className={styles.addUserBtn} onClick={handleExport} disabled={exporting}>
+                {exporting ? 'Exporteren...' : '↓ Exporteer back-up (JSON)'}
+              </button>
+            </div>
+
+            <div className={styles.backupImportSection}>
+              <p className={styles.editLabel}>Back-up terug importeren</p>
+              <p className={styles.noAccess} style={{ margin: 0 }}>
+                Kies een eerder geëxporteerd JSON-bestand. Je krijgt eerst een overzicht te zien voor je iets overschrijft.
+              </p>
+              <input
+                type="file"
+                accept="application/json"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImportFileSelected(f); }}
+              />
+              {checkingImport && <p className={styles.noAccess}>Bestand controleren...</p>}
+              {backupError && <p className={styles.addError}>{backupError}</p>}
+              {restoreDone && <p className={styles.editLabel} style={{ color: 'var(--color-accent-teal)' }}>Herstel voltooid.</p>}
+
+              {importPreview && (
+                <div className={styles.editPanel}>
+                  <p className={styles.editLabel}>
+                    Back-up van <strong>{importPreview.meta.ownerName}</strong> ({importPreview.meta.ownerEmail}) —{' '}
+                    {importPreview.meta.exportedAt ? new Date(importPreview.meta.exportedAt).toLocaleString('nl-BE') : ''}
+                  </p>
+                  <p className={styles.editLabel}>Carwashes in dit bestand: {importPreview.meta.siteNames?.join(', ')}</p>
+                  <div className={styles.taskList}>
+                    {Object.keys(importPreview.importCounts).map((key) => (
+                      <div key={key} className={styles.taskRow} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px' }}>
+                        <span>{key}</span>
+                        <span>
+                          {importPreview.currentCounts[key] ?? 0} huidig → {importPreview.importCounts[key] ?? 0} in back-up
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className={styles.addError}>
+                    Bevestigen overschrijft alle bovenstaande huidige data permanent met de back-up ({importFileName}).
+                  </p>
+                  <div className={styles.addFormFooter}>
+                    <button type="button" className={styles.cancelBtn} onClick={() => { setImportPreview(null); setImportPayload(null); setImportFileName(''); }}>
+                      Annuleren
+                    </button>
+                    <button type="button" className={styles.deleteBtnWide} onClick={handleConfirmRestore} disabled={restoring}>
+                      {restoring ? 'Bezig met herstellen...' : 'Bevestig herstellen (overschrijft data)'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
       )}
     </div>
