@@ -161,6 +161,8 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
   const [addingUser, setAddingUser] = useState(false);
   const [addUserError, setAddUserError] = useState('');
   const [addUserSuccess, setAddUserSuccess] = useState('');
+  const [resetOpenId, setResetOpenId] = useState<string | null>(null);
+  const [newPasswordValue, setNewPasswordValue] = useState('');
   const [resettingUserId, setResettingUserId] = useState<string | null>(null);
   const [resetDoneId, setResetDoneId] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
@@ -245,17 +247,19 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
     setUsers((prev) => prev.filter((u) => u.id !== userId));
   }
 
-  async function handleResetPassword(userId: string, userName: string, userEmail: string) {
-    if (!window.confirm(`Wachtwoord van "${userName}" resetten? Er wordt een nieuw wachtwoord gegenereerd en gemaild naar ${userEmail}.`)) return;
+  async function handleSaveNewPassword(userId: string) {
+    if (!newPasswordValue.trim() || newPasswordValue.length < 6) return;
     setResettingUserId(userId);
     setResetDoneId(null);
     try {
       const res = await fetch(`/api/users/${userId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ resetPassword: true }),
+        body: JSON.stringify({ newPassword: newPasswordValue }),
       });
       if (res.ok) {
+        setResetOpenId(null);
+        setNewPasswordValue('');
         setResetDoneId(userId);
         setTimeout(() => setResetDoneId((id) => (id === userId ? null : id)), 4000);
       }
@@ -692,14 +696,42 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
                   <span className={`${styles.roleBadge} ${styles[`role_${u.role}`]}`}>{roleLabel}</span>
                 )}
                 {canChangeRole && (
-                  <button
-                    type="button"
-                    className={styles.revokeBtn}
-                    onClick={() => handleResetPassword(u.id, u.name, u.email)}
-                    disabled={resettingUserId === u.id}
-                  >
-                    {resettingUserId === u.id ? 'Bezig...' : resetDoneId === u.id ? 'Verzonden ✓' : 'Wachtwoord resetten'}
-                  </button>
+                  resetOpenId === u.id ? (
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                      <input
+                        type="text"
+                        className={styles.input}
+                        placeholder="Nieuw wachtwoord"
+                        value={newPasswordValue}
+                        onChange={(e) => setNewPasswordValue(e.target.value)}
+                        autoFocus
+                        style={{ width: 140 }}
+                      />
+                      <button
+                        type="button"
+                        className={styles.revokeBtn}
+                        onClick={() => handleSaveNewPassword(u.id)}
+                        disabled={resettingUserId === u.id || newPasswordValue.length < 6}
+                      >
+                        {resettingUserId === u.id ? '...' : 'Opslaan'}
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.revokeBtn}
+                        onClick={() => { setResetOpenId(null); setNewPasswordValue(''); }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className={styles.revokeBtn}
+                      onClick={() => setResetOpenId(u.id)}
+                    >
+                      {resetDoneId === u.id ? 'Opgeslagen ✓' : 'Wachtwoord resetten'}
+                    </button>
+                  )
                 )}
                 {canRevoke && (
                   <button

@@ -93,6 +93,8 @@ function UserRow({
   const [whatsapp, setWhatsapp] = useState(user.whatsapp ?? '');
   const [isActive, setIsActive] = useState(user.is_active ?? true);
   const [saving, setSaving] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
+  const [newPasswordValue, setNewPasswordValue] = useState('');
   const [resetting, setResetting] = useState(false);
   const [resetDone, setResetDone] = useState(false);
 
@@ -125,17 +127,19 @@ function UserRow({
     onDelete(user.id);
   }
 
-  async function handleResetPassword() {
-    if (!confirm(`Wachtwoord van "${user.name}" resetten? Er wordt een nieuw wachtwoord gegenereerd en gemaild naar ${user.email}.`)) return;
+  async function handleSaveNewPassword() {
+    if (!newPasswordValue.trim() || newPasswordValue.length < 6) return;
     setResetting(true);
     setResetDone(false);
     try {
       const res = await fetch(`/api/users/${user.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ resetPassword: true }),
+        body: JSON.stringify({ newPassword: newPasswordValue }),
       });
       if (res.ok) {
+        setResetOpen(false);
+        setNewPasswordValue('');
         setResetDone(true);
         setTimeout(() => setResetDone(false), 4000);
       }
@@ -171,17 +175,45 @@ function UserRow({
           )}
         </div>
         <div className={styles.rowActions}>
-          {resetDone && <span className={styles.savedMsg}>Verzonden ✓</span>}
-          <button
-            type="button"
-            className={styles.editBtn}
-            onClick={handleResetPassword}
-            disabled={resetting}
-            aria-label="Wachtwoord resetten"
-            title="Wachtwoord resetten"
-          >
-            🔑
-          </button>
+          {resetDone && <span className={styles.savedMsg}>Opgeslagen ✓</span>}
+          {resetOpen ? (
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <input
+                type="text"
+                className={styles.input}
+                placeholder="Nieuw wachtwoord"
+                value={newPasswordValue}
+                onChange={(e) => setNewPasswordValue(e.target.value)}
+                autoFocus
+                style={{ width: 140 }}
+              />
+              <button
+                type="button"
+                className={styles.saveSmallBtn}
+                onClick={handleSaveNewPassword}
+                disabled={resetting || newPasswordValue.length < 6}
+              >
+                {resetting ? '...' : 'Opslaan'}
+              </button>
+              <button
+                type="button"
+                className={styles.deleteBtn}
+                onClick={() => { setResetOpen(false); setNewPasswordValue(''); }}
+              >
+                ✕
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className={styles.editBtn}
+              onClick={() => setResetOpen(true)}
+              aria-label="Wachtwoord resetten"
+              title="Wachtwoord resetten"
+            >
+              🔑
+            </button>
+          )}
           <button
             type="button"
             className={styles.editBtn}
