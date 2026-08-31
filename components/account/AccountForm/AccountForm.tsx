@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import styles from './AccountForm.module.scss';
 import { IconEye, IconEyeOff } from '@/components/ui/icons';
 import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher/LanguageSwitcher';
+import { NotificationSettings } from '@/components/account/NotificationSettings/NotificationSettings';
 
 interface UserItem {
   id: string;
@@ -415,6 +416,10 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
               <label className={styles.fieldLabel}>Taal</label>
               <LanguageSwitcher />
             </div>
+            <div className={styles.fieldGroup}>
+              <label className={styles.fieldLabel}>Meldingen</label>
+              <NotificationSettings />
+            </div>
           </div>
         </section>
       </div>
@@ -472,6 +477,10 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
           <div className={styles.fieldGroup}>
             <label className={styles.fieldLabel}>Taal</label>
             <LanguageSwitcher />
+          </div>
+          <div className={styles.fieldGroup}>
+            <label className={styles.fieldLabel}>Meldingen</label>
+            <NotificationSettings />
           </div>
         </div>
       </section>

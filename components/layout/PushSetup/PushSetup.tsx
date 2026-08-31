@@ -2,42 +2,10 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
+import { registerPushSubscription, requestAndRegisterPush } from '@/lib/pushClient';
 import styles from './PushSetup.module.scss';
 
 const DISMISSED_KEY = 'dodane_push_dismissed';
-
-function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
-  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-  const rawData = window.atob(base64);
-  const buffer = new Uint8Array(rawData.length);
-  for (let i = 0; i < rawData.length; i++) {
-    buffer[i] = rawData.charCodeAt(i);
-  }
-  return buffer.buffer as ArrayBuffer;
-}
-
-async function registerSubscription() {
-  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-  if (!publicKey) return;
-
-  const registration = await navigator.serviceWorker.ready;
-  let subscription = await registration.pushManager.getSubscription();
-
-  if (!subscription) {
-    subscription = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(publicKey),
-    });
-  }
-
-  const subJson = subscription.toJSON();
-  await fetch('/api/push/subscribe', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ endpoint: subJson.endpoint, keys: subJson.keys }),
-  });
-}
 
 export default function PushSetup() {
   const pathname = usePathname();
@@ -65,7 +33,7 @@ export default function PushSetup() {
       if (!registeredSub.current) {
         registeredSub.current = true;
         navigator.serviceWorker.ready.then((reg) => {
-          if (reg.pushManager) registerSubscription().catch(() => {});
+          if (reg.pushManager) registerPushSubscription().catch(() => {});
         });
       }
       return;
@@ -93,13 +61,7 @@ export default function PushSetup() {
     setState('hidden');
     try {
       // requestPermission MUST be called here — inside a click/tap handler
-      const permission = await Notification.requestPermission();
-      if (permission === 'granted') {
-        const reg = await navigator.serviceWorker.ready;
-        if (reg.pushManager) {
-          await registerSubscription();
-        }
-      }
+      await requestAndRegisterPush();
     } catch {
       // silently ignore
     }
