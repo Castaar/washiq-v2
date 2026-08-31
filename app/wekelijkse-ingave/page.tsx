@@ -1,4 +1,5 @@
 import { cookies } from 'next/headers';
+import { getLocale } from 'next-intl/server';
 import { NavBar } from '@/components/layout/NavBar/NavBar';
 import { WeeklyEntryForm } from '@/components/forms/WeeklyEntryForm/WeeklyEntryForm';
 import { dbConnect } from '@/lib/db/mongoose';
@@ -6,6 +7,7 @@ import { Site, WashProgram, WeeklyEntry, User, ChemicalStock, MaintenanceTask } 
 import { getSession } from '@/lib/session';
 import type { Types } from 'mongoose';
 import { filterSitesForUser, resolveActiveSite, redirectIfSetupNeeded, redirectWithSiteParam } from '@/lib/getUserSites';
+import { getTranslationMap } from '@/lib/contentTranslations';
 import styles from './page.module.scss';
 
 export default async function WekelijkseIngavePage({
@@ -17,6 +19,8 @@ export default async function WekelijkseIngavePage({
   await dbConnect();
 
   const session = await getSession();
+  const locale = await getLocale();
+  const contentTranslations = await getTranslationMap(locale);
 
   const cookieStore = await cookies();
   const cookieSite = cookieStore.get('dodane_active_site')?.value;
@@ -116,6 +120,7 @@ export default async function WekelijkseIngavePage({
           washesTasks={washesTasksData}
           startCarCount={startCarCount}
           startWaterCount={startWaterCount}
+          contentTranslations={contentTranslations}
         />
       </main>
     </div>

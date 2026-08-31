@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import { getLocale } from 'next-intl/server';
 import { dbConnect } from '@/lib/db/mongoose';
+import { getTranslationMap, translateContent } from '@/lib/contentTranslations';
 import {
   WeeklyEntry,
   WashProgram,
@@ -63,6 +65,8 @@ export async function CarwashPage({
   userName?: string;
 }) {
   await dbConnect();
+  const locale = await getLocale();
+  const contentTranslations = await getTranslationMap(locale);
 
   // ── Resolve site ─────────────────────────────────────────────
   const resolvedSite = propSiteId
@@ -148,7 +152,7 @@ export async function CarwashPage({
     ];
     for (const cu of (entry.chemical_usages ?? []) as { name: string; amount: number; unit: string }[]) {
       const chemPrice = (p?.chemicals as { name: string; price_per_unit: number }[] | undefined)?.find((c) => c.name === cu.name);
-      rows.push({ label: cu.name, euroPerWagen: r2((cu.amount ?? 0) * (chemPrice?.price_per_unit ?? 0) / wagens), rawPerWagen: r3((cu.amount ?? 0) / wagens), unit: cu.unit, isChemical: true });
+      rows.push({ label: translateContent(contentTranslations, 'product', cu.name), euroPerWagen: r2((cu.amount ?? 0) * (chemPrice?.price_per_unit ?? 0) / wagens), rawPerWagen: r3((cu.amount ?? 0) / wagens), unit: cu.unit, isChemical: true });
     }
     return rows;
   }
@@ -285,7 +289,7 @@ export async function CarwashPage({
     );
     const prevRawAmount = prev ? (prev.amount / prevDivisor) : 0;
     const prevVal = prev ? Math.round(prevRawAmount * rate * 100) / 100 : 0;
-    return { id: cu.chemical_id?.toString() ?? String(i), label: cu.name, value: val, delta: calcDelta(val, prevVal), rawAmount: Math.round(rawAmount * 1000) / 1000, unit: cu.unit };
+    return { id: cu.chemical_id?.toString() ?? String(i), label: translateContent(contentTranslations, 'product', cu.name), value: val, delta: calcDelta(val, prevVal), rawAmount: Math.round(rawAmount * 1000) / 1000, unit: cu.unit };
   });
 
   const programOptions: ProgramOption[] = programs.map((p) => {
@@ -298,10 +302,10 @@ export async function CarwashPage({
     );
     return {
       id: pid,
-      name: p.name as string,
+      name: translateContent(contentTranslations, 'program', p.name as string),
       count: curr?.count ?? 0,
       prevCount: prev?.count ?? 0,
-      chemicals: (p.chemicals as string[]) ?? [],
+      chemicals: ((p.chemicals as string[]) ?? []).map((n) => translateContent(contentTranslations, 'product', n)),
     };
   });
 
@@ -863,7 +867,7 @@ export async function CarwashPage({
   // ── Voorraad ─────────────────────────────────────────────────
   const voorraad: VoorraadItem[] = stocks.map((s) => ({
     id: s._id.toString(),
-    name: s.name,
+    name: translateContent(contentTranslations, 'product', s.name),
     current: s.current_stock,
     max: s.min_stock_alert > 0 ? s.min_stock_alert * 3 : 100,
     unit: s.unit,

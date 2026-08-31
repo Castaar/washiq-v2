@@ -44,6 +44,7 @@ export interface WeeklyEntryFormProps {
   washesTasks?: WashesTask[];
   startCarCount?: number;
   startWaterCount?: number;
+  contentTranslations?: Record<string, string>;
 }
 
 // Monday (00:00 UTC) of the ISO week containing the given YYYY-MM-DD date string
@@ -122,8 +123,10 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 }
 
 // ─── Main form ────────────────────────────────────────────────
-export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesTasks = [], startCarCount = 0, startWaterCount = 0 }: WeeklyEntryFormProps) {
+export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesTasks = [], startCarCount = 0, startWaterCount = 0, contentTranslations = {} }: WeeklyEntryFormProps) {
   const router = useRouter();
+  const tProduct = (name: string) => contentTranslations[`product.${name}`] || name;
+  const tProgram = (name: string) => contentTranslations[`program.${name}`] || name;
 
   const uniqueChemicals = useMemo(() => {
     const seen = new Set<string>();
@@ -297,7 +300,7 @@ export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesT
           <div className={styles.maintenanceWarnings}>
             {maintenanceWarnings.map(({ task, type, remaining }) => (
               <div key={task.id} className={type === 'overdue' ? styles.warnOverdue : styles.warnApproaching}>
-                <strong>{task.description}</strong>
+                <strong>{contentTranslations[`task.${task.description}`] || task.description}</strong>
                 {type === 'overdue'
                   ? ' — vervallen! Onderhoud is al voorbij.'
                   : ` — nog ${remaining.toLocaleString('nl-BE')} wagens tot onderhoud.`}
@@ -314,7 +317,7 @@ export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesT
           {programs.length > 0 ? programs.map((p) => (
             <EntryField
               key={p.id}
-              label={p.name}
+              label={tProgram(p.name)}
               value={programCounts[p.id] ?? ''}
               onChange={(v) => setProgramCount(p.id, v)}
               delta={getDelta(programCounts[p.id] ?? '', lastCountMap[p.id])}
@@ -372,7 +375,7 @@ export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesT
             {uniqueChemicals.map((c) => (
               <EntryField
                 key={c.id}
-                label={`${c.name} (${c.unit})`}
+                label={`${tProduct(c.name)} (${c.unit})`}
                 value={chemicalUsages[c.id] ?? ''}
                 onChange={(v) => setChemical(c.id, v)}
                 delta={getDelta(chemicalUsages[c.id] ?? '', lastChemMap[c.id])}

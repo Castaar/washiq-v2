@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { BottomSheet } from '@/components/ui/BottomSheet/BottomSheet';
 import {
   IconBarChart, IconClipboard, IconCalendar, IconGrid, IconUser,
-  IconSettings, IconMessageSquare, IconCheck, IconWrench, IconCart, IconBox, IconDownload,
+  IconSettings, IconMessageSquare, IconCheck, IconWrench, IconCart, IconBox, IconDownload, IconGlobe,
 } from '@/components/ui/icons';
 import type { UserRole } from './BottomNav';
 import styles from './MeerSheet.module.scss';
@@ -29,6 +29,7 @@ const OWNER_LINKS: MeerLink[] = [
   { href: '/onderhouden', label: 'Onderhoud', icon: IconWrench },
   { href: '/leveringen', label: 'Leveringen', icon: IconCart },
   { href: '/diversen', label: 'Diversen', icon: IconGrid },
+  { href: '/vertalingen', label: 'Vertalingen', icon: IconGlobe },
   { href: '/instellingen', label: 'Instellingen', icon: IconSettings },
   { href: '/account', label: 'Account', icon: IconUser },
   { href: '/handleiding', label: 'Handleiding', icon: IconMessageSquare },
