@@ -5,7 +5,7 @@ import { getSessionFromRequest } from '@/lib/session';
 import bcrypt from 'bcryptjs';
 import { sendWelcomeEmail } from '@/lib/email';
 
-const OWNER_CREATABLE_ROLES = ['employee', 'technician'];
+const OWNER_CREATABLE_ROLES = ['employee', 'technician', 'owner'];
 
 export async function POST(req: NextRequest) {
   const session = await getSessionFromRequest(req);

@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import styles from './LoginForm.module.scss';
 import { IconEye, IconEyeOff } from '@/components/ui/icons';
+import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher/LanguageSwitcher';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -21,6 +23,7 @@ interface LoginFormProps {
 
 export function LoginForm({ sites }: LoginFormProps) {
   const router = useRouter();
+  const t = useTranslations('login');
   const [siteId, setSiteId] = useState(sites[0]?.id ?? '');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -85,10 +88,10 @@ export function LoginForm({ sites }: LoginFormProps) {
         router.refresh();
       } else {
         const data = await res.json().catch(() => ({}));
-        setError((data as { error?: string }).error || 'Gebruikersnaam of wachtwoord onjuist');
+        setError((data as { error?: string }).error || t('foutOnjuist'));
       }
     } catch {
-      setError('Verbindingsfout. Probeer opnieuw.');
+      setError(t('foutVerbinding'));
     } finally {
       setLoading(false);
     }
@@ -102,14 +105,14 @@ export function LoginForm({ sites }: LoginFormProps) {
 
       {sites.length > 1 && (
         <div className={styles.fieldGroup}>
-          <label className={styles.label}>Locatie / site</label>
+          <label className={styles.label}>{t('locatieSite')}</label>
           <div className={styles.selectWrap}>
             <select
               className={styles.select}
               value={siteId}
               onChange={(e) => setSiteId(e.target.value)}
             >
-              <option value="">Selecteer uw carwash...</option>
+              <option value="">{t('selecteerCarwash')}</option>
               {sites.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name}
@@ -122,7 +125,7 @@ export function LoginForm({ sites }: LoginFormProps) {
       )}
 
       <div className={styles.fieldGroup}>
-        <label className={styles.label}>Gebruikersnaam</label>
+        <label className={styles.label}>{t('gebruikersnaam')}</label>
         <input
           className={styles.input}
           type="text"
@@ -133,7 +136,7 @@ export function LoginForm({ sites }: LoginFormProps) {
       </div>
 
       <div className={styles.fieldGroup}>
-        <label className={styles.label}>Wachtwoord</label>
+        <label className={styles.label}>{t('wachtwoord')}</label>
         <div className={styles.passwordWrap}>
           <input
             className={styles.input}
@@ -147,7 +150,7 @@ export function LoginForm({ sites }: LoginFormProps) {
             className={styles.eyeBtn}
             onClick={() => setShowPassword((v) => !v)}
             tabIndex={-1}
-            aria-label={showPassword ? 'Wachtwoord verbergen' : 'Wachtwoord tonen'}
+            aria-label={showPassword ? t('wachtwoordVerbergen') : t('wachtwoordTonen')}
           >
             {showPassword ? <IconEyeOff size={16} /> : <IconEye size={16} />}
           </button>
@@ -157,28 +160,30 @@ export function LoginForm({ sites }: LoginFormProps) {
       {error && <p className={styles.error}>{error}</p>}
 
       <button type="submit" className={styles.submitBtn} disabled={loading}>
-        {loading ? 'Bezig...' : 'Inloggen'}
+        {loading ? t('bezig') : t('inloggen')}
       </button>
 
       {!isStandalone && installPrompt && (
         <button type="button" className={styles.installBtn} onClick={handleInstall}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          App installeren
+          {t('appInstalleren')}
         </button>
       )}
       {!isStandalone && !installPrompt && isSafari && (
         <div className={styles.safariInstall}>
           <button type="button" className={styles.installBtn} onClick={() => setShowSafariTip((v) => !v)}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            App installeren
+            {t('appInstalleren')}
           </button>
           {showSafariTip && (
             <p className={styles.safariTip}>
-              Op Safari: kies <strong>Bestand → Voeg toe aan Dock</strong> (macOS) of gebruik de deelknop → <strong>Zet op beginscherm</strong> (iOS).
+              {t.rich('safariTip', { b: (chunks) => <strong>{chunks}</strong> })}
             </p>
           )}
         </div>
       )}
+
+      <LanguageSwitcher />
     </form>
   );
 }

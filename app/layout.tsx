@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
+import { NextIntlClientProvider } from 'next-intl';
+import { getLocale, getMessages } from 'next-intl/server';
 import { PwaRegister } from '@/components/layout/PwaRegister';
 import PushSetup from '@/components/layout/PushSetup/PushSetup';
 import { ToastProvider } from '@/components/ui/Toast/ToastProvider';
@@ -39,17 +41,21 @@ export const viewport: Viewport = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
+  const locale = await getLocale();
+  const messages = await getMessages();
 
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang={locale} className={inter.variable}>
       <body className={session ? 'has-bottom-nav' : ''}>
-        <ToastProvider>
-          <PwaRegister />
-          <PushSetup />
-          {children}
-          {session && <BottomNav role={session.role} />}
-          {session && <DesktopNav role={session.role} />}
-        </ToastProvider>
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          <ToastProvider>
+            <PwaRegister />
+            <PushSetup />
+            {children}
+            {session && <BottomNav role={session.role} />}
+            {session && <DesktopNav role={session.role} />}
+          </ToastProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

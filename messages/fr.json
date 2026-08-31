@@ -1,0 +1,32 @@
+{
+  "nav": {
+    "dashboard": "Tableau de bord",
+    "ingave": "Saisie",
+    "melden": "Signaler",
+    "meer": "Plus",
+    "werklijst": "Liste de travail",
+    "logboek": "Journal",
+    "leveringen": "Livraisons",
+    "account": "Compte",
+    "hoofdnavigatie": "Navigation principale"
+  },
+  "login": {
+    "locatieSite": "Emplacement / site",
+    "selecteerCarwash": "Sélectionnez votre car-wash...",
+    "gebruikersnaam": "Nom d'utilisateur",
+    "wachtwoord": "Mot de passe",
+    "wachtwoordVerbergen": "Masquer le mot de passe",
+    "wachtwoordTonen": "Afficher le mot de passe",
+    "bezig": "En cours...",
+    "inloggen": "Connexion",
+    "appInstalleren": "Installer l'app",
+    "foutOnjuist": "Nom d'utilisateur ou mot de passe incorrect",
+    "foutVerbinding": "Erreur de connexion. Réessayez.",
+    "safariTip": "Sur Safari : choisissez <b>Fichier → Ajouter au Dock</b> (macOS) ou utilisez le bouton de partage → <b>Sur l'écran d'accueil</b> (iOS)."
+  },
+  "taal": {
+    "label": "Langue",
+    "nl": "Néerlandais",
+    "fr": "Français"
+  }
+}

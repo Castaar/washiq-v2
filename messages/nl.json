@@ -1,0 +1,32 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "ingave": "Ingave",
+    "melden": "Melden",
+    "meer": "Meer",
+    "werklijst": "Werklijst",
+    "logboek": "Logboek",
+    "leveringen": "Leveringen",
+    "account": "Account",
+    "hoofdnavigatie": "Hoofdnavigatie"
+  },
+  "login": {
+    "locatieSite": "Locatie / site",
+    "selecteerCarwash": "Selecteer uw carwash...",
+    "gebruikersnaam": "Gebruikersnaam",
+    "wachtwoord": "Wachtwoord",
+    "wachtwoordVerbergen": "Wachtwoord verbergen",
+    "wachtwoordTonen": "Wachtwoord tonen",
+    "bezig": "Bezig...",
+    "inloggen": "Inloggen",
+    "appInstalleren": "App installeren",
+    "foutOnjuist": "Gebruikersnaam of wachtwoord onjuist",
+    "foutVerbinding": "Verbindingsfout. Probeer opnieuw.",
+    "safariTip": "Op Safari: kies <b>Bestand → Voeg toe aan Dock</b> (macOS) of gebruik de deelknop → <b>Zet op beginscherm</b> (iOS)."
+  },
+  "taal": {
+    "label": "Taal",
+    "nl": "Nederlands",
+    "fr": "Frans"
+  }
+}

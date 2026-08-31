@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import styles from './AccountForm.module.scss';
 import { IconEye, IconEyeOff } from '@/components/ui/icons';
+import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher/LanguageSwitcher';
 
 interface UserItem {
   id: string;
@@ -154,7 +155,7 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
   const [newName, setNewName] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  const [newRole, setNewRole] = useState<'employee' | 'technician'>('employee');
+  const [newRole, setNewRole] = useState<'employee' | 'technician' | 'owner'>('employee');
   const [saving, setSaving] = useState(false);
   const [addingUser, setAddingUser] = useState(false);
   const [addUserError, setAddUserError] = useState('');
@@ -231,7 +232,8 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
     }
   }
 
-  async function handleRevokeUser(userId: string) {
+  async function handleRevokeUser(userId: string, userName: string) {
+    if (!window.confirm(`Toegang van "${userName}" tot deze carwash opzeggen?`)) return;
     await fetch(`/api/users/${userId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -264,7 +266,7 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
       const res = await fetch('/api/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ siteIds: siteId ? [siteId] : [], name: newName.trim(), email: newEmail.trim(), password: newPassword, role: newRole }),
+        body: JSON.stringify({ siteIds: sitesList.map((s) => s.id), name: newName.trim(), email: newEmail.trim(), password: newPassword, role: newRole }),
       });
       const data = await res.json() as { id?: string; error?: string };
       if (res.ok && data.id) {
@@ -409,6 +411,10 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
                 }
               />
             </div>
+            <div className={styles.fieldGroup}>
+              <label className={styles.fieldLabel}>Taal</label>
+              <LanguageSwitcher />
+            </div>
           </div>
         </section>
       </div>
@@ -462,6 +468,10 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
               value={birthday}
               onChange={(e) => setBirthday(e.target.value)}
             />
+          </div>
+          <div className={styles.fieldGroup}>
+            <label className={styles.fieldLabel}>Taal</label>
+            <LanguageSwitcher />
           </div>
         </div>
       </section>
@@ -655,7 +665,7 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
                   <button
                     type="button"
                     className={styles.revokeBtn}
-                    onClick={() => handleRevokeUser(u.id)}
+                    onClick={() => handleRevokeUser(u.id, u.name)}
                   >
                     Toegang opzeggen
                   </button>
@@ -704,12 +714,16 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
             <select
               className={styles.input}
               value={newRole}
-              onChange={(e) => setNewRole(e.target.value as 'employee' | 'technician')}
+              onChange={(e) => setNewRole(e.target.value as 'employee' | 'technician' | 'owner')}
             >
               <option value="employee">Medewerker</option>
               <option value="technician">Technieker</option>
+              {(role === 'owner' || role === 'developer') && <option value="owner">Eigenaar</option>}
             </select>
           </div>
+          <p className={styles.addUserLabel} style={{ fontWeight: 400, marginTop: 4 }}>
+            Krijgt toegang tot al je carwashes: {sitesList.map((s) => s.name).join(', ') || '—'}.
+          </p>
           <button
             type="button"
             className={styles.addUserBtn}

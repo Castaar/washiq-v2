@@ -569,3 +569,22 @@ const ClosingReminderSentSchema = new Schema<IClosingReminderSent>({
 });
 ClosingReminderSentSchema.index({ site_id: 1, date: 1 }, { unique: true });
 export const ClosingReminderSent = models.ClosingReminderSent || model<IClosingReminderSent>('ClosingReminderSent', ClosingReminderSentSchema);
+
+// ─── Translation ────────────────────────────────────────────────
+// Runtime overrides on top of the git-committed messages/<locale>.json
+// files, so a developer can update translations (e.g. via CSV import)
+// without a redeploy — the JSON files stay read-only in production.
+export interface ITranslation extends Document {
+  locale: string;
+  key: string; // dot path, e.g. "nav.dashboard"
+  value: string;
+  updated_at: Date;
+}
+const TranslationSchema = new Schema<ITranslation>({
+  locale: { type: String, required: true },
+  key: { type: String, required: true },
+  value: { type: String, required: true },
+  updated_at: { type: Date, default: Date.now },
+});
+TranslationSchema.index({ locale: 1, key: 1 }, { unique: true });
+export const Translation = models.Translation || model<ITranslation>('Translation', TranslationSchema);

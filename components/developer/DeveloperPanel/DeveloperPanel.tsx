@@ -431,7 +431,7 @@ function MaintenanceTaskRow({
 }
 
 // ── Main panel ────────────────────────────────────────────────
-type DevTab = 'sites' | 'users' | 'programs' | 'stock' | 'maintenance' | 'backup';
+type DevTab = 'sites' | 'users' | 'programs' | 'stock' | 'maintenance' | 'backup' | 'translations';
 
 const DEV_TABS: { id: DevTab; label: string }[] = [
   { id: 'sites', label: 'Sites' },
@@ -440,6 +440,7 @@ const DEV_TABS: { id: DevTab; label: string }[] = [
   { id: 'stock', label: 'Voorraad' },
   { id: 'maintenance', label: 'Onderhoud' },
   { id: 'backup', label: 'Back-up' },
+  { id: 'translations', label: 'Vertalingen' },
 ];
 
 interface ImportPreview {
@@ -547,6 +548,62 @@ export function DeveloperPanel({ users: initialUsers, sites: initialSites, progr
       setImportFileName('');
     } finally {
       setRestoring(false);
+    }
+  }
+
+  // ── Vertalingen (translations CSV export/import) state ─────
+  const [exportingTranslations, setExportingTranslations] = useState(false);
+  const [translationsFileName, setTranslationsFileName] = useState('');
+  const [importingTranslations, setImportingTranslations] = useState(false);
+  const [translationsResult, setTranslationsResult] = useState<{ updated: number; skipped: number; total: number } | null>(null);
+  const [translationsError, setTranslationsError] = useState('');
+
+  async function handleExportTranslations() {
+    setExportingTranslations(true);
+    setTranslationsError('');
+    try {
+      const res = await fetch('/api/developer/translations/export');
+      if (!res.ok) {
+        setTranslationsError('Export mislukt');
+        return;
+      }
+      const blob = await res.blob();
+      const disposition = res.headers.get('Content-Disposition') ?? '';
+      const match = disposition.match(/filename="(.+)"/);
+      const filename = match?.[1] ?? 'washiq-vertalingen.csv';
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setExportingTranslations(false);
+    }
+  }
+
+  async function handleImportTranslations(file: File) {
+    setTranslationsError('');
+    setTranslationsResult(null);
+    setTranslationsFileName(file.name);
+    setImportingTranslations(true);
+    try {
+      const csv = await file.text();
+      const res = await fetch('/api/developer/translations/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ csv }),
+      });
+      const data = await res.json() as { ok?: boolean; error?: string; updated?: number; skipped?: number; total?: number };
+      if (!res.ok || !data.ok) {
+        setTranslationsError(data.error ?? 'Importeren mislukt');
+        return;
+      }
+      setTranslationsResult({ updated: data.updated ?? 0, skipped: data.skipped ?? 0, total: data.total ?? 0 });
+    } catch {
+      setTranslationsError('Ongeldig CSV-bestand');
+    } finally {
+      setImportingTranslations(false);
     }
   }
 
@@ -1236,6 +1293,42 @@ export function DeveloperPanel({ users: initialUsers, sites: initialSites, progr
             </div>
           </>
         )}
+      </div>
+      )}
+
+      {/* ══ VERTALINGEN (CSV EXPORT/IMPORT) ═══════════════════ */}
+      {activeTab === 'translations' && (
+      <div className={styles.card}>
+        <div className={styles.header}>
+          <h1 className={styles.title}>Vertalingen (NL / FR)</h1>
+        </div>
+        <p className={styles.noAccess} style={{ margin: 0 }}>
+          Exporteer alle teksten als CSV (kolommen: key, nl, fr), vul de fr-kolom aan, en importeer het bestand terug.
+          Nieuwe vertalingen zijn meteen live, zonder herdeploy.
+        </p>
+
+        <div className={styles.backupActions}>
+          <button type="button" className={styles.addUserBtn} onClick={handleExportTranslations} disabled={exportingTranslations}>
+            {exportingTranslations ? 'Exporteren...' : '↓ Exporteer CSV'}
+          </button>
+        </div>
+
+        <div className={styles.backupImportSection}>
+          <p className={styles.editLabel}>Vertaalde CSV importeren</p>
+          <input
+            type="file"
+            accept=".csv,text/csv"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImportTranslations(f); }}
+          />
+          {importingTranslations && <p className={styles.noAccess}>Bezig met importeren...</p>}
+          {translationsError && <p className={styles.addError}>{translationsError}</p>}
+          {translationsResult && (
+            <p className={styles.editLabel} style={{ color: 'var(--color-accent-teal)' }}>
+              {translationsFileName}: {translationsResult.updated} vertaling(en) bijgewerkt
+              {translationsResult.skipped > 0 ? `, ${translationsResult.skipped} lege rijen overgeslagen` : ''}.
+            </p>
+          )}
+        </div>
       </div>
       )}
     </div>

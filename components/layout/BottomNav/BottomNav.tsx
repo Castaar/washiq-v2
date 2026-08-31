@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import {
   IconHome, IconFileText, IconWarning, IconMoreHorizontal, IconCheck, IconCart,
 } from '@/components/ui/icons';
@@ -22,17 +23,18 @@ function isActive(pathname: string, href: string) {
 
 export function BottomNav({ role }: BottomNavProps) {
   const pathname = usePathname();
+  const t = useTranslations('nav');
   const [meerOpen, setMeerOpen] = useState(false);
 
   if (role === 'technician') {
     const tabs = [
-      { href: '/technieker', label: 'Werklijst', icon: IconHome },
-      { href: '/logboek', label: 'Logboek', icon: IconCheck },
-      { href: '/leveringen', label: 'Leveringen', icon: IconCart },
-      { href: '/account', label: 'Account', icon: IconFileText },
+      { href: '/technieker', label: t('werklijst'), icon: IconHome },
+      { href: '/logboek', label: t('logboek'), icon: IconCheck },
+      { href: '/leveringen', label: t('leveringen'), icon: IconCart },
+      { href: '/account', label: t('account'), icon: IconFileText },
     ];
     return (
-      <nav className={styles.nav} aria-label="Hoofdnavigatie">
+      <nav className={styles.nav} aria-label={t('hoofdnavigatie')}>
         {tabs.map((tab) => (
           <Link
             key={tab.href}
@@ -51,24 +53,24 @@ export function BottomNav({ role }: BottomNavProps) {
 
   return (
     <>
-      <nav className={styles.nav} aria-label="Hoofdnavigatie">
+      <nav className={styles.nav} aria-label={t('hoofdnavigatie')}>
         <Link href="/" className={[styles.tab, isActive(pathname, '/') ? styles.active : ''].filter(Boolean).join(' ')}>
           <IconHome size={22} />
-          <span className={styles.tabLabel}>Dashboard</span>
+          <span className={styles.tabLabel}>{t('dashboard')}</span>
         </Link>
         <Link
           href={ingaveHref}
           className={[styles.tab, isActive(pathname, ingaveHref) ? styles.active : ''].filter(Boolean).join(' ')}
         >
           <IconFileText size={22} />
-          <span className={styles.tabLabel}>Ingave</span>
+          <span className={styles.tabLabel}>{t('ingave')}</span>
         </Link>
         <Link
           href="/incidenten"
           className={[styles.tab, isActive(pathname, '/incidenten') ? styles.active : ''].filter(Boolean).join(' ')}
         >
           <IconWarning size={22} />
-          <span className={styles.tabLabel}>Melden</span>
+          <span className={styles.tabLabel}>{t('melden')}</span>
         </Link>
         <button
           type="button"
@@ -77,7 +79,7 @@ export function BottomNav({ role }: BottomNavProps) {
           aria-haspopup="dialog"
         >
           <IconMoreHorizontal size={22} />
-          <span className={styles.tabLabel}>Meer</span>
+          <span className={styles.tabLabel}>{t('meer')}</span>
         </button>
       </nav>
       <MeerSheet role={role} open={meerOpen} onClose={() => setMeerOpen(false)} />
