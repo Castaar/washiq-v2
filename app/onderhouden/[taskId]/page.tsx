@@ -1,15 +1,9 @@
 import type { Types } from 'mongoose';
+import { getTranslations } from 'next-intl/server';
 import { NavBar } from '@/components/layout/NavBar/NavBar';
 import { dbConnect } from '@/lib/db/mongoose';
 import { MaintenanceTask, MaintenanceLog } from '@/lib/models';
 import styles from './page.module.scss';
-
-const TRIGGER_LABEL: Record<string, string> = {
-  washes: 'wassen',
-  months: 'maanden',
-  fixed_date: 'vaste datum',
-  fixed_months: 'vaste maanden',
-};
 
 function fmtDateTime(d: Date): string {
   return d.toLocaleString('nl-BE', {
@@ -28,6 +22,13 @@ export default async function OnderhoudTaskHistoryPage({
   const { taskId } = await params;
   const { site } = await searchParams;
   await dbConnect();
+  const t = await getTranslations('onderhoud');
+  const TRIGGER_LABEL: Record<string, string> = {
+    washes: t('wassingen'),
+    months: 'maanden',
+    fixed_date: 'vaste datum',
+    fixed_months: 'vaste maanden',
+  };
 
   const [task, logDocs] = await Promise.all([
     MaintenanceTask.findById(taskId).lean(),
@@ -53,7 +54,7 @@ export default async function OnderhoudTaskHistoryPage({
   }
 
   const triggerLabel = task.trigger_type === 'washes' && (task.trigger_value as number) > 0
-    ? `Elke ${(task.trigger_value as number).toLocaleString('nl-BE')} wassen`
+    ? `Elke ${(task.trigger_value as number).toLocaleString('nl-BE')} ${t('wassingen')}`
     : task.trigger_type === 'months' && (task.trigger_value as number) > 0
       ? `Elke ${task.trigger_value} maanden`
       : TRIGGER_LABEL[task.trigger_type as string] ?? '';

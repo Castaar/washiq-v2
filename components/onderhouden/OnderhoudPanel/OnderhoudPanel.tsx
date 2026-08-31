@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { Badge } from '@/components/ui/Badge/Badge';
 import styles from './OnderhoudPanel.module.scss';
 
@@ -16,13 +17,6 @@ export interface OnderhoudTask {
   isApproaching: boolean;
   washesRemaining?: number | null;
 }
-
-const TRIGGER_LABEL: Record<string, string> = {
-  washes: 'wassen',
-  months: 'maanden',
-  fixed_date: 'vaste datum',
-  fixed_months: 'vaste maanden',
-};
 
 export function OnderhoudPanel({
   tasks: initial,
@@ -147,6 +141,13 @@ function TaskCard({
   completing: boolean;
   siteId: string;
 }) {
+  const t = useTranslations('onderhoud');
+  const TRIGGER_LABEL: Record<string, string> = {
+    washes: t('wassingen'),
+    months: 'maanden',
+    fixed_date: 'vaste datum',
+    fixed_months: 'vaste maanden',
+  };
   return (
     <div className={[styles.taskCard, task.isOverdue ? styles.overdue : task.isApproaching ? styles.approaching : styles.ok].join(' ')}>
       <div className={styles.taskBody}>
@@ -172,7 +173,7 @@ function TaskCard({
           )}
           {task.lastDoneAt && <span>Laatste keer: {task.lastDoneAt}</span>}
           {task.washesRemaining != null && task.washesRemaining > 0 && (
-            <span className={styles.remaining}>Nog {task.washesRemaining.toLocaleString('nl-BE')} wassen</span>
+            <span className={styles.remaining}>Nog {task.washesRemaining.toLocaleString('nl-BE')} {t('wassingen')}</span>
           )}
           {task.isOverdue && task.washesRemaining != null && task.washesRemaining <= 0 && (
             <span className={styles.overdueLabel}>Verlopen</span>

@@ -24,6 +24,9 @@
     "foutVerbinding": "Verbindingsfout. Probeer opnieuw.",
     "safariTip": "Op Safari: kies <b>Bestand → Voeg toe aan Dock</b> (macOS) of gebruik de deelknop → <b>Zet op beginscherm</b> (iOS)."
   },
+  "onderhoud": {
+    "wassingen": "wassingen"
+  },
   "taal": {
     "label": "Taal",
     "nl": "Nederlands",

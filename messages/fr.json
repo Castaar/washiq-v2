@@ -24,6 +24,9 @@
     "foutVerbinding": "Erreur de connexion. Réessayez.",
     "safariTip": "Sur Safari : choisissez <b>Fichier → Ajouter au Dock</b> (macOS) ou utilisez le bouton de partage → <b>Sur l'écran d'accueil</b> (iOS)."
   },
+  "onderhoud": {
+    "wassingen": "lavages"
+  },
   "taal": {
     "label": "Langue",
     "nl": "Néerlandais",
