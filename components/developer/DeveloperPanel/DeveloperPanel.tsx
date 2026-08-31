@@ -177,13 +177,14 @@ function UserRow({
         <div className={styles.rowActions}>
           {resetDone && <span className={styles.savedMsg}>Opgeslagen ✓</span>}
           {resetOpen ? (
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
               <input
                 type="text"
                 className={styles.input}
-                placeholder="Nieuw wachtwoord"
+                placeholder="Min. 6 tekens"
                 value={newPasswordValue}
                 onChange={(e) => setNewPasswordValue(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter' && newPasswordValue.length >= 6) handleSaveNewPassword(); }}
                 autoFocus
                 style={{ width: 140 }}
               />
@@ -202,6 +203,11 @@ function UserRow({
               >
                 ✕
               </button>
+              {newPasswordValue.length > 0 && newPasswordValue.length < 6 && (
+                <span className={styles.savedMsg} style={{ color: 'var(--color-accent-red)', width: '100%' }}>
+                  Nog {6 - newPasswordValue.length} teken(s) nodig (minstens 6).
+                </span>
+              )}
             </div>
           ) : (
             <button

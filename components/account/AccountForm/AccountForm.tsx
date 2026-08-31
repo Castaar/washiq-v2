@@ -697,13 +697,14 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
                 )}
                 {canChangeRole && (
                   resetOpenId === u.id ? (
-                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
                       <input
                         type="text"
                         className={styles.input}
-                        placeholder="Nieuw wachtwoord"
+                        placeholder="Min. 6 tekens"
                         value={newPasswordValue}
                         onChange={(e) => setNewPasswordValue(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter' && newPasswordValue.length >= 6) handleSaveNewPassword(u.id); }}
                         autoFocus
                         style={{ width: 140 }}
                       />
@@ -722,6 +723,11 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
                       >
                         ✕
                       </button>
+                      {newPasswordValue.length > 0 && newPasswordValue.length < 6 && (
+                        <span className={styles.addUserError} style={{ width: '100%' }}>
+                          Nog {6 - newPasswordValue.length} teken(s) nodig (minstens 6).
+                        </span>
+                      )}
                     </div>
                   ) : (
                     <button
