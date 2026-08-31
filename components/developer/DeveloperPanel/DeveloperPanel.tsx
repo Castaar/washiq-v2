@@ -59,9 +59,16 @@ export interface DeveloperPanelProps {
 
 const ROLE_LABELS: Record<string, string> = {
   developer: 'Developer',
-  owner: 'Eigenaar',
+  owner: 'Full options',
   employee: 'Medewerker',
   technician: 'Technieker',
+};
+
+const ROLE_LABELS_PLURAL: Record<string, string> = {
+  developer: 'Developers',
+  owner: 'Full options',
+  employee: 'Medewerkers',
+  technician: 'Techniekers',
 };
 
 // ── User row ─────────────────────────────────────────────────
@@ -86,6 +93,8 @@ function UserRow({
   const [whatsapp, setWhatsapp] = useState(user.whatsapp ?? '');
   const [isActive, setIsActive] = useState(user.is_active ?? true);
   const [saving, setSaving] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [resetDone, setResetDone] = useState(false);
 
   function toggleSite(siteId: string) {
     setSelectedSites((prev) =>
@@ -116,6 +125,25 @@ function UserRow({
     onDelete(user.id);
   }
 
+  async function handleResetPassword() {
+    if (!confirm(`Wachtwoord van "${user.name}" resetten? Er wordt een nieuw wachtwoord gegenereerd en gemaild naar ${user.email}.`)) return;
+    setResetting(true);
+    setResetDone(false);
+    try {
+      const res = await fetch(`/api/users/${user.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resetPassword: true }),
+      });
+      if (res.ok) {
+        setResetDone(true);
+        setTimeout(() => setResetDone(false), 4000);
+      }
+    } finally {
+      setResetting(false);
+    }
+  }
+
   return (
     <div className={[styles.userCard, !user.is_active ? styles.userInactive : ''].join(' ')}>
       <div className={styles.userMain}>
@@ -143,6 +171,17 @@ function UserRow({
           )}
         </div>
         <div className={styles.rowActions}>
+          {resetDone && <span className={styles.savedMsg}>Verzonden ✓</span>}
+          <button
+            type="button"
+            className={styles.editBtn}
+            onClick={handleResetPassword}
+            disabled={resetting}
+            aria-label="Wachtwoord resetten"
+            title="Wachtwoord resetten"
+          >
+            🔑
+          </button>
           <button
             type="button"
             className={styles.editBtn}
@@ -172,7 +211,7 @@ function UserRow({
               onChange={(e) => setSelectedRole(e.target.value as DeveloperUser['role'])}
             >
               <option value="developer">Developer</option>
-              <option value="owner">Eigenaar</option>
+              <option value="owner">Full options</option>
               <option value="employee">Medewerker</option>
               <option value="technician">Technieker</option>
             </select>
@@ -994,7 +1033,7 @@ export function DeveloperPanel({ users: initialUsers, sites: initialSites, progr
                 <label className={styles.addLabel}>Rol</label>
                 <select className={styles.roleSelect} value={addRole} onChange={(e) => setAddRole(e.target.value as DeveloperUser['role'])}>
                   <option value="developer">Developer</option>
-                  <option value="owner">Eigenaar</option>
+                  <option value="owner">Full options</option>
                   <option value="technician">Technieker</option>
                   <option value="employee">Medewerker</option>
                 </select>
@@ -1026,7 +1065,7 @@ export function DeveloperPanel({ users: initialUsers, sites: initialSites, progr
         {(['developer', 'owner', 'technician', 'employee'] as const).map((role) => (
           grouped[role].length > 0 && (
             <section key={role} className={styles.group}>
-              <h2 className={styles.groupTitle}>{ROLE_LABELS[role]}s ({grouped[role].length})</h2>
+              <h2 className={styles.groupTitle}>{ROLE_LABELS_PLURAL[role]} ({grouped[role].length})</h2>
               <div className={styles.userList}>
                 {grouped[role].map((u) => (
                   <UserRow
@@ -1216,16 +1255,16 @@ export function DeveloperPanel({ users: initialUsers, sites: initialSites, progr
       {activeTab === 'backup' && (
       <div className={styles.card}>
         <div className={styles.header}>
-          <h1 className={styles.title}>Back-up per eigenaar</h1>
+          <h1 className={styles.title}>Back-up per Full options</h1>
         </div>
 
         {owners.length === 0 ? (
-          <p className={styles.noAccess}>Geen eigenaars gevonden.</p>
+          <p className={styles.noAccess}>Geen Full options-accounts gevonden.</p>
         ) : (
           <>
             <div className={styles.addFormRow}>
               <div className={styles.addFieldFull}>
-                <label className={styles.addLabel}>Eigenaar</label>
+                <label className={styles.addLabel}>Full options</label>
                 <select
                   className={styles.roleSelect}
                   value={backupOwnerId}

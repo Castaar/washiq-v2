@@ -138,7 +138,7 @@ export function HandleidingContent({ role, siteParam, fromLogin }: Props) {
       id: 'wekelijkse-ingave',
       icon: '📅',
       title: 'Maandelijkse ingave',
-      badge: 'Eigenaar',
+      badge: 'Full options',
       badgeVariant: 'blue',
       roles: ['developer', 'owner'],
       content: (
@@ -146,7 +146,7 @@ export function HandleidingContent({ role, siteParam, fromLogin }: Props) {
           <div className={styles.subSection}>
             <span className={styles.subTitle}>Wat is dit?</span>
             <p className={styles.text}>
-              Als eigenaar of beheerder voer je hier wekelijks de wasaantallen en het chemicaliënverbruik
+              Als Full options-gebruiker of beheerder voer je hier wekelijks de wasaantallen en het chemicaliënverbruik
               in. De gegevens worden gebruikt voor kostprijsberekeningen en rapportage in de historiek.
             </p>
           </div>
@@ -167,7 +167,7 @@ export function HandleidingContent({ role, siteParam, fromLogin }: Props) {
       id: 'historiek',
       icon: '🕰️',
       title: 'Historiek',
-      badge: 'Eigenaar',
+      badge: 'Full options',
       badgeVariant: 'blue',
       roles: ['developer', 'owner'],
       content: (
@@ -239,11 +239,11 @@ export function HandleidingContent({ role, siteParam, fromLogin }: Props) {
             <div className={styles.buttonList}>
               <ButtonItem tag="E-mail wijzigen" desc="Pas je inlogadres aan onder 'Accountgegevens'." />
               <ButtonItem tag="Wachtwoord wijzigen" desc="Voer een nieuw wachtwoord in en klik op 'Opslaan'." />
-              <ButtonItem tag="Kostprijzen (eigenaar)" desc="Stel de prijs per eenheid in voor energie, water, zout, flockmiddel en chemicaliën." />
-              <ButtonItem tag="Gebruikers beheren (eigenaar)" desc="Voeg nieuwe medewerkers toe of trek de toegang van bestaande gebruikers in." />
-              <ButtonItem tag="Voorraad (eigenaar)" desc="Stel het huidige voorraadniveau en het minimale alertniveau in per product. Registreer leveringen via '+ Levering'." />
-              <ButtonItem tag="Onderhoud (eigenaar)" desc="Bekijk en markeer onderhoudstaken als 'Gedaan' met de datum van uitvoering." />
-              <ButtonItem tag="Energiefacturen (eigenaar)" desc="Voeg maandelijkse energiefacturen toe voor kostprijsrapportage." />
+              <ButtonItem tag="Kostprijzen (Full options)" desc="Stel de prijs per eenheid in voor energie, water, zout, flockmiddel en chemicaliën." />
+              <ButtonItem tag="Gebruikers beheren (Full options)" desc="Voeg nieuwe medewerkers toe of trek de toegang van bestaande gebruikers in." />
+              <ButtonItem tag="Voorraad (Full options)" desc="Stel het huidige voorraadniveau en het minimale alertniveau in per product. Registreer leveringen via '+ Levering'." />
+              <ButtonItem tag="Onderhoud (Full options)" desc="Bekijk en markeer onderhoudstaken als 'Gedaan' met de datum van uitvoering." />
+              <ButtonItem tag="Energiefacturen (Full options)" desc="Voeg maandelijkse energiefacturen toe voor kostprijsrapportage." />
               <ButtonItem tag="Handleiding" desc="Kom terug naar deze pagina om de uitleg opnieuw te lezen." />
             </div>
           </div>

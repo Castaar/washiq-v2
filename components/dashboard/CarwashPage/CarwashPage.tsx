@@ -17,6 +17,7 @@ import {
   IncidentEhbo,
   Defect,
   StockDelivery,
+  StockReading,
   EnergyBill,
   AttendanceLog,
 } from '@/lib/models';
@@ -102,12 +103,13 @@ export async function CarwashPage({
   // ── Fetch all data in parallel ───────────────────────────────
   const today = new Date();
 
-  const [entries, monthEntries, prevMonthEntries, lastTwoEntries, programs, priceConfigs, stocks, tasks, logs, checklists, incSchades, incEhbos, energyBillCur, energyBillPrev] = await Promise.all([
+  const [entries, monthEntries, prevMonthEntries, lastTwoEntries, programs, priceConfigs, stocks, tasks, logs, checklists, incSchades, incEhbos, energyBillCur, energyBillPrev, readings] = await Promise.all([
     period === 'week'
       ? WeeklyEntry.find({ ...filter, week_start: { $in: [curWeekStart, prevWeekStart] } }).lean()
       : Promise.resolve([]),
-    period === 'month' ? WeeklyEntry.find({ ...filter, week_start: { $gte: curMonthStart, $lt: curMonthEnd } }).lean() : Promise.resolve([]),
-    period === 'month' ? WeeklyEntry.find({ ...filter, week_start: { $gte: prevMonthStart, $lt: prevMonthEnd } }).lean() : Promise.resolve([]),
+    // Fetched unconditionally (not just for period==='month') — chemistry cost is always monthly, regardless of the week/month toggle
+    WeeklyEntry.find({ ...filter, week_start: { $gte: curMonthStart, $lt: curMonthEnd } }).lean(),
+    WeeklyEntry.find({ ...filter, week_start: { $gte: prevMonthStart, $lt: prevMonthEnd } }).lean(),
     WeeklyEntry.find(filter).sort({ week_start: -1 }).limit(2).lean(),
     WashProgram.find(filter).sort({ tier: 1 }).lean(),
     PriceConfig.find(filter).sort({ valid_from: -1 }).limit(1).lean(),
@@ -119,6 +121,8 @@ export async function CarwashPage({
     IncidentEhbo.find(filter).sort({ created_at: -1 }).limit(8).lean(),
     siteId ? EnergyBill.findOne({ site_id: siteId, year: curYear,  month: curMonth  }).lean() : null,
     siteId ? EnergyBill.findOne({ site_id: siteId, year: prevYear, month: prevMonth }).lean() : null,
+    // All stock readings for this site, oldest first — used to derive monthly chemistry consumption
+    StockReading.find(filter).select('name unit consumption recorded_at').sort({ recorded_at: 1 }).lean(),
   ]);
 
   // ── Day log (owner/developer "Meldingen" tab: only the selected day) ──
@@ -135,9 +139,56 @@ export async function CarwashPage({
   const latestEntry = lastTwoEntries[0] ?? null;
   const prevIngave  = lastTwoEntries[1] ?? null;
 
+  // ── Monthly chemistry consumption, derived from stock readings ────
+  // Verbruik = vorige telling + leveringen − nieuwe telling (already computed
+  // per reading in /api/stock/reading). Each product's very first-ever
+  // reading is a baseline, not a period's consumption, so it's skipped here.
+  type ChemConsumption = { name: string; unit: string; amount: number };
+  function chemConsumptionForMonth(monthStart: Date, monthEnd: Date): ChemConsumption[] {
+    const byName = new Map<string, ChemConsumption>();
+    const seenFirst = new Set<string>();
+    for (const r of readings) {
+      const name = r.name as string;
+      if (!seenFirst.has(name)) { seenFirst.add(name); continue; }
+      const recordedAt = r.recorded_at as Date;
+      if (recordedAt < monthStart || recordedAt >= monthEnd) continue;
+      const existing = byName.get(name);
+      const amount = (existing?.amount ?? 0) + (r.consumption as number);
+      byName.set(name, { name, unit: r.unit as string, amount });
+    }
+    return [...byName.values()];
+  }
+  const curMonthWagens = monthEntries.reduce(
+    (s, e) => s + ((e.program_counts ?? []) as { count?: number }[]).reduce((s2, pc) => s2 + (pc.count ?? 0), 0), 0,
+  );
+  const prevMonthWagens = prevMonthEntries.reduce(
+    (s, e) => s + ((e.program_counts ?? []) as { count?: number }[]).reduce((s2, pc) => s2 + (pc.count ?? 0), 0), 0,
+  );
+  const curChemConsumption = chemConsumptionForMonth(curMonthStart, curMonthEnd);
+  const prevChemConsumption = chemConsumptionForMonth(prevMonthStart, prevMonthEnd);
+
   // ── Per-wagen cost helper ─────────────────────────────────────
   type CostRow = { label: string; euroPerWagen: number; rawPerWagen?: number; unit?: string; isChemical?: boolean };
-  function costPerWagen(entry: typeof latestEntry, energyBill: number): CostRow[] {
+  function chemistryCostRows(consumption: ChemConsumption[], monthWagens: number): CostRow[] {
+    if (monthWagens === 0) return [];
+    const p = priceConfigs[0] ?? null;
+    const r2 = (v: number) => Math.round(v * 100) / 100;
+    const r3 = (v: number) => Math.round(v * 1000) / 1000;
+    return consumption.map((c) => {
+      const chemPrice = (p?.chemicals as { name: string; price_per_unit: number }[] | undefined)?.find((x) => x.name === c.name);
+      return {
+        label: translateContent(contentTranslations, 'product', c.name),
+        euroPerWagen: r2(c.amount * (chemPrice?.price_per_unit ?? 0) / monthWagens),
+        rawPerWagen: r3(c.amount / monthWagens),
+        unit: c.unit,
+        isChemical: true,
+      };
+    });
+  }
+  const curChemistryRows = chemistryCostRows(curChemConsumption, curMonthWagens);
+  const prevChemistryRows = chemistryCostRows(prevChemConsumption, prevMonthWagens);
+
+  function costPerWagen(entry: typeof latestEntry, energyBill: number, chemRows: CostRow[]): CostRow[] {
     if (!entry) return [];
     const p = priceConfigs[0] ?? null;
     const wagens = (entry.program_counts ?? []).reduce((s: number, pc: { count?: number }) => s + (pc.count ?? 0), 0);
@@ -147,14 +198,8 @@ export async function CarwashPage({
     const rows: CostRow[] = [
       { label: 'Water',   euroPerWagen: r2((entry.water_liters ?? 0) * (p?.water_per_liter ?? 0) / wagens), rawPerWagen: r3((entry.water_liters ?? 0) / wagens), unit: 'm³' },
       { label: 'Energie', euroPerWagen: r2(energyBill / wagens) },
-      { label: 'Zout',    euroPerWagen: r2((entry.salt_kg ?? 0) * (p?.salt_per_kg ?? 0) / wagens), rawPerWagen: r3((entry.salt_kg ?? 0) / wagens), unit: 'kg' },
-      { label: 'Blob',    euroPerWagen: r2(((entry as Record<string,unknown>).blob_liters as number ?? 0) / wagens), rawPerWagen: r3(((entry as Record<string,unknown>).blob_liters as number ?? 0) / wagens), unit: 'L' },
     ];
-    for (const cu of (entry.chemical_usages ?? []) as { name: string; amount: number; unit: string }[]) {
-      const chemPrice = (p?.chemicals as { name: string; price_per_unit: number }[] | undefined)?.find((c) => c.name === cu.name);
-      rows.push({ label: translateContent(contentTranslations, 'product', cu.name), euroPerWagen: r2((cu.amount ?? 0) * (chemPrice?.price_per_unit ?? 0) / wagens), rawPerWagen: r3((cu.amount ?? 0) / wagens), unit: cu.unit, isChemical: true });
-    }
-    return rows;
+    return [...rows, ...chemRows];
   }
 
   // ── Aggregate helper for month view ──────────────────────────
@@ -277,19 +322,23 @@ export async function CarwashPage({
   // ── Wagens is already calculated above ───────────────────────
 
   // ── ProgrammaCard: programOptions ────────────────────────────────
-  const chemieRows: ChemieRow[] = (current?.chemical_usages ?? []).map((cu: { chemical_id?: { toString(): string }; name: string; amount: number; unit: string }, i: number) => {
+  // Chemistry is always derived from monthly stock readings (regardless of
+  // the week/month toggle above), so it uses its own month-based divisor.
+  const chemDivisor = usage === 'wagen' && curMonthWagens > 0 ? curMonthWagens : 1;
+  const chemPrevDivisor = usage === 'wagen' && prevMonthWagens > 0 ? prevMonthWagens : 1;
+  const chemieRows: ChemieRow[] = curChemConsumption.map((c) => {
     const priceEntry = price?.chemicals?.find(
-      (c: { name?: string; price_per_unit: number }) => c.name === cu.name,
+      (p: { name?: string; price_per_unit: number }) => p.name === c.name,
     );
     const rate = priceEntry?.price_per_unit ?? 0;
-    const rawAmount = cu.amount / divisor;
-    const val  = Math.round(rawAmount * rate * 100) / 100;
-    const prev = previous?.chemical_usages?.find(
-      (p: { name?: string; amount: number }) => p.name === cu.name,
-    );
-    const prevRawAmount = prev ? (prev.amount / prevDivisor) : 0;
-    const prevVal = prev ? Math.round(prevRawAmount * rate * 100) / 100 : 0;
-    return { id: cu.chemical_id?.toString() ?? String(i), label: translateContent(contentTranslations, 'product', cu.name), value: val, delta: calcDelta(val, prevVal), rawAmount: Math.round(rawAmount * 1000) / 1000, unit: cu.unit };
+    const rawAmount = c.amount / chemDivisor;
+    const val = view === 'prijs' ? Math.round(rawAmount * rate * 100) / 100 : Math.round(rawAmount * 1000) / 1000;
+    const prevC = prevChemConsumption.find((p) => p.name === c.name);
+    const prevRawAmount = prevC ? prevC.amount / chemPrevDivisor : 0;
+    const prevVal = prevC
+      ? (view === 'prijs' ? Math.round(prevRawAmount * rate * 100) / 100 : Math.round(prevRawAmount * 1000) / 1000)
+      : 0;
+    return { id: c.name, label: translateContent(contentTranslations, 'product', c.name), value: val, delta: calcDelta(val, prevVal), rawAmount: Math.round(rawAmount * 1000) / 1000, unit: c.unit };
   });
 
   const programOptions: ProgramOption[] = programs.map((p) => {
@@ -352,8 +401,8 @@ export async function CarwashPage({
   const prevBillAmount2  = (prevBillDoc  as Record<string,unknown> | null)?.amount_euro as number ?? effectiveBillAmount;
 
   // Cost breakdown per wagen for latest and previous ingave
-  const latestCostRows = costPerWagen(latestEntry, latestBillAmount);
-  const prevCostRows   = costPerWagen(prevIngave,  prevBillAmount2);
+  const latestCostRows = costPerWagen(latestEntry, latestBillAmount, curChemistryRows);
+  const prevCostRows   = costPerWagen(prevIngave,  prevBillAmount2, prevChemistryRows);
 
   const now = new Date();
   const alertItems: AlertItem[] = tasks

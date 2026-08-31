@@ -5,7 +5,7 @@ import type { HistoryEntry, HistoryProgram } from '@/components/forms/HistoryLis
 import { ChemieChart } from '@/components/historiek/ChemieChart/ChemieChart';
 import type { ChemieDataPoint } from '@/components/historiek/ChemieChart/ChemieChart';
 import { dbConnect } from '@/lib/db/mongoose';
-import { Site, WashProgram, WeeklyEntry, ChemicalStock, User, EnergyBill } from '@/lib/models';
+import { Site, WashProgram, WeeklyEntry, ChemicalStock, StockReading, User, EnergyBill } from '@/lib/models';
 import { getSession } from '@/lib/session';
 import type { Types } from 'mongoose';
 import { filterSitesForUser, resolveActiveSite, redirectIfSetupNeeded, redirectWithSiteParam } from '@/lib/getUserSites';
@@ -41,23 +41,18 @@ export default async function HistoriekPage({
   const startWaterCount = (siteDoc?.start_water_count as number) ?? 0;
   const filter = siteId ? { site_id: siteId } : {};
 
-  const [programDocs, entryDocs, stockDocs, energyBillDocs] = await Promise.all([
+  const [programDocs, entryDocs, stockDocs, energyBillDocs, readingDocs] = await Promise.all([
     WashProgram.find(filter).select('_id name tier chemicals').sort({ tier: 1 }).lean(),
     WeeklyEntry.find(filter).sort({ week_start: 1 }).lean(),
     ChemicalStock.find(filter).select('name unit').sort({ name: 1 }).lean(),
     EnergyBill.find(filter).select('year month amount_euro').lean(),
+    StockReading.find(filter).select('name unit consumption recorded_at').sort({ recorded_at: 1 }).lean(),
   ]);
 
   const energyBillsByMonth: Record<string, number> = {};
   for (const b of energyBillDocs) {
     energyBillsByMonth[`${b.year}-${b.month}`] = (b.amount_euro as number) ?? 0;
   }
-
-  const products = stockDocs.map((s) => ({
-    id: s.name as string,
-    name: s.name as string,
-    unit: (s.unit as string) ?? 'L',
-  }));
 
   const programs: HistoryProgram[] = programDocs.map((p) => ({
     id: (p._id as Types.ObjectId).toString(),
@@ -93,21 +88,8 @@ export default async function HistoriekPage({
     ),
   }));
 
-  // ── Build chart data: one row per week, columns per product ──
-  const chartProducts = stockDocs.map((s) => ({ name: s.name as string, unit: (s.unit as string) ?? 'L' }));
-
-  // Collect all unique product names from entries too (in case products were renamed/deleted)
-  const allProductNames = new Set<string>(chartProducts.map((p) => p.name));
-  for (const e of entryDocs) {
-    for (const cu of (e.chemical_usages ?? []) as { name?: string }[]) {
-      if (cu.name) allProductNames.add(cu.name);
-    }
-  }
-  const allProducts = Array.from(allProductNames).map((name) => {
-    const found = chartProducts.find((p) => p.name === name);
-    return found ?? { name, unit: 'L' };
-  });
-  allProducts.push({ name: 'Water', unit: 'm³/wassing' }, { name: 'Elektriciteit', unit: '€/wassing' });
+  // ── Build weekly chart data: water + elektriciteit per wassing ──
+  const allProducts = [{ name: 'Water', unit: 'm³/wassing' }, { name: 'Elektriciteit', unit: '€/wassing' }];
 
   function weekLabel(date: Date): string {
     const d = new Date(date);
@@ -116,9 +98,6 @@ export default async function HistoriekPage({
 
   const entryChartData: ChemieDataPoint[] = entryDocs.map((e) => {
     const row: ChemieDataPoint = { week: weekLabel(new Date(e.week_start as Date)) };
-    for (const cu of (e.chemical_usages ?? []) as { name?: string; amount?: number }[]) {
-      if (cu.name) row[cu.name] = cu.amount ?? 0;
-    }
     const totalWagens = ((e.program_counts ?? []) as { count?: number }[]).reduce((s, pc) => s + (pc.count ?? 0), 0);
     if (totalWagens > 0) {
       const weekStart = new Date(e.week_start as Date);
@@ -135,6 +114,33 @@ export default async function HistoriekPage({
   for (const p of allProducts) beginRow[p.name] = 0;
   const chartData: ChemieDataPoint[] = entryDocs.length > 0 ? [beginRow, ...entryChartData] : [];
 
+  // ── Build monthly chart data: chemie-verbruik per product, uit voorraadtellingen ──
+  const productReadingNames = [...new Set(readingDocs.map((r) => r.name as string))];
+  const chemieProducts = productReadingNames.length > 0
+    ? productReadingNames.map((name) => ({
+        name,
+        unit: (readingDocs.find((r) => r.name === name)?.unit as string) ?? 'L',
+      }))
+    : stockDocs.map((s) => ({ name: s.name as string, unit: (s.unit as string) ?? 'L' }));
+
+  function monthLabel(date: Date): string {
+    return date.toLocaleDateString('nl-BE', { month: 'short', year: '2-digit', timeZone: 'Europe/Brussels' });
+  }
+
+  const chemieChartData: ChemieDataPoint[] = (() => {
+    const byMonth = new Map<string, ChemieDataPoint>();
+    // Skip each product's very first reading — it's a baseline, not a period's consumption
+    const seenFirst = new Set<string>();
+    for (const r of readingDocs) {
+      const name = r.name as string;
+      if (!seenFirst.has(name)) { seenFirst.add(name); continue; }
+      const label = monthLabel(new Date(r.recorded_at as Date));
+      if (!byMonth.has(label)) byMonth.set(label, { week: label });
+      byMonth.get(label)![name] = Math.max(0, r.consumption as number);
+    }
+    return [...byMonth.values()];
+  })();
+
   const backHref = siteId ? `/wekelijkse-ingave?site=${siteId}` : '/wekelijkse-ingave';
 
   return (
@@ -146,19 +152,28 @@ export default async function HistoriekPage({
         {allProducts.length > 0 && (
           <div className={styles.card}>
             <div className={styles.header}>
-              <h2 className={styles.title}>Verbruik — {siteName}</h2>
-              <p className={styles.subtitle}>Wekelijks verbruik per product, plus water en elektriciteit per wassing</p>
+              <h2 className={styles.title}>Verbruik per wassing — {siteName}</h2>
+              <p className={styles.subtitle}>Wekelijks, water en elektriciteit per wassing</p>
             </div>
             <ChemieChart data={chartData} products={allProducts} />
           </div>
         )}
+
+        {/* ── Chemieverbruik uit voorraadtellingen ───────────────── */}
+        <div className={styles.card}>
+          <div className={styles.header}>
+            <h2 className={styles.title}>Chemieverbruik per maand — {siteName}</h2>
+            <p className={styles.subtitle}>Berekend uit voorraadtellingen bij Instellingen (vorige telling + leveringen − nieuwe telling)</p>
+          </div>
+          <ChemieChart data={chemieChartData} products={chemieProducts} />
+        </div>
 
         {/* ── Maandelijkse ingaves lijst ─────────────────────────── */}
         <div className={styles.card}>
           <div className={styles.header}>
             <h1 className={styles.title}>Maandelijkse Ingaves — {siteName}</h1>
           </div>
-          <HistoryList entries={entries} programs={programs} products={products} startCarCount={startCarCount} startWaterCount={startWaterCount} siteId={siteId ?? ''} energyBillsByMonth={energyBillsByMonth} />
+          <HistoryList entries={entries} programs={programs} startCarCount={startCarCount} startWaterCount={startWaterCount} siteId={siteId ?? ''} energyBillsByMonth={energyBillsByMonth} />
         </div>
       </main>
     </div>

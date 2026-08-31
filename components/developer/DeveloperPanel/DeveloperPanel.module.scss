@@ -379,6 +379,12 @@
   }
 }
 
+.savedMsg {
+  font-size: 0.75rem;
+  color: var(--color-accent-teal);
+  white-space: nowrap;
+}
+
 .deleteBtn {
   width: 28px;
   height: 28px;

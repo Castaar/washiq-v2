@@ -39,7 +39,6 @@ export interface LastEntryData {
 export interface WeeklyEntryFormProps {
   siteId: string;
   programs: Program[];
-  products: Chemical[];
   lastEntry: LastEntryData | null;
   washesTasks?: WashesTask[];
   startCarCount?: number;
@@ -123,19 +122,9 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 }
 
 // ─── Main form ────────────────────────────────────────────────
-export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesTasks = [], startCarCount = 0, startWaterCount = 0, contentTranslations = {} }: WeeklyEntryFormProps) {
+export function WeeklyEntryForm({ siteId, programs, lastEntry, washesTasks = [], startCarCount = 0, startWaterCount = 0, contentTranslations = {} }: WeeklyEntryFormProps) {
   const router = useRouter();
-  const tProduct = (name: string) => contentTranslations[`product.${name}`] || name;
   const tProgram = (name: string) => contentTranslations[`program.${name}`] || name;
-
-  const uniqueChemicals = useMemo(() => {
-    const seen = new Set<string>();
-    const result: Chemical[] = [];
-    for (const c of products) {
-      if (!seen.has(c.id)) { seen.add(c.id); result.push(c); }
-    }
-    return result;
-  }, [products]);
 
   const [programCounts, setProgramCounts] = useState<Record<string, string>>(
     () => Object.fromEntries(programs.map((p) => [p.id, ''])),
@@ -144,9 +133,6 @@ export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesT
   const [electricityAmount, setElectricityAmount] = useState('');
   const [newWaterTellerstand, setNewWaterTellerstand] = useState('');
   const [energyKw, setEnergyKw] = useState('');
-  const [chemicalUsages, setChemicalUsages] = useState<Record<string, string>>(
-    () => Object.fromEntries(uniqueChemicals.map((c) => [c.id, ''])),
-  );
   const [pickedDate, setPickedDate] = useState<string>(() => dateToDateString(new Date()));
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState('');
@@ -177,16 +163,9 @@ export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesT
     setProgramCounts((prev) => ({ ...prev, [id]: v }));
   }, []);
 
-  const setChemical = useCallback((key: string, v: string) => {
-    setChemicalUsages((prev) => ({ ...prev, [key]: v }));
-  }, []);
-
   // Delta lookup maps from last entry
   const lastCountMap = Object.fromEntries(
     (lastEntry?.programCounts ?? []).map((pc) => [pc.programId, pc.count]),
-  );
-  const lastChemMap = Object.fromEntries(
-    (lastEntry?.chemicalUsages ?? []).map((cu) => [cu.chemicalId, cu.amount]),
   );
 
   async function handleSubmit(e: React.FormEvent) {
@@ -219,12 +198,6 @@ export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesT
         program_id: p.id,
         name: p.name,
         count: parseFloat(programCounts[p.id]) || 0,
-      })),
-      chemical_usages: uniqueChemicals.map((c) => ({
-        chemical_id: c.id,
-        name: c.name,
-        amount: parseFloat(chemicalUsages[c.id]) || 0,
-        unit: c.unit,
       })),
     };
 
@@ -366,26 +339,6 @@ export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesT
           <p className={styles.tellerstandOk}>Verbruik deze periode: {waterUsage.toLocaleString('nl-BE')} m³</p>
         )}
       </section>
-
-      {/* ── Section 3: Chemie totaal per product ────────────── */}
-      {uniqueChemicals.length > 0 && (
-        <section className={styles.section}>
-          <SectionTitle>Chemie — totaal verbruik per product</SectionTitle>
-          <div className={styles.fieldsRow}>
-            {uniqueChemicals.map((c) => (
-              <EntryField
-                key={c.id}
-                label={`${tProduct(c.name)} (${c.unit})`}
-                value={chemicalUsages[c.id] ?? ''}
-                onChange={(v) => setChemical(c.id, v)}
-                delta={getDelta(chemicalUsages[c.id] ?? '', lastChemMap[c.id])}
-                lastValue={lastChemMap[c.id] ?? null}
-                stockLabel={c.current_stock != null ? `Voorraad: ${c.current_stock} ${c.unit}` : undefined}
-              />
-            ))}
-          </div>
-        </section>
-      )}
 
       {/* ── Footer ───────────────────────────────────────────── */}
       {submitError && <p className={styles.tellerstandError}>{submitError}</p>}

@@ -161,6 +161,8 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
   const [addingUser, setAddingUser] = useState(false);
   const [addUserError, setAddUserError] = useState('');
   const [addUserSuccess, setAddUserSuccess] = useState('');
+  const [resettingUserId, setResettingUserId] = useState<string | null>(null);
+  const [resetDoneId, setResetDoneId] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showNewUserPassword, setShowNewUserPassword] = useState(false);
 
@@ -241,6 +243,25 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
       body: JSON.stringify({ removeSiteId: siteId }),
     });
     setUsers((prev) => prev.filter((u) => u.id !== userId));
+  }
+
+  async function handleResetPassword(userId: string, userName: string, userEmail: string) {
+    if (!window.confirm(`Wachtwoord van "${userName}" resetten? Er wordt een nieuw wachtwoord gegenereerd en gemaild naar ${userEmail}.`)) return;
+    setResettingUserId(userId);
+    setResetDoneId(null);
+    try {
+      const res = await fetch(`/api/users/${userId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resetPassword: true }),
+      });
+      if (res.ok) {
+        setResetDoneId(userId);
+        setTimeout(() => setResetDoneId((id) => (id === userId ? null : id)), 4000);
+      }
+    } finally {
+      setResettingUserId(null);
+    }
   }
 
   async function handleChangeRole(userId: string, newUserRole: string) {
@@ -646,7 +667,7 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
             const canChangeRole =
               u.id !== currentUser?.id &&
               (role === 'developer' || ((role === 'owner') && (u.role === 'employee' || u.role === 'technician')));
-            const roleLabel = u.role === 'owner' ? 'Eigenaar'
+            const roleLabel = u.role === 'owner' ? 'Full options'
               : u.role === 'technician' ? 'Technieker'
               : u.role === 'developer' ? 'Developer'
               : 'Medewerker';
@@ -664,11 +685,21 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
                   >
                     <option value="employee">Medewerker</option>
                     <option value="technician">Technieker</option>
-                    {role === 'developer' && <option value="owner">Eigenaar</option>}
+                    {role === 'developer' && <option value="owner">Full options</option>}
                     {role === 'developer' && <option value="developer">Developer</option>}
                   </select>
                 ) : (
                   <span className={`${styles.roleBadge} ${styles[`role_${u.role}`]}`}>{roleLabel}</span>
+                )}
+                {canChangeRole && (
+                  <button
+                    type="button"
+                    className={styles.revokeBtn}
+                    onClick={() => handleResetPassword(u.id, u.name, u.email)}
+                    disabled={resettingUserId === u.id}
+                  >
+                    {resettingUserId === u.id ? 'Bezig...' : resetDoneId === u.id ? 'Verzonden ✓' : 'Wachtwoord resetten'}
+                  </button>
                 )}
                 {canRevoke && (
                   <button
@@ -727,7 +758,7 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
             >
               <option value="employee">Medewerker</option>
               <option value="technician">Technieker</option>
-              {(role === 'owner' || role === 'developer') && <option value="owner">Eigenaar</option>}
+              {(role === 'owner' || role === 'developer') && <option value="owner">Full options</option>}
             </select>
           </div>
           <p className={styles.addUserLabel} style={{ fontWeight: 400, marginTop: 4 }}>

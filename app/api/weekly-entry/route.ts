@@ -56,29 +56,5 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Deduct chemical usages from ChemicalStock
-  const usages: { name: string; amount: number }[] = body.chemical_usages ?? [];
-  if (usages.length > 0) {
-    const names = [...new Set(usages.map((u) => u.name))];
-    const stocks = await ChemicalStock.find({ site_id: body.site_id, name: { $in: names } });
-
-    // Aggregate amounts per chemical name (multiple programs may use the same chemical)
-    const amountByName: Record<string, number> = {};
-    for (const u of usages) {
-      amountByName[u.name] = (amountByName[u.name] ?? 0) + (u.amount ?? 0);
-    }
-
-    await Promise.all(
-      stocks.map((s) => {
-        const used = amountByName[s.name] ?? 0;
-        if (used > 0) {
-          s.current_stock = Math.max(0, (s.current_stock ?? 0) - used);
-          s.last_updated = new Date();
-          return s.save();
-        }
-      }),
-    );
-  }
-
   return NextResponse.json({ id: entry._id.toString() }, { status: 201 });
 }

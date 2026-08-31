@@ -34,7 +34,6 @@ export interface HistoryEntry {
 interface HistoryListProps {
   entries: HistoryEntry[];
   programs: HistoryProgram[];
-  products: HistoryChemical[];
   startCarCount?: number;
   startWaterCount?: number;
   siteId: string;
@@ -62,7 +61,6 @@ function formatDate(iso: string): string {
 function EntryRow({
   entry,
   programs,
-  products,
   previousTellerstand,
   previousWaterTellerstand,
   siteId,
@@ -70,7 +68,6 @@ function EntryRow({
 }: {
   entry: HistoryEntry;
   programs: HistoryProgram[];
-  products: HistoryChemical[];
   previousTellerstand: number;
   previousWaterTellerstand: number;
   siteId: string;
@@ -98,31 +95,7 @@ function EntryRow({
       }),
     ),
   );
-  // Products configured for this site (same source as Instellingen), deduplicated
-  const uniqueChemicals = (() => {
-    const seen = new Set<string>();
-    return products.filter((c) => {
-      if (seen.has(c.id)) return false;
-      seen.add(c.id);
-      return true;
-    });
-  })();
-
-  const [chemAmounts, setChemAmounts] = useState<Record<string, string>>(
-    Object.fromEntries(
-      uniqueChemicals.map((c) => {
-        const found = entry.chemicalUsages.find((cu) => cu.chemicalId === c.id || cu.name === c.name);
-        if (found) return [c.id, String(found.amount)];
-        // Bridge legacy fixed fields for entries recorded before Zoutverzachter/Blob became regular products
-        if (c.name.toLowerCase() === 'zoutverzachter') return [c.id, String(entry.saltKg ?? 0)];
-        if (c.name.toLowerCase() === 'blob') return [c.id, String(entry.blobLiters ?? 0)];
-        return [c.id, '0'];
-      }),
-    ),
-  );
-
   const totalWagens = entry.programCounts.reduce((s, pc) => s + pc.count, 0);
-  const hasChemicals = uniqueChemicals.length > 0;
 
   const newTellerstandNum = newTellerstand.trim() === '' ? null : parseFloat(newTellerstand);
   const programCountSum = programs.reduce((sum, p) => sum + (parseFloat(programCounts[p.id] ?? '') || 0), 0);
@@ -158,12 +131,6 @@ function EntryRow({
           program_id: p.id,
           name: p.name,
           count: parseFloat(programCounts[p.id]) || 0,
-        })),
-        chemical_usages: uniqueChemicals.map((c) => ({
-          chemical_id: c.id,
-          name: c.name,
-          amount: parseFloat(chemAmounts[c.id]) || 0,
-          unit: c.unit,
         })),
       };
       const res = await fetch(`/api/weekly-entry/${entry.id}`, {
@@ -327,25 +294,6 @@ function EntryRow({
                 </div>
               </div>
 
-              {hasChemicals && (
-                <div className={styles.editSection}>
-                  <p className={styles.editSectionTitle}>Chemie — totaal verbruik per product</p>
-                  <div className={styles.fieldsRow}>
-                    {uniqueChemicals.map((c) => (
-                      <div key={c.id} className={styles.fieldGroup}>
-                        <label className={styles.fieldLabel}>{c.name} ({c.unit})</label>
-                        <input
-                          className={styles.input}
-                          type="number"
-                          value={chemAmounts[c.id] ?? ''}
-                          onChange={(e) => setChemAmounts((prev) => ({ ...prev, [c.id]: e.target.value }))}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               {error && <p className={styles.error}>{error}</p>}
               <div className={styles.editFooter}>
                 <button type="button" className={styles.cancelBtn} onClick={() => setEditing(false)}>Annuleren</button>
@@ -402,7 +350,7 @@ function EntryRow({
 }
 
 // ── Main list ─────────────────────────────────────────────────
-export function HistoryList({ entries, programs, products, startCarCount = 0, startWaterCount = 0, siteId, energyBillsByMonth }: HistoryListProps) {
+export function HistoryList({ entries, programs, startCarCount = 0, startWaterCount = 0, siteId, energyBillsByMonth }: HistoryListProps) {
   if (entries.length === 0) {
     return <p className={styles.empty}>Nog geen ingaves gevonden voor deze carwash.</p>;
   }
@@ -419,7 +367,6 @@ export function HistoryList({ entries, programs, products, startCarCount = 0, st
             key={e.id}
             entry={e}
             programs={programs}
-            products={products}
             previousTellerstand={previousTellerstand}
             previousWaterTellerstand={previousWaterTellerstand}
             siteId={siteId}

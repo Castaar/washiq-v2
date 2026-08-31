@@ -185,6 +185,34 @@ const StockDeliverySchema = new Schema<IStockDelivery>({
 StockDeliverySchema.index({ site_id: 1, delivered_at: -1 });
 export const StockDelivery = models.StockDelivery || model<IStockDelivery>('StockDelivery', StockDeliverySchema);
 
+// ─── StockReading ─────────────────────────────────────────────
+// A physical stock count for one product. Consumption since the
+// previous reading is derived: previous.quantity + deliveries in
+// between - this.quantity. The very first reading for a product has
+// no previous reading, so consumption is 0 (it's the baseline).
+export interface IStockReading extends Document {
+  site_id: Types.ObjectId;
+  chemical_id: Types.ObjectId;
+  name: string;
+  unit: string;
+  quantity: number;
+  consumption: number;
+  recorded_at: Date;
+  recorded_by: Types.ObjectId;
+}
+const StockReadingSchema = new Schema<IStockReading>({
+  site_id: { type: Schema.Types.ObjectId, ref: 'Site' },
+  chemical_id: { type: Schema.Types.ObjectId, ref: 'ChemicalStock' },
+  name: String,
+  unit: String,
+  quantity: Number,
+  consumption: { type: Number, default: 0 },
+  recorded_at: { type: Date, default: Date.now },
+  recorded_by: { type: Schema.Types.ObjectId, ref: 'User' },
+});
+StockReadingSchema.index({ site_id: 1, chemical_id: 1, recorded_at: -1 });
+export const StockReading = models.StockReading || model<IStockReading>('StockReading', StockReadingSchema);
+
 // ─── MaintenanceTask ──────────────────────────────────────────
 export interface IMaintenanceTask extends Document {
   site_id: Types.ObjectId;

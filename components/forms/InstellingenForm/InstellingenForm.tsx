@@ -301,6 +301,39 @@ export function InstellingenForm({ siteId, siteName, priceConfig, stocks, energy
     }
   }
 
+  // ── Stock reading (maandelijkse voorraadopname) state ──────
+  const [readingOpen, setReadingOpen] = useState<Record<string, string>>({});
+  const [savingReading, setSavingReading] = useState<string | null>(null);
+  const [readingResult, setReadingResult] = useState<Record<string, { consumption: number; unit: string; isFirstReading: boolean }>>({});
+  const [readingError, setReadingError] = useState<Record<string, string>>({});
+
+  async function handleConfirmReading(stockId: string) {
+    const qtyRaw = readingOpen[stockId];
+    const qty = parseFloat(qtyRaw ?? '');
+    if (qtyRaw === undefined || isNaN(qty) || qty < 0) return;
+    setSavingReading(stockId);
+    setReadingError((prev) => { const n = { ...prev }; delete n[stockId]; return n; });
+    try {
+      const res = await fetch('/api/stock/reading', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chemicalId: stockId, quantity: qty }),
+      });
+      if (res.ok) {
+        const data = (await res.json()) as { quantity: number; consumption: number; isFirstReading: boolean };
+        const unit = productList.find((s) => s.id === stockId)?.unit ?? '';
+        setProductList((prev) => prev.map((s) => (s.id === stockId ? { ...s, current_stock: data.quantity } : s)));
+        setReadingOpen((prev) => { const n = { ...prev }; delete n[stockId]; return n; });
+        setReadingResult((prev) => ({ ...prev, [stockId]: { consumption: data.consumption, unit, isFirstReading: data.isFirstReading } }));
+      } else {
+        const err = (await res.json().catch(() => null)) as { error?: string } | null;
+        setReadingError((prev) => ({ ...prev, [stockId]: err?.error ?? 'Opslaan mislukt' }));
+      }
+    } finally {
+      setSavingReading(null);
+    }
+  }
+
   // ── Car count state ───────────────────────────────────────
   const [carCount, setCarCount] = useState(startCarCount > 0 ? String(startCarCount) : '');
   const [savingCarCount, setSavingCarCount] = useState(false);
@@ -708,6 +741,7 @@ export function InstellingenForm({ siteId, siteName, priceConfig, stocks, energy
           <h2 className={styles.sectionTitle}>Chemie voorraad</h2>
         </div>
         <p className={styles.sectionHint}>
+          Neem maandelijks de voorraad op — de app berekent het verbruik automatisch (vorige telling + leveringen − nieuwe telling).
           Registreer een levering om de voorraad bij te werken, of verplaats voorraad naar een andere carwash.
         </p>
         {productList.length === 0 ? (
@@ -723,6 +757,7 @@ export function InstellingenForm({ siteId, siteName, priceConfig, stocks, energy
             {productList.map((s) => {
               const isDeliveryOpen = s.id in deliveryOpen;
               const isTransferOpen = s.id in transferOpen;
+              const isReadingOpen = s.id in readingOpen;
               const isLow = s.min_stock_alert > 0 && s.current_stock <= s.min_stock_alert;
               return (
                 <div key={s.id} className={styles.stockRow}>
@@ -731,7 +766,40 @@ export function InstellingenForm({ siteId, siteName, priceConfig, stocks, energy
                     {s.current_stock}
                   </span>
                   <span className={styles.stockUnit}>{s.unit}</span>
-                  {isDeliveryOpen ? (
+                  {isReadingOpen ? (
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                      <input
+                        className={styles.stockInput}
+                        type="number"
+                        min="0"
+                        step="any"
+                        placeholder={`Nieuwe telling (${s.unit})`}
+                        value={readingOpen[s.id]}
+                        onChange={(e) => setReadingOpen((prev) => ({ ...prev, [s.id]: e.target.value }))}
+                        autoFocus
+                        style={{ width: 140 }}
+                      />
+                      <button
+                        type="button"
+                        className={styles.saveBtn}
+                        onClick={() => handleConfirmReading(s.id)}
+                        disabled={savingReading === s.id}
+                        style={{ padding: '4px 10px' }}
+                      >
+                        {savingReading === s.id ? '...' : 'OK'}
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.deleteProductBtn}
+                        onClick={() => setReadingOpen((prev) => { const n = { ...prev }; delete n[s.id]; return n; })}
+                      >
+                        ✕
+                      </button>
+                      {readingError[s.id] && (
+                        <span className={styles.errorMsg} style={{ width: '100%' }}>{readingError[s.id]}</span>
+                      )}
+                    </div>
+                  ) : isDeliveryOpen ? (
                     <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                       <input
                         className={styles.stockInput}
@@ -817,7 +885,15 @@ export function InstellingenForm({ siteId, siteName, priceConfig, stocks, energy
                       )}
                     </div>
                   ) : (
-                    <div style={{ display: 'flex', gap: 6 }}>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        className={styles.saveBtn}
+                        onClick={() => setReadingOpen((prev) => ({ ...prev, [s.id]: '' }))}
+                        style={{ padding: '4px 10px' }}
+                      >
+                        📋 Voorraad opnemen
+                      </button>
                       <button
                         type="button"
                         className={styles.saveBtn}
@@ -835,6 +911,18 @@ export function InstellingenForm({ siteId, siteName, priceConfig, stocks, energy
                         >
                           ⇄ Verplaatsen
                         </button>
+                      )}
+                      {readingResult[s.id] && (
+                        <span
+                          className={styles.sectionHint}
+                          style={{ width: '100%', margin: 0, color: readingResult[s.id].consumption < 0 ? 'var(--color-accent-red)' : undefined }}
+                        >
+                          {readingResult[s.id].isFirstReading
+                            ? 'Eerste telling opgeslagen — verbruik wordt vanaf de volgende telling berekend.'
+                            : readingResult[s.id].consumption < 0
+                              ? `Let op: negatief verbruik (${readingResult[s.id].consumption} ${readingResult[s.id].unit}) — controleer of een levering ontbreekt of er een tikfout is.`
+                              : `Verbruik sinds vorige telling: ${readingResult[s.id].consumption} ${readingResult[s.id].unit}`}
+                        </span>
                       )}
                     </div>
                   )}

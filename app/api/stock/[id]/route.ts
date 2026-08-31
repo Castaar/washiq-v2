@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
-import { ChemicalStock, StockDelivery } from '@/lib/models';
+import { ChemicalStock, StockDelivery, StockReading } from '@/lib/models';
 import { getSession } from '@/lib/session';
 import mongoose from 'mongoose';
 
@@ -22,6 +22,23 @@ export async function PATCH(
   if (typeof body.set_stock === 'number') {
     stock.current_stock = body.set_stock;
     stock.last_updated = new Date();
+
+    // Seed a baseline reading so the next monthly count has something to
+    // compare against — only if this product has never been read yet.
+    const hasReading = await StockReading.exists({ chemical_id: stock._id });
+    if (!hasReading) {
+      const session = await getSession();
+      await StockReading.create({
+        site_id: stock.site_id,
+        chemical_id: stock._id,
+        name: stock.name,
+        unit: stock.unit,
+        quantity: body.set_stock,
+        consumption: 0,
+        recorded_at: new Date(),
+        recorded_by: session?.userId ? new mongoose.Types.ObjectId(session.userId) : undefined,
+      });
+    }
   }
 
   // If a delivery quantity is provided, log it and increase current_stock

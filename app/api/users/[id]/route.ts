@@ -2,8 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
 import { User } from '@/lib/models';
 import { getSessionFromRequest } from '@/lib/session';
+import { sendPasswordResetEmail } from '@/lib/email';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import mongoose from 'mongoose';
+
+function generateTempPassword(): string {
+  // 12 random chars from an unambiguous alphabet (no 0/O/1/l/I)
+  const alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  return Array.from(crypto.randomFillSync(new Uint8Array(12)))
+    .map((b) => alphabet[b % alphabet.length])
+    .join('');
+}
 
 export async function PATCH(
   req: NextRequest,
@@ -26,6 +36,7 @@ export async function PATCH(
     name?: string;
     email?: string;
     newPassword?: string;
+    resetPassword?: boolean;
     whatsapp?: string;
     is_active?: boolean;
   };
@@ -62,6 +73,12 @@ export async function PATCH(
   if (body.email)      update.email = body.email.trim().toLowerCase();
   if (body.siteIds)    update.site_ids = body.siteIds.map((s) => new mongoose.Types.ObjectId(s));
   if (body.newPassword) update.password_hash = await bcrypt.hash(body.newPassword, 12);
+
+  let tempPassword: string | null = null;
+  if (body.resetPassword) {
+    tempPassword = generateTempPassword();
+    update.password_hash = await bcrypt.hash(tempPassword, 12);
+  }
   if (body.whatsapp !== undefined) update.whatsapp = body.whatsapp.trim();
   if (body.is_active !== undefined) update.is_active = body.is_active;
   if (body.addSiteId)    arrayOps['$addToSet'] = { site_ids: new mongoose.Types.ObjectId(body.addSiteId) };
@@ -87,7 +104,11 @@ export async function PATCH(
   }
 
   const setOp = Object.keys(update).length ? { $set: update } : {};
-  await User.findByIdAndUpdate(id, { ...setOp, ...arrayOps });
+  const updated = await User.findByIdAndUpdate(id, { ...setOp, ...arrayOps }, { new: true }).select('name email').lean();
+
+  if (tempPassword && updated) {
+    sendPasswordResetEmail(updated.email as string, updated.name as string, tempPassword).catch(() => null);
+  }
 
   return NextResponse.json({ ok: true });
 }
