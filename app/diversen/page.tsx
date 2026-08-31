@@ -31,6 +31,7 @@ export default async function DiversenPage() {
   const announcements: AnnouncementItem[] = announcementDocs.map((a) => ({
     id: (a._id as Types.ObjectId).toString(),
     text: a.text as string,
+    text_fr: (a.text_fr as string) ?? '',
     kind: (a.kind as string) === 'birthday' ? 'birthday' : 'general',
     created_by_name: (a.created_by_name as string) ?? '',
     created_at: (a.created_at as Date).toISOString(),

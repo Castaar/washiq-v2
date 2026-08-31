@@ -108,6 +108,7 @@ export default async function DashboardPage({
   const announcements = announcementDocs.map((a) => ({
     id: (a._id as Types.ObjectId).toString(),
     text: a.text as string,
+    text_fr: (a.text_fr as string) ?? '',
     created_by_name: (a.created_by_name as string) ?? '',
     is_all_sites: (a.is_all_sites as boolean) ?? true,
     created_at: (a.created_at as Date).toISOString(),

@@ -1,11 +1,13 @@
 'use client';
 
 import { useState } from 'react';
+import { useLocale } from 'next-intl';
 import styles from './AnnouncementBanner.module.scss';
 
 export interface AnnouncementItem {
   id: string;
   text: string;
+  text_fr?: string;
   created_by_name: string;
   is_all_sites: boolean;
   created_at: string;
@@ -23,6 +25,7 @@ export function AnnouncementBanner({
   initialAnnouncements: AnnouncementItem[];
   canManage: boolean;
 }) {
+  const locale = useLocale();
   const [items, setItems] = useState(initialAnnouncements);
 
   if (items.length === 0) return null;
@@ -40,7 +43,7 @@ export function AnnouncementBanner({
             <div key={item.id} className={styles.item}>
               <span className={styles.icon} aria-hidden="true">📢</span>
               <div className={styles.content}>
-                <p className={styles.text}>{item.text}</p>
+                <p className={styles.text}>{locale === 'fr' && item.text_fr ? item.text_fr : item.text}</p>
                 <span className={styles.meta}>
                   {item.created_by_name && `${item.created_by_name} · `}
                   {fmtDate(item.created_at)}

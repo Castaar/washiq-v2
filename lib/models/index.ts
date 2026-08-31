@@ -536,6 +536,7 @@ export const Planning = models.Planning || model<IPlanning>('Planning', Planning
 // ─── Announcement ─────────────────────────────────────────────
 export interface IAnnouncement extends Document {
   text: string;
+  text_fr?: string;
   kind: 'general' | 'birthday';
   created_by_name: string;
   is_all_sites: boolean;
@@ -544,6 +545,7 @@ export interface IAnnouncement extends Document {
 }
 const AnnouncementSchema = new Schema<IAnnouncement>({
   text: { type: String, required: true },
+  text_fr: { type: String },
   kind: { type: String, enum: ['general', 'birthday'], default: 'general' },
   created_by_name: { type: String, default: '' },
   is_all_sites: { type: Boolean, default: true },

@@ -23,6 +23,7 @@ export async function GET(req: NextRequest) {
     docs.map((d) => ({
       id: (d._id as Types.ObjectId).toString(),
       text: d.text,
+      text_fr: d.text_fr ?? '',
       kind: d.kind ?? 'general',
       created_by_name: d.created_by_name,
       is_all_sites: d.is_all_sites,
@@ -38,7 +39,7 @@ export async function POST(req: NextRequest) {
   const session = await getSessionFromRequest(req);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const body = await req.json() as { text: string; siteId?: string; is_all_sites?: boolean; kind?: 'general' | 'birthday' };
+  const body = await req.json() as { text: string; text_fr?: string; siteId?: string; is_all_sites?: boolean; kind?: 'general' | 'birthday' };
   if (!body.text?.trim()) return NextResponse.json({ error: 'text required' }, { status: 400 });
 
   const kind = body.kind === 'birthday' ? 'birthday' : 'general';
@@ -51,6 +52,7 @@ export async function POST(req: NextRequest) {
   const isAll = body.is_all_sites !== false;
   const doc = await Announcement.create({
     text: body.text.trim(),
+    text_fr: body.text_fr?.trim() || undefined,
     kind,
     created_by_name: session.name,
     is_all_sites: isAll,

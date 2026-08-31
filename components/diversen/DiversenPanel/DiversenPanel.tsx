@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useLocale } from 'next-intl';
 import styles from './DiversenPanel.module.scss';
 
 export interface BirthdayPerson {
@@ -12,6 +13,7 @@ export interface BirthdayPerson {
 export interface AnnouncementItem {
   id: string;
   text: string;
+  text_fr?: string;
   kind: 'general' | 'birthday';
   created_by_name: string;
   created_at: string;
@@ -30,22 +32,29 @@ export function DiversenPanel({
   announcements: AnnouncementItem[];
   canPostGeneral: boolean;
 }) {
+  const locale = useLocale();
   const [announcements, setAnnouncements] = useState(initialAnnouncements);
   const [wishedIds, setWishedIds] = useState<string[]>([]);
   const [generalText, setGeneralText] = useState('');
+  const [generalTextFr, setGeneralTextFr] = useState('');
   const [posting, setPosting] = useState(false);
+
+  function displayText(a: AnnouncementItem) {
+    return locale === 'fr' && a.text_fr ? a.text_fr : a.text;
+  }
 
   async function handleWish(person: BirthdayPerson) {
     const text = `🎉 Gelukkige verjaardag, ${person.name}!`;
+    const text_fr = `🎉 Joyeux anniversaire, ${person.name} !`;
     const res = await fetch('/api/announcements', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, kind: 'birthday', is_all_sites: true }),
+      body: JSON.stringify({ text, text_fr, kind: 'birthday', is_all_sites: true }),
     });
     if (res.ok) {
       const data = (await res.json()) as { id: string };
       setAnnouncements((prev) => [
-        { id: data.id, text, kind: 'birthday', created_by_name: '', created_at: new Date().toISOString() },
+        { id: data.id, text, text_fr, kind: 'birthday', created_by_name: '', created_at: new Date().toISOString() },
         ...prev,
       ]);
       setWishedIds((prev) => [...prev, person.id]);
@@ -59,15 +68,16 @@ export function DiversenPanel({
       const res = await fetch('/api/announcements', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: generalText.trim(), kind: 'general', is_all_sites: true }),
+        body: JSON.stringify({ text: generalText.trim(), text_fr: generalTextFr.trim(), kind: 'general', is_all_sites: true }),
       });
       if (res.ok) {
         const data = (await res.json()) as { id: string };
         setAnnouncements((prev) => [
-          { id: data.id, text: generalText.trim(), kind: 'general', created_by_name: '', created_at: new Date().toISOString() },
+          { id: data.id, text: generalText.trim(), text_fr: generalTextFr.trim(), kind: 'general', created_by_name: '', created_at: new Date().toISOString() },
           ...prev,
         ]);
         setGeneralText('');
+        setGeneralTextFr('');
       }
     } finally {
       setPosting(false);
@@ -107,6 +117,13 @@ export function DiversenPanel({
             onChange={(e) => setGeneralText(e.target.value)}
             rows={3}
           />
+          <textarea
+            className={styles.textarea}
+            placeholder="Frans (optioneel) — bv. La promotion commence demain !"
+            value={generalTextFr}
+            onChange={(e) => setGeneralTextFr(e.target.value)}
+            rows={3}
+          />
           <button
             type="button"
             className={styles.postBtn}
@@ -128,7 +145,7 @@ export function DiversenPanel({
               <div key={a.id} className={styles.item}>
                 <span className={styles.itemIcon} aria-hidden="true">{a.kind === 'birthday' ? '🎉' : '📢'}</span>
                 <div className={styles.itemBody}>
-                  <p className={styles.itemText}>{a.text}</p>
+                  <p className={styles.itemText}>{displayText(a)}</p>
                   <span className={styles.itemMeta}>
                     {a.created_by_name && `${a.created_by_name} · `}{fmtDate(a.created_at)}
                   </span>
