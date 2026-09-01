@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { BottomSheet } from '@/components/ui/BottomSheet/BottomSheet';
 import {
   IconBarChart, IconClipboard, IconCalendar, IconGrid, IconUser,
-  IconSettings, IconMessageSquare, IconCheck, IconWrench, IconCart, IconBox, IconDownload, IconGlobe,
+  IconSettings, IconMessageSquare, IconCheck, IconWrench, IconCart, IconBox, IconDownload, IconGlobe, IconFileText, IconPackage,
 } from '@/components/ui/icons';
 import type { UserRole } from './BottomNav';
 import styles from './MeerSheet.module.scss';
@@ -26,8 +26,10 @@ const OWNER_LINKS: MeerLink[] = [
   { href: '/opdrachten', label: 'Opdrachten', icon: IconClipboard },
   { href: '/planning', label: 'Planning', icon: IconCalendar },
   { href: '/logboek', label: 'Logboek', icon: IconCheck },
+  { href: '/dagfiches', label: 'Dagfiches', icon: IconFileText },
   { href: '/onderhouden', label: 'Onderhoud', icon: IconWrench },
   { href: '/leveringen', label: 'Leveringen', icon: IconCart },
+  { href: '/orders', label: 'Orders', icon: IconPackage },
   { href: '/diversen', label: 'Diversen', icon: IconGrid },
   { href: '/vertalingen', label: 'Vertalingen', icon: IconGlobe },
   { href: '/instellingen', label: 'Instellingen', icon: IconSettings },
@@ -46,6 +48,7 @@ const EMPLOYEE_LINKS: MeerLink[] = [
   { href: '/planning', label: 'Planning', icon: IconCalendar },
   { href: '/leveringen', label: 'Leveringen', icon: IconCart },
   { href: '/onderhouden', label: 'Onderhoud', icon: IconWrench },
+  { href: '/orders', label: 'Orders', icon: IconPackage },
   { href: '/diversen', label: 'Diversen', icon: IconGrid },
   { href: '/account', label: 'Account', icon: IconUser },
   { href: '/handleiding', label: 'Handleiding', icon: IconMessageSquare },

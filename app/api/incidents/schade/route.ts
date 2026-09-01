@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
   sendPushToAll({
     title: 'Nieuw schade-incident',
     body: `${body.merk_model ?? ''} ${body.nummerplaat ?? ''}`.trim() || 'Een schade-incident werd ingediend.',
-    url: '/incidenten/schade',
+    url: `/incidenten?site=${body.siteId}&item=${doc._id.toString()}`,
   }).catch(() => {});
 
   return NextResponse.json({ id: doc._id.toString() }, { status: 201 });

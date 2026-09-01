@@ -618,3 +618,51 @@ const TranslationSchema = new Schema<ITranslation>({
 });
 TranslationSchema.index({ locale: 1, key: 1 }, { unique: true });
 export const Translation = models.Translation || model<ITranslation>('Translation', TranslationSchema);
+
+// ─── OrderItem ───────────────────────────────────────────────────
+// Catalog of orderable products (actiefolders, abonnementen, ...)
+// managed per site by owner/developer, offered for order to employees.
+export interface IOrderItem extends Document {
+  site_id: Types.ObjectId;
+  name: string;
+  description: string;
+  is_active: boolean;
+  created_at: Date;
+}
+const OrderItemSchema = new Schema<IOrderItem>({
+  site_id: { type: Schema.Types.ObjectId, ref: 'Site', required: true },
+  name: { type: String, required: true },
+  description: { type: String, default: '' },
+  is_active: { type: Boolean, default: true },
+  created_at: { type: Date, default: Date.now },
+});
+OrderItemSchema.index({ site_id: 1 });
+export const OrderItem = models.OrderItem || model<IOrderItem>('OrderItem', OrderItemSchema);
+
+// ─── OrderRequest ─────────────────────────────────────────────────
+// An employee flagging a catalog item as (near) sold out — notifies
+// the site's owner/developer, who marks it handled once reordered.
+export interface IOrderRequest extends Document {
+  site_id: Types.ObjectId;
+  item_id: Types.ObjectId;
+  item_name: string;
+  requested_by: Types.ObjectId;
+  requested_by_name: string;
+  requested_at: Date;
+  is_handled: boolean;
+  handled_by_name: string;
+  handled_at?: Date;
+}
+const OrderRequestSchema = new Schema<IOrderRequest>({
+  site_id: { type: Schema.Types.ObjectId, ref: 'Site', required: true },
+  item_id: { type: Schema.Types.ObjectId, ref: 'OrderItem', required: true },
+  item_name: { type: String, default: '' },
+  requested_by: { type: Schema.Types.ObjectId, ref: 'User' },
+  requested_by_name: { type: String, default: '' },
+  requested_at: { type: Date, default: Date.now },
+  is_handled: { type: Boolean, default: false },
+  handled_by_name: { type: String, default: '' },
+  handled_at: { type: Date },
+});
+OrderRequestSchema.index({ site_id: 1, is_handled: 1 });
+export const OrderRequest = models.OrderRequest || model<IOrderRequest>('OrderRequest', OrderRequestSchema);

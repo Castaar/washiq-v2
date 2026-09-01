@@ -181,6 +181,28 @@
   font-style: italic;
 }
 
+.logDeleteBtn {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s, color 0.15s;
+
+  &:hover:not(:disabled) {
+    background: var(--color-accent-red-dim);
+    color: var(--color-accent-red);
+  }
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
 .empty {
   font-size: 0.875rem;
   color: var(--color-text-muted);

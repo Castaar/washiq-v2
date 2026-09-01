@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { SeverityChips, type Severity } from '@/components/ui/Chip/Chip';
 import { PhotoUpload } from '@/components/ui/PhotoUpload/PhotoUpload';
 import { IncidentModal } from '@/components/dashboard/IncidentModal/IncidentModal';
@@ -63,6 +64,16 @@ export function IncidentenPanel({
   const [allLoaded, setAllLoaded] = useState(initialIncidents.length < 45);
   const [defectFormOpen, setDefectFormOpen] = useState(false);
   const [openIncident, setOpenIncident] = useState<IncidentListItem | null>(null);
+
+  // Deep-link from a push notification: /incidenten?item=<id> opens that incident directly.
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const itemId = searchParams.get('item');
+    if (!itemId) return;
+    const match = incidents.find((i) => i.id === itemId);
+    if (match) setOpenIncident(match);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   async function handleDefectSave() {
     if (!omschrijving.trim()) return;

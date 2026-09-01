@@ -47,6 +47,7 @@ export default async function LogboekPage({
 
   const recentLogs: LogEntry[] = logDocs.map((l) => ({
     id: (l._id as Types.ObjectId).toString(),
+    userId: (l.user_id as Types.ObjectId).toString(),
     userName: (l.user_name as string) ?? '',
     type: l.type as 'opening' | 'sluiting',
     personType: (l.person_type as 'employee' | 'technician_extern') ?? 'employee',
@@ -64,6 +65,7 @@ export default async function LogboekPage({
             siteId={siteId}
             userRole={userRole}
             userName={(userDoc?.name as string) ?? session?.name ?? ''}
+            currentUserId={session?.userId ?? ''}
             recentLogs={recentLogs}
           />
         </div>

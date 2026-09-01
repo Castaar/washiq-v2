@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
   sendPushToAll({
     title: `Nieuw defect gemeld — ${ERNST_LABEL[ernst]}`,
     body: body.omschrijving ?? 'Een defect werd ingediend.',
-    url: '/incidenten',
+    url: `/incidenten?site=${body.siteId}&item=${doc._id.toString()}`,
   }).catch(() => {});
 
   return NextResponse.json({ id: doc._id.toString() }, { status: 201 });

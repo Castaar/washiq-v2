@@ -77,7 +77,7 @@ export default async function DashboardPage({
   const addLabel = userRole === 'developer' ? 'Developer' : userRole === 'employee' ? 'Dagfiche' : 'Maandelijkse Ingave';
 
   // Fetch recent attendance logs for employees (shown on dashboard instead of alerts panel)
-  let recentLogs: { id: string; userName: string; type: 'opening' | 'sluiting'; personType: 'employee' | 'technician_extern'; registeredByName: string; timestamp: string; note: string }[] = [];
+  let recentLogs: { id: string; userId: string; userName: string; type: 'opening' | 'sluiting'; personType: 'employee' | 'technician_extern'; registeredByName: string; timestamp: string; note: string }[] = [];
   if ((userRole === 'employee') && activeSiteId && session?.userId) {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -88,6 +88,7 @@ export default async function DashboardPage({
     }).sort({ timestamp: -1 }).limit(100).lean();
     recentLogs = logDocs.map((l) => ({
       id: (l._id as Types.ObjectId).toString(),
+      userId: (l.user_id as Types.ObjectId).toString(),
       userName: (l.user_name as string) ?? '',
       type: l.type as 'opening' | 'sluiting',
       personType: ((l.person_type as string) ?? 'employee') as 'employee' | 'technician_extern',
@@ -128,7 +129,7 @@ export default async function DashboardPage({
             />
           </div>
         ) : null}
-        <CarwashPage siteId={activeSiteId} period={period} view={view} usage={usage} refDate={refDate} sites={sites} addHref={addHref} addLabel={addLabel} userRole={userRole} recentLogs={recentLogs} userName={session?.name ?? ''} />
+        <CarwashPage siteId={activeSiteId} period={period} view={view} usage={usage} refDate={refDate} sites={sites} addHref={addHref} addLabel={addLabel} userRole={userRole} recentLogs={recentLogs} userName={session?.name ?? ''} userId={session?.userId ?? ''} />
       </div>
     </div>
   );

@@ -82,6 +82,7 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({
     id: (log._id as Types.ObjectId).toString(),
+    userId: (log.user_id as Types.ObjectId).toString(),
     userName: log.user_name,
     type: log.type,
     personType: log.person_type,

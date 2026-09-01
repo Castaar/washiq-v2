@@ -5,6 +5,7 @@ import styles from './LogboekPanel.module.scss';
 
 export interface LogEntry {
   id: string;
+  userId: string;
   userName: string;
   type: 'opening' | 'sluiting';
   personType: 'employee' | 'technician_extern';
@@ -32,6 +33,7 @@ interface LogboekPanelProps {
   siteId: string;
   userRole: string;
   userName: string;
+  currentUserId: string;
   recentLogs: LogEntry[];
 }
 
@@ -63,11 +65,12 @@ function fmtDayNL(dateStr: string) {
   return d.toLocaleDateString('nl-BE', { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
-export function LogboekPanel({ siteId, userRole, userName, recentLogs }: LogboekPanelProps) {
+export function LogboekPanel({ siteId, userRole, userName, currentUserId, recentLogs }: LogboekPanelProps) {
   const [logs, setLogs] = useState<LogEntry[]>(recentLogs);
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
   const [lastAction, setLastAction] = useState<'opening' | 'sluiting' | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Externe technieker registratie (door de werknemer/eigenaar ter plaatse ingevuld)
   const [techName, setTechName] = useState('');
@@ -124,6 +127,17 @@ export function LogboekPanel({ siteId, userRole, userName, recentLogs }: Logboek
       setTechError('Registreren mislukt, probeer opnieuw');
     }
     setTechSaving(false);
+  }
+
+  async function handleDeleteLog(id: string) {
+    if (!confirm('Deze registratie verwijderen?')) return;
+    setDeletingId(id);
+    try {
+      const res = await fetch(`/api/attendance/${id}`, { method: 'DELETE' });
+      if (res.ok) setLogs((prev) => prev.filter((l) => l.id !== id));
+    } finally {
+      setDeletingId(null);
+    }
   }
 
   async function loadSummary(year: number, month: number) {
@@ -407,6 +421,18 @@ export function LogboekPanel({ siteId, userRole, userName, recentLogs }: Logboek
                   </span>
                   <span className={styles.logTime}>{fmtTime(l.timestamp)}</span>
                   {l.note && <span className={styles.logNote}>{l.note}</span>}
+                  {(isOwner || l.userId === currentUserId) && (
+                    <button
+                      type="button"
+                      className={styles.logDeleteBtn}
+                      onClick={() => handleDeleteLog(l.id)}
+                      disabled={deletingId === l.id}
+                      aria-label="Registratie verwijderen"
+                      title="Verwijderen"
+                    >
+                      ✕
+                    </button>
+                  )}
                 </div>
               ))}
             </div>

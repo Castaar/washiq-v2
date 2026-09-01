@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
   sendPushToAll({
     title: 'Nieuw EHBO-incident',
     body: body.naam_slachtoffer ? `Slachtoffer: ${body.naam_slachtoffer}` : 'Een EHBO-incident werd ingediend.',
-    url: '/incidenten/ehbo',
+    url: `/incidenten?site=${body.siteId}&item=${doc._id.toString()}`,
   }).catch(() => {});
 
   return NextResponse.json({ id: doc._id.toString() }, { status: 201 });

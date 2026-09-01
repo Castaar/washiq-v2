@@ -73,7 +73,7 @@ export async function GET(req: NextRequest) {
     await sendPushToSite(siteId, {
       title: 'Dagfiche nog niet ingevuld',
       body: `${siteName}: de shift sluit binnenkort — vergeet de afsluit-checklist niet in te vullen.`,
-      url: '/dagfiche',
+      url: `/dagfiche?site=${siteId}`,
     }).catch(() => {});
 
     results.push({ site: siteName, sent: true, reason: 'reminder sent' });

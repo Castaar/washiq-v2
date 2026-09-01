@@ -52,6 +52,7 @@ export async function CarwashPage({
   userRole = 'employee',
   recentLogs = [],
   userName = '',
+  userId = '',
 }: {
   siteId?: string;
   period?: 'week' | 'month';
@@ -63,6 +64,7 @@ export async function CarwashPage({
   addLabel?: string;
   userRole?: string;
   recentLogs?: LogEntry[];
+  userId?: string;
   userName?: string;
 }) {
   await dbConnect();
@@ -966,6 +968,7 @@ export async function CarwashPage({
             siteId={siteId ?? ''}
             userRole={userRole}
             userName={userName}
+            currentUserId={userId}
             recentLogs={recentLogs}
           />
           <div className={styles.heroImageWrap}>
