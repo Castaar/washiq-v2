@@ -14,14 +14,28 @@ export async function PATCH(
   }
 
   const { id } = await params;
-  type Body = { last_done_at?: string; washes_at_last_done?: number };
+  type Body = {
+    description?: string;
+    trigger_type?: 'washes' | 'months' | 'fixed_date' | 'fixed_months';
+    trigger_value?: number;
+    trigger_day?: number;
+    trigger_month?: number;
+    last_done_at?: string;
+    washes_at_last_done?: number;
+  };
   const body = (await req.json()) as Body;
 
   await dbConnect();
   const update: Record<string, unknown> = {};
+  if (typeof body.description === 'string' && body.description.trim()) update.description = body.description.trim();
+  if (body.trigger_type) update.trigger_type = body.trigger_type;
+  if (typeof body.trigger_value === 'number') update.trigger_value = body.trigger_value;
+  if (typeof body.trigger_day === 'number') update.trigger_day = body.trigger_day;
+  if (typeof body.trigger_month === 'number') update.trigger_month = body.trigger_month;
   if (body.last_done_at) {
     update.last_done_at = new Date(body.last_done_at);
     update.is_overdue = false;
+    update.overdue_notified_at = null;
   }
   if (typeof body.washes_at_last_done === 'number') update.washes_at_last_done = body.washes_at_last_done;
 

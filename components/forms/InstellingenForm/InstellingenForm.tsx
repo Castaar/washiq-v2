@@ -89,7 +89,7 @@ function emptyTask(): NewTaskDraft {
 }
 
 function taskTriggerLabel(t: MaintenanceTaskItem): string {
-  if (t.trigger_type === 'washes') return `Elke ${t.trigger_value.toLocaleString('nl-BE')} wassen`;
+  if (t.trigger_type === 'washes') return `Elke ${t.trigger_value.toLocaleString('nl-BE')} wasbeurten`;
   if (t.trigger_type === 'months') {
     if (t.trigger_value === 12) return '1× per jaar';
     if (t.trigger_value === 24) return 'Om de 2 jaar';
@@ -376,6 +376,65 @@ export function InstellingenForm({ siteId, siteName, priceConfig, stocks, energy
   const [savingTask, setSavingTask] = useState(false);
   const [newTask, setNewTask] = useState<NewTaskDraft>(emptyTask());
   const [deletingTask, setDeletingTask] = useState<string | null>(null);
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [editTask, setEditTask] = useState<NewTaskDraft>(emptyTask());
+  const [savingEditTask, setSavingEditTask] = useState(false);
+
+  function handleStartEditTask(t: MaintenanceTaskItem) {
+    setAddingTask(false);
+    setEditingTaskId(t.id);
+    setEditTask({
+      description: t.description,
+      trigger_type: t.trigger_type === 'fixed_months' ? 'washes' : t.trigger_type,
+      trigger_value: t.trigger_value,
+      trigger_day: t.trigger_day,
+      trigger_month: t.trigger_month || 1,
+      last_done_at: t.last_done_at ? t.last_done_at.slice(0, 10) : '',
+      washes_at_last_done: t.washes_at_last_done,
+    });
+  }
+
+  async function handleSaveEditTask(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingTaskId || !editTask.description.trim()) return;
+    setSavingEditTask(true);
+    try {
+      const res = await fetch(`/api/maintenance/${editingTaskId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          description: editTask.description.trim(),
+          trigger_type: editTask.trigger_type,
+          trigger_value: editTask.trigger_value,
+          trigger_day: editTask.trigger_day,
+          trigger_month: editTask.trigger_month,
+          last_done_at: editTask.last_done_at || undefined,
+          washes_at_last_done: editTask.washes_at_last_done,
+        }),
+      });
+      if (res.ok) {
+        setTasks((prev) =>
+          prev.map((t) =>
+            t.id === editingTaskId
+              ? {
+                  ...t,
+                  description: editTask.description.trim(),
+                  trigger_type: editTask.trigger_type,
+                  trigger_value: editTask.trigger_value,
+                  trigger_day: editTask.trigger_day,
+                  trigger_month: editTask.trigger_month,
+                  last_done_at: editTask.last_done_at ? new Date(editTask.last_done_at).toISOString() : t.last_done_at,
+                  washes_at_last_done: editTask.washes_at_last_done,
+                }
+              : t,
+          ),
+        );
+        setEditingTaskId(null);
+      }
+    } finally {
+      setSavingEditTask(false);
+    }
+  }
 
   async function handleAddTask(e: React.FormEvent) {
     e.preventDefault();
@@ -694,33 +753,42 @@ export function InstellingenForm({ siteId, siteName, priceConfig, stocks, energy
           </p>
         ) : (
           <>
-            <div className={styles.stockTable}>
-              <div className={styles.stockHeaderRow}>
+            <div className={styles.startStockTable}>
+              <div className={styles.startStockHeaderRow}>
                 <span>Product</span>
                 <span>Huidige voorraad</span>
                 <span>Min. alert</span>
                 <span>Eenheid</span>
               </div>
               {productList.map((s) => (
-                <div key={s.id} className={styles.stockRow}>
+                <div key={s.id} className={styles.startStockRow}>
                   <span className={styles.stockName}>{s.name}</span>
-                  <input
-                    className={styles.stockInput}
-                    type="number"
-                    min="0"
-                    value={stockValues[s.id] ?? ''}
-                    onChange={(e) => setStockValues((prev) => ({ ...prev, [s.id]: e.target.value }))}
-                    placeholder="0"
-                  />
-                  <input
-                    className={styles.stockInput}
-                    type="number"
-                    min="0"
-                    value={minAlertValues[s.id] ?? ''}
-                    onChange={(e) => setMinAlertValues((prev) => ({ ...prev, [s.id]: e.target.value }))}
-                    placeholder="0"
-                  />
-                  <span className={styles.stockUnit}>{s.unit}</span>
+                  <div className={styles.startStockField}>
+                    <span className={styles.startStockFieldLabel}>Huidige voorraad</span>
+                    <input
+                      className={styles.stockInput}
+                      type="number"
+                      min="0"
+                      value={stockValues[s.id] ?? ''}
+                      onChange={(e) => setStockValues((prev) => ({ ...prev, [s.id]: e.target.value }))}
+                      placeholder="0"
+                    />
+                  </div>
+                  <div className={styles.startStockField}>
+                    <span className={styles.startStockFieldLabel}>Min. alert</span>
+                    <input
+                      className={styles.stockInput}
+                      type="number"
+                      min="0"
+                      value={minAlertValues[s.id] ?? ''}
+                      onChange={(e) => setMinAlertValues((prev) => ({ ...prev, [s.id]: e.target.value }))}
+                      placeholder="0"
+                    />
+                  </div>
+                  <div className={styles.startStockField}>
+                    <span className={styles.startStockFieldLabel}>Eenheid</span>
+                    <span className={styles.stockUnit}>{s.unit}</span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -748,12 +816,6 @@ export function InstellingenForm({ siteId, siteName, priceConfig, stocks, energy
           <p className={styles.emptyHint}>Geen producten gevonden. Voeg eerst producten toe via &quot;Producten beheren&quot; hierboven.</p>
         ) : (
           <div className={styles.stockTable}>
-            <div className={styles.stockHeaderRow}>
-              <span>Product</span>
-              <span>Huidige voorraad</span>
-              <span>Eenheid</span>
-              <span></span>
-            </div>
             {productList.map((s) => {
               const isDeliveryOpen = s.id in deliveryOpen;
               const isTransferOpen = s.id in transferOpen;
@@ -761,13 +823,18 @@ export function InstellingenForm({ siteId, siteName, priceConfig, stocks, energy
               const isLow = s.min_stock_alert > 0 && s.current_stock <= s.min_stock_alert;
               return (
                 <div key={s.id} className={styles.stockRow}>
-                  <span className={styles.stockName}>{s.name}</span>
-                  <span className={[styles.stockName, isLow ? styles.stockLow : ''].filter(Boolean).join(' ')}>
-                    {s.current_stock}
-                  </span>
-                  <span className={styles.stockUnit}>{s.unit}</span>
+                  <div className={styles.stockTop}>
+                    <span className={styles.stockName}>{s.name}</span>
+                    <span className={styles.stockAmount}>
+                      <span className={[styles.stockName, isLow ? styles.stockLow : ''].filter(Boolean).join(' ')}>
+                        {s.current_stock}
+                      </span>
+                      <span className={styles.stockUnit}>{s.unit}</span>
+                    </span>
+                  </div>
+
                   {isReadingOpen ? (
-                    <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div className={styles.stockInlineForm}>
                       <input
                         className={styles.stockInput}
                         type="number"
@@ -777,14 +844,14 @@ export function InstellingenForm({ siteId, siteName, priceConfig, stocks, energy
                         value={readingOpen[s.id]}
                         onChange={(e) => setReadingOpen((prev) => ({ ...prev, [s.id]: e.target.value }))}
                         autoFocus
-                        style={{ width: 140 }}
+                        style={{ width: 160 }}
                       />
                       <button
                         type="button"
                         className={styles.saveBtn}
                         onClick={() => handleConfirmReading(s.id)}
                         disabled={savingReading === s.id}
-                        style={{ padding: '4px 10px' }}
+                        style={{ height: 34, padding: '0 var(--space-4)' }}
                       >
                         {savingReading === s.id ? '...' : 'OK'}
                       </button>
@@ -800,7 +867,7 @@ export function InstellingenForm({ siteId, siteName, priceConfig, stocks, energy
                       )}
                     </div>
                   ) : isDeliveryOpen ? (
-                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    <div className={styles.stockInlineForm}>
                       <input
                         className={styles.stockInput}
                         type="number"
@@ -810,14 +877,14 @@ export function InstellingenForm({ siteId, siteName, priceConfig, stocks, energy
                         value={deliveryOpen[s.id]}
                         onChange={(e) => setDeliveryOpen((prev) => ({ ...prev, [s.id]: e.target.value }))}
                         autoFocus
-                        style={{ width: 90 }}
+                        style={{ width: 110 }}
                       />
                       <button
                         type="button"
                         className={styles.saveBtn}
                         onClick={() => handleConfirmDelivery(s.id)}
                         disabled={savingDelivery === s.id}
-                        style={{ padding: '4px 10px' }}
+                        style={{ height: 34, padding: '0 var(--space-4)' }}
                       >
                         {savingDelivery === s.id ? '...' : 'OK'}
                       </button>
@@ -830,7 +897,7 @@ export function InstellingenForm({ siteId, siteName, priceConfig, stocks, energy
                       </button>
                     </div>
                   ) : isTransferOpen ? (
-                    <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div className={styles.stockInlineForm}>
                       <select
                         className={styles.stockInput}
                         value={transferOpen[s.id].toSiteId}
@@ -839,7 +906,7 @@ export function InstellingenForm({ siteId, siteName, priceConfig, stocks, energy
                           setTransferOpen((prev) => ({ ...prev, [s.id]: { ...prev[s.id], toSiteId } }));
                           checkTransferTarget(s.id, toSiteId, s.name);
                         }}
-                        style={{ width: 140 }}
+                        style={{ width: 160 }}
                       >
                         <option value="">Naar carwash...</option>
                         {otherSites.map((os) => (
@@ -854,14 +921,14 @@ export function InstellingenForm({ siteId, siteName, priceConfig, stocks, energy
                         placeholder={s.unit}
                         value={transferOpen[s.id].qty}
                         onChange={(e) => setTransferOpen((prev) => ({ ...prev, [s.id]: { ...prev[s.id], qty: e.target.value } }))}
-                        style={{ width: 90 }}
+                        style={{ width: 110 }}
                       />
                       <button
                         type="button"
                         className={styles.saveBtn}
                         onClick={() => handleConfirmTransfer(s.id, s.name)}
                         disabled={savingTransfer === s.id}
-                        style={{ padding: '4px 10px' }}
+                        style={{ height: 34, padding: '0 var(--space-4)' }}
                       >
                         {savingTransfer === s.id ? '...' : 'OK'}
                       </button>
@@ -885,37 +952,36 @@ export function InstellingenForm({ siteId, siteName, priceConfig, stocks, energy
                       )}
                     </div>
                   ) : (
-                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                      <button
-                        type="button"
-                        className={styles.saveBtn}
-                        onClick={() => setReadingOpen((prev) => ({ ...prev, [s.id]: '' }))}
-                        style={{ padding: '4px 10px' }}
-                      >
-                        📋 Voorraad opnemen
-                      </button>
-                      <button
-                        type="button"
-                        className={styles.saveBtn}
-                        onClick={() => setDeliveryOpen((prev) => ({ ...prev, [s.id]: '' }))}
-                        style={{ padding: '4px 10px' }}
-                      >
-                        + Levering
-                      </button>
-                      {otherSites.length > 0 && (
+                    <>
+                      <div className={styles.stockActions}>
                         <button
                           type="button"
-                          className={styles.saveBtn}
-                          onClick={() => setTransferOpen((prev) => ({ ...prev, [s.id]: { toSiteId: '', qty: '' } }))}
-                          style={{ padding: '4px 10px' }}
+                          className={styles.stockActionBtn}
+                          onClick={() => setReadingOpen((prev) => ({ ...prev, [s.id]: '' }))}
                         >
-                          ⇄ Verplaatsen
+                          📋 Voorraad opnemen
                         </button>
-                      )}
+                        <button
+                          type="button"
+                          className={styles.stockActionBtn}
+                          onClick={() => setDeliveryOpen((prev) => ({ ...prev, [s.id]: '' }))}
+                        >
+                          + Levering
+                        </button>
+                        {otherSites.length > 0 && (
+                          <button
+                            type="button"
+                            className={styles.stockActionBtn}
+                            onClick={() => setTransferOpen((prev) => ({ ...prev, [s.id]: { toSiteId: '', qty: '' } }))}
+                          >
+                            ⇄ Verplaatsen
+                          </button>
+                        )}
+                      </div>
                       {readingResult[s.id] && (
                         <span
                           className={styles.sectionHint}
-                          style={{ width: '100%', margin: 0, color: readingResult[s.id].consumption < 0 ? 'var(--color-accent-red)' : undefined }}
+                          style={{ margin: 0, color: readingResult[s.id].consumption < 0 ? 'var(--color-accent-red)' : undefined }}
                         >
                           {readingResult[s.id].isFirstReading
                             ? 'Eerste telling opgeslagen — verbruik wordt vanaf de volgende telling berekend.'
@@ -924,7 +990,7 @@ export function InstellingenForm({ siteId, siteName, priceConfig, stocks, energy
                               : `Verbruik sinds vorige telling: ${readingResult[s.id].consumption} ${readingResult[s.id].unit}`}
                         </span>
                       )}
-                    </div>
+                    </>
                   )}
                 </div>
               );
@@ -1067,33 +1133,178 @@ export function InstellingenForm({ siteId, siteName, priceConfig, stocks, energy
           <h2 className={styles.sectionTitle}>Onderhoudstaken</h2>
         </div>
         <p className={styles.sectionHint}>
-          Beheer de terugkerende onderhoudstaken voor deze site. Huidig tellerstand: <strong>{currentTotalWashes.toLocaleString('nl-BE')} wassen</strong>.
+          Beheer de terugkerende onderhoudstaken voor deze site. Huidig tellerstand: <strong>{currentTotalWashes.toLocaleString('nl-BE')} wasbeurten</strong>.
         </p>
 
         {/* Task list */}
         {tasks.length > 0 && (
           <div className={styles.taskList}>
-            {tasks.map((t) => (
-              <div key={t.id} className={styles.taskRow}>
-                <div className={styles.taskInfo}>
-                  <span className={styles.taskDesc}>{t.description}</span>
-                  <span className={styles.taskTrigger}>
-                    {taskTriggerLabel(t)}
-                    {t.last_done_at && ` — laatste: ${new Date(t.last_done_at).toLocaleDateString('nl-BE', { day: '2-digit', month: '2-digit', year: 'numeric' })}`}
-                    {t.trigger_type === 'washes' && t.washes_at_last_done > 0 && ` (${t.washes_at_last_done.toLocaleString('nl-BE')} wgn.)`}
-                  </span>
+            {tasks.map((t) =>
+              editingTaskId === t.id ? (
+                <form key={t.id} className={styles.addTaskForm} onSubmit={handleSaveEditTask} noValidate>
+                  <div className={styles.taskFormField}>
+                    <label className={styles.priceLabel}>Omschrijving</label>
+                    <input
+                      className={styles.productInput}
+                      type="text"
+                      value={editTask.description}
+                      onChange={(e) => setEditTask((d) => ({ ...d, description: e.target.value }))}
+                      autoFocus
+                    />
+                  </div>
+
+                  <div className={styles.taskFormField}>
+                    <label className={styles.priceLabel}>Type trigger</label>
+                    <div className={styles.radioGroup}>
+                      {([['washes', 'Op aantal wasbeurten'], ['months', 'Op aantal maanden'], ['fixed_date', 'Vaste datum per jaar']] as [NewTaskDraft['trigger_type'], string][]).map(([val, lbl]) => (
+                        <label key={val} className={styles.radioLabel}>
+                          <input
+                            type="radio"
+                            name="edit_task_trigger_type"
+                            value={val}
+                            checked={editTask.trigger_type === val}
+                            onChange={() => setEditTask((d) => ({ ...d, trigger_type: val }))}
+                          />
+                          {lbl}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {editTask.trigger_type === 'washes' && (
+                    <div className={styles.taskFormRow}>
+                      <div className={styles.taskFormField}>
+                        <label className={styles.priceLabel}>Interval (wasbeurten)</label>
+                        <input
+                          className={styles.stockInput}
+                          type="number"
+                          min={1}
+                          value={editTask.trigger_value || ''}
+                          onChange={(e) => setEditTask((d) => ({ ...d, trigger_value: parseInt(e.target.value) || 0 }))}
+                        />
+                      </div>
+                      <div className={styles.taskFormField}>
+                        <label className={styles.priceLabel}>Tellerstand laatste keer</label>
+                        <input
+                          className={styles.stockInput}
+                          type="number"
+                          min={0}
+                          value={editTask.washes_at_last_done || ''}
+                          onChange={(e) => setEditTask((d) => ({ ...d, washes_at_last_done: parseInt(e.target.value) || 0 }))}
+                        />
+                      </div>
+                      <div className={styles.taskFormField}>
+                        <label className={styles.priceLabel}>Datum laatste keer</label>
+                        <input
+                          className={styles.stockInput}
+                          type="date"
+                          value={editTask.last_done_at}
+                          onChange={(e) => setEditTask((d) => ({ ...d, last_done_at: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {editTask.trigger_type === 'months' && (
+                    <div className={styles.taskFormRow}>
+                      <div className={styles.taskFormField}>
+                        <label className={styles.priceLabel}>Interval (maanden)</label>
+                        <input
+                          className={styles.stockInput}
+                          type="number"
+                          min={1}
+                          value={editTask.trigger_value || ''}
+                          onChange={(e) => setEditTask((d) => ({ ...d, trigger_value: parseInt(e.target.value) || 0 }))}
+                        />
+                      </div>
+                      <div className={styles.taskFormField}>
+                        <label className={styles.priceLabel}>Datum laatste uitvoering</label>
+                        <input
+                          className={styles.stockInput}
+                          type="date"
+                          value={editTask.last_done_at}
+                          onChange={(e) => setEditTask((d) => ({ ...d, last_done_at: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {editTask.trigger_type === 'fixed_date' && (
+                    <div className={styles.taskFormRow}>
+                      <div className={styles.taskFormField}>
+                        <label className={styles.priceLabel}>Dag</label>
+                        <input
+                          className={styles.stockInput}
+                          type="number"
+                          min={1}
+                          max={31}
+                          value={editTask.trigger_day || ''}
+                          onChange={(e) => setEditTask((d) => ({ ...d, trigger_day: parseInt(e.target.value) || 1 }))}
+                        />
+                      </div>
+                      <div className={styles.taskFormField}>
+                        <label className={styles.priceLabel}>Maand</label>
+                        <select
+                          className={styles.stockInput}
+                          value={editTask.trigger_month}
+                          onChange={(e) => setEditTask((d) => ({ ...d, trigger_month: parseInt(e.target.value) }))}
+                        >
+                          {MONTHS_SHORT.map((m, i) => (
+                            <option key={i} value={i + 1}>{m}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className={styles.taskFormField}>
+                        <label className={styles.priceLabel}>Datum laatste uitvoering</label>
+                        <input
+                          className={styles.stockInput}
+                          type="date"
+                          value={editTask.last_done_at}
+                          onChange={(e) => setEditTask((d) => ({ ...d, last_done_at: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className={styles.taskFormActions}>
+                    <button type="button" className={styles.cancelBtn} onClick={() => setEditingTaskId(null)}>
+                      Annuleren
+                    </button>
+                    <button type="submit" className={styles.saveBtn} disabled={savingEditTask || !editTask.description.trim()}>
+                      {savingEditTask ? 'Opslaan...' : 'Wijzigingen opslaan'}
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div key={t.id} className={styles.taskRow}>
+                  <div className={styles.taskInfo}>
+                    <span className={styles.taskDesc}>{t.description}</span>
+                    <span className={styles.taskTrigger}>
+                      {taskTriggerLabel(t)}
+                      {t.last_done_at && ` — laatste: ${new Date(t.last_done_at).toLocaleDateString('nl-BE', { day: '2-digit', month: '2-digit', year: 'numeric' })}`}
+                      {t.trigger_type === 'washes' && t.washes_at_last_done > 0 && ` (${t.washes_at_last_done.toLocaleString('nl-BE')} wgn.)`}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    className={styles.deleteProductBtn}
+                    onClick={() => handleStartEditTask(t)}
+                    aria-label={`${t.description} wijzigen`}
+                  >
+                    ✎
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.deleteProductBtn}
+                    onClick={() => handleDeleteTask(t.id)}
+                    disabled={deletingTask === t.id}
+                    aria-label={`${t.description} verwijderen`}
+                  >
+                    {deletingTask === t.id ? '...' : '✕'}
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  className={styles.deleteProductBtn}
-                  onClick={() => handleDeleteTask(t.id)}
-                  disabled={deletingTask === t.id}
-                  aria-label={`${t.description} verwijderen`}
-                >
-                  {deletingTask === t.id ? '...' : '✕'}
-                </button>
-              </div>
-            ))}
+              ),
+            )}
           </div>
         )}
         {tasks.length === 0 && !addingTask && (
@@ -1118,7 +1329,7 @@ export function InstellingenForm({ siteId, siteName, priceConfig, stocks, energy
             <div className={styles.taskFormField}>
               <label className={styles.priceLabel}>Type trigger</label>
               <div className={styles.radioGroup}>
-                {([['washes', 'Op aantal wassen'], ['months', 'Op aantal maanden'], ['fixed_date', 'Vaste datum per jaar']] as [NewTaskDraft['trigger_type'], string][]).map(([val, lbl]) => (
+                {([['washes', 'Op aantal wasbeurten'], ['months', 'Op aantal maanden'], ['fixed_date', 'Vaste datum per jaar']] as [NewTaskDraft['trigger_type'], string][]).map(([val, lbl]) => (
                   <label key={val} className={styles.radioLabel}>
                     <input
                       type="radio"
@@ -1136,7 +1347,7 @@ export function InstellingenForm({ siteId, siteName, priceConfig, stocks, energy
             {newTask.trigger_type === 'washes' && (
               <div className={styles.taskFormRow}>
                 <div className={styles.taskFormField}>
-                  <label className={styles.priceLabel}>Interval (wassen)</label>
+                  <label className={styles.priceLabel}>Interval (wasbeurten)</label>
                   <input
                     className={styles.stockInput}
                     type="number"

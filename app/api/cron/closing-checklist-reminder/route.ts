@@ -3,10 +3,11 @@ import { dbConnect } from '@/lib/db/mongoose';
 import { Site, Planning, DailyChecklist, ClosingReminderSent } from '@/lib/models';
 import { sendPushToSite } from '@/lib/push';
 
-// GET /api/cron/closing-checklist-reminder — called every 15 min by Vercel
-// Cron (see vercel.json). For each site with a shift ending soon today,
-// if the closing checklist (Dagfiche) hasn't been submitted yet, push a
-// one-time reminder to that site's app users.
+// GET /api/cron/closing-checklist-reminder — called once daily by Vercel
+// Cron (see vercel.json — Hobby plan only allows daily cron frequency, so
+// this runs once in the evening after every site's shift has ended). For
+// each site with a shift today, if the closing checklist (Dagfiche) hasn't
+// been submitted yet, push a one-time reminder to that site's app users.
 export async function GET(req: NextRequest) {
   // Fail closed: without CRON_SECRET configured, refuse every request.
   const authHeader = req.headers.get('authorization');
@@ -41,14 +42,11 @@ export async function GET(req: NextRequest) {
     if (prev === undefined || minutes > prev) latestEndBySite.set(siteId, minutes);
   }
 
-  const REMINDER_WINDOW_MIN = 30; // send once, somewhere in the 30 min before closing
-
   const results: { site: string; sent: boolean; reason: string }[] = [];
 
   for (const [siteId, endMinutes] of latestEndBySite) {
-    const minutesUntilEnd = endMinutes - nowMinutes;
-    if (minutesUntilEnd < 0 || minutesUntilEnd > REMINDER_WINDOW_MIN) {
-      continue; // not yet in the window, or already past closing
+    if (nowMinutes < endMinutes) {
+      continue; // shift hasn't ended yet — nothing to remind about today
     }
 
     const siteName = sites.find((s) => String(s._id) === siteId)?.name ?? '';
@@ -72,7 +70,7 @@ export async function GET(req: NextRequest) {
 
     await sendPushToSite(siteId, {
       title: 'Dagfiche nog niet ingevuld',
-      body: `${siteName}: de shift sluit binnenkort — vergeet de afsluit-checklist niet in te vullen.`,
+      body: `${siteName}: de shift is afgelopen — vergeet de afsluit-checklist niet in te vullen.`,
       url: `/dagfiche?site=${siteId}`,
     }).catch(() => {});
 

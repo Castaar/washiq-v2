@@ -124,11 +124,24 @@ export function SetupWizard({ siteId, siteName, sites, initialPrices, initialTas
 
   const progressPct = Math.round((step / (STEPS.length - 1)) * 100);
 
+  function handleClose() {
+    const otherSite = sites.find((s) => s.id !== siteId && s.setup_done) ?? sites.find((s) => s.id !== siteId);
+    if (otherSite) {
+      document.cookie = `dodane_active_site=${otherSite.id}; path=/; max-age=2592000; SameSite=Lax`;
+      router.push(`/?site=${otherSite.id}`);
+    } else {
+      router.push('/');
+    }
+  }
+
   return (
     <div className={styles.card}>
       {/* Header */}
       <div className={styles.header}>
-        <span className={styles.siteName}>{siteName}</span>
+        <div className={styles.headerTop}>
+          <span className={styles.siteName}>{siteName}</span>
+          <button type="button" className={styles.closeBtn} onClick={handleClose} aria-label="Sluiten">✕</button>
+        </div>
         <h1 className={styles.title}>Eerste configuratie</h1>
         <p className={styles.subtitle}>
           {step < STEPS.length - 1
@@ -149,7 +162,7 @@ export function SetupWizard({ siteId, siteName, sites, initialPrices, initialTas
           </p>
           <ul className={styles.checkList}>
             <li>Huidige tellerstand ingeven</li>
-            <li>Onderhoudstaken configureren (op wassen of op datum)</li>
+            <li>Onderhoudstaken configureren (op wasbeurten of op datum)</li>
             <li>Kostprijzen per eenheid instellen</li>
           </ul>
           {sites.filter((s) => !s.setup_done && s.id !== siteId).length > 0 && (
@@ -168,11 +181,11 @@ export function SetupWizard({ siteId, siteName, sites, initialPrices, initialTas
         <div className={styles.body}>
           <p className={styles.lead}>
             Voer de huidige stand in van de hoofdteller van de wasstraat. Dit is het totale aantal
-            wassen dat de machine heeft uitgevoerd.
+            wasbeurten dat de machine heeft uitgevoerd.
           </p>
           <div className={styles.fieldGroup}>
             <label className={styles.label} htmlFor="tellerstand">
-              Huidig aantal wassen (tellerstand)
+              Huidig aantal wasbeurten (tellerstand)
             </label>
             <input
               id="tellerstand"
@@ -222,7 +235,7 @@ export function SetupWizard({ siteId, siteName, sites, initialPrices, initialTas
         <div className={styles.body}>
           <p className={styles.lead}>
             Voeg de terugkerende onderhoudstaken toe voor deze site. Kies of een taak getriggerd
-            wordt op een <strong>aantal wassen</strong> of na een <strong>bepaald aantal maanden</strong>.
+            wordt op een <strong>aantal wasbeurten</strong> of na een <strong>bepaald aantal maanden</strong>.
           </p>
 
           {/* Existing tasks */}
@@ -235,7 +248,7 @@ export function SetupWizard({ siteId, siteName, sites, initialPrices, initialTas
                       <span className={styles.taskDesc}>{t.description}</span>
                       <span className={styles.taskTrigger}>
                         {t.trigger_type === 'washes'
-                          ? `Elke ${t.trigger_value.toLocaleString('nl-BE')} wassen`
+                          ? `Elke ${t.trigger_value.toLocaleString('nl-BE')} wasbeurten`
                           : t.trigger_type === 'fixed_date'
                           ? `Jaarlijks op ${t.trigger_day} ${MONTHS_NL[(t.trigger_month ?? 1) - 1]}`
                           : `Elke ${t.trigger_value} maand(en)`}
@@ -312,7 +325,7 @@ export function SetupWizard({ siteId, siteName, sites, initialPrices, initialTas
               <div className={styles.fieldGroup}>
                 <label className={styles.label}>Type trigger</label>
                 <div className={styles.radioGroup}>
-                  {([['washes', 'Op aantal wassen'], ['months', 'Op aantal maanden'], ['fixed_date', 'Vaste datum per jaar']] as [TaskDraft['trigger_type'], string][]).map(([val, lbl]) => (
+                  {([['washes', 'Op aantal wasbeurten'], ['months', 'Op aantal maanden'], ['fixed_date', 'Vaste datum per jaar']] as [TaskDraft['trigger_type'], string][]).map(([val, lbl]) => (
                     <label key={val} className={styles.radioLabel}>
                       <input
                         type="radio"
@@ -330,7 +343,7 @@ export function SetupWizard({ siteId, siteName, sites, initialPrices, initialTas
               {newTask.trigger_type === 'washes' && (
                 <div className={styles.fieldRow}>
                   <div className={styles.fieldGroup}>
-                    <label className={styles.label}>Interval (wassen)</label>
+                    <label className={styles.label}>Interval (wasbeurten)</label>
                     <input
                       type="number"
                       min={1}
@@ -493,7 +506,7 @@ export function SetupWizard({ siteId, siteName, sites, initialPrices, initialTas
             van verbruik, onderhoud en incidenten.
           </p>
           <ul className={styles.checkList}>
-            <li>Tellerstand opgeslagen: {tellerstand.toLocaleString('nl-BE')} wassen</li>
+            <li>Tellerstand opgeslagen: {tellerstand.toLocaleString('nl-BE')} wasbeurten</li>
             <li>Tellerstand water opgeslagen: {waterTellerstand.toLocaleString('nl-BE')} m³</li>
             <li>{tasks.length} onderhoudstaak{tasks.length !== 1 ? 'en' : ''} geconfigureerd</li>
             <li>Kostprijzen ingesteld</li>

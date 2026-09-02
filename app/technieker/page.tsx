@@ -108,7 +108,7 @@ export default async function TechniekerPage() {
           siteId: (t.site_id as Types.ObjectId).toString(),
           siteName: siteNameById[(t.site_id as Types.ObjectId).toString()] ?? '',
           title: t.description as string,
-          subtitle: remaining !== null ? `Binnenkort — nog ${remaining.toLocaleString('nl-BE')} wassen` : 'Binnenkort',
+          subtitle: remaining !== null ? `Binnenkort — nog ${remaining.toLocaleString('nl-BE')} wasbeurten` : 'Binnenkort',
           severity: 'low' as const,
           date: '',
         };

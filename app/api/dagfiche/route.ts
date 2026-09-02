@@ -38,6 +38,7 @@ export async function POST(req: NextRequest) {
               last_done_at: now,
               washes_at_last_done: body.totalWagens ?? 0,
               is_overdue: false,
+              overdue_notified_at: null,
             },
           }),
           MaintenanceLog.create({

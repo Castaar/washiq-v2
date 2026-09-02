@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
 import { Opdracht } from '@/lib/models';
 import { getSessionFromRequest } from '@/lib/session';
+import { sendPushToUser } from '@/lib/push';
+import type { Types } from 'mongoose';
 
 // PATCH /api/opdrachten/[id]  — mark done or update (employees can mark done, owner can edit)
 export async function PATCH(
@@ -35,6 +37,18 @@ export async function PATCH(
 
   const doc = await Opdracht.findByIdAndUpdate(id, { $set: update }, { new: true }).lean();
   if (!doc) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
+  if (
+    update.is_done === true &&
+    doc.created_by &&
+    (doc.created_by as Types.ObjectId).toString() !== session.userId
+  ) {
+    sendPushToUser((doc.created_by as Types.ObjectId).toString(), {
+      title: 'Opdracht afgerond',
+      body: `${session.name}: ${doc.text}`,
+      url: `/opdrachten?site=${(doc.site_id as Types.ObjectId).toString()}`,
+    }).catch(() => {});
+  }
 
   return NextResponse.json({ ok: true });
 }

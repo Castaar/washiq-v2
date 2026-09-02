@@ -69,20 +69,22 @@ function ProgramRow({
 
   return (
     <div className={styles.programCard}>
-      <div className={styles.programMain}>
-        <span className={styles.programTier}>{program.tier}</span>
-        <span className={styles.programName}>{program.name}</span>
-        <div className={styles.chemPills}>
-          {program.chemicals.length > 0
-            ? program.chemicals.map((c) => (
-                <span key={c} className={styles.chemPill}>{c}</span>
-              ))
-            : <span className={styles.noAccess}>Geen chemie</span>}
+      <div className={styles.programHeader}>
+        <div className={styles.programHeaderLeft}>
+          <span className={styles.programTier}>{program.tier}</span>
+          <span className={styles.programName}>{program.name}</span>
         </div>
         <div className={styles.rowActions}>
           <button type="button" className={styles.editBtn} onClick={() => setEditing((v) => !v)} aria-label="Bewerken">✏</button>
           <button type="button" className={styles.deleteBtn} onClick={handleDelete} aria-label="Verwijderen">✕</button>
         </div>
+      </div>
+      <div className={styles.chemPills}>
+        {program.chemicals.length > 0
+          ? program.chemicals.map((c) => (
+              <span key={c} className={styles.chemPill}>{c}</span>
+            ))
+          : <span className={styles.noAccess}>Geen chemie</span>}
       </div>
 
       {editing && (

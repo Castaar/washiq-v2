@@ -205,16 +205,16 @@
   flex-shrink: 0;
 }
 
-// ─── Stock table ──────────────────────────────────────────────
-.stockTable {
+// ─── Startvoorraad table (baseline counts, sectie 2) ───────────
+.startStockTable {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
 }
 
-.stockHeaderRow {
+.startStockHeaderRow {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 80px;
+  grid-template-columns: 2fr 1fr 1fr 60px;
   gap: var(--space-3);
   padding: 0 var(--space-2);
   font-size: 0.6875rem;
@@ -228,9 +228,9 @@
   }
 }
 
-.stockRow {
+.startStockRow {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 80px;
+  grid-template-columns: 2fr 1fr 1fr 60px;
   gap: var(--space-3);
   align-items: center;
   padding: var(--space-2);
@@ -240,14 +240,106 @@
 
   @include respond-to('mobile') {
     grid-template-columns: 1fr 1fr;
-    grid-template-rows: auto auto;
+    grid-template-rows: auto auto auto;
+    align-items: start;
   }
 }
 
+.startStockField {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.startStockFieldLabel {
+  display: none;
+
+  @include respond-to('mobile') {
+    display: block;
+    font-size: 0.6875rem;
+    color: var(--color-text-muted);
+    letter-spacing: 0.02em;
+  }
+}
+
+// ─── Chemie voorraad table (monthly readings, sectie 2b) ───────
+.stockTable {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.stockRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+}
+
+.stockTop {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
 .stockName {
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
   color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+.stockAmount {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.stockActions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.stockActionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  justify-content: center;
+  min-width: 0;
+  height: 34px;
+  padding: 0 var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  font-size: 0.8125rem;
   font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
+
+  &:hover:not(:disabled) {
+    border-color: var(--color-accent-teal);
+    color: var(--color-accent-teal);
+    background: var(--color-accent-teal-dim);
+  }
+
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+
+.stockInlineForm {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .stockInput {
@@ -283,11 +375,6 @@
 .stockUnit {
   font-size: 0.75rem;
   color: var(--color-text-muted);
-
-  @include respond-to('mobile') {
-    grid-column: 2;
-    grid-row: 2;
-  }
 }
 
 // ─── Energy bill form ─────────────────────────────────────────

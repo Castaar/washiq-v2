@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
 import { Announcement } from '@/lib/models';
 import { getSessionFromRequest } from '@/lib/session';
+import { sendPushToAll, sendPushToSite } from '@/lib/push';
 import type { Types } from 'mongoose';
 
 // GET /api/announcements?siteId=xxx
@@ -58,6 +59,11 @@ export async function POST(req: NextRequest) {
     is_all_sites: isAll,
     site_ids: isAll ? [] : (body.siteId ? [body.siteId] : []),
   });
+
+  if (kind === 'general') {
+    const pushPayload = { title: 'Nieuw bericht', body: body.text.trim(), url: '/diversen' };
+    (isAll ? sendPushToAll(pushPayload) : sendPushToSite(body.siteId!, pushPayload)).catch(() => {});
+  }
 
   return NextResponse.json({ id: (doc._id as Types.ObjectId).toString() }, { status: 201 });
 }

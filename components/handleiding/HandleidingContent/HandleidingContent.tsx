@@ -89,7 +89,7 @@ export function HandleidingContent({ role, siteParam, fromLogin }: Props) {
             <span className={styles.subTitle}>Wat is dit?</span>
             <p className={styles.text}>
               Het dashboard is de startpagina van de app. Hier zie je in één oogopslag hoe de carwash
-              presteert: het totale aantal wassen, verbruikskosten, lopende alerts en onderhoudstaken
+              presteert: het totale aantal wasbeurten, verbruikskosten, lopende alerts en onderhoudstaken
               die aandacht vereisen.
             </p>
           </div>
@@ -118,7 +118,7 @@ export function HandleidingContent({ role, siteParam, fromLogin }: Props) {
             <span className={styles.subTitle}>Wat is dit?</span>
             <p className={styles.text}>
               De dagfiche is de dagelijkse checklist die medewerkers invullen. Je registreert het
-              aantal wassen per programma, het verbruik van chemicaliën, zout en flockmiddel, en of
+              aantal wasbeurten per programma, het verbruik van chemicaliën, zout en flockmiddel, en of
               er bijzonderheden zijn.
             </p>
           </div>
@@ -154,7 +154,7 @@ export function HandleidingContent({ role, siteParam, fromLogin }: Props) {
             <span className={styles.subTitle}>Knoppen &amp; acties</span>
             <div className={styles.buttonList}>
               <ButtonItem tag="Week selecteren" desc="Kies de week waarover je gegevens invult via de weekkiezer bovenaan." />
-              <ButtonItem tag="Wasaantallen" desc="Vul per programma het totale aantal wassen in voor die week." />
+              <ButtonItem tag="Wasaantallen" desc="Vul per programma het totale aantal wasbeurten in voor die week." />
               <ButtonItem tag="Verbruik" desc="Registreer het verbruik van alle chemicaliën, zout, flockmiddel en energie voor die week." />
               <ButtonItem tag="Opslaan" desc="Klik op 'Opslaan' om de weekingave te bewaren. Bestaande ingaves kunnen later worden bewerkt." />
               <ButtonItem tag="Bewerken" desc="Een eerder opgeslagen weekingave kun je aanpassen via het potloodpictogram." />
@@ -274,7 +274,7 @@ export function HandleidingContent({ role, siteParam, fromLogin }: Props) {
                   <div className={styles.buttonList}>
                     <ButtonItem tag="Sites beheren" desc="Maak nieuwe carwashlocaties aan, bewerk de naam en locatie of verwijder een site." />
                     <ButtonItem tag="Wasprogramma's" desc="Definieer de wasprogramma's per site: naam, tier, gebruikte chemicaliën en doekjes." />
-                    <ButtonItem tag="Onderhoudstaken" desc="Voeg onderhoudstaken toe met een triggertype (wassen, maanden of vaste datum)." />
+                    <ButtonItem tag="Onderhoudstaken" desc="Voeg onderhoudstaken toe met een triggertype (wasbeurten, maanden of vaste datum)." />
                     <ButtonItem tag="Seed / Cleanup" desc="Vul de database met testdata of verwijder alle collecties voor een schone start." />
                   </div>
                 </div>

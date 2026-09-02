@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
-import { AttendanceLog } from '@/lib/models';
+import { AttendanceLog, User } from '@/lib/models';
 import { getSessionFromRequest } from '@/lib/session';
+import { sendPushToUser } from '@/lib/push';
 import type { Types } from 'mongoose';
 
 // GET /api/attendance?siteId=xxx&date=YYYY-MM-DD
@@ -79,6 +80,25 @@ export async function POST(req: NextRequest) {
     timestamp: new Date(),
     note: body.note?.trim() ?? '',
   });
+
+  const actionLabel = body.type === 'opening' ? 'aangekomen' : 'vertrokken';
+  User.find({ site_ids: body.siteId, role: { $in: ['owner', 'developer'] }, is_active: true })
+    .select('_id')
+    .lean()
+    .then((notifyUsers) =>
+      Promise.allSettled(
+        notifyUsers
+          .filter((u) => (u._id as Types.ObjectId).toString() !== session.userId)
+          .map((u) =>
+            sendPushToUser((u._id as Types.ObjectId).toString(), {
+              title: `${log.user_name} is ${actionLabel}`,
+              body: new Date().toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' }),
+              url: `/logboek?site=${body.siteId}`,
+            }),
+          ),
+      ),
+    )
+    .catch(() => {});
 
   return NextResponse.json({
     id: (log._id as Types.ObjectId).toString(),

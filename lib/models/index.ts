@@ -227,6 +227,7 @@ export interface IMaintenanceTask extends Document {
   last_done_at: Date;
   washes_at_last_done: number;
   is_overdue: boolean;
+  overdue_notified_at: Date | null;
 }
 const MaintenanceTaskSchema = new Schema<IMaintenanceTask>({
   site_id: { type: Schema.Types.ObjectId, ref: 'Site' },
@@ -239,6 +240,9 @@ const MaintenanceTaskSchema = new Schema<IMaintenanceTask>({
   last_done_at: Date,
   washes_at_last_done: { type: Number, default: 0 },
   is_overdue: Boolean,
+  // Set when a push reminder was last sent for this overdue task — re-notify
+  // at most once a week so owners aren't spammed by the daily cron.
+  overdue_notified_at: { type: Date, default: null },
 });
 MaintenanceTaskSchema.index({ site_id: 1 });
 export const MaintenanceTask = models.MaintenanceTask || model<IMaintenanceTask>('MaintenanceTask', MaintenanceTaskSchema);

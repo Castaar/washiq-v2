@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
-import { ChemicalStock, StockDelivery, StockReading } from '@/lib/models';
+import { ChemicalStock, StockDelivery, StockReading, User } from '@/lib/models';
 import { getSessionFromRequest } from '@/lib/session';
+import { sendPushToUser } from '@/lib/push';
 import mongoose from 'mongoose';
 
 // POST /api/stock/reading — record a physical stock count for one product.
@@ -54,6 +55,27 @@ export async function POST(req: NextRequest) {
   stock.current_stock = quantity;
   stock.last_updated = now;
   await stock.save();
+
+  if (stock.min_stock_alert > 0 && quantity <= stock.min_stock_alert) {
+    const siteId = (stock.site_id as mongoose.Types.ObjectId).toString();
+    User.find({ site_ids: siteId, role: { $in: ['owner', 'developer'] }, is_active: true })
+      .select('_id')
+      .lean()
+      .then((notifyUsers) =>
+        Promise.allSettled(
+          notifyUsers
+            .filter((u) => (u._id as mongoose.Types.ObjectId).toString() !== session.userId)
+            .map((u) =>
+              sendPushToUser((u._id as mongoose.Types.ObjectId).toString(), {
+                title: `Lage voorraad: ${stock.name}`,
+                body: `Nog ${quantity} ${stock.unit} — controleer of een levering nodig is.`,
+                url: `/instellingen?site=${siteId}`,
+              }),
+            ),
+        ),
+      )
+      .catch(() => {});
+  }
 
   return NextResponse.json({
     id: reading._id.toString(),

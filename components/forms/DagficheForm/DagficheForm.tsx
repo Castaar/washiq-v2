@@ -180,7 +180,7 @@ export function DagficheForm({ siteId, siteName, userName, totalWagens, maintena
         </div>
         <div className={styles.washCount}>
           <span className={styles.washCountValue}>{totalWagens}</span>
-          <span className={styles.washCountLabel}>wassen vandaag</span>
+          <span className={styles.washCountLabel}>wasbeurten vandaag</span>
         </div>
       </div>
 
