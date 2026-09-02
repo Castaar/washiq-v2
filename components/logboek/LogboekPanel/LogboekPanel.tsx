@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import styles from './LogboekPanel.module.scss';
 
 export interface LogEntry {
@@ -81,6 +82,23 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
 
   const isOwner = userRole === 'owner' || userRole === 'developer';
   const [view, setView] = useState<'logboek' | 'maand'>('logboek');
+
+  // Deep-link from a push notification: /logboek?item=<id> highlights that
+  // specific aankomst/vertrek registratie.
+  const searchParams = useSearchParams();
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const rowRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  useEffect(() => {
+    const itemId = searchParams.get('item');
+    if (!itemId) return;
+    setHighlightId(itemId);
+    const timeout = setTimeout(() => {
+      rowRefs.current[itemId]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 50);
+    const clear = setTimeout(() => setHighlightId(null), 4000);
+    return () => { clearTimeout(timeout); clearTimeout(clear); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   // Month picker state
   const now = new Date();
@@ -409,7 +427,11 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
             <div key={date} className={styles.dayGroup}>
               <div className={styles.dayHeader}>{date}</div>
               {dayLogs.map((l) => (
-                <div key={l.id} className={[styles.logRow, l.type === 'opening' ? styles.opening : styles.sluiting].join(' ')}>
+                <div
+                  key={l.id}
+                  ref={(el) => { rowRefs.current[l.id] = el; }}
+                  className={[styles.logRow, l.type === 'opening' ? styles.opening : styles.sluiting, highlightId === l.id ? styles.logRowHighlight : ''].filter(Boolean).join(' ')}
+                >
                   <span className={styles.typeBadge}>
                     {l.type === 'opening' ? 'Aankomst' : 'Vertrek'}
                   </span>

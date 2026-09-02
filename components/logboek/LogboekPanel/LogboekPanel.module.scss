@@ -154,6 +154,11 @@
   &.sluiting { background: var(--color-bg-tertiary); }
 }
 
+.logRowHighlight {
+  outline: 2px solid var(--color-accent-blue);
+  outline-offset: 2px;
+}
+
 .typeBadge {
   font-size: 0.75rem;
   font-weight: 600;

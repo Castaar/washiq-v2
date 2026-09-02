@@ -1,4 +1,5 @@
 import type { Types } from 'mongoose';
+import { cookies } from 'next/headers';
 import { NavBar } from '@/components/layout/NavBar/NavBar';
 import { OrdersPanel } from '@/components/orders/OrdersPanel/OrdersPanel';
 import type { OrderItemData, OrderRequestData } from '@/components/orders/OrdersPanel/OrdersPanel';
@@ -18,6 +19,9 @@ export default async function OrdersPage({
 
   await dbConnect();
 
+  const cookieStore = await cookies();
+  const cookieSite = cookieStore.get('dodane_active_site')?.value;
+
   const [siteDocs, userDoc] = await Promise.all([
     Site.find({}).select('_id name location').lean(),
     session ? User.findById(session.userId).select('site_ids role').lean() : null,
@@ -26,7 +30,7 @@ export default async function OrdersPage({
   const userRole = (userDoc?.role as string) ?? session?.role ?? 'employee';
   const userSiteIds = ((userDoc?.site_ids as Types.ObjectId[]) ?? []).map((id) => id.toString());
   const allowedSites = filterSitesForUser(siteDocs as Parameters<typeof filterSitesForUser>[0], userSiteIds, userRole);
-  const siteId = resolveActiveSite(allowedSites, site ?? undefined);
+  const siteId = resolveActiveSite(allowedSites, site ?? cookieSite);
   redirectWithSiteParam('/orders', { site }, siteId ?? '');
 
   const canManage = userRole === 'owner' || userRole === 'developer';

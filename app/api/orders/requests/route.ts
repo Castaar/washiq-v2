@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
       sendPushToUser((u._id as Types.ObjectId).toString(), {
         title: 'Nieuwe bestelling',
         body: `${item.name}${siteName ? ` — ${siteName}` : ''}`,
-        url: `/orders?site=${body.siteId}`,
+        url: `/orders?site=${body.siteId}&request=${(doc._id as Types.ObjectId).toString()}`,
       }),
     ),
   );

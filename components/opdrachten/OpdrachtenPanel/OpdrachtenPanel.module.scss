@@ -68,6 +68,17 @@
   }
 }
 
+.itemHighlight {
+  animation: highlightPulse 2s ease-out 2;
+  outline: 2px solid var(--color-accent-blue);
+  outline-offset: 2px;
+}
+
+@keyframes highlightPulse {
+  0%   { background: var(--color-accent-blue-dim, var(--color-bg-secondary)); }
+  100% { background: var(--color-bg-tertiary); }
+}
+
 .checkbox {
   width: 22px;
   height: 22px;

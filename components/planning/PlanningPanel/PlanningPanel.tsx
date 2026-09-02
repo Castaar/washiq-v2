@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import styles from './PlanningPanel.module.scss';
 
 export interface Shift {
@@ -101,6 +102,23 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
   const isOwner = userRole === 'owner' || userRole === 'developer';
   const today = new Date().toISOString().slice(0, 10);
 
+  // Deep-link from a push notification: /planning?item=<id> scrolls to and
+  // highlights that specific shift (employee's "Mijn werkschema" view).
+  const searchParams = useSearchParams();
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const shiftRowRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  useEffect(() => {
+    const itemId = searchParams.get('item');
+    if (!itemId) return;
+    setHighlightId(itemId);
+    const timeout = setTimeout(() => {
+      shiftRowRefs.current[itemId]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 50);
+    const clear = setTimeout(() => setHighlightId(null), 4000);
+    return () => { clearTimeout(timeout); clearTimeout(clear); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
   // Build 7-day week
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
@@ -167,7 +185,8 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
                 return (
                   <div
                     key={s.id}
-                    className={[styles.myShift, isPast ? styles.past : '', isToday ? styles.isToday : ''].join(' ')}
+                    ref={(el) => { shiftRowRefs.current[s.id] = el; }}
+                    className={[styles.myShift, isPast ? styles.past : '', isToday ? styles.isToday : '', highlightId === s.id ? styles.shiftHighlight : ''].filter(Boolean).join(' ')}
                   >
                     <div className={styles.myShiftDate}>
                       <span className={styles.myShiftDay}>{DAY_NAMES_LONG[(new Date(`${s.date}T00:00:00Z`).getUTCDay() + 6) % 7]}</span>

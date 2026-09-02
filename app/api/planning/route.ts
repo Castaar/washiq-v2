@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
   sendPushToUser(body.userId, {
     title: 'Nieuwe shift ingepland',
     body: `${body.date} van ${body.startTime} tot ${body.endTime}${body.note ? ` — ${body.note}` : ''}`,
-    url: `/planning?site=${body.siteId}`,
+    url: `/planning?site=${body.siteId}&item=${(doc._id as Types.ObjectId).toString()}`,
   }).catch(() => {});
 
   return NextResponse.json({

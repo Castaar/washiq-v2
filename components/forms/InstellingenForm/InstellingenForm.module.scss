@@ -783,3 +783,15 @@
   color: var(--color-text-muted);
   flex-shrink: 0;
 }
+
+// ── Deep-link highlight (push notification target row) ─────────
+.rowHighlight {
+  animation: rowHighlightPulse 2s ease-out 2;
+  outline: 2px solid var(--color-accent-blue);
+  outline-offset: 2px;
+}
+
+@keyframes rowHighlightPulse {
+  0%   { background: var(--color-accent-blue-dim, var(--color-bg-secondary)); }
+  100% { background: var(--color-bg-tertiary); }
+}

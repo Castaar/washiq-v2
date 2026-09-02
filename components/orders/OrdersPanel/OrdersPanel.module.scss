@@ -108,6 +108,17 @@
   opacity: 0.5;
 }
 
+.requestCardHighlight {
+  animation: highlightPulse 2s ease-out 2;
+  outline: 2px solid var(--color-accent-blue);
+  outline-offset: 2px;
+}
+
+@keyframes highlightPulse {
+  0%   { background: var(--color-accent-blue-dim, var(--color-bg-tertiary)); }
+  100% { background: var(--color-bg-tertiary); }
+}
+
 .itemBody {
   display: flex;
   flex-direction: column;

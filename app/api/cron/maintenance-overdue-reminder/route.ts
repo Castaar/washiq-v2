@@ -52,7 +52,9 @@ export async function GET(req: NextRequest) {
         sendPushToUser((u._id as Types.ObjectId).toString(), {
           title: overdueDue.length === 1 ? 'Onderhoudstaak achterstallig' : `${overdueDue.length} onderhoudstaken achterstallig`,
           body: `${site.name}: ${summary}`,
-          url: `/instellingen?site=${siteId}`,
+          url: overdueDue.length === 1
+            ? `/instellingen?site=${siteId}&task=${(overdueDue[0]._id as Types.ObjectId).toString()}`
+            : `/instellingen?site=${siteId}`,
         }),
       ),
     );

@@ -40,7 +40,7 @@ export async function PUT(
   sendPushToUser((doc.user_id as Types.ObjectId).toString(), {
     title: 'Planning gewijzigd',
     body: `${(doc.date as Date).toLocaleDateString('nl-BE')} van ${doc.start_time} tot ${doc.end_time}${doc.note ? ` — ${doc.note}` : ''}`,
-    url: `/planning?site=${(doc.site_id as Types.ObjectId).toString()}`,
+    url: `/planning?site=${(doc.site_id as Types.ObjectId).toString()}&item=${id}`,
   }).catch(() => {});
 
   return NextResponse.json({ ok: true });

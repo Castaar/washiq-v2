@@ -46,7 +46,7 @@ export async function PATCH(
     sendPushToUser((doc.created_by as Types.ObjectId).toString(), {
       title: 'Opdracht afgerond',
       body: `${session.name}: ${doc.text}`,
-      url: `/opdrachten?site=${(doc.site_id as Types.ObjectId).toString()}`,
+      url: `/opdrachten?site=${(doc.site_id as Types.ObjectId).toString()}&item=${id}`,
     }).catch(() => {});
   }
 

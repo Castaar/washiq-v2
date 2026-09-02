@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
         sendPushToUser(uid, {
           title: 'Nieuwe opdracht',
           body: body.text.trim(),
-          url: `/opdrachten?site=${body.siteId}`,
+          url: `/opdrachten?site=${body.siteId}&item=${(doc._id as Types.ObjectId).toString()}`,
         }),
       ),
     ).catch(() => {});

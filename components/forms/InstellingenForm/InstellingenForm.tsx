@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { SiteProgramManager } from '@/components/shared/WashProgramManager/WashProgramManager';
 import type { WashProgramItem } from '@/components/shared/WashProgramManager/WashProgramManager';
 import styles from './InstellingenForm.module.scss';
@@ -379,6 +380,29 @@ export function InstellingenForm({ siteId, siteName, priceConfig, stocks, energy
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editTask, setEditTask] = useState<NewTaskDraft>(emptyTask());
   const [savingEditTask, setSavingEditTask] = useState(false);
+
+  // Deep-link from a push notification:
+  // — /instellingen?product=<id> scrolls to and highlights a low-stock product
+  // — /instellingen?task=<id> scrolls to and highlights an overdue onderhoudstaak
+  const searchParams = useSearchParams();
+  const [highlightProductId, setHighlightProductId] = useState<string | null>(null);
+  const [highlightTaskId, setHighlightTaskId] = useState<string | null>(null);
+  const productRowRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const taskRowRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  useEffect(() => {
+    const productId = searchParams.get('product');
+    const taskId = searchParams.get('task');
+    if (productId) setHighlightProductId(productId);
+    if (taskId) setHighlightTaskId(taskId);
+    const targetId = productId ?? taskId;
+    if (!targetId) return;
+    const timeout = setTimeout(() => {
+      (productId ? productRowRefs : taskRowRefs).current[targetId]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 50);
+    const clear = setTimeout(() => { setHighlightProductId(null); setHighlightTaskId(null); }, 4000);
+    return () => { clearTimeout(timeout); clearTimeout(clear); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   function handleStartEditTask(t: MaintenanceTaskItem) {
     setAddingTask(false);
@@ -822,7 +846,11 @@ export function InstellingenForm({ siteId, siteName, priceConfig, stocks, energy
               const isReadingOpen = s.id in readingOpen;
               const isLow = s.min_stock_alert > 0 && s.current_stock <= s.min_stock_alert;
               return (
-                <div key={s.id} className={styles.stockRow}>
+                <div
+                  key={s.id}
+                  ref={(el) => { productRowRefs.current[s.id] = el; }}
+                  className={[styles.stockRow, highlightProductId === s.id ? styles.rowHighlight : ''].filter(Boolean).join(' ')}
+                >
                   <div className={styles.stockTop}>
                     <span className={styles.stockName}>{s.name}</span>
                     <span className={styles.stockAmount}>
@@ -1276,7 +1304,11 @@ export function InstellingenForm({ siteId, siteName, priceConfig, stocks, energy
                   </div>
                 </form>
               ) : (
-                <div key={t.id} className={styles.taskRow}>
+                <div
+                  key={t.id}
+                  ref={(el) => { taskRowRefs.current[t.id] = el; }}
+                  className={[styles.taskRow, highlightTaskId === t.id ? styles.rowHighlight : ''].filter(Boolean).join(' ')}
+                >
                   <div className={styles.taskInfo}>
                     <span className={styles.taskDesc}>{t.description}</span>
                     <span className={styles.taskTrigger}>

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import styles from './OrdersPanel.module.scss';
 
 export interface OrderItemData {
@@ -45,6 +46,26 @@ export function OrdersPanel({
 
   const [handlingId, setHandlingId] = useState<string | null>(null);
   const [requestFilter, setRequestFilter] = useState<'open' | 'alles'>('open');
+
+  // Deep-link from a push notification: /orders?request=<id> scrolls to and
+  // highlights that specific bestelling.
+  const searchParams = useSearchParams();
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const rowRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  useEffect(() => {
+    const requestId = searchParams.get('request');
+    if (!requestId) return;
+    const match = requests.find((r) => r.id === requestId);
+    if (!match) return;
+    if (match.is_handled) setRequestFilter('alles');
+    setHighlightId(requestId);
+    const timeout = setTimeout(() => {
+      rowRefs.current[requestId]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 50);
+    const clear = setTimeout(() => setHighlightId(null), 4000);
+    return () => { clearTimeout(timeout); clearTimeout(clear); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   async function handleAddItem() {
     if (!name.trim()) return;
@@ -200,7 +221,15 @@ export function OrdersPanel({
           ) : (
             <div className={styles.list}>
               {filteredRequests.map((req) => (
-                <div key={req.id} className={[styles.requestCard, req.is_handled ? styles.requestCardDone : ''].filter(Boolean).join(' ')}>
+                <div
+                  key={req.id}
+                  ref={(el) => { rowRefs.current[req.id] = el; }}
+                  className={[
+                    styles.requestCard,
+                    req.is_handled ? styles.requestCardDone : '',
+                    highlightId === req.id ? styles.requestCardHighlight : '',
+                  ].filter(Boolean).join(' ')}
+                >
                   <div className={styles.itemBody}>
                     <span className={styles.itemName}>{req.item_name}</span>
                     <span className={styles.itemDesc}>

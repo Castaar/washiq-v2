@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import styles from './OpdrachtenPanel.module.scss';
 
 export interface OpdrachtItem {
@@ -42,6 +43,26 @@ export function OpdrachtenPanel({ siteId, userRole, opdrachten: initial, employe
   const [selectedDate, setSelectedDate] = useState(activeDate);
 
   const isOwner = userRole === 'owner' || userRole === 'developer';
+
+  // Deep-link from a push notification: /opdrachten?item=<id> jumps to the
+  // right date and highlights that specific opdracht.
+  const searchParams = useSearchParams();
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const rowRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  useEffect(() => {
+    const itemId = searchParams.get('item');
+    if (!itemId) return;
+    const match = items.find((o) => o.id === itemId);
+    if (!match) return;
+    setSelectedDate(match.date);
+    setHighlightId(itemId);
+    const timeout = setTimeout(() => {
+      rowRefs.current[itemId]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 50);
+    const clear = setTimeout(() => setHighlightId(null), 4000);
+    return () => { clearTimeout(timeout); clearTimeout(clear); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   const visibleItems = items.filter((o) => o.date === selectedDate);
 
@@ -116,7 +137,11 @@ export function OpdrachtenPanel({ siteId, userRole, opdrachten: initial, employe
           </p>
         )}
         {visibleItems.map((o) => (
-          <div key={o.id} className={[styles.item, o.isDone ? styles.done : ''].join(' ')}>
+          <div
+            key={o.id}
+            ref={(el) => { rowRefs.current[o.id] = el; }}
+            className={[styles.item, o.isDone ? styles.done : '', highlightId === o.id ? styles.itemHighlight : ''].filter(Boolean).join(' ')}
+          >
             <button
               className={[styles.checkbox, o.isDone ? styles.checked : ''].join(' ')}
               onClick={() => toggleDone(o)}

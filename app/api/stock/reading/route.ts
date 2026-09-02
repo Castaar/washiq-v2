@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
               sendPushToUser((u._id as mongoose.Types.ObjectId).toString(), {
                 title: `Lage voorraad: ${stock.name}`,
                 body: `Nog ${quantity} ${stock.unit} — controleer of een levering nodig is.`,
-                url: `/instellingen?site=${siteId}`,
+                url: `/instellingen?site=${siteId}&product=${stock._id.toString()}`,
               }),
             ),
         ),

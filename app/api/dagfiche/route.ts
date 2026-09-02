@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
     sendPushToSite(body.siteId, {
       title: 'Dagfiche ingediend met opmerkingen',
       body: body.dagrapport?.trim() || 'Controleer de dagfiche voor details.',
-      url: `/dagfiche?site=${body.siteId}`,
+      url: `/dagfiches?site=${body.siteId}&item=${(doc._id as Types.ObjectId).toString()}`,
     }).catch(() => {});
   }
 

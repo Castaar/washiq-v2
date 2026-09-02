@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { DagficheModal } from '@/components/dashboard/DagficheModal/DagficheModal';
 import type { DagfichePayload } from '@/lib/types/dashboard';
 import styles from './DagfichesPanel.module.scss';
@@ -17,6 +18,17 @@ export interface DagficheOverviewItem {
 
 export function DagfichesPanel({ items, siteId }: { items: DagficheOverviewItem[]; siteId: string }) {
   const [open, setOpen] = useState<DagficheOverviewItem | null>(null);
+
+  // Deep-link from a push notification: /dagfiches?item=<id> opens that
+  // specific submitted dagfiche directly.
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const itemId = searchParams.get('item');
+    if (!itemId) return;
+    const match = items.find((i) => i.id === itemId);
+    if (match) setOpen(match);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   if (items.length === 0) {
     return <p className={styles.empty}>Geen dagfiches gevonden voor de afgelopen 30 dagen.</p>;
