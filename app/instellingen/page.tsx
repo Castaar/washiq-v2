@@ -22,7 +22,7 @@ export default async function InstellingenPage({
   const cookieSite = cookieStore.get('dodane_active_site')?.value;
 
   const [siteDocs, userDoc] = await Promise.all([
-    Site.find({}).select('_id name location start_car_count start_water_count').lean(),
+    Site.find({}).select('_id name location start_car_count start_water_count site_type').lean(),
     session ? User.findById(session.userId).select('site_ids role').lean() : null,
   ]);
 
@@ -35,6 +35,7 @@ export default async function InstellingenPage({
 
   const siteDoc = siteDocs.find((s) => (s._id as Types.ObjectId).toString() === siteId);
   const siteName = (siteDoc?.name as string) ?? '';
+  const siteType = ((siteDoc?.site_type as string) ?? 'wasstraat') as 'wasstraat' | 'selfcarwash';
   const startCarCount = (siteDoc?.start_car_count as number) ?? 0;
   const startWaterCount = (siteDoc?.start_water_count as number) ?? 0;
   const filter = siteId ? { site_id: siteId } : {};
@@ -114,6 +115,7 @@ export default async function InstellingenPage({
         <InstellingenForm
           siteId={siteId ?? ''}
           siteName={siteName}
+          siteType={siteType}
           priceConfig={priceConfig}
           stocks={stocks}
           energyBills={energyBills}

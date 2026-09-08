@@ -28,7 +28,7 @@ export default async function DashboardPage({
   await dbConnect();
 
   const [siteDocs, userDoc] = await Promise.all([
-    Site.find({}).select('_id name location setup_done').lean(),
+    Site.find({}).select('_id name location setup_done site_type').lean(),
     session ? User.findById(session.userId).select('site_ids role').lean() : null,
   ]);
 
@@ -37,6 +37,7 @@ export default async function DashboardPage({
     name: (s.name as string) ?? '',
     location: (s.location as string) ?? '',
     setup_done: (s.setup_done as boolean) ?? false,
+    site_type: ((s.site_type as string) ?? 'wasstraat') as 'wasstraat' | 'selfcarwash',
   }));
 
   const userRole = (userDoc?.role as string) ?? session?.role ?? 'employee';
@@ -68,13 +69,16 @@ export default async function DashboardPage({
     }
   }
 
+  const activeSiteType = activeSiteDoc?.site_type ?? 'wasstraat';
   const addBase = userRole === 'developer'
     ? '/developer'
     : userRole === 'employee'
     ? '/dagfiche'
+    : activeSiteType === 'selfcarwash'
+    ? '/leveringen'
     : '/wekelijkse-ingave';
   const addHref = userRole === 'developer' ? '/developer' : (activeSiteId ? `${addBase}?site=${activeSiteId}` : addBase);
-  const addLabel = userRole === 'developer' ? 'Developer' : userRole === 'employee' ? 'Dagfiche' : 'Maandelijkse Ingave';
+  const addLabel = userRole === 'developer' ? 'Developer' : userRole === 'employee' ? 'Dagfiche' : activeSiteType === 'selfcarwash' ? 'Voorraad' : 'Maandelijkse Ingave';
 
   // Fetch recent attendance logs for employees (shown on dashboard instead of alerts panel)
   let recentLogs: { id: string; userId: string; userName: string; type: 'opening' | 'sluiting'; personType: 'employee' | 'technician_extern'; registeredByName: string; timestamp: string; note: string }[] = [];
@@ -129,7 +133,7 @@ export default async function DashboardPage({
             />
           </div>
         ) : null}
-        <CarwashPage siteId={activeSiteId} period={period} view={view} usage={usage} refDate={refDate} sites={sites} addHref={addHref} addLabel={addLabel} userRole={userRole} recentLogs={recentLogs} userName={session?.name ?? ''} userId={session?.userId ?? ''} />
+        <CarwashPage siteId={activeSiteId} siteType={activeSiteType} period={period} view={view} usage={usage} refDate={refDate} sites={sites} addHref={addHref} addLabel={addLabel} userRole={userRole} recentLogs={recentLogs} userName={session?.name ?? ''} userId={session?.userId ?? ''} />
       </div>
     </div>
   );

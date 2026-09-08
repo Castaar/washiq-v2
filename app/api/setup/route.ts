@@ -12,6 +12,7 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json() as {
     siteId: string;
+    siteType?: 'wasstraat' | 'selfcarwash';
     tellerstand: number;
     tellerstandDate?: string;
     waterTellerstand?: number;
@@ -43,6 +44,7 @@ export async function POST(req: NextRequest) {
   // Update initial tellerstand on site
   ops.push(
     Site.findByIdAndUpdate(body.siteId, {
+      site_type: body.siteType ?? 'wasstraat',
       start_car_count: body.tellerstand ?? 0,
       start_car_count_date: body.tellerstandDate ? new Date(body.tellerstandDate) : new Date(),
       start_water_count: body.waterTellerstand ?? 0,

@@ -23,7 +23,7 @@ export default async function OnderhoudPage({
   const cookieSite = cookieStore.get('dodane_active_site')?.value;
 
   const [siteDocs, userDoc] = await Promise.all([
-    Site.find({}).select('_id name location start_car_count').lean(),
+    Site.find({}).select('_id name location start_car_count site_type').lean(),
     session ? User.findById(session.userId).select('site_ids role').lean() : null,
   ]);
 

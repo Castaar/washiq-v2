@@ -14,6 +14,7 @@ export type UserRole = 'developer' | 'owner' | 'employee' | 'technician';
 
 interface BottomNavProps {
   role: UserRole;
+  siteType?: 'wasstraat' | 'selfcarwash';
 }
 
 function isActive(pathname: string, href: string) {
@@ -21,7 +22,7 @@ function isActive(pathname: string, href: string) {
   return pathname.startsWith(href);
 }
 
-export function BottomNav({ role }: BottomNavProps) {
+export function BottomNav({ role, siteType = 'wasstraat' }: BottomNavProps) {
   const pathname = usePathname();
   const t = useTranslations('nav');
   const [meerOpen, setMeerOpen] = useState(false);
@@ -49,7 +50,10 @@ export function BottomNav({ role }: BottomNavProps) {
     );
   }
 
-  const ingaveHref = role === 'employee' ? '/dagfiche' : '/wekelijkse-ingave';
+  // Selfcarwash owners/developers have no wagen-based weekly ingave — the
+  // slot becomes a shortcut to voorraad (Leveringen) instead.
+  const ingaveHref = role === 'employee' ? '/dagfiche' : siteType === 'selfcarwash' ? '/leveringen' : '/wekelijkse-ingave';
+  const ingaveLabelKey = role !== 'employee' && siteType === 'selfcarwash' ? 'leveringen' : 'ingave';
 
   return (
     <>
@@ -63,7 +67,7 @@ export function BottomNav({ role }: BottomNavProps) {
           className={[styles.tab, isActive(pathname, ingaveHref) ? styles.active : ''].filter(Boolean).join(' ')}
         >
           <IconFileText size={22} />
-          <span className={styles.tabLabel}>{t('ingave')}</span>
+          <span className={styles.tabLabel}>{t(ingaveLabelKey)}</span>
         </Link>
         <Link
           href="/incidenten"
@@ -82,7 +86,7 @@ export function BottomNav({ role }: BottomNavProps) {
           <span className={styles.tabLabel}>{t('meer')}</span>
         </button>
       </nav>
-      <MeerSheet role={role} open={meerOpen} onClose={() => setMeerOpen(false)} />
+      <MeerSheet role={role} siteType={siteType} open={meerOpen} onClose={() => setMeerOpen(false)} />
     </>
   );
 }

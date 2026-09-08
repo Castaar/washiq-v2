@@ -58,6 +58,7 @@ interface EnergyBillData {
 interface InstellingenFormProps {
   siteId: string;
   siteName: string;
+  siteType: 'wasstraat' | 'selfcarwash';
   priceConfig: PriceConfigData | null;
   stocks: StockItem[];
   energyBills: EnergyBillData[];
@@ -137,7 +138,7 @@ function PriceField({
 
 // ─── Main component ───────────────────────────────────────────
 
-export function InstellingenForm({ siteId, siteName, priceConfig, stocks, energyBills, startCarCount, startWaterCount, existingProductNames = [], maintenanceTasks: initialTasks, currentTotalWashes, programs: initialPrograms, allowedSites = [] }: InstellingenFormProps) {
+export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stocks, energyBills, startCarCount, startWaterCount, existingProductNames = [], maintenanceTasks: initialTasks, currentTotalWashes, programs: initialPrograms, allowedSites = [] }: InstellingenFormProps) {
   const isFirstTime = !priceConfig;
 
   // ── Wasprogramma's state ──────────────────────────────────
@@ -741,25 +742,27 @@ export function InstellingenForm({ siteId, siteName, priceConfig, stocks, energy
         })()}
       </div>
 
-      {/* ── Sectie 1c: Wasprogramma's ────────────────────────── */}
-      <div className={styles.section}>
-        <div className={styles.sectionHead}>
-          <h2 className={styles.sectionTitle}>Wasprogramma&apos;s</h2>
+      {/* ── Sectie 1c: Wasprogramma's (niet voor selfcarwash — geen wagens per programma) ── */}
+      {siteType !== 'selfcarwash' && (
+        <div className={styles.section}>
+          <div className={styles.sectionHead}>
+            <h2 className={styles.sectionTitle}>Wasprogramma&apos;s</h2>
+          </div>
+          <p className={styles.sectionHint}>
+            Stel de wasprogramma&apos;s in voor deze site: naam, tier en welke producten erbij gebruikt worden.
+          </p>
+          <SiteProgramManager
+            site={site}
+            allSites={[site]}
+            programs={programs}
+            availableProducts={productList}
+            onDeleteProgram={(id) => setPrograms((prev) => prev.filter((p) => p.id !== id))}
+            onUpdateProgram={(id, updated) => setPrograms((prev) => prev.map((p) => (p.id === id ? { ...p, ...updated } : p)))}
+            onAddProgram={(program) => setPrograms((prev) => [...prev, program])}
+            showCopy={false}
+          />
         </div>
-        <p className={styles.sectionHint}>
-          Stel de wasprogramma&apos;s in voor deze site: naam, tier en welke producten erbij gebruikt worden.
-        </p>
-        <SiteProgramManager
-          site={site}
-          allSites={[site]}
-          programs={programs}
-          availableProducts={productList}
-          onDeleteProgram={(id) => setPrograms((prev) => prev.filter((p) => p.id !== id))}
-          onUpdateProgram={(id, updated) => setPrograms((prev) => prev.map((p) => (p.id === id ? { ...p, ...updated } : p)))}
-          onAddProgram={(program) => setPrograms((prev) => [...prev, program])}
-          showCopy={false}
-        />
-      </div>
+      )}
 
       {/* ── Sectie 2: Startvoorraad ──────────────────────────── */}
       <form className={styles.section} onSubmit={handleSaveStock} noValidate>
@@ -1122,38 +1125,40 @@ export function InstellingenForm({ siteId, siteName, priceConfig, stocks, energy
         </div>
       </form>
 
-      {/* ── Sectie 4: Start hoeveelheid wagens ──────────────── */}
-      <form className={styles.section} onSubmit={handleSaveCarCount} noValidate>
-        <div className={styles.sectionHead}>
-          <h2 className={styles.sectionTitle}>Start hoeveelheid wagens</h2>
-        </div>
-        <p className={styles.sectionHint}>
-          Geef het totale aantal wagens in dat gewassen is vóór u met deze app begon te registreren. Dit wordt opgeteld bij de tellerstand in het dashboard.
-        </p>
-
-        <div className={styles.priceField}>
-          <label className={styles.priceLabel}>Aantal wagens</label>
-          <div className={styles.priceInputWrap}>
-            <input
-              className={styles.priceInput}
-              type="number"
-              min="0"
-              step="1"
-              value={carCount}
-              onChange={(e) => { setCarCount(e.target.value); setCarCountSaved(false); }}
-              placeholder="0"
-            />
-            <span className={styles.priceUnit}>wagens</span>
+      {/* ── Sectie 4: Start hoeveelheid wagens (niet voor selfcarwash) ── */}
+      {siteType !== 'selfcarwash' && (
+        <form className={styles.section} onSubmit={handleSaveCarCount} noValidate>
+          <div className={styles.sectionHead}>
+            <h2 className={styles.sectionTitle}>Start hoeveelheid wagens</h2>
           </div>
-        </div>
+          <p className={styles.sectionHint}>
+            Geef het totale aantal wagens in dat gewassen is vóór u met deze app begon te registreren. Dit wordt opgeteld bij de tellerstand in het dashboard.
+          </p>
 
-        <div className={styles.sectionFooter}>
-          {carCountSaved && <span className={styles.savedMsg}>Opgeslagen</span>}
-          <button type="submit" className={styles.saveBtn} disabled={savingCarCount}>
-            {savingCarCount ? 'Opslaan...' : 'Opslaan'}
-          </button>
-        </div>
-      </form>
+          <div className={styles.priceField}>
+            <label className={styles.priceLabel}>Aantal wagens</label>
+            <div className={styles.priceInputWrap}>
+              <input
+                className={styles.priceInput}
+                type="number"
+                min="0"
+                step="1"
+                value={carCount}
+                onChange={(e) => { setCarCount(e.target.value); setCarCountSaved(false); }}
+                placeholder="0"
+              />
+              <span className={styles.priceUnit}>wagens</span>
+            </div>
+          </div>
+
+          <div className={styles.sectionFooter}>
+            {carCountSaved && <span className={styles.savedMsg}>Opgeslagen</span>}
+            <button type="submit" className={styles.saveBtn} disabled={savingCarCount}>
+              {savingCarCount ? 'Opslaan...' : 'Opslaan'}
+            </button>
+          </div>
+        </form>
+      )}
 
       {/* ── Sectie 5: Onderhoudstaken ────────────────────────── */}
       <div className={styles.section}>
@@ -1184,7 +1189,7 @@ export function InstellingenForm({ siteId, siteName, priceConfig, stocks, energy
                   <div className={styles.taskFormField}>
                     <label className={styles.priceLabel}>Type trigger</label>
                     <div className={styles.radioGroup}>
-                      {([['washes', 'Op aantal wasbeurten'], ['months', 'Op aantal maanden'], ['fixed_date', 'Vaste datum per jaar']] as [NewTaskDraft['trigger_type'], string][]).map(([val, lbl]) => (
+                      {([['washes', 'Op aantal wasbeurten'], ['months', 'Op aantal maanden'], ['fixed_date', 'Vaste datum per jaar']] as [NewTaskDraft['trigger_type'], string][]).filter(([val]) => siteType !== 'selfcarwash' || val !== 'washes').map(([val, lbl]) => (
                         <label key={val} className={styles.radioLabel}>
                           <input
                             type="radio"
@@ -1361,7 +1366,7 @@ export function InstellingenForm({ siteId, siteName, priceConfig, stocks, energy
             <div className={styles.taskFormField}>
               <label className={styles.priceLabel}>Type trigger</label>
               <div className={styles.radioGroup}>
-                {([['washes', 'Op aantal wasbeurten'], ['months', 'Op aantal maanden'], ['fixed_date', 'Vaste datum per jaar']] as [NewTaskDraft['trigger_type'], string][]).map(([val, lbl]) => (
+                {([['washes', 'Op aantal wasbeurten'], ['months', 'Op aantal maanden'], ['fixed_date', 'Vaste datum per jaar']] as [NewTaskDraft['trigger_type'], string][]).filter(([val]) => siteType !== 'selfcarwash' || val !== 'washes').map(([val, lbl]) => (
                   <label key={val} className={styles.radioLabel}>
                     <input
                       type="radio"

@@ -5,6 +5,7 @@ export interface ISite extends Document {
   name: string;
   location: string;
   owner_id: Types.ObjectId;
+  site_type: 'wasstraat' | 'selfcarwash';
   start_car_count: number;
   start_car_count_date?: Date;
   start_water_count: number;
@@ -15,6 +16,10 @@ const SiteSchema = new Schema<ISite>({
   name: String,
   location: String,
   owner_id: { type: Schema.Types.ObjectId, ref: 'User' },
+  // wasstraat: staffed wash with per-program wagen counts (wekelijkse ingave,
+  // historiek). selfcarwash: self-service bays — no wagen counting, only
+  // voorraad, onderhoud/incidenten and logboek (in-/uitcheck) apply.
+  site_type: { type: String, enum: ['wasstraat', 'selfcarwash'], default: 'wasstraat' },
   start_car_count: { type: Number, default: 0 },
   start_car_count_date: { type: Date },
   start_water_count: { type: Number, default: 0 },

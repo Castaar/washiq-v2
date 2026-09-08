@@ -6,7 +6,7 @@ import { dbConnect } from '@/lib/db/mongoose';
 import { Site, WashProgram, WeeklyEntry, User, ChemicalStock, MaintenanceTask } from '@/lib/models';
 import { getSession } from '@/lib/session';
 import type { Types } from 'mongoose';
-import { filterSitesForUser, resolveActiveSite, redirectIfSetupNeeded, redirectWithSiteParam } from '@/lib/getUserSites';
+import { filterSitesForUser, resolveActiveSite, redirectIfSetupNeeded, redirectIfSelfCarwash, redirectWithSiteParam } from '@/lib/getUserSites';
 import { getTranslationMap } from '@/lib/contentTranslations';
 import styles from './page.module.scss';
 
@@ -26,7 +26,7 @@ export default async function WekelijkseIngavePage({
   const cookieSite = cookieStore.get('dodane_active_site')?.value;
 
   const [siteDocs, userDoc] = await Promise.all([
-    Site.find({}).select('_id name location start_car_count start_water_count').lean(),
+    Site.find({}).select('_id name location start_car_count start_water_count site_type').lean(),
     session ? User.findById(session.userId).select('site_ids role').lean() : null,
   ]);
 
@@ -35,6 +35,7 @@ export default async function WekelijkseIngavePage({
   const allowedSites = filterSitesForUser(siteDocs as Parameters<typeof filterSitesForUser>[0], userSiteIds, userRole);
   const siteId = resolveActiveSite(allowedSites, site ?? cookieSite) || null;
   await redirectIfSetupNeeded(siteId ?? '', userRole);
+  await redirectIfSelfCarwash(siteId ?? '');
   redirectWithSiteParam('/wekelijkse-ingave', { site }, siteId ?? '');
   const siteName = allowedSites.find((s) => s.id === siteId)?.name ?? '';
   const siteDoc = siteDocs.find((s) => (s._id as Types.ObjectId).toString() === siteId);

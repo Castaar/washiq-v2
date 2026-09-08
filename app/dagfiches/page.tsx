@@ -31,7 +31,7 @@ export default async function DagfichesPage({
   const cookieSite = cookieStore.get('dodane_active_site')?.value;
 
   const [siteDocs, userDoc] = await Promise.all([
-    Site.find({}).select('_id name location').lean(),
+    Site.find({}).select('_id name location site_type').lean(),
     User.findById(session.userId).select('site_ids role').lean(),
   ]);
 

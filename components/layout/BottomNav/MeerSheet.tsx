@@ -54,14 +54,14 @@ const EMPLOYEE_LINKS: MeerLink[] = [
   { href: '/handleiding', label: 'Handleiding', icon: IconMessageSquare },
 ];
 
-function linksForRole(role: UserRole): MeerLink[] {
-  if (role === 'developer') return DEVELOPER_LINKS;
-  if (role === 'owner') return OWNER_LINKS;
-  return EMPLOYEE_LINKS;
+function linksForRole(role: UserRole, siteType: 'wasstraat' | 'selfcarwash'): MeerLink[] {
+  const base = role === 'developer' ? DEVELOPER_LINKS : role === 'owner' ? OWNER_LINKS : EMPLOYEE_LINKS;
+  // Selfcarwash sites don't track wagens — Historiek (weekly wagen entries) doesn't apply.
+  return siteType === 'selfcarwash' ? base.filter((l) => l.href !== '/historiek') : base;
 }
 
-export function MeerSheet({ role, open, onClose }: { role: UserRole; open: boolean; onClose: () => void }) {
-  const links = linksForRole(role);
+export function MeerSheet({ role, siteType = 'wasstraat', open, onClose }: { role: UserRole; siteType?: 'wasstraat' | 'selfcarwash'; open: boolean; onClose: () => void }) {
+  const links = linksForRole(role, siteType);
 
   const [installPrompt, setInstallPrompt] = useState<Event | null>(null);
   const [isStandalone, setIsStandalone] = useState(true);

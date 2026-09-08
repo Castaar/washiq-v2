@@ -7,12 +7,14 @@ interface RawSiteDoc {
   _id: Types.ObjectId | { toString(): string };
   name?: unknown;
   location?: unknown;
+  site_type?: unknown;
 }
 
 export interface SiteOption {
   id: string;
   name: string;
   location: string;
+  siteType: 'wasstraat' | 'selfcarwash';
 }
 
 /** Filters a list of all site docs down to only those the user may access. */
@@ -30,6 +32,7 @@ export function filterSitesForUser(
     id: s._id.toString(),
     name: (s.name as string) ?? '',
     location: (s.location as string) ?? '',
+    siteType: (s.site_type as 'wasstraat' | 'selfcarwash') ?? 'wasstraat',
   }));
 }
 
@@ -59,6 +62,18 @@ export async function redirectIfSetupNeeded(siteId: string, userRole: string): P
 
   const existingPrice = await PriceConfig.findOne({ site_id: siteId }).select('_id').lean();
   if (!existingPrice) redirect(`/setup?site=${siteId}`);
+}
+
+/**
+ * Selfcarwash sites don't track per-program wagen counts — bounces owners/
+ * developers away from wagen-only pages (wekelijkse ingave, historiek) back
+ * to the dashboard. Call after redirectIfSetupNeeded, with the same siteId.
+ */
+export async function redirectIfSelfCarwash(siteId: string): Promise<void> {
+  if (!siteId) return;
+  await dbConnect();
+  const siteDoc = await Site.findById(siteId).select('site_type').lean();
+  if (siteDoc?.site_type === 'selfcarwash') redirect(`/?site=${siteId}`);
 }
 
 /**

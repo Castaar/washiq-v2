@@ -42,6 +42,7 @@ function mondayOf(date: Date): Date {
 
 export async function CarwashPage({
   siteId: propSiteId,
+  siteType = 'wasstraat',
   period = 'month',
   view = 'prijs',
   usage = 'totaal',
@@ -55,6 +56,7 @@ export async function CarwashPage({
   userId = '',
 }: {
   siteId?: string;
+  siteType?: 'wasstraat' | 'selfcarwash';
   period?: 'week' | 'month';
   view?: 'prijs' | 'liter';
   usage?: 'totaal' | 'wagen';
@@ -67,6 +69,7 @@ export async function CarwashPage({
   userId?: string;
   userName?: string;
 }) {
+  const isSelfCarwash = siteType === 'selfcarwash';
   await dbConnect();
   const locale = await getLocale();
   const contentTranslations = await getTranslationMap(locale);
@@ -1045,8 +1048,8 @@ export async function CarwashPage({
             <VoorraadPanel items={voorraad} />
           </div>
 
-          {/* ── Left column: wash-program cost breakdown (owner only) ── */}
-          {isOwner && (
+          {/* ── Left column: wash-program cost breakdown (owner only, wasstraat only — selfcarwash has no per-program wagen counts) ── */}
+          {isOwner && !isSelfCarwash && (
             <div className={styles.gridLeft}>
               <ProgrammaCard
                 programs={programOptions}

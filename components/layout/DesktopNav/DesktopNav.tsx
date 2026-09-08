@@ -15,7 +15,7 @@ function isActive(pathname: string, href: string) {
   return pathname.startsWith(href);
 }
 
-export function DesktopNav({ role }: { role: UserRole }) {
+export function DesktopNav({ role, siteType = 'wasstraat' }: { role: UserRole; siteType?: 'wasstraat' | 'selfcarwash' }) {
   const pathname = usePathname();
   const [meerOpen, setMeerOpen] = useState(false);
 
@@ -44,7 +44,10 @@ export function DesktopNav({ role }: { role: UserRole }) {
     );
   }
 
-  const ingaveHref = role === 'employee' ? '/dagfiche' : '/wekelijkse-ingave';
+  // Selfcarwash owners/developers have no wagen-based weekly ingave — the
+  // slot becomes a shortcut to voorraad (Leveringen) instead.
+  const ingaveHref = role === 'employee' ? '/dagfiche' : siteType === 'selfcarwash' ? '/leveringen' : '/wekelijkse-ingave';
+  const ingaveLabel = role !== 'employee' && siteType === 'selfcarwash' ? 'Leveringen' : 'Ingave';
 
   return (
     <>
@@ -59,7 +62,7 @@ export function DesktopNav({ role }: { role: UserRole }) {
             className={[styles.pill, isActive(pathname, ingaveHref) ? styles.active : ''].filter(Boolean).join(' ')}
           >
             <IconFileText size={16} />
-            <span>Ingave</span>
+            <span>{ingaveLabel}</span>
           </Link>
           <Link
             href="/incidenten"
@@ -79,7 +82,7 @@ export function DesktopNav({ role }: { role: UserRole }) {
           </button>
         </div>
       </nav>
-      <MeerSheet role={role} open={meerOpen} onClose={() => setMeerOpen(false)} />
+      <MeerSheet role={role} siteType={siteType} open={meerOpen} onClose={() => setMeerOpen(false)} />
     </>
   );
 }

@@ -36,7 +36,7 @@ interface Props {
   initialTasks: Omit<TaskDraft, 'trigger_day' | 'trigger_month'>[];
 }
 
-const STEPS = ['Welkom', 'Tellerstand', 'Onderhoud', 'Prijzen', 'Klaar'];
+const STEP_LABELS = ['Welkom', 'Tellerstand', 'Onderhoud', 'Prijzen', 'Klaar'];
 const MONTHS_NL = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
 
 function emptyTask(): TaskDraft {
@@ -55,6 +55,7 @@ export function SetupWizard({ siteId, siteName, sites, initialPrices, initialTas
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [siteType, setSiteType] = useState<'wasstraat' | 'selfcarwash'>('wasstraat');
 
   const [tellerstand, setTellerstand] = useState(0);
   const [tellerstandDate, setTellerstandDate] = useState(new Date().toISOString().slice(0, 10));
@@ -101,6 +102,7 @@ export function SetupWizard({ siteId, siteName, sites, initialPrices, initialTas
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           siteId,
+          siteType,
           tellerstand,
           tellerstandDate,
           waterTellerstand,
@@ -122,7 +124,12 @@ export function SetupWizard({ siteId, siteName, sites, initialPrices, initialTas
     }
   }
 
-  const progressPct = Math.round((step / (STEPS.length - 1)) * 100);
+  // Selfcarwash sites skip the Tellerstand step (no wagen counting) — step
+  // indices stay fixed (0=Welkom, 1=Tellerstand, 2=Onderhoud, 3=Prijzen,
+  // 4=Klaar), only the visited order/labels change.
+  const activeSteps = siteType === 'selfcarwash' ? [0, 2, 3, 4] : [0, 1, 2, 3, 4];
+  const position = activeSteps.indexOf(step);
+  const progressPct = Math.round((Math.max(position, 0) / (activeSteps.length - 1)) * 100);
 
   function handleClose() {
     const otherSite = sites.find((s) => s.id !== siteId && s.setup_done) ?? sites.find((s) => s.id !== siteId);
@@ -144,8 +151,8 @@ export function SetupWizard({ siteId, siteName, sites, initialPrices, initialTas
         </div>
         <h1 className={styles.title}>Eerste configuratie</h1>
         <p className={styles.subtitle}>
-          {step < STEPS.length - 1
-            ? `Stap ${step + 1} van ${STEPS.length - 1} — ${STEPS[step + 1] ?? ''}`
+          {step < 4
+            ? `Stap ${position + 1} van ${activeSteps.length - 1} — ${STEP_LABELS[activeSteps[position + 1]] ?? ''}`
             : 'Klaar!'}
         </p>
         <div className={styles.progressBar}>
@@ -160,17 +167,53 @@ export function SetupWizard({ siteId, siteName, sites, initialPrices, initialTas
             Welkom bij WashIQ. Deze wizard helpt je de site <strong>{siteName}</strong> in enkele
             minuten klaar te zetten. Je kan dit altijd later aanpassen via de instellingen.
           </p>
-          <ul className={styles.checkList}>
-            <li>Huidige tellerstand ingeven</li>
-            <li>Onderhoudstaken configureren (op wasbeurten of op datum)</li>
-            <li>Kostprijzen per eenheid instellen</li>
-          </ul>
+
+          <div className={styles.fieldGroup}>
+            <label className={styles.label}>Type carwash</label>
+            <div className={styles.radioGroup}>
+              <label className={styles.radioLabel}>
+                <input
+                  type="radio"
+                  name="site_type"
+                  value="wasstraat"
+                  checked={siteType === 'wasstraat'}
+                  onChange={() => setSiteType('wasstraat')}
+                />
+                Wasstraat — met tellerstand per wasprogramma
+              </label>
+              <label className={styles.radioLabel}>
+                <input
+                  type="radio"
+                  name="site_type"
+                  value="selfcarwash"
+                  checked={siteType === 'selfcarwash'}
+                  onChange={() => setSiteType('selfcarwash')}
+                />
+                Selfcarwash — geen wagens tellen
+              </label>
+            </div>
+          </div>
+
+          {siteType === 'selfcarwash' ? (
+            <ul className={styles.checkList}>
+              <li>Voorraad beheer</li>
+              <li>Onderhoudstaken &amp; incidenten</li>
+              <li>In- en uitcheck (logboek)</li>
+              <li>Kostprijzen per eenheid instellen</li>
+            </ul>
+          ) : (
+            <ul className={styles.checkList}>
+              <li>Huidige tellerstand ingeven</li>
+              <li>Onderhoudstaken configureren (op wasbeurten of op datum)</li>
+              <li>Kostprijzen per eenheid instellen</li>
+            </ul>
+          )}
           {sites.filter((s) => !s.setup_done && s.id !== siteId).length > 0 && (
             <p className={styles.hint}>
               Andere sites zonder configuratie: {sites.filter((s) => !s.setup_done && s.id !== siteId).map((s) => s.name).join(', ')}.
             </p>
           )}
-          <button className={styles.btnPrimary} onClick={() => setStep(1)}>
+          <button className={styles.btnPrimary} onClick={() => setStep(siteType === 'selfcarwash' ? 2 : 1)}>
             Start configuratie →
           </button>
         </div>
@@ -325,7 +368,9 @@ export function SetupWizard({ siteId, siteName, sites, initialPrices, initialTas
               <div className={styles.fieldGroup}>
                 <label className={styles.label}>Type trigger</label>
                 <div className={styles.radioGroup}>
-                  {([['washes', 'Op aantal wasbeurten'], ['months', 'Op aantal maanden'], ['fixed_date', 'Vaste datum per jaar']] as [TaskDraft['trigger_type'], string][]).map(([val, lbl]) => (
+                  {([['washes', 'Op aantal wasbeurten'], ['months', 'Op aantal maanden'], ['fixed_date', 'Vaste datum per jaar']] as [TaskDraft['trigger_type'], string][])
+                    .filter(([val]) => siteType !== 'selfcarwash' || val !== 'washes')
+                    .map(([val, lbl]) => (
                     <label key={val} className={styles.radioLabel}>
                       <input
                         type="radio"
@@ -444,13 +489,20 @@ export function SetupWizard({ siteId, siteName, sites, initialPrices, initialTas
               </div>
             </div>
           ) : (
-            <button type="button" className={styles.btnOutline} onClick={() => setAddingTask(true)}>
+            <button
+              type="button"
+              className={styles.btnOutline}
+              onClick={() => {
+                if (siteType === 'selfcarwash') setNewTask((t) => ({ ...t, trigger_type: 'months' }));
+                setAddingTask(true);
+              }}
+            >
               + Onderhoudstaak toevoegen
             </button>
           )}
 
           <div className={styles.navRow}>
-            <button className={styles.btnSecondary} onClick={() => setStep(1)}>← Terug</button>
+            <button className={styles.btnSecondary} onClick={() => setStep(siteType === 'selfcarwash' ? 0 : 1)}>← Terug</button>
             <button className={styles.btnPrimary} onClick={() => setStep(3)}>Volgende →</button>
           </div>
         </div>
@@ -506,8 +558,12 @@ export function SetupWizard({ siteId, siteName, sites, initialPrices, initialTas
             van verbruik, onderhoud en incidenten.
           </p>
           <ul className={styles.checkList}>
-            <li>Tellerstand opgeslagen: {tellerstand.toLocaleString('nl-BE')} wasbeurten</li>
-            <li>Tellerstand water opgeslagen: {waterTellerstand.toLocaleString('nl-BE')} m³</li>
+            {siteType === 'wasstraat' && (
+              <>
+                <li>Tellerstand opgeslagen: {tellerstand.toLocaleString('nl-BE')} wasbeurten</li>
+                <li>Tellerstand water opgeslagen: {waterTellerstand.toLocaleString('nl-BE')} m³</li>
+              </>
+            )}
             <li>{tasks.length} onderhoudstaak{tasks.length !== 1 ? 'en' : ''} geconfigureerd</li>
             <li>Kostprijzen ingesteld</li>
           </ul>
