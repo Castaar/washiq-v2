@@ -1,4 +1,4 @@
-const CACHE = 'dodane-v3';
+const CACHE = 'dodane-v4';
 
 const PRECACHE = [
   '/',
@@ -101,16 +101,25 @@ self.addEventListener('notificationclick', (event) => {
   const targetUrl = event.notification.data?.url ?? '/';
 
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-      // If a window is already open, focus it and navigate
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async (windowClients) => {
+      // If a window is already open, focus it and navigate. client.navigate()
+      // silently no-ops on several iOS/PWA versions (the tab just stays on
+      // whatever page it already had open) — so on top of it, always also
+      // postMessage the page and let its own JS force the navigation as a
+      // fallback that doesn't depend on this API actually working.
       for (const client of windowClients) {
         if ('focus' in client) {
-          client.focus();
-          client.navigate(targetUrl);
+          await client.focus();
+          try {
+            await client.navigate(targetUrl);
+          } catch {
+            // ignore — postMessage fallback below still fires
+          }
+          client.postMessage({ type: 'notification-navigate', url: targetUrl });
           return;
         }
       }
-      // Otherwise open a new window
+      // No window open at all — open a fresh one straight to the target.
       if (clients.openWindow) {
         return clients.openWindow(targetUrl);
       }

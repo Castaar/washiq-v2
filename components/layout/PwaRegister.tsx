@@ -25,8 +25,24 @@ export function PwaRegister() {
       window.location.reload();
     }
     navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
+
+    // Fallback for notification clicks: client.navigate() from the service
+    // worker silently no-ops on several iOS/PWA versions, leaving the app on
+    // whatever page it already had open instead of the notification's
+    // target. The SW also postMessages us the URL — force the navigation
+    // here with a real page load, which always works.
+    function handleMessage(event: MessageEvent) {
+      if (event.data?.type === 'notification-navigate' && typeof event.data.url === 'string') {
+        if (window.location.pathname + window.location.search !== event.data.url) {
+          window.location.href = event.data.url;
+        }
+      }
+    }
+    navigator.serviceWorker.addEventListener('message', handleMessage);
+
     return () => {
       navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
+      navigator.serviceWorker.removeEventListener('message', handleMessage);
     };
   }, []);
 
