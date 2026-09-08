@@ -3,8 +3,10 @@ import type { Types } from 'mongoose';
 import { NavBar } from '@/components/layout/NavBar/NavBar';
 import { OnderhoudPanel } from '@/components/onderhouden/OnderhoudPanel/OnderhoudPanel';
 import type { OnderhoudTask } from '@/components/onderhouden/OnderhoudPanel/OnderhoudPanel';
+import { BrushesPanel } from '@/components/onderhouden/BrushesPanel/BrushesPanel';
+import type { BrushItem } from '@/components/onderhouden/BrushesPanel/BrushesPanel';
 import { dbConnect } from '@/lib/db/mongoose';
-import { Site, User, MaintenanceTask, WeeklyEntry } from '@/lib/models';
+import { Site, User, MaintenanceTask, WeeklyEntry, Brush } from '@/lib/models';
 import { getSession } from '@/lib/session';
 import { filterSitesForUser, resolveActiveSite, redirectIfSetupNeeded, redirectWithSiteParam } from '@/lib/getUserSites';
 import { computeIsOverdue, computeIsApproaching, washesRemaining } from '@/lib/maintenance';
@@ -38,12 +40,13 @@ export default async function OnderhoudPage({
   const siteDoc = siteDocs.find((s) => (s._id as Types.ObjectId).toString() === siteId);
   const startCarCount = (siteDoc as Record<string, unknown>)?.start_car_count as number ?? 0;
 
-  const [taskDocs, latestEntry] = siteId
+  const [taskDocs, latestEntry, brushDocs] = siteId
     ? await Promise.all([
         MaintenanceTask.find({ site_id: siteId }).lean(),
         WeeklyEntry.findOne({ site_id: siteId }).sort({ week_start: -1 }).select('tellerstand').lean(),
+        Brush.find({ site_id: siteId }).sort({ category: 1, order: 1 }).lean(),
       ])
-    : [[], null];
+    : [[], null, []];
 
   const currentTellerstand = (latestEntry as Record<string, unknown> | null)?.tellerstand as number ?? startCarCount;
   const now = new Date();
@@ -65,6 +68,18 @@ export default async function OnderhoudPage({
     };
   }).sort((a, b) => (b.isOverdue ? 1 : 0) - (a.isOverdue ? 1 : 0) || (b.isApproaching ? 1 : 0) - (a.isApproaching ? 1 : 0));
 
+  const siteType = ((siteDoc as Record<string, unknown>)?.site_type as string) ?? 'wasstraat';
+  const isOwner = userRole === 'owner' || userRole === 'developer';
+
+  const brushes: BrushItem[] = brushDocs.map((b) => ({
+    id: (b._id as Types.ObjectId).toString(),
+    category: b.category as BrushItem['category'],
+    label: b.label as string,
+    order: (b.order as number) ?? 0,
+    washesAtLastReplacement: (b.washes_at_last_replacement as number) ?? 0,
+    lastReplacedAt: b.last_replaced_at ? (b.last_replaced_at as Date).toISOString() : null,
+  }));
+
   return (
     <div className={styles.root}>
       <NavBar sites={allowedSites} activeSiteId={siteId ?? ''} backHref="/" />
@@ -74,6 +89,15 @@ export default async function OnderhoudPage({
             <h1 className={styles.title}>Onderhoud — {siteName}</h1>
           </div>
           <OnderhoudPanel tasks={tasks} siteId={siteId ?? ''} />
+
+          {siteType !== 'selfcarwash' && (
+            <div className={styles.header} style={{ marginTop: 'var(--space-6)' }}>
+              <h1 className={styles.title}>Slijtage textiel borstels</h1>
+            </div>
+          )}
+          {siteType !== 'selfcarwash' && (
+            <BrushesPanel siteId={siteId ?? ''} currentTellerstand={currentTellerstand} isOwner={isOwner} initialBrushes={brushes} />
+          )}
         </div>
       </main>
     </div>

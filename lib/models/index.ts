@@ -675,3 +675,30 @@ const OrderRequestSchema = new Schema<IOrderRequest>({
 });
 OrderRequestSchema.index({ site_id: 1, is_handled: 1 });
 export const OrderRequest = models.OrderRequest || model<IOrderRequest>('OrderRequest', OrderRequestSchema);
+
+// ─── Brush ────────────────────────────────────────────────────
+// Per-brush textile wear tracking. A site defines its own flexible set of
+// brushes (count varies per wasstraat) grouped by category; each brush
+// remembers the site's total wagen tellerstand at the moment its textile
+// was last replaced, so "wasbeurten sinds vervanging" = current tellerstand
+// - washes_at_last_replacement (computed at read time, not stored).
+export interface IBrush extends Document {
+  site_id: Types.ObjectId;
+  category: 'verticaal_links' | 'verticaal_rechts' | 'horizontaal';
+  label: string;
+  order: number;
+  washes_at_last_replacement: number;
+  last_replaced_at: Date | null;
+  created_at: Date;
+}
+const BrushSchema = new Schema<IBrush>({
+  site_id: { type: Schema.Types.ObjectId, ref: 'Site', required: true },
+  category: { type: String, enum: ['verticaal_links', 'verticaal_rechts', 'horizontaal'], required: true },
+  label: { type: String, required: true },
+  order: { type: Number, default: 0 },
+  washes_at_last_replacement: { type: Number, default: 0 },
+  last_replaced_at: { type: Date, default: null },
+  created_at: { type: Date, default: Date.now },
+});
+BrushSchema.index({ site_id: 1, category: 1, order: 1 });
+export const Brush = models.Brush || model<IBrush>('Brush', BrushSchema);
