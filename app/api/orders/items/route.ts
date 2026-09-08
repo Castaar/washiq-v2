@@ -13,13 +13,14 @@ export async function GET(req: NextRequest) {
   if (!siteId) return NextResponse.json({ error: 'siteId required' }, { status: 400 });
 
   await dbConnect();
-  const docs = await OrderItem.find({ site_id: siteId, is_active: true }).sort({ name: 1 }).lean();
+  const docs = await OrderItem.find({ site_id: siteId, is_active: true }).sort({ category: 1, name: 1 }).lean();
 
   return NextResponse.json(
     docs.map((d) => ({
       id: (d._id as Types.ObjectId).toString(),
       name: d.name,
       description: d.description ?? '',
+      category: (d.category as string) ?? 'algemeen',
     })),
   );
 }
@@ -31,7 +32,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const body = await req.json() as { siteId: string; name: string; description?: string };
+  const body = await req.json() as { siteId: string; name: string; description?: string; category?: 'algemeen' | 'chemie' };
   if (!body.siteId || !body.name?.trim()) {
     return NextResponse.json({ error: 'siteId and name required' }, { status: 400 });
   }
@@ -41,6 +42,7 @@ export async function POST(req: NextRequest) {
     site_id: body.siteId,
     name: body.name.trim(),
     description: body.description?.trim() ?? '',
+    category: body.category === 'chemie' ? 'chemie' : 'algemeen',
   });
 
   return NextResponse.json({ id: (doc._id as Types.ObjectId).toString() }, { status: 201 });

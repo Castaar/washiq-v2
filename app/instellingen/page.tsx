@@ -125,7 +125,6 @@ export default async function InstellingenPage({
           maintenanceTasks={maintenanceTasks}
           currentTotalWashes={currentTotalWashes}
           programs={programs}
-          allowedSites={allowedSites}
         />
       </main>
     </div>

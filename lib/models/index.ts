@@ -635,6 +635,7 @@ export interface IOrderItem extends Document {
   site_id: Types.ObjectId;
   name: string;
   description: string;
+  category: 'algemeen' | 'chemie';
   is_active: boolean;
   created_at: Date;
 }
@@ -642,6 +643,7 @@ const OrderItemSchema = new Schema<IOrderItem>({
   site_id: { type: Schema.Types.ObjectId, ref: 'Site', required: true },
   name: { type: String, required: true },
   description: { type: String, default: '' },
+  category: { type: String, enum: ['algemeen', 'chemie'], default: 'algemeen' },
   is_active: { type: Boolean, default: true },
   created_at: { type: Date, default: Date.now },
 });
@@ -655,6 +657,7 @@ export interface IOrderRequest extends Document {
   site_id: Types.ObjectId;
   item_id: Types.ObjectId;
   item_name: string;
+  details: string;
   requested_by: Types.ObjectId;
   requested_by_name: string;
   requested_at: Date;
@@ -666,6 +669,8 @@ const OrderRequestSchema = new Schema<IOrderRequest>({
   site_id: { type: Schema.Types.ObjectId, ref: 'Site', required: true },
   item_id: { type: Schema.Types.ObjectId, ref: 'OrderItem', required: true },
   item_name: { type: String, default: '' },
+  // Vrije tekst van de medewerker bij het bestellen — bv. soort, hoeveelheid.
+  details: { type: String, default: '' },
   requested_by: { type: Schema.Types.ObjectId, ref: 'User' },
   requested_by_name: { type: String, default: '' },
   requested_at: { type: Date, default: Date.now },

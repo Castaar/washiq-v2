@@ -1,8 +1,9 @@
 import type { Types } from 'mongoose';
-import { getTranslations } from 'next-intl/server';
+import { getTranslations, getLocale } from 'next-intl/server';
 import { NavBar } from '@/components/layout/NavBar/NavBar';
 import { dbConnect } from '@/lib/db/mongoose';
 import { MaintenanceTask, MaintenanceLog } from '@/lib/models';
+import { getTranslationMap, translateContent } from '@/lib/contentTranslations';
 import styles from './page.module.scss';
 
 function fmtDateTime(d: Date): string {
@@ -22,6 +23,8 @@ export default async function OnderhoudTaskHistoryPage({
   const { taskId } = await params;
   const { site } = await searchParams;
   await dbConnect();
+  const locale = await getLocale();
+  const contentTranslations = await getTranslationMap(locale);
   const t = await getTranslations('onderhoud');
   const TRIGGER_LABEL: Record<string, string> = {
     washes: t('wassingen'),
@@ -72,7 +75,7 @@ export default async function OnderhoudTaskHistoryPage({
       <main className={styles.main}>
         <div className={styles.content}>
           <div className={styles.header}>
-            <h1 className={styles.title}>{task.description as string}</h1>
+            <h1 className={styles.title}>{translateContent(contentTranslations, 'task', task.description as string)}</h1>
             {triggerLabel && <p className={styles.subtitle}>{triggerLabel}</p>}
           </div>
 

@@ -1,4 +1,4 @@
-import { ChemicalStock, WashProgram, MaintenanceTask, Translation } from '@/lib/models';
+import { ChemicalStock, WashProgram, MaintenanceTask, OrderItem, Translation } from '@/lib/models';
 import nlMessages from '@/messages/nl.json';
 
 export interface TranslationRow {
@@ -23,6 +23,7 @@ const SECTION_LABELS: Record<string, string> = {
   product: 'Producten',
   program: "Wasprogramma's",
   task: 'Onderhoudstaken',
+  order: 'Bestellingen — producten',
   nav: 'App — navigatie',
   login: 'App — inlogscherm',
   taal: 'App — taal',
@@ -45,10 +46,11 @@ export async function getAllTranslationRows(): Promise<TranslationRow[]> {
     rows.push({ key, section: sectionFor(key), nl: nlFlat[key], fr: overrideMap[key] ?? '' });
   }
 
-  const [productNames, programNames, taskDescriptions] = await Promise.all([
+  const [productNames, programNames, taskDescriptions, orderItemNames] = await Promise.all([
     ChemicalStock.distinct('name'),
     WashProgram.distinct('name'),
     MaintenanceTask.distinct('description'),
+    OrderItem.distinct('name'),
   ]);
 
   function addDynamic(prefix: string, names: string[]) {
@@ -60,6 +62,7 @@ export async function getAllTranslationRows(): Promise<TranslationRow[]> {
   addDynamic('product', productNames as string[]);
   addDynamic('program', programNames as string[]);
   addDynamic('task', taskDescriptions as string[]);
+  addDynamic('order', orderItemNames as string[]);
 
   return rows;
 }

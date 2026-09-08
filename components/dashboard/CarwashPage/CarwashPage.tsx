@@ -20,6 +20,7 @@ import {
   StockReading,
   EnergyBill,
   AttendanceLog,
+  OrderRequest,
 } from '@/lib/models';
 import { ProgrammaCard } from '@/components/dashboard/ProgrammaCard/ProgrammaCard';
 import type { ProgramOption } from '@/components/dashboard/ProgrammaCard/ProgrammaCard';
@@ -108,7 +109,12 @@ export async function CarwashPage({
   // ── Fetch all data in parallel ───────────────────────────────
   const today = new Date();
 
-  const [entries, monthEntries, prevMonthEntries, lastTwoEntries, programs, priceConfigs, stocks, tasks, logs, checklists, incSchades, incEhbos, energyBillCur, energyBillPrev, readings] = await Promise.all([
+  // Both batches are independent (day-log batch only needs dayStart/dayEnd,
+  // not the results of the first) — fired together to save a Mongo round trip.
+  const [
+    entries, monthEntries, prevMonthEntries, lastTwoEntries, programs, priceConfigs, stocks, tasks, logs, checklists, incSchades, incEhbos, energyBillCur, energyBillPrev, readings, openOrderRequests,
+    dayAttendance, dayDeliveries, dayChecklists, dayMaintenanceLogs, daySchades, dayEhbos, dayDefects,
+  ] = await Promise.all([
     period === 'week'
       ? WeeklyEntry.find({ ...filter, week_start: { $in: [curWeekStart, prevWeekStart] } }).lean()
       : Promise.resolve([]),
@@ -128,10 +134,9 @@ export async function CarwashPage({
     siteId ? EnergyBill.findOne({ site_id: siteId, year: prevYear, month: prevMonth }).lean() : null,
     // All stock readings for this site, oldest first — used to derive monthly chemistry consumption
     StockReading.find(filter).select('name unit consumption recorded_at').sort({ recorded_at: 1 }).lean(),
-  ]);
-
-  // ── Day log (owner/developer "Meldingen" tab: only the selected day) ──
-  const [dayAttendance, dayDeliveries, dayChecklists, dayMaintenanceLogs, daySchades, dayEhbos, dayDefects] = await Promise.all([
+    // Pending orders — stay visible until marked handled, regardless of the day/period toggle
+    siteId ? OrderRequest.find({ site_id: siteId, is_handled: false }).sort({ requested_at: -1 }).lean() : [],
+    // ── Day log (owner/developer "Meldingen" tab: only the selected day) ──
     AttendanceLog.find({ ...filter, timestamp: { $gte: dayStart, $lt: dayEnd } }).sort({ timestamp: -1 }).lean(),
     StockDelivery.find({ ...filter, delivered_at: { $gte: dayStart, $lt: dayEnd } }).sort({ delivered_at: -1 }).populate('chemical_id', 'name').populate('logged_by', 'name').lean(),
     DailyChecklist.find({ ...filter, submitted_at: { $gte: dayStart, $lt: dayEnd } }).sort({ submitted_at: -1 }).lean(),
@@ -910,12 +915,26 @@ export async function CarwashPage({
   // The owner only needs to know once something is actually done, an incident happened,
   // or who came/went — proactive maintenance nagging belongs in the Onderhoud tab only.
   const isTechnician = userRole === 'technician';
+
+  // Bestellingen: open orders stay visible until marked handled, so the
+  // owner doesn't have to go into Orders to see what's pending.
+  const bestellingenItems: AlertItem[] = openOrderRequests.map((r) => ({
+    id: r._id.toString(),
+    title: translateContent(contentTranslations, 'order', r.item_name as string),
+    severity: 'medium',
+    iconName: 'shopping-cart',
+    date: new Date(r.requested_at as Date).toLocaleDateString('nl-BE', { day: 'numeric', month: 'short' }),
+    subtitle: [r.details as string, r.requested_by_name as string].filter(Boolean).join(' · '),
+    href: `/orders?site=${siteId}&request=${r._id.toString()}`,
+  }));
+
   const alertsPanelData: AlertsPanelData = {
     alerts: isTechnician
       ? [...consumptionAlertItems, ...alertItems, ...approachingItems, ...dagficheAlerts]
       : dayLogItems,
     onderhoud: isTechnician ? onderhoudItems : dayOnderhoudItems,
     incident:  isTechnician ? incidentItems  : dayIncidentItems,
+    bestellingen: isTechnician ? [] : bestellingenItems,
   };
 
   // ── Voorraad ─────────────────────────────────────────────────

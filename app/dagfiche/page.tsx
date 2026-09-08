@@ -127,6 +127,7 @@ export default async function DagfichePage({
         <DagficheForm
           siteId={siteId}
           siteName={siteName}
+          siteType={siteDoc?.siteType ?? 'wasstraat'}
           userName={session?.name ?? ''}
           totalWagens={totalWagens}
           maintenanceTasks={maintenanceTasks}

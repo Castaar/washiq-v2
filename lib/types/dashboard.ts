@@ -88,12 +88,14 @@ export interface AlertItem {
   payload?: DagfichePayload | IncidentPayload | MaintenanceTaskPayload;
   refType?: ActivityRefType;
   siteId?: string;
+  href?: string;
 }
 
 export interface AlertsPanelData {
   alerts: AlertItem[];
   onderhoud: AlertItem[];
   incident: AlertItem[];
+  bestellingen: AlertItem[];
 }
 
 export interface VoorraadItem {

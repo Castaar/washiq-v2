@@ -18,6 +18,15 @@ const CHECKLIST_ITEMS = [
   'Kassa ok / afgesloten?',
 ];
 
+// Selfcarwash-sites hebben geen wastunnel, textiel borstels of kassa — enkel
+// deze 4 punten zijn relevant voor de avondcheck.
+const CHECKLIST_ITEMS_SELFCARWASH = [
+  'Stofzuigers ok?',
+  'Vuilbakken leeg ok?',
+  'Voorraad chemie nagezien?',
+  'Boxen uitgespoten?',
+];
+
 export interface TodayEvent {
   kind: 'inlog' | 'uitlog' | 'incident' | 'defect' | 'levering' | 'onderhoud';
   label: string;
@@ -28,6 +37,7 @@ export interface TodayEvent {
 export interface DagficheFormProps {
   siteId: string;
   siteName: string;
+  siteType?: 'wasstraat' | 'selfcarwash';
   userName: string;
   totalWagens: number;
   maintenanceTasks?: { id: string; description: string }[];
@@ -68,10 +78,11 @@ function buildReport(
   return `[Automatisch gegenereerd dagrapport: ${shortName} · ${date} · ${siteName} · ${totalWagens} wassingen${checkText}]`;
 }
 
-export function DagficheForm({ siteId, siteName, userName, totalWagens, maintenanceTasks = [], todayEvents = [] }: DagficheFormProps) {
+export function DagficheForm({ siteId, siteName, siteType = 'wasstraat', userName, totalWagens, maintenanceTasks = [], todayEvents = [] }: DagficheFormProps) {
   const router = useRouter();
+  const checklistItems = siteType === 'selfcarwash' ? CHECKLIST_ITEMS_SELFCARWASH : CHECKLIST_ITEMS;
   const [items, setItems] = useState(
-    CHECKLIST_ITEMS.map((label) => ({ label, checked: false, opmerking: '' })),
+    checklistItems.map((label) => ({ label, checked: false, opmerking: '' })),
   );
   const [maintenanceChecks, setMaintenanceChecks] = useState<Record<string, { checked: boolean; opmerking: string }>>(
     Object.fromEntries(maintenanceTasks.map((t) => [t.id, { checked: false, opmerking: '' }])),
@@ -178,10 +189,12 @@ export function DagficheForm({ siteId, siteName, userName, totalWagens, maintena
           <h1 className={styles.title}>Dagfiche</h1>
           <p className={styles.subline}>{siteName}</p>
         </div>
-        <div className={styles.washCount}>
-          <span className={styles.washCountValue}>{totalWagens}</span>
-          <span className={styles.washCountLabel}>wasbeurten vandaag</span>
-        </div>
+        {siteType !== 'selfcarwash' && (
+          <div className={styles.washCount}>
+            <span className={styles.washCountValue}>{totalWagens}</span>
+            <span className={styles.washCountLabel}>wasbeurten vandaag</span>
+          </div>
+        )}
       </div>
 
       {/* ── Checklist ────────────────────────────────────── */}

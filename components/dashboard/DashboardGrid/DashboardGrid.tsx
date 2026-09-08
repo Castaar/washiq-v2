@@ -22,7 +22,7 @@ export function DashboardGrid() {
           <HeroPanel />
         </div>
         <div className={styles.alertsCol}>
-          <AlertsPanel data={{ alerts: [], onderhoud: [], incident: [] }} />
+          <AlertsPanel data={{ alerts: [], onderhoud: [], incident: [], bestellingen: [] }} />
         </div>
       </div>
 

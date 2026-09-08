@@ -9,15 +9,16 @@ import { IncidentModal } from '@/components/dashboard/IncidentModal/IncidentModa
 import { MaintenanceModal } from '@/components/dashboard/MaintenanceModal/MaintenanceModal';
 import styles from './AlertsPanel.module.scss';
 
-type AlertTab = 'alerts' | 'onderhoud' | 'incident';
+type AlertTab = 'alerts' | 'onderhoud' | 'incident' | 'bestellingen';
 
 const tabLabels: Record<AlertTab, string> = {
-  alerts:    'Meldingen',
-  onderhoud: 'Onderhoud',
-  incident:  'Incidenten',
+  alerts:       'Meldingen',
+  onderhoud:    'Onderhoud',
+  incident:     'Incidenten',
+  bestellingen: 'Bestellingen',
 };
 
-const tabs: AlertTab[] = ['alerts', 'onderhoud', 'incident'];
+const tabs: AlertTab[] = ['alerts', 'onderhoud', 'incident', 'bestellingen'];
 
 const severityLabel: Record<string, string> = {
   medium: 'Midden',
@@ -300,7 +301,10 @@ export function AlertsPanel({ data, dayLog }: AlertsPanelProps) {
   const { dismissed, dismiss, restore } = useDismissed();
 
   const allItems    = data[active];
-  const activeItems = allItems.filter((a) => !dismissed.has(a.id));
+  // Onopgeloste onderhoud/incidenten/bestellingen mogen niet weg te swipen
+  // zijn — enkel Meldingen (informatief, geen actie vereist) is dismissable.
+  const dismissable = active === 'alerts';
+  const activeItems = dismissable ? allItems.filter((a) => !dismissed.has(a.id)) : allItems;
   const dismissedCount = allItems.length - activeItems.length;
 
   function switchTab(tab: AlertTab) {
@@ -309,7 +313,10 @@ export function AlertsPanel({ data, dayLog }: AlertsPanelProps) {
   }
 
   function handleAlertClick(alert: AlertItem) {
-    if (!alert.payload) return;
+    if (!alert.payload) {
+      if (alert.href) window.location.href = alert.href;
+      return;
+    }
     const refId   = alert.refId  ?? alert.id;
     const refType = alert.refType ?? '';
     const siteId  = alert.siteId  ?? '';
@@ -399,22 +406,33 @@ export function AlertsPanel({ data, dayLog }: AlertsPanelProps) {
         </div>
 
         {/* ── Active list ──────────────────────────────────── */}
+        {/* Onderhoud/Incidenten zijn onopgeloste, actionable items — die
+            moeten blijven staan zolang ze niet effectief opgelost zijn, dus
+            geen swipe-to-dismiss daar (enkel Meldingen, puur informatief). */}
         <div className={styles.list} role="tabpanel">
           {activeItems.length > 0
             ? activeItems.map(alert => (
-                <SwipeRow key={alert.id} id={alert.id} onDismiss={dismiss}>
+                dismissable ? (
+                  <SwipeRow key={alert.id} id={alert.id} onDismiss={dismiss}>
+                    <AlertRow
+                      alert={alert}
+                      onClick={(alert.payload || alert.href) ? () => handleAlertClick(alert) : undefined}
+                    />
+                  </SwipeRow>
+                ) : (
                   <AlertRow
+                    key={alert.id}
                     alert={alert}
-                    onClick={alert.payload ? () => handleAlertClick(alert) : undefined}
+                    onClick={(alert.payload || alert.href) ? () => handleAlertClick(alert) : undefined}
                   />
-                </SwipeRow>
+                )
               ))
             : <p className={styles.empty}>Geen items</p>
           }
         </div>
 
         {/* ── Archive link ─────────────────────────────────── */}
-        {allItems.length > 0 && (
+        {dismissable && allItems.length > 0 && (
           <button className={styles.archiveLink} onClick={() => setArchiveOpen(true)}>
             {dismissedCount > 0
               ? `${dismissedCount} verwijderd · Toon alles (${allItems.length})`

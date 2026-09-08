@@ -14,12 +14,13 @@ export async function PATCH(
   }
 
   const { id } = await params;
-  const body = await req.json() as { name?: string; description?: string };
+  const body = await req.json() as { name?: string; description?: string; category?: 'algemeen' | 'chemie' };
 
   await dbConnect();
   const update: Record<string, string> = {};
   if (typeof body.name === 'string') update.name = body.name.trim();
   if (typeof body.description === 'string') update.description = body.description.trim();
+  if (body.category === 'algemeen' || body.category === 'chemie') update.category = body.category;
 
   await OrderItem.findByIdAndUpdate(id, { $set: update });
   return NextResponse.json({ ok: true });

@@ -68,7 +68,6 @@ interface InstellingenFormProps {
   maintenanceTasks: MaintenanceTaskItem[];
   currentTotalWashes: number;
   programs: WashProgramItem[];
-  allowedSites?: { id: string; name: string }[];
 }
 
 const MONTHS = [
@@ -138,7 +137,7 @@ function PriceField({
 
 // ─── Main component ───────────────────────────────────────────
 
-export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stocks, energyBills, startCarCount, startWaterCount, existingProductNames = [], maintenanceTasks: initialTasks, currentTotalWashes, programs: initialPrograms, allowedSites = [] }: InstellingenFormProps) {
+export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stocks, energyBills, startCarCount, startWaterCount, existingProductNames = [], maintenanceTasks: initialTasks, currentTotalWashes, programs: initialPrograms }: InstellingenFormProps) {
   const isFirstTime = !priceConfig;
 
   // ── Wasprogramma's state ──────────────────────────────────
@@ -250,59 +249,6 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
   }
 
   // ── Transfer (verplaatsing tussen carwashes) state ─────────
-  const otherSites = allowedSites.filter((s) => s.id !== siteId);
-  const [transferOpen, setTransferOpen] = useState<Record<string, { toSiteId: string; qty: string }>>({});
-  const [savingTransfer, setSavingTransfer] = useState<string | null>(null);
-  const [transferError, setTransferError] = useState<Record<string, string>>({});
-  const [transferTargetHasProduct, setTransferTargetHasProduct] = useState<Record<string, boolean | null>>({});
-
-  async function checkTransferTarget(stockId: string, toSiteId: string, name: string) {
-    if (!toSiteId) {
-      setTransferTargetHasProduct((prev) => ({ ...prev, [stockId]: null }));
-      return;
-    }
-    try {
-      const res = await fetch(`/api/stock?siteId=${toSiteId}`);
-      const stocks = res.ok ? ((await res.json()) as { name: string }[]) : [];
-      setTransferTargetHasProduct((prev) => ({ ...prev, [stockId]: stocks.some((s) => s.name === name) }));
-    } catch {
-      setTransferTargetHasProduct((prev) => ({ ...prev, [stockId]: null }));
-    }
-  }
-
-  async function handleConfirmTransfer(stockId: string, name: string) {
-    const t = transferOpen[stockId];
-    const qty = parseFloat(t?.qty ?? '');
-    if (!t?.toSiteId || !qty || qty <= 0) return;
-    if (transferTargetHasProduct[stockId] === false) {
-      const targetName = otherSites.find((s) => s.id === t.toSiteId)?.name ?? 'de andere carwash';
-      const ok = confirm(
-        `"${name}" bestaat nog niet bij ${targetName}. Het wordt daar automatisch aangemaakt, maar zonder prijs en zonder koppeling aan een wasprogramma — dat moet je nadien nog zelf instellen. Doorgaan?`,
-      );
-      if (!ok) return;
-    }
-    setSavingTransfer(stockId);
-    setTransferError((prev) => { const n = { ...prev }; delete n[stockId]; return n; });
-    try {
-      const res = await fetch('/api/stock/transfer', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fromSiteId: siteId, toSiteId: t.toSiteId, name, quantity: qty }),
-      });
-      if (res.ok) {
-        const data = (await res.json()) as { from: { current_stock: number } };
-        setProductList((prev) => prev.map((s) => (s.id === stockId ? { ...s, current_stock: data.from.current_stock } : s)));
-        setTransferOpen((prev) => { const n = { ...prev }; delete n[stockId]; return n; });
-        setTransferTargetHasProduct((prev) => { const n = { ...prev }; delete n[stockId]; return n; });
-      } else {
-        const err = (await res.json().catch(() => null)) as { error?: string } | null;
-        setTransferError((prev) => ({ ...prev, [stockId]: err?.error ?? 'Verplaatsen mislukt' }));
-      }
-    } finally {
-      setSavingTransfer(null);
-    }
-  }
-
   // ── Stock reading (maandelijkse voorraadopname) state ──────
   const [readingOpen, setReadingOpen] = useState<Record<string, string>>({});
   const [savingReading, setSavingReading] = useState<string | null>(null);
@@ -837,7 +783,7 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
         </div>
         <p className={styles.sectionHint}>
           Neem maandelijks de voorraad op — de app berekent het verbruik automatisch (vorige telling + leveringen − nieuwe telling).
-          Registreer een levering om de voorraad bij te werken, of verplaats voorraad naar een andere carwash.
+          Registreer een levering om de voorraad bij te werken. Voorraad verplaatsen naar een andere carwash kan via Leveringen.
         </p>
         {productList.length === 0 ? (
           <p className={styles.emptyHint}>Geen producten gevonden. Voeg eerst producten toe via &quot;Producten beheren&quot; hierboven.</p>
@@ -845,7 +791,6 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
           <div className={styles.stockTable}>
             {productList.map((s) => {
               const isDeliveryOpen = s.id in deliveryOpen;
-              const isTransferOpen = s.id in transferOpen;
               const isReadingOpen = s.id in readingOpen;
               const isLow = s.min_stock_alert > 0 && s.current_stock <= s.min_stock_alert;
               return (
@@ -927,61 +872,6 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
                         ✕
                       </button>
                     </div>
-                  ) : isTransferOpen ? (
-                    <div className={styles.stockInlineForm}>
-                      <select
-                        className={styles.stockInput}
-                        value={transferOpen[s.id].toSiteId}
-                        onChange={(e) => {
-                          const toSiteId = e.target.value;
-                          setTransferOpen((prev) => ({ ...prev, [s.id]: { ...prev[s.id], toSiteId } }));
-                          checkTransferTarget(s.id, toSiteId, s.name);
-                        }}
-                        style={{ width: 160 }}
-                      >
-                        <option value="">Naar carwash...</option>
-                        {otherSites.map((os) => (
-                          <option key={os.id} value={os.id}>{os.name}</option>
-                        ))}
-                      </select>
-                      <input
-                        className={styles.stockInput}
-                        type="number"
-                        min="0"
-                        step="any"
-                        placeholder={s.unit}
-                        value={transferOpen[s.id].qty}
-                        onChange={(e) => setTransferOpen((prev) => ({ ...prev, [s.id]: { ...prev[s.id], qty: e.target.value } }))}
-                        style={{ width: 110 }}
-                      />
-                      <button
-                        type="button"
-                        className={styles.saveBtn}
-                        onClick={() => handleConfirmTransfer(s.id, s.name)}
-                        disabled={savingTransfer === s.id}
-                        style={{ height: 34, padding: '0 var(--space-4)' }}
-                      >
-                        {savingTransfer === s.id ? '...' : 'OK'}
-                      </button>
-                      <button
-                        type="button"
-                        className={styles.deleteProductBtn}
-                        onClick={() => {
-                          setTransferOpen((prev) => { const n = { ...prev }; delete n[s.id]; return n; });
-                          setTransferTargetHasProduct((prev) => { const n = { ...prev }; delete n[s.id]; return n; });
-                        }}
-                      >
-                        ✕
-                      </button>
-                      {transferTargetHasProduct[s.id] === false && (
-                        <span className={styles.sectionHint} style={{ width: '100%', margin: 0 }}>
-                          Bestaat nog niet bij deze carwash — wordt automatisch aangemaakt zonder prijs en zonder wasprogramma-koppeling.
-                        </span>
-                      )}
-                      {transferError[s.id] && (
-                        <span className={styles.errorMsg} style={{ width: '100%' }}>{transferError[s.id]}</span>
-                      )}
-                    </div>
                   ) : (
                     <>
                       <div className={styles.stockActions}>
@@ -999,15 +889,6 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
                         >
                           + Levering
                         </button>
-                        {otherSites.length > 0 && (
-                          <button
-                            type="button"
-                            className={styles.stockActionBtn}
-                            onClick={() => setTransferOpen((prev) => ({ ...prev, [s.id]: { toSiteId: '', qty: '' } }))}
-                          >
-                            ⇄ Verplaatsen
-                          </button>
-                        )}
                       </div>
                       {readingResult[s.id] && (
                         <span

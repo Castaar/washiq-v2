@@ -1,4 +1,5 @@
 import { cookies } from 'next/headers';
+import { getLocale } from 'next-intl/server';
 import type { Types } from 'mongoose';
 import { NavBar } from '@/components/layout/NavBar/NavBar';
 import { OnderhoudPanel } from '@/components/onderhouden/OnderhoudPanel/OnderhoudPanel';
@@ -8,6 +9,7 @@ import type { BrushItem } from '@/components/onderhouden/BrushesPanel/BrushesPan
 import { dbConnect } from '@/lib/db/mongoose';
 import { Site, User, MaintenanceTask, WeeklyEntry, Brush } from '@/lib/models';
 import { getSession } from '@/lib/session';
+import { getTranslationMap, translateContent } from '@/lib/contentTranslations';
 import { filterSitesForUser, resolveActiveSite, redirectIfSetupNeeded, redirectWithSiteParam } from '@/lib/getUserSites';
 import { computeIsOverdue, computeIsApproaching, washesRemaining } from '@/lib/maintenance';
 import styles from './page.module.scss';
@@ -21,6 +23,8 @@ export default async function OnderhoudPage({
   await dbConnect();
 
   const session = await getSession();
+  const locale = await getLocale();
+  const contentTranslations = await getTranslationMap(locale);
   const cookieStore = await cookies();
   const cookieSite = cookieStore.get('dodane_active_site')?.value;
 
@@ -57,7 +61,7 @@ export default async function OnderhoudPage({
     const remaining = currentTellerstand > 0 ? washesRemaining(t, currentTellerstand) : null;
     return {
       id: (t._id as Types.ObjectId).toString(),
-      description: t.description as string,
+      description: translateContent(contentTranslations, 'task', t.description as string),
       triggerType: t.trigger_type as OnderhoudTask['triggerType'],
       triggerValue: t.trigger_value as number ?? 0,
       lastDoneAt: t.last_done_at ? new Date(t.last_done_at as Date).toLocaleDateString('nl-BE', { day: '2-digit', month: '2-digit', year: 'numeric' }) : undefined,

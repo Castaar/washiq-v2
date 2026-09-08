@@ -22,6 +22,7 @@ export async function GET(req: NextRequest) {
     docs.map((d) => ({
       id: (d._id as Types.ObjectId).toString(),
       item_name: d.item_name,
+      details: d.details ?? '',
       requested_by_name: d.requested_by_name,
       requested_at: (d.requested_at as Date).toISOString(),
       is_handled: d.is_handled,
@@ -35,7 +36,7 @@ export async function POST(req: NextRequest) {
   const session = await getSessionFromRequest(req);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const body = await req.json() as { siteId: string; itemId: string };
+  const body = await req.json() as { siteId: string; itemId: string; details?: string };
   if (!body.siteId || !body.itemId) {
     return NextResponse.json({ error: 'siteId and itemId required' }, { status: 400 });
   }
@@ -48,6 +49,7 @@ export async function POST(req: NextRequest) {
     site_id: body.siteId,
     item_id: item._id,
     item_name: item.name,
+    details: body.details?.trim() ?? '',
     requested_by: session.userId,
     requested_by_name: session.name,
   });
@@ -62,7 +64,7 @@ export async function POST(req: NextRequest) {
     notifyUsers.map((u) =>
       sendPushToUser((u._id as Types.ObjectId).toString(), {
         title: 'Nieuwe bestelling',
-        body: `${item.name}${siteName ? ` — ${siteName}` : ''}`,
+        body: `${item.name}${body.details ? ` — ${body.details.trim()}` : ''}${siteName ? ` · ${siteName}` : ''}`,
         url: `/orders?site=${body.siteId}&request=${(doc._id as Types.ObjectId).toString()}`,
       }),
     ),
