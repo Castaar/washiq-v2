@@ -25,12 +25,21 @@ export interface AllowedSite {
   name: string;
 }
 
+export interface AgendaEventItem {
+  id: string;
+  date: string;
+  time: string;
+  text: string;
+  createdByName: string;
+}
+
 interface PlanningPanelProps {
   siteId: string;
   userRole: string;
   currentUserId: string;
   shifts: Shift[];
   employees: PlanningEmployee[];
+  agendaEvents: AgendaEventItem[];
   weekStart: string;
   allowedSites?: AllowedSite[];
 }
@@ -83,9 +92,16 @@ function weekendsInWindow(shifts: Shift[], userId: string, windowWeeks: number, 
   return days.size;
 }
 
-export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initialShifts, employees, weekStart: initialWeekStart, allowedSites = [] }: PlanningPanelProps) {
+export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initialShifts, employees, agendaEvents: initialAgendaEvents, weekStart: initialWeekStart, allowedSites = [] }: PlanningPanelProps) {
   const [shifts, setShifts] = useState<Shift[]>(initialShifts);
+  const [agendaEvents, setAgendaEvents] = useState<AgendaEventItem[]>(initialAgendaEvents);
   const [weekStart, setWeekStart] = useState(getMondayOf(initialWeekStart));
+
+  // New agenda-note form (per day, opened inline)
+  const [agendaFormDate, setAgendaFormDate] = useState<string | null>(null);
+  const [agendaTime, setAgendaTime] = useState('');
+  const [agendaText, setAgendaText] = useState('');
+  const [savingAgenda, setSavingAgenda] = useState(false);
 
   // New shift form
   const [newSiteId, setNewSiteId] = useState(siteId);
@@ -124,6 +140,11 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
 
   // Filter shifts to current week
   const weekShifts = shifts.filter((s) => weekDays.includes(s.date));
+  const weekAgenda = agendaEvents.filter((a) => weekDays.includes(a.date));
+  // Upcoming agenda notes, for the employee view (not tied to their own shifts)
+  const upcomingAgenda = agendaEvents
+    .filter((a) => a.date >= today)
+    .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
 
   // My shifts (for employee view)
   const myShifts = shifts
@@ -166,6 +187,32 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
     if (res.ok) setShifts((prev) => prev.filter((s) => s.id !== id));
   }
 
+  async function handleAddAgenda(date: string) {
+    if (!agendaText.trim()) return;
+    setSavingAgenda(true);
+    try {
+      const res = await fetch('/api/agenda', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ siteId, date, time: agendaTime, text: agendaText }),
+      });
+      if (res.ok) {
+        const event = (await res.json()) as AgendaEventItem;
+        setAgendaEvents((prev) => [...prev, event]);
+        setAgendaText('');
+        setAgendaTime('');
+        setAgendaFormDate(null);
+      }
+    } finally {
+      setSavingAgenda(false);
+    }
+  }
+
+  async function handleDeleteAgenda(id: string) {
+    const res = await fetch(`/api/agenda/${id}`, { method: 'DELETE' });
+    if (res.ok) setAgendaEvents((prev) => prev.filter((a) => a.id !== id));
+  }
+
   function prevWeek() { setWeekStart((w) => addDays(w, -7)); }
   function nextWeek() { setWeekStart((w) => addDays(w, 7)); }
 
@@ -173,6 +220,19 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
     // ── Employee view: my upcoming shifts ───────────────────
     return (
       <div className={styles.wrapper}>
+        {upcomingAgenda.length > 0 && (
+          <div className={styles.myShiftsCard}>
+            <h2 className={styles.cardTitle}>Agenda</h2>
+            <div className={styles.myList}>
+              {upcomingAgenda.map((a) => (
+                <div key={a.id} className={styles.myAgendaRow}>
+                  <span>{fmtDayLabel(a.date)}{a.time ? ` · ${a.time}` : ''}</span>
+                  <span>{a.text}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         <div className={styles.myShiftsCard}>
           <h2 className={styles.cardTitle}>Mijn werkschema</h2>
           {myShifts.length === 0 ? (
@@ -223,6 +283,7 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
       <div className={styles.dayList}>
         {weekDays.map((date, i) => {
           const dayShifts = weekShifts.filter((s) => s.date === date);
+          const dayAgenda = weekAgenda.filter((a) => a.date === date);
           const isToday = date === today;
           return (
             <div key={date} className={[styles.dayRow, isToday ? styles.todayCol : ''].join(' ')}>
@@ -231,6 +292,64 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
                 <span className={styles.dayDate}>{fmtDayLabel(date)}</span>
                 {isToday && <span className={styles.todayBadge}>Vandaag</span>}
               </div>
+
+              {dayAgenda.length > 0 && (
+                <div className={styles.agendaList}>
+                  {dayAgenda.map((a) => (
+                    <div key={a.id} className={styles.agendaChip}>
+                      {a.time && <span className={styles.agendaTime}>{a.time}</span>}
+                      <span className={styles.agendaText}>{a.text}</span>
+                      <button
+                        className={styles.chipDelete}
+                        onClick={() => handleDeleteAgenda(a.id)}
+                        aria-label="Agenda-item verwijderen"
+                      >✕</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {agendaFormDate === date ? (
+                <div className={styles.agendaAddRow}>
+                  <input
+                    type="time"
+                    className={styles.agendaTimeInput}
+                    value={agendaTime}
+                    onChange={(e) => setAgendaTime(e.target.value)}
+                  />
+                  <input
+                    type="text"
+                    className={styles.agendaTextInput}
+                    placeholder="bv. VIP-behandeling"
+                    value={agendaText}
+                    onChange={(e) => setAgendaText(e.target.value)}
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    className={styles.agendaAddBtn}
+                    onClick={() => handleAddAgenda(date)}
+                    disabled={savingAgenda || !agendaText.trim()}
+                  >
+                    {savingAgenda ? '...' : 'OK'}
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.chipDelete}
+                    onClick={() => { setAgendaFormDate(null); setAgendaText(''); setAgendaTime(''); }}
+                    aria-label="Annuleren"
+                  >✕</button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className={styles.navBtn}
+                  onClick={() => setAgendaFormDate(date)}
+                >
+                  + Agenda-item
+                </button>
+              )}
+
               <div className={styles.dayShifts}>
                 {dayShifts.length === 0 && (
                   <span className={styles.emptyDay}>Geen shiften gepland</span>

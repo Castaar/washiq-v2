@@ -88,6 +88,94 @@
   font-style: italic;
 }
 
+// ─── Agenda-notities (VIP-behandeling, groepsboeking, ...) ────
+.agendaList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.agendaChip {
+  background: var(--color-accent-amber-dim);
+  border: 1px solid var(--color-accent-amber-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  font-size: 0.75rem;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.agendaTime {
+  font-weight: 700;
+  color: var(--color-accent-amber);
+}
+
+.agendaText {
+  color: var(--color-text-primary);
+  padding-right: 14px;
+}
+
+.agendaAddRow {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  margin-bottom: var(--space-2);
+}
+
+.agendaTimeInput {
+  width: 90px;
+  height: 30px;
+  padding: 0 var(--space-2);
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-primary);
+  font-size: 0.75rem;
+  font-family: inherit;
+}
+
+.agendaTextInput {
+  flex: 1;
+  height: 30px;
+  padding: 0 var(--space-2);
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-primary);
+  font-size: 0.75rem;
+  font-family: inherit;
+}
+
+.agendaAddBtn {
+  height: 30px;
+  padding: 0 var(--space-3);
+  background: var(--color-accent-amber);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-inverse);
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
+}
+
+.myAgendaRow {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--color-accent-amber-dim);
+  border: 1px solid var(--color-accent-amber-border);
+  font-size: 0.8125rem;
+  color: var(--color-text-primary);
+  display: flex;
+  gap: var(--space-2);
+}
+
 .shiftChip {
   background: var(--color-accent-blue-dim);
   border: 1px solid var(--color-accent-blue-border);

@@ -1,9 +1,9 @@
 import { cookies } from 'next/headers';
 import { NavBar } from '@/components/layout/NavBar/NavBar';
 import { PlanningPanel } from '@/components/planning/PlanningPanel/PlanningPanel';
-import type { Shift, PlanningEmployee } from '@/components/planning/PlanningPanel/PlanningPanel';
+import type { Shift, PlanningEmployee, AgendaEventItem } from '@/components/planning/PlanningPanel/PlanningPanel';
 import { dbConnect } from '@/lib/db/mongoose';
-import { Site, Planning, User } from '@/lib/models';
+import { Site, Planning, User, AgendaEvent } from '@/lib/models';
 import { getSession } from '@/lib/session';
 import type { Types } from 'mongoose';
 import { filterSitesForUser, resolveActiveSite, redirectIfSetupNeeded, redirectWithSiteParam } from '@/lib/getUserSites';
@@ -43,7 +43,7 @@ export default async function PlanningPage({
   const from = new Date(today);
   from.setDate(from.getDate() - 7);
 
-  const [shiftDocs, employeeDocs] = await Promise.all([
+  const [shiftDocs, employeeDocs, agendaDocs] = await Promise.all([
     // Scoped to the currently active carwash only — matches the site
     // selector in the top bar, same as every other page.
     Planning.find({
@@ -56,6 +56,10 @@ export default async function PlanningPage({
     isOwner
       ? User.find({ role: 'employee' }).select('_id name site_ids').lean()
       : Promise.resolve([]),
+    // Day-notes (VIP-behandeling, groepsboeking, ...) — visible to everyone,
+    // not tied to a specific employee's shift.
+    AgendaEvent.find({ site_id: siteId, date: { $gte: from, $lte: twoWeeksLater } })
+      .sort({ date: 1, time: 1 }).lean(),
   ]);
 
   const shifts: Shift[] = shiftDocs.map((d) => ({
@@ -74,6 +78,14 @@ export default async function PlanningPage({
     siteIds: (u.site_ids ?? []).map((sid) => sid.toString()),
   }));
 
+  const agendaEvents: AgendaEventItem[] = agendaDocs.map((d) => ({
+    id: (d._id as Types.ObjectId).toString(),
+    date: (d.date as Date).toISOString().slice(0, 10),
+    time: (d.time as string) ?? '',
+    text: d.text as string,
+    createdByName: (d.created_by_name as string) ?? '',
+  }));
+
   const weekStart = today.toISOString().slice(0, 10);
 
   return (
@@ -87,6 +99,7 @@ export default async function PlanningPage({
             currentUserId={session?.userId ?? ''}
             shifts={shifts}
             employees={employees}
+            agendaEvents={agendaEvents}
             weekStart={weekStart}
             allowedSites={allowedSites}
           />

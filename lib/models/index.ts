@@ -570,6 +570,31 @@ PlanningSchema.index({ site_id: 1, date: 1 });
 PlanningSchema.index({ user_id: 1 });
 export const Planning = models.Planning || model<IPlanning>('Planning', PlanningSchema);
 
+// ─── AgendaEvent ────────────────────────────────────────────────
+// General day-notes on the Planning page — not tied to a specific employee's
+// shift, e.g. "VIP-behandeling 14u" or "groepsboeking" — visible to everyone
+// looking at planning for that day.
+export interface IAgendaEvent extends Document {
+  site_id: Types.ObjectId;
+  date: Date;
+  time: string;
+  text: string;
+  created_by: Types.ObjectId;
+  created_by_name: string;
+  created_at: Date;
+}
+const AgendaEventSchema = new Schema<IAgendaEvent>({
+  site_id: { type: Schema.Types.ObjectId, ref: 'Site', required: true },
+  date: { type: Date, required: true },
+  time: { type: String, default: '' },
+  text: { type: String, required: true },
+  created_by: { type: Schema.Types.ObjectId, ref: 'User' },
+  created_by_name: { type: String, default: '' },
+  created_at: { type: Date, default: Date.now },
+});
+AgendaEventSchema.index({ site_id: 1, date: 1 });
+export const AgendaEvent = models.AgendaEvent || model<IAgendaEvent>('AgendaEvent', AgendaEventSchema);
+
 // ─── Announcement ─────────────────────────────────────────────
 export interface IAnnouncement extends Document {
   text: string;
