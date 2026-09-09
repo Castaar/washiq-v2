@@ -113,7 +113,7 @@ export async function CarwashPage({
   // Both batches are independent (day-log batch only needs dayStart/dayEnd,
   // not the results of the first) — fired together to save a Mongo round trip.
   const [
-    entries, monthEntries, prevMonthEntries, lastTwoEntries, programs, priceConfigs, stocks, tasks, logs, checklists, incSchades, incEhbos, openDefects, energyBillCur, energyBillPrev, readings, openOrderRequests,
+    entries, monthEntries, prevMonthEntries, lastTwoEntries, programs, priceConfigs, stocks, tasks, logs, checklists, openDefects, energyBillCur, energyBillPrev, readings, openOrderRequests,
     dayAttendance, dayDeliveries, dayChecklists, dayMaintenanceLogs, daySchades, dayEhbos, dayDefects,
   ] = await Promise.all([
     period === 'week'
@@ -129,8 +129,6 @@ export async function CarwashPage({
     MaintenanceTask.find(filter).lean(),
     MaintenanceLog.find(filter).sort({ done_at: -1 }).limit(10).populate('task_id', 'description').lean(),
     DailyChecklist.find(filter).sort({ submitted_at: -1 }).limit(7).lean(),
-    IncidentSchade.find({ ...filter, $or: [{ is_resolved: false }, { is_resolved: { $exists: false } }] }).sort({ created_at: -1 }).limit(8).lean(),
-    IncidentEhbo.find(filter).sort({ created_at: -1 }).limit(8).lean(),
     // Unresolved defects/pannes — stay visible on the dashboard until marked resolved,
     // regardless of which day they were originally reported.
     Defect.find({ ...filter, $or: [{ is_resolved: false }, { is_resolved: { $exists: false } }] }).sort({ created_at: -1 }).limit(8).lean(),
@@ -533,64 +531,11 @@ export async function CarwashPage({
     }),
   ];
 
+  // Incidenten-tab op het hoofdblad toont enkel pannes (defecten) — die zijn
+  // actionable en moeten blijven staan tot opgelost. Schade/EHBO zijn geen
+  // "nog te doen"-items; die blijven zichtbaar in de Meldingen-tab op de dag
+  // zelf, en zijn nadien terug te vinden via Historiek.
   const incidentItems: AlertItem[] = [
-    ...incSchades.map((s) => {
-      const id = (s._id as Types.ObjectId).toString();
-      const payload: IncidentSchadePayload = {
-        type:                   'schade',
-        reportedBy:             (s.reported_by_name as string) || '',
-        date:                   fmtDate(new Date(s.created_at as Date)),
-        typeVoertuig:           (s.type_voertuig as string) || '',
-        merkModel:              (s.merk_model as string) || '',
-        nummerplaat:            (s.nummerplaat as string) || '',
-        naamEigenaar:           (s.naam_eigenaar as string) || '',
-        telGsm:                 (s.tel_gsm as string) || '',
-        email:                  (s.email as string) || '',
-        omschrijving:           (s.omschrijving as string) || '',
-        onbetwist:              Boolean(s.onbetwist),
-        installatiefout:        Boolean(s.installatiefout),
-        klantVerantwoordelijk:  Boolean(s.klant_verantwoordelijk),
-        verzekeringsdocumenten: Boolean(s.verzekeringsdocumenten),
-      };
-      return {
-        id,
-        refId:    id,
-        refType:  'incident_schade' as const,
-        siteId:   siteId ?? '',
-        title:    (s.merk_model as string) || 'Schade',
-        subtitle: (s.omschrijving as string) || '',
-        date:     fmtDate(new Date(s.created_at as Date)),
-        severity: 'high' as const,
-        iconName: 'warning',
-        payload,
-      };
-    }),
-    ...incEhbos.map((e) => {
-      const payload: IncidentEhboPayload = {
-        type:            'ehbo',
-        reportedBy:      (e.reported_by_name as string) || '',
-        date:            fmtDate(new Date(e.created_at as Date)),
-        uur:             (e.uur as string) || '',
-        naamSlachtoffer: (e.naam_slachtoffer as string) || '',
-        afdelingLocatie: (e.afdeling_locatie as string) || '',
-        verwonding:      (e.verwonding as string) || '',
-        ehboHandeling:   (e.ehbo_handeling as string) || '',
-        ehboVerlener:    (e.ehbo_verlener as string) || '',
-        beschrijving:    (e.beschrijving as string) || '',
-        dokterNodig:     Boolean(e.dokter_nodig),
-      };
-      return {
-        id:      (e._id as Types.ObjectId).toString(),
-        refType: 'incident_ehbo' as const,
-        siteId:  siteId ?? '',
-        title:   (e.naam_slachtoffer as string) || 'EHBO',
-        subtitle: (e.verwonding as string) || '',
-        date:    fmtDate(new Date(e.created_at as Date)),
-        severity: 'medium' as const,
-        iconName: 'warning',
-        payload,
-      };
-    }),
     ...openDefects.map((d) => {
       const id = (d._id as Types.ObjectId).toString();
       const payload: DefectPayload = {

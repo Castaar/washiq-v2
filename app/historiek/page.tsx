@@ -4,8 +4,10 @@ import { HistoryList } from '@/components/forms/HistoryList/HistoryList';
 import type { HistoryEntry, HistoryProgram } from '@/components/forms/HistoryList/HistoryList';
 import { ChemieChart } from '@/components/historiek/ChemieChart/ChemieChart';
 import type { ChemieDataPoint } from '@/components/historiek/ChemieChart/ChemieChart';
+import { EventHistoryPanel } from '@/components/historiek/EventHistoryPanel/EventHistoryPanel';
+import type { DefectHistoryItem, SchadeHistoryItem, OrderHistoryItem, MaintenanceHistoryItem } from '@/components/historiek/EventHistoryPanel/EventHistoryPanel';
 import { dbConnect } from '@/lib/db/mongoose';
-import { Site, WashProgram, WeeklyEntry, ChemicalStock, StockReading, User, EnergyBill } from '@/lib/models';
+import { Site, WashProgram, WeeklyEntry, ChemicalStock, StockReading, User, EnergyBill, Defect, IncidentSchade, IncidentEhbo, OrderRequest, MaintenanceLog } from '@/lib/models';
 import { getSession } from '@/lib/session';
 import type { Types } from 'mongoose';
 import { filterSitesForUser, resolveActiveSite, redirectIfSetupNeeded, redirectIfSelfCarwash, redirectWithSiteParam } from '@/lib/getUserSites';
@@ -42,12 +44,17 @@ export default async function HistoriekPage({
   const startWaterCount = (siteDoc?.start_water_count as number) ?? 0;
   const filter = siteId ? { site_id: siteId } : {};
 
-  const [programDocs, entryDocs, stockDocs, energyBillDocs, readingDocs] = await Promise.all([
+  const [programDocs, entryDocs, stockDocs, energyBillDocs, readingDocs, defectDocs, schadeDocs, ehboDocs, orderDocs, maintenanceLogDocs] = await Promise.all([
     WashProgram.find(filter).select('_id name tier chemicals').sort({ tier: 1 }).lean(),
     WeeklyEntry.find(filter).sort({ week_start: 1 }).lean(),
     ChemicalStock.find(filter).select('name unit').sort({ name: 1 }).lean(),
     EnergyBill.find(filter).select('year month amount_euro').lean(),
     StockReading.find(filter).select('name unit consumption recorded_at').sort({ recorded_at: 1 }).lean(),
+    Defect.find(filter).sort({ created_at: -1 }).limit(200).lean(),
+    IncidentSchade.find(filter).sort({ created_at: -1 }).limit(200).lean(),
+    IncidentEhbo.find(filter).sort({ created_at: -1 }).limit(200).lean(),
+    OrderRequest.find(filter).sort({ requested_at: -1 }).limit(200).lean(),
+    MaintenanceLog.find(filter).sort({ done_at: -1 }).limit(200).populate('task_id', 'description').populate('done_by', 'name').lean(),
   ]);
 
   const energyBillsByMonth: Record<string, number> = {};
@@ -142,6 +149,53 @@ export default async function HistoriekPage({
     return [...byMonth.values()];
   })();
 
+  // ── Historiek van pannes/schade/bestellingen/onderhouden ────────
+  const defectHistory: DefectHistoryItem[] = defectDocs.map((d) => ({
+    id: (d._id as Types.ObjectId).toString(),
+    omschrijving: (d.omschrijving as string) || '',
+    ernst: (d.ernst as string) || 'medium',
+    isResolved: Boolean(d.is_resolved),
+    reportedByName: (d.reported_by_name as string) || '',
+    resolvedByName: (d.resolved_by_name as string) || '',
+    createdAt: (d.created_at as Date).toISOString(),
+  }));
+
+  const schadeHistory: SchadeHistoryItem[] = [
+    ...schadeDocs.map((s) => ({
+      id: (s._id as Types.ObjectId).toString(),
+      kind: 'schade' as const,
+      title: (s.merk_model as string) || 'Schade',
+      subtitle: (s.omschrijving as string) || '',
+      reportedByName: (s.reported_by_name as string) || '',
+      createdAt: (s.created_at as Date).toISOString(),
+    })),
+    ...ehboDocs.map((e) => ({
+      id: (e._id as Types.ObjectId).toString(),
+      kind: 'ehbo' as const,
+      title: (e.naam_slachtoffer as string) || 'EHBO',
+      subtitle: (e.verwonding as string) || '',
+      reportedByName: (e.reported_by_name as string) || '',
+      createdAt: (e.created_at as Date).toISOString(),
+    })),
+  ].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+
+  const orderHistory: OrderHistoryItem[] = orderDocs.map((o) => ({
+    id: (o._id as Types.ObjectId).toString(),
+    itemName: (o.item_name as string) || '',
+    details: (o.details as string) || '',
+    isHandled: Boolean(o.is_handled),
+    requestedByName: (o.requested_by_name as string) || '',
+    requestedAt: (o.requested_at as Date).toISOString(),
+  }));
+
+  const maintenanceHistory: MaintenanceHistoryItem[] = maintenanceLogDocs.map((l) => ({
+    id: (l._id as Types.ObjectId).toString(),
+    description: (l.task_id as unknown as { description?: string } | null)?.description ?? '',
+    notes: (l.notes as string) || '',
+    doneByName: (l.done_by as unknown as { name?: string } | null)?.name ?? '',
+    doneAt: (l.done_at as Date).toISOString(),
+  }));
+
   const backHref = siteId ? `/wekelijkse-ingave?site=${siteId}` : '/wekelijkse-ingave';
 
   return (
@@ -167,6 +221,20 @@ export default async function HistoriekPage({
             <p className={styles.subtitle}>Berekend uit voorraadtellingen bij Instellingen (vorige telling + leveringen − nieuwe telling)</p>
           </div>
           <ChemieChart data={chemieChartData} products={chemieProducts} />
+        </div>
+
+        {/* ── Historiek pannes/schade/bestellingen/onderhouden ────── */}
+        <div className={styles.card}>
+          <div className={styles.header}>
+            <h2 className={styles.title}>Historiek — {siteName}</h2>
+            <p className={styles.subtitle}>Pannes, schadegevallen/EHBO, bestellingen en onderhouden</p>
+          </div>
+          <EventHistoryPanel
+            defects={defectHistory}
+            schades={schadeHistory}
+            orders={orderHistory}
+            maintenance={maintenanceHistory}
+          />
         </div>
 
         {/* ── Maandelijkse ingaves lijst ─────────────────────────── */}
