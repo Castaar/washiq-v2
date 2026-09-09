@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import styles from './AccountForm.module.scss';
 import { IconEye, IconEyeOff } from '@/components/ui/icons';
 import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher/LanguageSwitcher';
@@ -48,6 +49,10 @@ export interface AccountFormProps {
 // ── Main component ────────────────────────────────────────────
 export function AccountForm({ users: initialUsers, siteId, currentUser, role, maintenanceTasks: initialTasks, currentTotalWashes, energyBills: initialBills, allowedSites = [] }: AccountFormProps) {
   const router = useRouter();
+  const t = useTranslations('account');
+  const tLogin = useTranslations('login');
+  const tCommon = useTranslations('common');
+  const tTaal = useTranslations('taal');
   const isEmployee = role === 'employee' || role === 'technician';
   const canAddSite = role === 'owner' || role === 'developer';
 
@@ -62,7 +67,7 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
 
   async function handleDeleteSite(id: string, name: string) {
     if (id === siteId) return;
-    if (!window.confirm(`Carwash "${name}" en alle bijhorende data permanent verwijderen?`)) return;
+    if (!window.confirm(t('confirmDeleteSite', { name }))) return;
     setDeletingSiteId(id);
     try {
       const res = await fetch(`/api/sites/${id}`, { method: 'DELETE' });
@@ -79,7 +84,7 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
     setAddSiteError('');
     setAddSiteSuccess('');
     if (!newSiteName.trim() || !newSiteLocation.trim()) {
-      setAddSiteError('Vul naam en locatie in.');
+      setAddSiteError(t('vulNaamLocatie'));
       return;
     }
     setAddingSite(true);
@@ -94,13 +99,13 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
         setSitesList((prev) => [...prev, { id: data.id!, name: data.name ?? newSiteName.trim() }]);
         setNewSiteName('');
         setNewSiteLocation('');
-        setAddSiteSuccess(`${newSiteName.trim()} is toegevoegd.`);
+        setAddSiteSuccess(t('toegevoegd', { name: newSiteName.trim() }));
         router.refresh();
       } else {
-        setAddSiteError(data.error ?? `Fout (${res.status}) — probeer opnieuw.`);
+        setAddSiteError(data.error ?? t('foutStatus', { status: res.status }));
       }
     } catch {
-      setAddSiteError('Netwerkfout — probeer opnieuw.');
+      setAddSiteError(t('netwerkfout'));
     } finally {
       setAddingSite(false);
     }
@@ -134,13 +139,13 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
         if (r.programs) parts.push(`${r.programs} programma's`);
         if (r.products) parts.push(`${r.products} producten`);
         if (r.maintenance) parts.push(`${r.maintenance} onderhoudstaken`);
-        if (r.prices) parts.push('prijsconfiguratie');
-        setCopyResult(parts.length ? `Gekopieerd: ${parts.join(', ')}.` : 'Niets te kopiëren — alles bestaat al.');
+        if (r.prices) parts.push(t('prijsconfiguratie').toLowerCase());
+        setCopyResult(parts.length ? `${t('gekopieerd')}: ${parts.join(', ')}.` : t('nietsTeKopieren'));
       } else {
-        setCopyResult(data.error ?? 'Fout bij kopiëren.');
+        setCopyResult(data.error ?? t('foutBijKopieren'));
       }
     } catch {
-      setCopyResult('Netwerkfout.');
+      setCopyResult(t('netwerkfout'));
     } finally {
       setCopying(false);
     }
@@ -238,7 +243,7 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
   }
 
   async function handleRevokeUser(userId: string, userName: string) {
-    if (!window.confirm(`Toegang van "${userName}" tot deze carwash opzeggen?`)) return;
+    if (!window.confirm(t('bevestigOpzeggen', { name: userName }))) return;
     await fetch(`/api/users/${userId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -284,7 +289,7 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
     setAddUserError('');
     setAddUserSuccess('');
     if (!newName.trim() || !newEmail.trim() || !newPassword) {
-      setAddUserError('Vul naam, e-mailadres en wachtwoord in.');
+      setAddUserError(t('vulAlleVelden'));
       return;
     }
     setAddingUser(true);
@@ -301,13 +306,13 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
         setNewEmail('');
         setNewPassword('');
         setNewRole('employee');
-        setAddUserSuccess(`${newName.trim()} is toegevoegd.`);
+        setAddUserSuccess(t('toegevoegd', { name: newName.trim() }));
         setTimeout(() => setAddUserSuccess(''), 4000);
       } else {
-        setAddUserError(data.error ?? `Fout (${res.status}) — probeer opnieuw.`);
+        setAddUserError(data.error ?? t('foutStatus', { status: res.status }));
       }
     } catch {
-      setAddUserError('Netwerkfout — probeer opnieuw.');
+      setAddUserError(t('netwerkfout'));
     } finally {
       setAddingUser(false);
     }
@@ -321,44 +326,44 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
 
   const MAANDEN = ['januari', 'februari', 'maart', 'april', 'mei', 'juni', 'juli', 'augustus', 'september', 'oktober', 'november', 'december'];
 
-  function taskTriggerLabel(t: MaintenanceTaskItem): string {
-    if (t.trigger_type === 'washes') return `Elke ${(t.trigger_value ?? 0).toLocaleString('nl-BE')} wassingen`;
-    if (t.trigger_type === 'months') {
-      if (t.trigger_value === 12) return '1× per jaar';
-      if (t.trigger_value === 24) return 'Om de 2 jaar';
-      return `Elke ${t.trigger_value} maanden`;
+  function taskTriggerLabel(task: MaintenanceTaskItem): string {
+    if (task.trigger_type === 'washes') return t('elkeWassingen', { count: (task.trigger_value ?? 0).toLocaleString('nl-BE') });
+    if (task.trigger_type === 'months') {
+      if (task.trigger_value === 12) return t('eenKeerPerJaar');
+      if (task.trigger_value === 24) return t('omDe2Jaar');
+      return t('elkeMaanden', { count: task.trigger_value });
     }
-    if (t.trigger_type === 'fixed_date') return `${t.trigger_day} ${MAANDEN[(t.trigger_month ?? 1) - 1]} (jaarlijks)`;
-    if (t.trigger_type === 'fixed_months') return (t.trigger_month_list ?? []).map((m) => MAANDEN[m - 1]).join(' + ');
+    if (task.trigger_type === 'fixed_date') return t('jaarlijks', { date: `${task.trigger_day} ${MAANDEN[(task.trigger_month ?? 1) - 1]}` });
+    if (task.trigger_type === 'fixed_months') return (task.trigger_month_list ?? []).map((m) => MAANDEN[m - 1]).join(' + ');
     return '';
   }
 
-  function computeNextDue(t: MaintenanceTaskItem): { label: string; overdue: boolean } {
+  function computeNextDue(task: MaintenanceTaskItem): { label: string; overdue: boolean } {
     const now = new Date();
-    if (t.trigger_type === 'washes') {
-      const next = (t.washes_at_last_done ?? 0) + t.trigger_value;
+    if (task.trigger_type === 'washes') {
+      const next = (task.washes_at_last_done ?? 0) + task.trigger_value;
       const overdue = currentTotalWashes >= next;
       return {
-        label: `Bij ${next.toLocaleString('nl-BE')} wgn (nu ${currentTotalWashes.toLocaleString('nl-BE')})`,
+        label: t('bijWgn', { next: next.toLocaleString('nl-BE'), current: currentTotalWashes.toLocaleString('nl-BE') }),
         overdue,
       };
     }
-    if (t.trigger_type === 'months') {
-      if (!t.last_done_at) return { label: 'Nog niet gedaan', overdue: true };
-      const next = new Date(t.last_done_at);
-      next.setMonth(next.getMonth() + t.trigger_value);
+    if (task.trigger_type === 'months') {
+      if (!task.last_done_at) return { label: t('nogNietGedaan'), overdue: true };
+      const next = new Date(task.last_done_at);
+      next.setMonth(next.getMonth() + task.trigger_value);
       const overdue = now >= next;
       return { label: next.toLocaleDateString('nl-BE', { day: '2-digit', month: '2-digit', year: 'numeric' }), overdue };
     }
-    if (t.trigger_type === 'fixed_date') {
-      const d = t.trigger_day ?? 1;
-      const m = (t.trigger_month ?? 1) - 1;
+    if (task.trigger_type === 'fixed_date') {
+      const d = task.trigger_day ?? 1;
+      const m = (task.trigger_month ?? 1) - 1;
       let next = new Date(now.getFullYear(), m, d);
       if (next <= now) next = new Date(now.getFullYear() + 1, m, d);
       return { label: next.toLocaleDateString('nl-BE', { day: '2-digit', month: 'long', year: 'numeric' }), overdue: false };
     }
-    if (t.trigger_type === 'fixed_months') {
-      const months = t.trigger_month_list ?? [];
+    if (task.trigger_type === 'fixed_months') {
+      const months = task.trigger_month_list ?? [];
       if (months.length === 0) return { label: '—', overdue: false };
       let next: Date | null = null;
       for (const m of months) {
@@ -409,10 +414,10 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
     return (
       <div className={styles.card}>
         <section className={styles.section}>
-          <h2 className={styles.sectionLabel}>Accountgegevens</h2>
+          <h2 className={styles.sectionLabel}>{t('accountgegevens')}</h2>
           <div className={styles.row}>
             <div className={styles.fieldGroup}>
-              <label className={styles.fieldLabel}>Gebruikersnaam</label>
+              <label className={styles.fieldLabel}>{tLogin('gebruikersnaam')}</label>
               <input
                 className={styles.input}
                 type="text"
@@ -422,7 +427,7 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
               />
             </div>
             <div className={styles.fieldGroup}>
-              <label className={styles.fieldLabel}>Verjaardag</label>
+              <label className={styles.fieldLabel}>{t('verjaardag')}</label>
               <input
                 className={styles.input}
                 type="date"
@@ -438,11 +443,11 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
               />
             </div>
             <div className={styles.fieldGroup}>
-              <label className={styles.fieldLabel}>Taal</label>
+              <label className={styles.fieldLabel}>{tTaal('label')}</label>
               <LanguageSwitcher />
             </div>
             <div className={styles.fieldGroup}>
-              <label className={styles.fieldLabel}>Meldingen</label>
+              <label className={styles.fieldLabel}>{t('meldingenLabel')}</label>
               <NotificationSettings />
             </div>
           </div>
@@ -469,7 +474,7 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
             />
           </div>
           <div className={styles.fieldGroup}>
-            <label className={styles.fieldLabel}>Password</label>
+            <label className={styles.fieldLabel}>{t('password')}</label>
             <div className={styles.passwordWrap}>
               <input
                 className={styles.input}
@@ -484,7 +489,7 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
                 className={styles.eyeBtn}
                 onClick={() => setShowPassword((v) => !v)}
                 tabIndex={-1}
-                aria-label={showPassword ? 'Wachtwoord verbergen' : 'Wachtwoord tonen'}
+                aria-label={showPassword ? tLogin('wachtwoordVerbergen') : tLogin('wachtwoordTonen')}
               >
                 {showPassword ? <IconEyeOff size={15} /> : <IconEye size={15} />}
               </button>
@@ -513,19 +518,19 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
       {/* ── Carwash toevoegen ────────────────────────────────── */}
       {canAddSite && (
         <section className={styles.section}>
-          <h2 className={styles.sectionLabel}>Carwash toevoegen</h2>
+          <h2 className={styles.sectionLabel}>{t('carwashToevoegen')}</h2>
           <div className={styles.addUserRow}>
             <input
               className={styles.input}
               type="text"
-              placeholder="Naam (bv. Dodane Aalst)"
+              placeholder={t('naamPlaceholder')}
               value={newSiteName}
               onChange={(e) => setNewSiteName(e.target.value)}
             />
             <input
               className={styles.input}
               type="text"
-              placeholder="Locatie"
+              placeholder={t('locatiePlaceholder')}
               value={newSiteLocation}
               onChange={(e) => setNewSiteLocation(e.target.value)}
             />
@@ -536,7 +541,7 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
             onClick={handleAddSite}
             disabled={addingSite}
           >
-            {addingSite ? 'Bezig...' : 'Opslaan'}
+            {addingSite ? tCommon('bezig') : tCommon('opslaan')}
           </button>
           {addSiteError && <p className={styles.addUserError}>{addSiteError}</p>}
           {addSiteSuccess && <p className={styles.addUserSuccess}>{addSiteSuccess}</p>}
@@ -547,7 +552,7 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
                 <span className={styles.stockName}>{s.name}</span>
                 <div className={styles.stockActions}>
                   {s.id === siteId ? (
-                    <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>Actief — kan niet verwijderd worden</span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>{t('actiefKanNietVerwijderen')}</span>
                   ) : (
                     <button
                       type="button"
@@ -567,12 +572,12 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
 
       {/* ── Energiefacturen ─────────────────────────────────── */}
       <section className={styles.section}>
-        <h2 className={styles.sectionLabel}>Energiefacturen</h2>
+        <h2 className={styles.sectionLabel}>{t('energiefacturen')}</h2>
 
         {/* Add / upsert row */}
         <div className={styles.addUserRow} style={{ alignItems: 'flex-end', gap: 8, marginBottom: 12 }}>
           <div className={styles.fieldGroup} style={{ flex: '0 0 100px' }}>
-            <label className={styles.fieldLabel}>Jaar</label>
+            <label className={styles.fieldLabel}>{t('jaar')}</label>
             <input
               className={styles.input}
               type="number"
@@ -583,7 +588,7 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
             />
           </div>
           <div className={styles.fieldGroup} style={{ flex: '0 0 130px' }}>
-            <label className={styles.fieldLabel}>Maand</label>
+            <label className={styles.fieldLabel}>{t('maand')}</label>
             <select className={styles.input} value={billMonth} onChange={(e) => setBillMonth(e.target.value)}>
               {MAANDEN_SHORT.map((m, i) => (
                 <option key={i + 1} value={i + 1}>{m}</option>
@@ -591,7 +596,7 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
             </select>
           </div>
           <div className={styles.fieldGroup} style={{ flex: 1 }}>
-            <label className={styles.fieldLabel}>Bedrag (€)</label>
+            <label className={styles.fieldLabel}>{t('bedrag')}</label>
             <div className={styles.priceInputWrap}>
               <span className={styles.euroSign} aria-hidden="true">€</span>
               <input
@@ -612,14 +617,14 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
             disabled={savingBill || !billAmount}
             style={{ flexShrink: 0 }}
           >
-            {savingBill ? 'Bezig...' : 'Opslaan'}
+            {savingBill ? tCommon('bezig') : tCommon('opslaan')}
           </button>
         </div>
 
         {/* Bill list */}
         <div className={styles.stockList}>
           {bills.length === 0 && (
-            <p style={{ opacity: 0.5, fontSize: 13 }}>Nog geen facturen ingevoerd.</p>
+            <p style={{ opacity: 0.5, fontSize: 13 }}>{t('nogGeenFacturen')}</p>
           )}
           {bills.map((b) => (
             <div key={b.id} className={styles.stockRow}>
@@ -649,7 +654,7 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
                       className={styles.addDeliveryBtn}
                       onClick={() => { setEditingBill(b.id); setEditBillAmount(String(b.amount_euro)); }}
                     >
-                      Wijzigen
+                      {t('wijzigen')}
                     </button>
                     <button type="button" className={styles.deleteStockBtn} onClick={() => handleDeleteBill(b.id)}>✕</button>
                   </div>
@@ -662,7 +667,7 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
 
       {/* ── Personeelsgegevens ──────────────────────────────── */}
       <section className={styles.section}>
-        <h2 className={styles.sectionLabel}>Personeelsgegevens</h2>
+        <h2 className={styles.sectionLabel}>{t('personeelsgegevens')}</h2>
         <div className={styles.userList}>
           {users.map((u) => {
             const canRevoke =
@@ -671,10 +676,10 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
             const canChangeRole =
               u.id !== currentUser?.id &&
               (role === 'developer' || ((role === 'owner') && (u.role === 'employee' || u.role === 'technician')));
-            const roleLabel = u.role === 'owner' ? 'Full options'
-              : u.role === 'technician' ? 'Technieker'
-              : u.role === 'developer' ? 'Developer'
-              : 'Medewerker';
+            const roleLabel = u.role === 'owner' ? t('roleFullOptions')
+              : u.role === 'technician' ? t('roleTechnieker')
+              : u.role === 'developer' ? t('roleDeveloper')
+              : t('roleMedewerker');
             return (
               <div key={u.id} className={styles.userRow}>
                 <span className={styles.userNameGroup}>
@@ -687,10 +692,10 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
                     value={u.role}
                     onChange={(e) => handleChangeRole(u.id, e.target.value)}
                   >
-                    <option value="employee">Medewerker</option>
-                    <option value="technician">Technieker</option>
-                    {role === 'developer' && <option value="owner">Full options</option>}
-                    {role === 'developer' && <option value="developer">Developer</option>}
+                    <option value="employee">{t('roleMedewerker')}</option>
+                    <option value="technician">{t('roleTechnieker')}</option>
+                    {role === 'developer' && <option value="owner">{t('roleFullOptions')}</option>}
+                    {role === 'developer' && <option value="developer">{t('roleDeveloper')}</option>}
                   </select>
                 ) : (
                   <span className={`${styles.roleBadge} ${styles[`role_${u.role}`]}`}>{roleLabel}</span>
@@ -701,7 +706,7 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
                       <input
                         type="text"
                         className={styles.input}
-                        placeholder="Min. 6 tekens"
+                        placeholder={t('minTekens')}
                         value={newPasswordValue}
                         onChange={(e) => setNewPasswordValue(e.target.value)}
                         onKeyDown={(e) => { if (e.key === 'Enter' && newPasswordValue.length >= 6) handleSaveNewPassword(u.id); }}
@@ -714,7 +719,7 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
                         onClick={() => handleSaveNewPassword(u.id)}
                         disabled={resettingUserId === u.id || newPasswordValue.length < 6}
                       >
-                        {resettingUserId === u.id ? '...' : 'Opslaan'}
+                        {resettingUserId === u.id ? '...' : tCommon('opslaan')}
                       </button>
                       <button
                         type="button"
@@ -725,7 +730,7 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
                       </button>
                       {newPasswordValue.length > 0 && newPasswordValue.length < 6 && (
                         <span className={styles.addUserError} style={{ width: '100%' }}>
-                          Nog {6 - newPasswordValue.length} teken(s) nodig (minstens 6).
+                          {t('tekensNodig', { count: 6 - newPasswordValue.length })}
                         </span>
                       )}
                     </div>
@@ -735,7 +740,7 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
                       className={styles.revokeBtn}
                       onClick={() => setResetOpenId(u.id)}
                     >
-                      {resetDoneId === u.id ? 'Opgeslagen ✓' : 'Wachtwoord resetten'}
+                      {resetDoneId === u.id ? t('opgeslagen') : t('wachtwoordResetten')}
                     </button>
                   )
                 )}
@@ -745,7 +750,7 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
                     className={styles.revokeBtn}
                     onClick={() => handleRevokeUser(u.id, u.name)}
                   >
-                    Toegang opzeggen
+                    {t('toegangOpzeggen')}
                   </button>
                 )}
               </div>
@@ -753,7 +758,7 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
           })}
         </div>
         <div className={styles.addUserBlock}>
-          <span className={styles.addUserLabel}>Nieuwe gebruiker toevoegen</span>
+          <span className={styles.addUserLabel}>{t('nieuweGebruikerToevoegen')}</span>
           <div className={styles.addUserRow}>
             <input
               className={styles.input}
@@ -784,7 +789,7 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
                 className={styles.eyeBtn}
                 onClick={() => setShowNewUserPassword((v) => !v)}
                 tabIndex={-1}
-                aria-label={showNewUserPassword ? 'Wachtwoord verbergen' : 'Wachtwoord tonen'}
+                aria-label={showNewUserPassword ? tLogin('wachtwoordVerbergen') : tLogin('wachtwoordTonen')}
               >
                 {showNewUserPassword ? <IconEyeOff size={15} /> : <IconEye size={15} />}
               </button>
@@ -794,13 +799,13 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
               value={newRole}
               onChange={(e) => setNewRole(e.target.value as 'employee' | 'technician' | 'owner')}
             >
-              <option value="employee">Medewerker</option>
-              <option value="technician">Technieker</option>
-              {(role === 'owner' || role === 'developer') && <option value="owner">Full options</option>}
+              <option value="employee">{t('roleMedewerker')}</option>
+              <option value="technician">{t('roleTechnieker')}</option>
+              {(role === 'owner' || role === 'developer') && <option value="owner">{t('roleFullOptions')}</option>}
             </select>
           </div>
           <p className={styles.addUserLabel} style={{ fontWeight: 400, marginTop: 4 }}>
-            Krijgt toegang tot al je carwashes: {sitesList.map((s) => s.name).join(', ') || '—'}.
+            {t('krijgtToegangTot', { sites: sitesList.map((s) => s.name).join(', ') || '—' })}
           </p>
           <button
             type="button"
@@ -808,7 +813,7 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
             onClick={handleAddUser}
             disabled={addingUser}
           >
-            {addingUser ? 'Bezig...' : 'Opslaan'}
+            {addingUser ? tCommon('bezig') : tCommon('opslaan')}
           </button>
           {addUserError && <p className={styles.addUserError}>{addUserError}</p>}
           {addUserSuccess && <p className={styles.addUserSuccess}>{addUserSuccess}</p>}
@@ -818,26 +823,26 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
       {/* ── Onderhoud installatie ────────────────────────── */}
       {tasks.length > 0 && (
         <section className={styles.section}>
-          <h2 className={styles.sectionLabel}>Onderhoud installatie</h2>
+          <h2 className={styles.sectionLabel}>{t('onderhoudInstallatie')}</h2>
           <div className={styles.maintenanceList}>
-            {tasks.map((t) => {
-              const { label: nextLabel, overdue } = computeNextDue(t);
-              const isMarkOpen = t.id in markOpen;
-              const lastDate = t.last_done_at
-                ? new Date(t.last_done_at).toLocaleDateString('nl-BE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+            {tasks.map((mt) => {
+              const { label: nextLabel, overdue } = computeNextDue(mt);
+              const isMarkOpen = mt.id in markOpen;
+              const lastDate = mt.last_done_at
+                ? new Date(mt.last_done_at).toLocaleDateString('nl-BE', { day: '2-digit', month: '2-digit', year: 'numeric' })
                 : null;
               return (
-                <div key={t.id} className={[styles.maintenanceRow, overdue ? styles.maintenanceOverdue : ''].filter(Boolean).join(' ')}>
+                <div key={mt.id} className={[styles.maintenanceRow, overdue ? styles.maintenanceOverdue : ''].filter(Boolean).join(' ')}>
                   <div className={styles.maintenanceInfo}>
-                    <span className={styles.maintenanceDesc}>{t.description}</span>
-                    <span className={styles.maintenanceTrigger}>{taskTriggerLabel(t)}</span>
+                    <span className={styles.maintenanceDesc}>{mt.description}</span>
+                    <span className={styles.maintenanceTrigger}>{taskTriggerLabel(mt)}</span>
                   </div>
                   <div className={styles.maintenanceMeta}>
                     <span className={[styles.maintenanceStatus, overdue ? styles.statusOverdue : styles.statusOk].join(' ')}>
-                      {overdue ? 'Te laat' : 'In orde'}
+                      {overdue ? t('teLaat') : t('inOrde')}
                     </span>
-                    <span className={styles.maintenanceNext}>Volgende: {nextLabel}</span>
-                    {lastDate && <span className={styles.maintenanceLast}>Laatste: {lastDate}</span>}
+                    <span className={styles.maintenanceNext}>{t('volgende', { label: nextLabel })}</span>
+                    {lastDate && <span className={styles.maintenanceLast}>{t('laatste', { label: lastDate })}</span>}
                   </div>
                   <div className={styles.maintenanceActions}>
                     {isMarkOpen ? (
@@ -845,22 +850,22 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
                         <input
                           className={styles.deliveryInput}
                           type="date"
-                          value={markOpen[t.id].date}
-                          onChange={(e) => setMarkOpen((prev) => ({ ...prev, [t.id]: { ...prev[t.id], date: e.target.value } }))}
+                          value={markOpen[mt.id].date}
+                          onChange={(e) => setMarkOpen((prev) => ({ ...prev, [mt.id]: { ...prev[mt.id], date: e.target.value } }))}
                           style={{ width: 130 }}
                         />
                         <button
                           type="button"
                           className={styles.confirmDeliveryBtn}
-                          onClick={() => handleMarkDone(t.id)}
-                          disabled={savingMark === t.id}
+                          onClick={() => handleMarkDone(mt.id)}
+                          disabled={savingMark === mt.id}
                         >
-                          {savingMark === t.id ? '...' : 'OK'}
+                          {savingMark === mt.id ? '...' : 'OK'}
                         </button>
                         <button
                           type="button"
                           className={styles.deleteStockBtn}
-                          onClick={() => toggleMark(t.id)}
+                          onClick={() => toggleMark(mt.id)}
                         >
                           ✕
                         </button>
@@ -869,9 +874,9 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
                       <button
                         type="button"
                         className={[styles.addDeliveryBtn, overdue ? styles.markDoneUrgent : ''].filter(Boolean).join(' ')}
-                        onClick={() => toggleMark(t.id)}
+                        onClick={() => toggleMark(mt.id)}
                       >
-                        Gedaan op…
+                        {t('gedaanOp')}
                       </button>
                     )}
                   </div>
@@ -885,10 +890,9 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
       {/* ── Configuratie overnemen ──────────────────────────── */}
       {canCopy && (
         <section className={styles.section}>
-          <h2 className={styles.sectionLabel}>Configuratie overnemen</h2>
+          <h2 className={styles.sectionLabel}>{t('configuratieOvernemen')}</h2>
           <p className={styles.copyHint}>
-            Kopieer programma&apos;s, producten, onderhoudstaken of prijzen van een carwash naar een andere.
-            Bestaande items worden niet overschreven (behalve prijzen).
+            {t('copyHint')}
           </p>
           <div className={styles.copyRow}>
             <select className={styles.roleSelect} value={copySourceId} onChange={(e) => setCopySourceId(e.target.value)}>
@@ -899,20 +903,20 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
               {allowedSites.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
             {copySourceId === copyTargetId && (
-              <span style={{ fontSize: '0.75rem', color: 'var(--color-accent-amber)' }}>Van en naar moeten verschillen</span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--color-accent-amber)' }}>{t('vanNaarVerschillend')}</span>
             )}
           </div>
           <div className={styles.copyChecks}>
             {([
-              { label: "Wasprogramma's", checked: copyPrograms, set: setCopyPrograms },
-              { label: 'Chemische producten', checked: copyProducts, set: setCopyProducts },
-              { label: 'Onderhoudstaken', checked: copyMaintenance, set: setCopyMaintenance },
-              { label: 'Prijsconfiguratie', checked: copyPrices, set: setCopyPrices, warn: true },
+              { label: t('wasprogrammas'), checked: copyPrograms, set: setCopyPrograms },
+              { label: t('chemischeProducten'), checked: copyProducts, set: setCopyProducts },
+              { label: t('onderhoudstaken'), checked: copyMaintenance, set: setCopyMaintenance },
+              { label: t('prijsconfiguratie'), checked: copyPrices, set: setCopyPrices, warn: true },
             ] as { label: string; checked: boolean; set: (v: boolean) => void; warn?: boolean }[]).map(({ label, checked, set, warn }) => (
               <label key={label} className={styles.copyCheck}>
                 <input type="checkbox" checked={checked} onChange={(e) => set(e.target.checked)} />
                 {label}
-                {warn && <span style={{ fontSize: '0.7rem', color: 'var(--color-accent-amber)', marginLeft: 4 }}>(overschrijft)</span>}
+                {warn && <span style={{ fontSize: '0.7rem', color: 'var(--color-accent-amber)', marginLeft: 4 }}>{t('overschrijft')}</span>}
               </label>
             ))}
           </div>
@@ -923,7 +927,7 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
               onClick={handleCopyConfig}
               disabled={copying || copySourceId === copyTargetId}
             >
-              {copying ? 'Bezig...' : 'Configuratie kopiëren'}
+              {copying ? tCommon('bezig') : t('configuratieKopieren')}
             </button>
             {copyResult && <span style={{ fontSize: '0.875rem', color: 'var(--color-accent-teal)' }}>{copyResult}</span>}
           </div>
@@ -933,10 +937,10 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
       {/* ── Footer ──────────────────────────────────────────── */}
       <div className={styles.footer}>
         <button type="submit" className={styles.saveBtn} disabled={saving}>
-          {saving ? 'Opslaan...' : 'Opslaan'}
+          {saving ? `${tCommon('opslaan')}...` : tCommon('opslaan')}
         </button>
         <Link href={`/handleiding${siteId ? `?site=${siteId}` : ''}`} className={styles.helpLink}>
-          Handleiding bekijken
+          {t('handleidingBekijken')}
         </Link>
       </div>
     </form>

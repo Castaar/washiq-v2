@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
+import { getTranslations } from 'next-intl/server';
 import { IconChevronLeft } from '@/components/ui/icons';
 import { SiteSelector } from './SiteSelector';
 import { LogoutButton } from './LogoutButton';
@@ -20,12 +21,13 @@ interface NavBarProps {
   backHref?: string;
 }
 
-export function NavBar({ centerTitle, sites, activeSiteId, addHref, addLabel, backHref }: NavBarProps) {
+export async function NavBar({ centerTitle, sites, activeSiteId, addHref, addLabel, backHref }: NavBarProps) {
+  const t = await getTranslations('nav');
   return (
     <header className={styles.nav}>
       <div className={styles.left}>
         {backHref ? (
-          <Link href={backHref} className={styles.backBtn} aria-label="Terug">
+          <Link href={backHref} className={styles.backBtn} aria-label={t('terug')}>
             <IconChevronLeft size={18} />
           </Link>
         ) : (
@@ -51,7 +53,7 @@ export function NavBar({ centerTitle, sites, activeSiteId, addHref, addLabel, ba
 
       <div className={styles.actions}>
         {addHref && (
-          <Link href={addHref} className={styles.addBtn} aria-label={addLabel ?? 'Toevoegen'}>
+          <Link href={addHref} className={styles.addBtn} aria-label={addLabel ?? t('toevoegen')}>
             <span aria-hidden="true">+</span>
           </Link>
         )}

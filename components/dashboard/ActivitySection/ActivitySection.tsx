@@ -1,15 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import type { ActivityEntry } from '@/lib/types/dashboard';
 import styles from './ActivitySection.module.scss';
-
-const actionLabels: Record<string, string> = {
-  comment:   'Reactie',
-  completed: 'Afgerond',
-  created:   'Aangemaakt',
-  updated:   'Bijgewerkt',
-};
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -24,6 +18,13 @@ interface ActivitySectionProps {
 }
 
 export function ActivitySection({ refId, refType, siteId }: ActivitySectionProps) {
+  const t = useTranslations('activity');
+  const actionLabels: Record<string, string> = {
+    comment:   t('reactie'),
+    completed: t('afgerond'),
+    created:   t('aangemaakt'),
+    updated:   t('bijgewerkt'),
+  };
   const [entries, setEntries]       = useState<ActivityEntry[]>([]);
   const [loading, setLoading]       = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -40,7 +41,8 @@ export function ActivitySection({ refId, refType, siteId }: ActivitySectionProps
         return r.json() as Promise<ActivityEntry[]>;
       })
       .then((data) => { setEntries(data); setLoading(false); })
-      .catch(() => { setFetchError('Kon historiek niet laden.'); setLoading(false); });
+      .catch(() => { setFetchError(t('konNietLaden')); setLoading(false); });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refId, refType]);
 
   async function handleSubmit() {
@@ -59,7 +61,7 @@ export function ActivitySection({ refId, refType, siteId }: ActivitySectionProps
       setEntries((prev) => [...prev, newEntry]);
       setText('');
     } catch {
-      setSubmitError('Opslaan mislukt. Probeer opnieuw.');
+      setSubmitError(t('opslaanMislukt'));
     } finally {
       setSubmitting(false);
     }
@@ -77,12 +79,12 @@ export function ActivitySection({ refId, refType, siteId }: ActivitySectionProps
       <div className={styles.divider} />
 
       {/* ─── Historiek ─────────────────────────────────────── */}
-      <p className={styles.sectionLabel}>Historiek</p>
+      <p className={styles.sectionLabel}>{t('historiek')}</p>
 
-      {loading && <p className={styles.muted}>Laden…</p>}
+      {loading && <p className={styles.muted}>{t('laden')}</p>}
       {fetchError && <p className={styles.errorText}>{fetchError}</p>}
       {!loading && !fetchError && entries.length === 0 && (
-        <p className={styles.muted}>Nog geen activiteit.</p>
+        <p className={styles.muted}>{t('nogGeenActiviteit')}</p>
       )}
       {!loading && !fetchError && entries.length > 0 && (
         <ul className={styles.entryList}>
@@ -107,7 +109,7 @@ export function ActivitySection({ refId, refType, siteId }: ActivitySectionProps
       <div className={styles.form}>
         <textarea
           className={styles.textarea}
-          placeholder="Voeg een reactie toe… (Ctrl+Enter om op te slaan)"
+          placeholder={t('reactiePlaceholder')}
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -120,7 +122,7 @@ export function ActivitySection({ refId, refType, siteId }: ActivitySectionProps
           onClick={handleSubmit}
           disabled={submitting || !text.trim()}
         >
-          {submitting ? 'Opslaan…' : 'Reactie toevoegen'}
+          {submitting ? t('opslaanBezig') : t('reactieToevoegen')}
         </button>
       </div>
     </div>

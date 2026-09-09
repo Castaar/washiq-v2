@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef } from 'react';
+import { useTranslations } from 'next-intl';
 import styles from './PhotoUpload.module.scss';
 
 interface PhotoUploadProps {
@@ -35,6 +36,7 @@ function compressImage(file: File, maxPx = 1200, quality = 0.75): Promise<string
 }
 
 export function PhotoUpload({ photos, onChange, maxPhotos = 5 }: PhotoUploadProps) {
+  const t = useTranslations('common');
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function handleFiles(files: FileList | null) {
@@ -56,8 +58,8 @@ export function PhotoUpload({ photos, onChange, maxPhotos = 5 }: PhotoUploadProp
           {photos.map((src, i) => (
             <div key={i} className={styles.thumb}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={src} alt={`Foto ${i + 1}`} className={styles.thumbImg} />
-              <button type="button" className={styles.removeBtn} onClick={() => remove(i)} aria-label="Verwijder foto">×</button>
+              <img src={src} alt={`${t('foto')} ${i + 1}`} className={styles.thumbImg} />
+              <button type="button" className={styles.removeBtn} onClick={() => remove(i)} aria-label={t('verwijderFoto')}>×</button>
             </div>
           ))}
         </div>
@@ -69,7 +71,7 @@ export function PhotoUpload({ photos, onChange, maxPhotos = 5 }: PhotoUploadProp
             className={styles.addBtn}
             onClick={() => inputRef.current?.click()}
           >
-            + Foto toevoegen ({photos.length}/{maxPhotos})
+            {t('fotoToevoegen')} ({photos.length}/{maxPhotos})
           </button>
           <input
             ref={inputRef}

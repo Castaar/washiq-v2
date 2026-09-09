@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import type { DagfichePayload } from '@/lib/types/dashboard';
 import { IconCheck } from '@/components/ui/icons';
 import { ActivitySection } from '@/components/dashboard/ActivitySection/ActivitySection';
@@ -15,10 +16,11 @@ interface DagficheModalProps {
 }
 
 export function DagficheModal({ payload, refId, refType, siteId, onClose }: DagficheModalProps) {
+  const t = useTranslations('modals');
   return (
-    <BottomSheet open onClose={onClose} title="Dagfiche">
+    <BottomSheet open onClose={onClose} title={t('dagfiche')}>
       <p className={styles.meta}>
-        <span className={styles.metaLabel}>Door</span>
+        <span className={styles.metaLabel}>{t('door')}</span>
         <span className={styles.metaValue}>{payload.submittedBy}</span>
         <span className={styles.metaSep}>·</span>
         <span className={styles.metaValue}>{payload.submittedAt}</span>
@@ -49,7 +51,7 @@ export function DagficheModal({ payload, refId, refType, siteId, onClose }: Dagf
         {/* Dagrapport */}
         {payload.defectNote && payload.defectNote.trim() && (
           <div className={styles.dagrapport}>
-            <p className={styles.dagrapportLabel}>Dagrapport</p>
+            <p className={styles.dagrapportLabel}>{t('dagrapport')}</p>
             <p className={styles.dagrapportText}>{payload.defectNote}</p>
           </div>
         )}

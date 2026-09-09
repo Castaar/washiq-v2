@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import styles from './LeveringenPanel.module.scss';
 
@@ -27,6 +28,7 @@ export function LeveringenPanel({
   otherSites?: TransferSite[];
 }) {
   const { showToast } = useToast();
+  const t = useTranslations('leveringen');
   const [stocks, setStocks] = useState(initial);
   const [qtyDraft, setQtyDraft] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState<string | null>(null);
@@ -53,7 +55,7 @@ export function LeveringenPanel({
         setQtyDraft((prev) => { const n = { ...prev }; delete n[id]; return n; });
         setSaved(id);
         setTimeout(() => setSaved((v) => v === id ? null : v), 2000);
-        showToast('Levering geregistreerd');
+        showToast(t('leveringGeregistreerd'));
       }
     } finally {
       setSaving(null);
@@ -75,14 +77,12 @@ export function LeveringenPanel({
   }
 
   async function handleConfirmTransfer(stockId: string, name: string) {
-    const t = transferOpen[stockId];
-    const qty = parseFloat(t?.qty ?? '');
-    if (!t?.toSiteId || !qty || qty <= 0) return;
+    const transfer = transferOpen[stockId];
+    const qty = parseFloat(transfer?.qty ?? '');
+    if (!transfer?.toSiteId || !qty || qty <= 0) return;
     if (transferTargetHasProduct[stockId] === false) {
-      const targetName = otherSites.find((s) => s.id === t.toSiteId)?.name ?? 'de andere carwash';
-      const ok = confirm(
-        `"${name}" bestaat nog niet bij ${targetName}. Het wordt daar automatisch aangemaakt, maar zonder prijs en zonder koppeling aan een wasprogramma — dat moet je nadien nog zelf instellen. Doorgaan?`,
-      );
+      const targetName = otherSites.find((s) => s.id === transfer.toSiteId)?.name ?? t('deAndereCarwash');
+      const ok = confirm(t('confirmAutoCreate', { name, target: targetName }));
       if (!ok) return;
     }
     setSavingTransfer(stockId);
@@ -91,17 +91,17 @@ export function LeveringenPanel({
       const res = await fetch('/api/stock/transfer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fromSiteId: siteId, toSiteId: t.toSiteId, name, quantity: qty }),
+        body: JSON.stringify({ fromSiteId: siteId, toSiteId: transfer.toSiteId, name, quantity: qty }),
       });
       if (res.ok) {
         const data = (await res.json()) as { from: { current_stock: number } };
         setStocks((prev) => prev.map((s) => (s.id === stockId ? { ...s, current_stock: data.from.current_stock } : s)));
         setTransferOpen((prev) => { const n = { ...prev }; delete n[stockId]; return n; });
         setTransferTargetHasProduct((prev) => { const n = { ...prev }; delete n[stockId]; return n; });
-        showToast('Voorraad verplaatst');
+        showToast(t('voorraadVerplaatst'));
       } else {
         const err = (await res.json().catch(() => null)) as { error?: string } | null;
-        setTransferError((prev) => ({ ...prev, [stockId]: err?.error ?? 'Verplaatsen mislukt' }));
+        setTransferError((prev) => ({ ...prev, [stockId]: err?.error ?? t('verplaatsenMislukt') }));
       }
     } finally {
       setSavingTransfer(null);
@@ -109,7 +109,7 @@ export function LeveringenPanel({
   }
 
   if (stocks.length === 0) {
-    return <p className={styles.empty}>Geen producten gevonden. Voeg eerst producten toe in instellingen.</p>;
+    return <p className={styles.empty}>{t('geenProducten')}</p>;
   }
 
   return (
@@ -124,7 +124,7 @@ export function LeveringenPanel({
               <span className={styles.name}>{s.name}</span>
               <span className={[styles.stock, isLow ? styles.stockLow : ''].join(' ')}>
                 {s.current_stock} {s.unit}
-                {isLow && <span className={styles.lowBadge}>Laag</span>}
+                {isLow && <span className={styles.lowBadge}>{t('laag')}</span>}
               </span>
             </div>
 
@@ -140,7 +140,7 @@ export function LeveringenPanel({
                   }}
                   style={{ width: 150 }}
                 >
-                  <option value="">Naar carwash...</option>
+                  <option value="">{t('naarCarwash')}</option>
                   {otherSites.map((os) => (
                     <option key={os.id} value={os.id}>{os.name}</option>
                   ))}
@@ -174,7 +174,7 @@ export function LeveringenPanel({
                 </button>
                 {transferTargetHasProduct[s.id] === false && (
                   <span className={styles.transferHint}>
-                    Bestaat nog niet daar — wordt automatisch aangemaakt zonder prijs/wasprogramma-koppeling.
+                    {t('bestaatNogNiet')}
                   </span>
                 )}
                 {transferError[s.id] && (
@@ -188,7 +188,7 @@ export function LeveringenPanel({
                   type="number"
                   min="0"
                   step="any"
-                  placeholder={`Aantal (${s.unit})`}
+                  placeholder={t('aantalEenheid', { unit: s.unit })}
                   value={qtyDraft[s.id] ?? ''}
                   onChange={(e) => setQtyDraft((prev) => ({ ...prev, [s.id]: e.target.value }))}
                 />
@@ -198,7 +198,7 @@ export function LeveringenPanel({
                   disabled={!hasQty || saving === s.id}
                   onClick={() => handleDeliver(s.id)}
                 >
-                  {saving === s.id ? '...' : saved === s.id ? '✓ Opgeslagen' : '+ Levering'}
+                  {saving === s.id ? '...' : saved === s.id ? t('opgeslagen') : t('levering')}
                 </button>
                 {otherSites.length > 0 && (
                   <button
@@ -206,7 +206,7 @@ export function LeveringenPanel({
                     className={styles.transferBtn}
                     onClick={() => setTransferOpen((prev) => ({ ...prev, [s.id]: { toSiteId: '', qty: '' } }))}
                   >
-                    ⇄ Verplaatsen
+                    {t('verplaatsen')}
                   </button>
                 )}
               </div>

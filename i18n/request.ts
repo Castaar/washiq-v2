@@ -19,12 +19,37 @@ function setByPath(obj: Record<string, unknown>, path: string, value: string) {
   cur[parts[parts.length - 1]] = value;
 }
 
+// Deep-merge `overlay` onto `base`, skipping empty-string/null leaves so a
+// key that only exists in nl.json (not yet translated) falls back to its
+// Dutch value instead of throwing a missing-message error.
+function deepMergeFallback(base: Record<string, unknown>, overlay: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = { ...base };
+  for (const key of Object.keys(overlay)) {
+    const overlayVal = overlay[key];
+    const baseVal = base[key];
+    if (overlayVal && typeof overlayVal === 'object' && !Array.isArray(overlayVal)) {
+      out[key] = deepMergeFallback((baseVal as Record<string, unknown>) ?? {}, overlayVal as Record<string, unknown>);
+    } else if (overlayVal !== '' && overlayVal !== null && overlayVal !== undefined) {
+      out[key] = overlayVal;
+    }
+  }
+  return out;
+}
+
 export default getRequestConfig(async () => {
   const cookieStore = await cookies();
   const raw = cookieStore.get(LOCALE_COOKIE)?.value;
   const locale: Locale = SUPPORTED_LOCALES.includes(raw as Locale) ? (raw as Locale) : DEFAULT_LOCALE;
 
-  const messages = (await import(`../messages/${locale}.json`)).default as Record<string, unknown>;
+  const nlMessages = (await import('../messages/nl.json')).default as Record<string, unknown>;
+  const merged = locale === 'nl'
+    ? nlMessages
+    : deepMergeFallback(nlMessages, (await import(`../messages/${locale}.json`)).default as Record<string, unknown>);
+  // Deep-clone before mutating with DB overrides below — the JSON imports are
+  // cached module singletons, and `merged` can still share nested objects
+  // with them (any key not touched by the fr overlay), so writing into it
+  // in place would leak fr overrides into the nl locale's cached messages.
+  const messages = JSON.parse(JSON.stringify(merged)) as Record<string, unknown>;
 
   // Apply any runtime translation overrides on top of the committed JSON
   // (e.g. from the developer CSV-import tool), without needing a redeploy.

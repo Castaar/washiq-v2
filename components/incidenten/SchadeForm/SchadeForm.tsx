@@ -2,21 +2,11 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { PhotoUpload } from '@/components/ui/PhotoUpload/PhotoUpload';
 import { Chip } from '@/components/ui/Chip/Chip';
 import { Toggle } from '@/components/ui/Toggle/Toggle';
 import styles from './SchadeForm.module.scss';
-
-const VOERTUIG_TYPES = ['Personenwagen', 'Bestelwagen', 'Vrachtwagen', 'Motor', 'Fiets', 'Andere'];
-
-const SCHADE_LOCATIES = [
-  'Spiegel rechts',
-  'Spiegel links',
-  'Antenne',
-  'Ruitenwisser vooraan',
-  'Ruitenwisser achteraan',
-  'Divers',
-];
 
 interface SchadeFormProps {
   siteId: string;
@@ -25,7 +15,11 @@ interface SchadeFormProps {
 
 export function SchadeForm({ siteId, userName }: SchadeFormProps) {
   const router = useRouter();
-  const [typeVoertuig, setTypeVoertuig] = useState('Personenwagen');
+  const t = useTranslations('schadeForm');
+  const tCommon = useTranslations('common');
+  const VOERTUIG_TYPES = t.raw('voertuigTypes') as string[];
+  const SCHADE_LOCATIES = t.raw('schadeLocatiesList') as string[];
+  const [typeVoertuig, setTypeVoertuig] = useState(VOERTUIG_TYPES[0]);
   const [merkModel, setMerkModel] = useState('');
   const [nummerplaat, setNummerplaat] = useState('');
   const [datumUur, setDatumUur] = useState(() => {
@@ -77,7 +71,7 @@ export function SchadeForm({ siteId, userName }: SchadeFormProps) {
           photos,
         }),
       });
-      if (!res.ok) { setError('Opslaan mislukt'); return; }
+      if (!res.ok) { setError(t('opslaanMislukt')); return; }
       router.push(`/incidenten?site=${siteId}`);
     } finally {
       setSaving(false);
@@ -86,53 +80,53 @@ export function SchadeForm({ siteId, userName }: SchadeFormProps) {
 
   return (
     <form className={styles.card} onSubmit={handleSubmit} noValidate>
-      <h2 className={styles.cardTitle}>Nieuw schadeongeval rapporteren</h2>
+      <h2 className={styles.cardTitle}>{t('titel')}</h2>
 
       {/* Row 1 */}
       <div className={styles.row}>
         <div className={styles.fieldGroup}>
-          <label className={styles.fieldLabel}>Type voertuig</label>
+          <label className={styles.fieldLabel}>{t('typeVoertuig')}</label>
           <select className={styles.select} value={typeVoertuig} onChange={(e) => setTypeVoertuig(e.target.value)}>
-            {VOERTUIG_TYPES.map((t) => <option key={t}>{t}</option>)}
+            {VOERTUIG_TYPES.map((v) => <option key={v}>{v}</option>)}
           </select>
         </div>
         <div className={styles.fieldGroup}>
-          <label className={styles.fieldLabel}>Merk / Model</label>
-          <input className={styles.input} type="text" placeholder="VW Golf" value={merkModel} onChange={(e) => setMerkModel(e.target.value)} />
+          <label className={styles.fieldLabel}>{t('merkModel')}</label>
+          <input className={styles.input} type="text" placeholder={t('merkModelPlaceholder')} value={merkModel} onChange={(e) => setMerkModel(e.target.value)} />
         </div>
         <div className={styles.fieldGroup}>
-          <label className={styles.fieldLabel}>Nummerplaat</label>
-          <input className={styles.input} type="text" placeholder="1-ABC-234" value={nummerplaat} onChange={(e) => setNummerplaat(e.target.value)} />
+          <label className={styles.fieldLabel}>{t('nummerplaat')}</label>
+          <input className={styles.input} type="text" placeholder={t('nummerplaatPlaceholder')} value={nummerplaat} onChange={(e) => setNummerplaat(e.target.value)} />
         </div>
         <div className={styles.fieldGroup}>
-          <label className={styles.fieldLabel}>Datum / Uur</label>
+          <label className={styles.fieldLabel}>{t('datumUur')}</label>
           <input className={styles.input} type="datetime-local" value={datumUur} onChange={(e) => setDatumUur(e.target.value)} />
         </div>
         <div className={styles.fieldGroup}>
-          <label className={styles.fieldLabel}>Naam eigenaar</label>
-          <input className={styles.input} type="text" placeholder="John D'hoe" value={naamEigenaar} onChange={(e) => setNaamEigenaar(e.target.value)} />
+          <label className={styles.fieldLabel}>{t('naamEigenaar')}</label>
+          <input className={styles.input} type="text" placeholder={t('naamEigenaarPlaceholder')} value={naamEigenaar} onChange={(e) => setNaamEigenaar(e.target.value)} />
         </div>
       </div>
 
       {/* Row 2 */}
       <div className={styles.row}>
         <div className={styles.fieldGroup}>
-          <label className={styles.fieldLabel}>Tel. / Gsm</label>
-          <input className={styles.input} type="tel" placeholder="0496 123 456" value={telGsm} onChange={(e) => setTelGsm(e.target.value)} />
+          <label className={styles.fieldLabel}>{t('telGsm')}</label>
+          <input className={styles.input} type="tel" placeholder={t('telGsmPlaceholder')} value={telGsm} onChange={(e) => setTelGsm(e.target.value)} />
         </div>
         <div className={styles.fieldGroup}>
-          <label className={styles.fieldLabel}>E-mail</label>
-          <input className={styles.input} type="email" placeholder="piet@mail.be" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <label className={styles.fieldLabel}>{t('email')}</label>
+          <input className={styles.input} type="email" placeholder={t('emailPlaceholder')} value={email} onChange={(e) => setEmail(e.target.value)} />
         </div>
         <div className={[styles.fieldGroup, styles.fieldGroupWide].join(' ')}>
-          <label className={styles.fieldLabel}>Omschrijving schade</label>
-          <textarea className={styles.textarea} placeholder="Spiegel geraakt tijdens doorrijden tunnel..." value={omschrijving} onChange={(e) => setOmschrijving(e.target.value)} rows={4} />
+          <label className={styles.fieldLabel}>{t('omschrijvingSchade')}</label>
+          <textarea className={styles.textarea} placeholder={t('omschrijvingSchadePlaceholder')} value={omschrijving} onChange={(e) => setOmschrijving(e.target.value)} rows={4} />
         </div>
       </div>
 
       {/* Schade locaties */}
       <div className={styles.fieldGroup}>
-        <label className={styles.fieldLabel}>Schade locatie(s)</label>
+        <label className={styles.fieldLabel}>{t('schadeLocaties')}</label>
         <div className={styles.chipGrid}>
           {SCHADE_LOCATIES.map((locatie) => (
             <Chip
@@ -149,26 +143,26 @@ export function SchadeForm({ siteId, userName }: SchadeFormProps) {
 
       {/* Toggles */}
       <div className={styles.toggleRow}>
-        <Toggle label="Onbetwist?" checked={onbetwist} onChange={setOnbetwist} />
-        <Toggle label="Installatiefout?" checked={installatiefout} onChange={setInstallatiefout} />
-        <Toggle label="Klant verantwoordelijk?" checked={klantVerantwoordelijk} onChange={setKlantVerantwoordelijk} />
-        <Toggle label="Verzekeringsdocumenten" checked={verzekeringsdocumenten} onChange={setVerzekeringsdocumenten} />
+        <Toggle label={t('onbetwist')} checked={onbetwist} onChange={setOnbetwist} />
+        <Toggle label={t('installatiefout')} checked={installatiefout} onChange={setInstallatiefout} />
+        <Toggle label={t('klantVerantwoordelijk')} checked={klantVerantwoordelijk} onChange={setKlantVerantwoordelijk} />
+        <Toggle label={t('verzekeringsdocumenten')} checked={verzekeringsdocumenten} onChange={setVerzekeringsdocumenten} />
       </div>
 
       <div className={styles.photoSection}>
-        <label className={styles.sectionLabel}>Foto&apos;s</label>
+        <label className={styles.sectionLabel}>{t('fotos')}</label>
         <PhotoUpload photos={photos} onChange={setPhotos} maxPhotos={5} />
       </div>
 
       <div className={styles.metaRow}>
-        <span className={styles.metaText}>Geregistreerd door: <strong>{userName}</strong></span>
+        <span className={styles.metaText}>{t.rich('geregistreerdDoor', { name: userName, b: (chunks) => <strong>{chunks}</strong> })}</span>
       </div>
 
       {error && <p className={styles.error}>{error}</p>}
 
       <div className={styles.footer}>
         <button type="submit" className={styles.saveBtn} disabled={saving}>
-          {saving ? 'Bezig...' : 'Melden'}
+          {saving ? tCommon('bezig') : t('melden')}
         </button>
       </div>
     </form>

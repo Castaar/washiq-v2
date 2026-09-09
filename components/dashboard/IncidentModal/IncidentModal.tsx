@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import type { IncidentPayload } from '@/lib/types/dashboard';
 import { ActivitySection } from '@/components/dashboard/ActivitySection/ActivitySection';
 import { BottomSheet } from '@/components/ui/BottomSheet/BottomSheet';
@@ -13,33 +14,35 @@ interface IncidentModalProps {
   onClose: () => void;
 }
 
-function Row({ label, value }: { label: string; value: string | boolean | undefined }) {
+function Row({ label, value, jaNee }: { label: string; value: string | boolean | undefined; jaNee: { ja: string; nee: string } }) {
   if (!value && value !== false) return null;
   return (
     <div className={styles.row}>
       <span className={styles.rowLabel}>{label}</span>
       <span className={styles.rowValue}>
-        {typeof value === 'boolean' ? (value ? 'Ja' : 'Nee') : value}
+        {typeof value === 'boolean' ? (value ? jaNee.ja : jaNee.nee) : value}
       </span>
     </div>
   );
 }
 
-function BoolRow({ label, value }: { label: string; value: boolean }) {
+function BoolRow({ label, value, jaNee }: { label: string; value: boolean; jaNee: { ja: string; nee: string } }) {
   return (
     <div className={styles.row}>
       <span className={styles.rowLabel}>{label}</span>
       <span className={[styles.rowValue, value ? styles.yes : styles.no].join(' ')}>
-        {value ? 'Ja' : 'Nee'}
+        {value ? jaNee.ja : jaNee.nee}
       </span>
     </div>
   );
 }
 
-const ernstLabels: Record<string, string> = { laag: 'Laag', medium: 'Medium', hoog: 'Hoog' };
-const typeLabels: Record<string, string>  = { schade: 'Schadegeval', ehbo: 'EHBO', defect: 'Defect / Panne' };
-
 export function IncidentModal({ payload, refId, refType, siteId, onClose }: IncidentModalProps) {
+  const t = useTranslations('modals');
+  const tAlerts = useTranslations('alerts');
+  const jaNee = { ja: tAlerts('ja'), nee: tAlerts('nee') };
+  const typeLabels: Record<string, string> = { schade: t('typeSchade'), ehbo: t('typeEhbo'), defect: t('typeDefect') };
+  const ernstLabels: Record<string, string> = { laag: t('ernstLaag'), medium: t('ernstMedium'), hoog: t('ernstHoog') };
   const typeLabel = typeLabels[payload.type] ?? payload.type;
 
   return (
@@ -48,7 +51,7 @@ export function IncidentModal({ payload, refId, refType, siteId, onClose }: Inci
         <span className={[styles.badge, styles[`badge-${payload.type}`]].join(' ')}>{typeLabel}</span>
       </div>
       <p className={styles.meta}>
-        <span className={styles.metaValue}>{payload.reportedBy || 'Onbekend'}</span>
+        <span className={styles.metaValue}>{payload.reportedBy || t('onbekend')}</span>
         <span className={styles.metaSep}>·</span>
         <span className={styles.metaValue}>{payload.date}</span>
         {payload.type === 'ehbo' && payload.uur && (
@@ -61,29 +64,29 @@ export function IncidentModal({ payload, refId, refType, siteId, onClose }: Inci
           {payload.type === 'schade' && (
             <>
               <div className={styles.section}>
-                <p className={styles.sectionTitle}>Voertuig</p>
-                <Row label="Type"         value={payload.typeVoertuig} />
-                <Row label="Merk / Model" value={payload.merkModel} />
-                <Row label="Nummerplaat"  value={payload.nummerplaat} />
+                <p className={styles.sectionTitle}>{t('voertuig')}</p>
+                <Row label={t('type')}       value={payload.typeVoertuig} jaNee={jaNee} />
+                <Row label={t('merkModel')}  value={payload.merkModel} jaNee={jaNee} />
+                <Row label={t('nummerplaat')} value={payload.nummerplaat} jaNee={jaNee} />
               </div>
               <div className={styles.section}>
-                <p className={styles.sectionTitle}>Eigenaar</p>
-                <Row label="Naam"      value={payload.naamEigenaar} />
-                <Row label="Tel / GSM" value={payload.telGsm} />
-                <Row label="E-mail"    value={payload.email} />
+                <p className={styles.sectionTitle}>{t('eigenaar')}</p>
+                <Row label={t('naam')}     value={payload.naamEigenaar} jaNee={jaNee} />
+                <Row label={t('telGsm')}   value={payload.telGsm} jaNee={jaNee} />
+                <Row label={t('email')}    value={payload.email} jaNee={jaNee} />
               </div>
               {payload.omschrijving && (
                 <div className={styles.section}>
-                  <p className={styles.sectionTitle}>Omschrijving</p>
+                  <p className={styles.sectionTitle}>{t('omschrijving')}</p>
                   <p className={styles.textBlock}>{payload.omschrijving}</p>
                 </div>
               )}
               <div className={styles.section}>
-                <p className={styles.sectionTitle}>Beoordeling</p>
-                <BoolRow label="Onbetwist"               value={payload.onbetwist} />
-                <BoolRow label="Installatiefout"          value={payload.installatiefout} />
-                <BoolRow label="Klant verantwoordelijk"  value={payload.klantVerantwoordelijk} />
-                <BoolRow label="Verzekeringsdocumenten"  value={payload.verzekeringsdocumenten} />
+                <p className={styles.sectionTitle}>{t('beoordeling')}</p>
+                <BoolRow label={t('onbetwist')}              value={payload.onbetwist} jaNee={jaNee} />
+                <BoolRow label={t('installatiefout')}         value={payload.installatiefout} jaNee={jaNee} />
+                <BoolRow label={t('klantVerantwoordelijk')}  value={payload.klantVerantwoordelijk} jaNee={jaNee} />
+                <BoolRow label={t('verzekeringsdocumenten')} value={payload.verzekeringsdocumenten} jaNee={jaNee} />
               </div>
             </>
           )}
@@ -91,20 +94,20 @@ export function IncidentModal({ payload, refId, refType, siteId, onClose }: Inci
           {payload.type === 'ehbo' && (
             <>
               <div className={styles.section}>
-                <p className={styles.sectionTitle}>Slachtoffer</p>
-                <Row label="Naam"               value={payload.naamSlachtoffer} />
-                <Row label="Afdeling / Locatie" value={payload.afdelingLocatie} />
+                <p className={styles.sectionTitle}>{t('slachtoffer')}</p>
+                <Row label={t('naam')}              value={payload.naamSlachtoffer} jaNee={jaNee} />
+                <Row label={t('afdelingLocatie')}   value={payload.afdelingLocatie} jaNee={jaNee} />
               </div>
               <div className={styles.section}>
-                <p className={styles.sectionTitle}>Verwonding</p>
-                <Row label="Aard"           value={payload.verwonding} />
-                <Row label="EHBO-handeling" value={payload.ehboHandeling} />
-                <Row label="EHBO-verlener"  value={payload.ehboVerlener} />
-                <BoolRow label="Dokter nodig" value={payload.dokterNodig} />
+                <p className={styles.sectionTitle}>{t('verwonding')}</p>
+                <Row label={t('aard')}           value={payload.verwonding} jaNee={jaNee} />
+                <Row label={t('ehboHandeling')} value={payload.ehboHandeling} jaNee={jaNee} />
+                <Row label={t('ehboVerlener')}  value={payload.ehboVerlener} jaNee={jaNee} />
+                <BoolRow label={t('dokterNodig')} value={payload.dokterNodig} jaNee={jaNee} />
               </div>
               {payload.beschrijving && (
                 <div className={styles.section}>
-                  <p className={styles.sectionTitle}>Beschrijving</p>
+                  <p className={styles.sectionTitle}>{t('beschrijving')}</p>
                   <p className={styles.textBlock}>{payload.beschrijving}</p>
                 </div>
               )}
@@ -114,9 +117,9 @@ export function IncidentModal({ payload, refId, refType, siteId, onClose }: Inci
           {payload.type === 'defect' && (
             <>
               <div className={styles.section}>
-                <p className={styles.sectionTitle}>Defect</p>
+                <p className={styles.sectionTitle}>{t('defect')}</p>
                 <div className={styles.row}>
-                  <span className={styles.rowLabel}>Ernst</span>
+                  <span className={styles.rowLabel}>{t('ernst')}</span>
                   <span className={[
                     styles.rowValue,
                     payload.ernst === 'hoog'   ? styles.ernstHoog   :
@@ -129,7 +132,7 @@ export function IncidentModal({ payload, refId, refType, siteId, onClose }: Inci
               </div>
               {payload.omschrijving && (
                 <div className={styles.section}>
-                  <p className={styles.sectionTitle}>Omschrijving</p>
+                  <p className={styles.sectionTitle}>{t('omschrijving')}</p>
                   <p className={styles.textBlock}>{payload.omschrijving}</p>
                 </div>
               )}

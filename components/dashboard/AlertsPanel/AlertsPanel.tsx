@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import type { AlertItem, AlertsPanelData, DagfichePayload, IncidentPayload, MaintenanceTaskPayload } from '@/lib/types/dashboard';
 import { DynamicIcon, IconTrash, IconMessageSquare, IconX, IconChevronLeft, IconChevronRight } from '@/components/ui/icons';
 import { DagficheModal } from '@/components/dashboard/DagficheModal/DagficheModal';
@@ -11,19 +12,19 @@ import styles from './AlertsPanel.module.scss';
 
 type AlertTab = 'alerts' | 'onderhoud' | 'incident' | 'bestellingen';
 
-const tabLabels: Record<AlertTab, string> = {
-  alerts:       'Meldingen',
-  onderhoud:    'Onderhoud',
-  incident:     'Incidenten',
-  bestellingen: 'Bestellingen',
+const tabLabelKeys: Record<AlertTab, string> = {
+  alerts:       'meldingen',
+  onderhoud:    'onderhoud',
+  incident:     'incidenten',
+  bestellingen: 'bestellingen',
 };
 
 const tabs: AlertTab[] = ['alerts', 'onderhoud', 'incident', 'bestellingen'];
 
-const severityLabel: Record<string, string> = {
-  medium: 'Midden',
-  high:   'Hoog',
-  low:    'Laag',
+const severityLabelKeys: Record<string, string> = {
+  medium: 'sevMidden',
+  high:   'sevHoog',
+  low:    'sevLaag',
 };
 
 // ─── Persistent dismiss via localStorage ─────────────────────
@@ -70,6 +71,7 @@ function SwipeRow({
   onDismiss: (id: string) => void;
   children: React.ReactNode;
 }) {
+  const t = useTranslations('alerts');
   const startXRef = useRef<number | null>(null);
   const swipeDirectionRef = useRef<1 | -1>(1);
   const [offsetX, setOffsetX] = useState(0);
@@ -127,10 +129,10 @@ function SwipeRow({
     <div className={[styles.swipeWrap, phase === 'collapsing' ? styles.swipeCollapsing : ''].join(' ')}>
       {phase === 'confirming' && (
         <div className={styles.confirmOverlay}>
-          <span className={styles.confirmText}>Verwijderen?</span>
+          <span className={styles.confirmText}>{t('verwijderenVraag')}</span>
           <div className={styles.confirmBtns}>
-            <button className={styles.confirmYes} onClick={confirmDismiss}>Ja</button>
-            <button className={styles.confirmNo}  onClick={cancelDismiss}>Nee</button>
+            <button className={styles.confirmYes} onClick={confirmDismiss}>{t('ja')}</button>
+            <button className={styles.confirmNo}  onClick={cancelDismiss}>{t('nee')}</button>
           </div>
         </div>
       )}
@@ -163,6 +165,7 @@ function AlertRow({
   isDismissed?: boolean;
   onRestore?: () => void;
 }) {
+  const t = useTranslations('alerts');
   return (
     <div
       className={[
@@ -184,14 +187,14 @@ function AlertRow({
           <div className={styles.itemTopRight}>
             {alert.date && <span className={styles.itemDate}>{alert.date}</span>}
             {alert.refType && !isDismissed && (
-              <IconMessageSquare size={11} className={styles.commentHint} aria-label="Reacties beschikbaar" />
+              <IconMessageSquare size={11} className={styles.commentHint} aria-label={t('reactiesBeschikbaar')} />
             )}
             {isDismissed && onRestore && (
               <button
                 className={styles.restoreBtn}
                 onClick={(e) => { e.stopPropagation(); onRestore(); }}
-                aria-label="Herstellen"
-                title="Herstellen"
+                aria-label={t('herstellen')}
+                title={t('herstellen')}
               >
                 ↩
               </button>
@@ -201,7 +204,7 @@ function AlertRow({
         {alert.subtitle && <span className={styles.itemSubtitle}>{alert.subtitle}</span>}
         <span className={[styles.severity, styles[`sev-${alert.severity}`]].join(' ')}>
           <span className={styles.sevDot} aria-hidden="true" />
-          {severityLabel[alert.severity]}
+          {t(severityLabelKeys[alert.severity])}
         </span>
       </div>
     </div>
@@ -224,6 +227,7 @@ function ArchivePopup({
   onItemClick: (alert: AlertItem) => void;
   onClose: () => void;
 }) {
+  const t = useTranslations('alerts');
   useEffect(() => {
     function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose(); }
     document.addEventListener('keydown', onKey);
@@ -238,13 +242,13 @@ function ArchivePopup({
         {/* Header */}
         <div className={styles.archiveHeader}>
           <div>
-            <h2 className={styles.archiveTitle}>{tabLabels[tab]}</h2>
+            <h2 className={styles.archiveTitle}>{t(tabLabelKeys[tab])}</h2>
             <p className={styles.archiveMeta}>
-              {items.length} items totaal
-              {dismissedCount > 0 && <> · {dismissedCount} verwijderd</>}
+              {t('itemsTotaal', { count: items.length })}
+              {dismissedCount > 0 && <> · {t('verwijderdCount', { count: dismissedCount })}</>}
             </p>
           </div>
-          <button className={styles.archiveClose} onClick={onClose} aria-label="Sluiten">
+          <button className={styles.archiveClose} onClick={onClose} aria-label={t('sluiten')}>
             <IconX size={18} />
           </button>
         </div>
@@ -252,7 +256,7 @@ function ArchivePopup({
         {/* Scrollable body */}
         <div className={styles.archiveBody}>
           {items.length === 0 ? (
-            <p className={styles.archiveEmpty}>Geen items</p>
+            <p className={styles.archiveEmpty}>{t('geenItems')}</p>
           ) : (
             items.map((alert) => {
               const wasDismissed = dismissed.has(alert.id);
@@ -293,6 +297,8 @@ interface AlertsPanelProps {
 }
 
 export function AlertsPanel({ data, dayLog }: AlertsPanelProps) {
+  const t = useTranslations('alerts');
+  const tCommon = useTranslations('common');
   const [active, setActive]               = useState<AlertTab>('alerts');
   const [archiveOpen, setArchiveOpen]     = useState(false);
   const [dagficheOpen, setDagficheOpen]   = useState<DagficheModalState | null>(null);
@@ -376,15 +382,15 @@ export function AlertsPanel({ data, dayLog }: AlertsPanelProps) {
         {/* ── Day switcher (Meldingen tab only) ────────────── */}
         {dayLog && (
           <div className={styles.daySwitcher}>
-            <Link href={dayLog.prevHref} className={styles.dayNavBtn} aria-label="Vorige dag">
+            <Link href={dayLog.prevHref} className={styles.dayNavBtn} aria-label={t('vorigeDag')}>
               <IconChevronLeft size={16} />
             </Link>
             {dayLog.isToday ? (
-              <span className={styles.dayLabel}>Vandaag · {dayLog.label}</span>
+              <span className={styles.dayLabel}>{tCommon('vandaag')} · {dayLog.label}</span>
             ) : (
               <Link href={dayLog.todayHref} className={styles.dayLabelLink}>{dayLog.label}</Link>
             )}
-            <Link href={dayLog.nextHref} className={styles.dayNavBtn} aria-label="Volgende dag">
+            <Link href={dayLog.nextHref} className={styles.dayNavBtn} aria-label={t('volgendeDag')}>
               <IconChevronRight size={16} />
             </Link>
           </div>
@@ -400,7 +406,7 @@ export function AlertsPanel({ data, dayLog }: AlertsPanelProps) {
               className={[styles.tab, active === tab ? styles.activeTab : ''].filter(Boolean).join(' ')}
               onClick={() => switchTab(tab)}
             >
-              {tabLabels[tab]}
+              {t(tabLabelKeys[tab])}
             </button>
           ))}
         </div>
@@ -427,7 +433,7 @@ export function AlertsPanel({ data, dayLog }: AlertsPanelProps) {
                   />
                 )
               ))
-            : <p className={styles.empty}>Geen items</p>
+            : <p className={styles.empty}>{t('geenItems')}</p>
           }
         </div>
 
@@ -435,8 +441,8 @@ export function AlertsPanel({ data, dayLog }: AlertsPanelProps) {
         {dismissable && allItems.length > 0 && (
           <button className={styles.archiveLink} onClick={() => setArchiveOpen(true)}>
             {dismissedCount > 0
-              ? `${dismissedCount} verwijderd · Toon alles (${allItems.length})`
-              : `Toon alle ${allItems.length} items`
+              ? t('verwijderdToonAlles', { count: dismissedCount, total: allItems.length })
+              : t('toonAlleItems', { count: allItems.length })
             }
           </button>
         )}

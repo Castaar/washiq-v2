@@ -1,3 +1,4 @@
+import { getTranslations } from 'next-intl/server';
 import type { VoorraadItem } from '@/lib/types/dashboard';
 import styles from './VoorraadPanel.module.scss';
 
@@ -27,14 +28,15 @@ function VoorraadRow({ item }: { item: VoorraadItem }) {
   );
 }
 
-export function VoorraadPanel({ items }: VoorraadPanelProps) {
+export async function VoorraadPanel({ items }: VoorraadPanelProps) {
+  const t = await getTranslations('dashboard');
   return (
     <div className={styles.panel}>
-      <span className={styles.title}>Voorraad</span>
+      <span className={styles.title}>{t('voorraad')}</span>
       <div className={styles.rows}>
         {items.length > 0
           ? items.map(item => <VoorraadRow key={item.id} item={item} />)
-          : <span className={styles.title} style={{ fontSize: '0.75rem', opacity: 0.5 }}>Geen voorraad</span>
+          : <span className={styles.title} style={{ fontSize: '0.75rem', opacity: 0.5 }}>{t('geenVoorraad')}</span>
         }
       </div>
     </div>

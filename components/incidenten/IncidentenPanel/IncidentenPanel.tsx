@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { SeverityChips, type Severity } from '@/components/ui/Chip/Chip';
 import { PhotoUpload } from '@/components/ui/PhotoUpload/PhotoUpload';
 import { IncidentModal } from '@/components/dashboard/IncidentModal/IncidentModal';
@@ -34,12 +35,6 @@ export interface IncidentStats {
   schadeLocatieStats?: SchadeLocatieStat[];
 }
 
-const TYPE_LABEL: Record<IncidentListItem['type'], string> = {
-  schade: 'Schade',
-  ehbo: 'EHBO',
-  defect: 'Defect',
-};
-
 type Ernst = Severity;
 type Filter = 'open' | 'opgelost' | 'alles';
 
@@ -52,6 +47,18 @@ export function IncidentenPanel({
   initialIncidents: IncidentListItem[];
   stats: IncidentStats;
 }) {
+  const t = useTranslations('incidenten');
+  const tCommon = useTranslations('common');
+  const TYPE_LABEL: Record<IncidentListItem['type'], string> = {
+    schade: t('typeSchade'),
+    ehbo: t('typeEhbo'),
+    defect: t('typeDefect'),
+  };
+  const FILTER_LABEL: Record<Filter, string> = {
+    open: t('filterOpen'),
+    opgelost: t('filterOpgelost'),
+    alles: t('filterAlles'),
+  };
   const [incidents, setIncidents] = useState(initialIncidents);
   const [filter, setFilter] = useState<Filter>('open');
   const [omschrijving, setOmschrijving] = useState('');
@@ -170,13 +177,13 @@ export function IncidentenPanel({
 
       {/* ── Report tabs ───────────────────────────────────────── */}
       <div className={styles.reportBtns}>
-        <Link href={schadeHref} className={styles.reportBtn}>Schade</Link>
-        <Link href={ehboHref} className={styles.reportBtn}>EHBO</Link>
+        <Link href={schadeHref} className={styles.reportBtn}>{t('typeSchade')}</Link>
+        <Link href={ehboHref} className={styles.reportBtn}>{t('typeEhbo')}</Link>
       </div>
 
       {/* ── Incident list ─────────────────────────────────────── */}
       <div className={styles.listHeader}>
-        <h2 className={styles.sectionTitle}>Recente incidenten</h2>
+        <h2 className={styles.sectionTitle}>{t('recenteIncidenten')}</h2>
         <div className={styles.filterTabs}>
           {(['open', 'opgelost', 'alles'] as Filter[]).map((f) => (
             <button
@@ -185,7 +192,7 @@ export function IncidentenPanel({
               className={[styles.filterTab, filter === f ? styles.filterTabActive : ''].filter(Boolean).join(' ')}
               onClick={() => setFilter(f)}
             >
-              {f.charAt(0).toUpperCase() + f.slice(1)}
+              {FILTER_LABEL[f]}
             </button>
           ))}
         </div>
@@ -193,7 +200,7 @@ export function IncidentenPanel({
       <div className={styles.list}>
         {filteredIncidents.length === 0 && (
           <p className={styles.empty}>
-            {filter === 'open' ? 'Geen openstaande incidenten.' : 'Geen incidenten gevonden.'}
+            {filter === 'open' ? t('geenOpenstaande') : t('geenGevonden')}
           </p>
         )}
         {filteredIncidents.map((inc) => (
@@ -223,7 +230,7 @@ export function IncidentenPanel({
                     onClick={(e) => { e.stopPropagation(); handleToggleResolve(inc); }}
                     disabled={resolvingId === inc.id}
                   >
-                    {inc.is_resolved ? '✓ Opgelost' : 'Opgelost?'}
+                    {inc.is_resolved ? t('opgelost') : t('opgelostVraag')}
                   </button>
                 )}
               </div>
@@ -238,29 +245,29 @@ export function IncidentenPanel({
           onClick={handleLoadMore}
           disabled={loadingMore}
         >
-          {loadingMore ? 'Laden...' : 'Laad meer incidenten'}
+          {loadingMore ? tCommon('laden') : t('laadMeer')}
         </button>
       )}
 
       {/* ── Defect quick-report (collapsible, like Dagfiche) ──── */}
       {defectFormOpen ? (
         <div className={styles.defectPanel}>
-          <h2 className={styles.sectionTitle}>Technisch defect melden</h2>
+          <h2 className={styles.sectionTitle}>{t('technischDefectMelden')}</h2>
           <textarea
             className={styles.defectTextarea}
-            placeholder="Korte omschrijving van het technisch probleem..."
+            placeholder={t('omschrijfProbleem')}
             value={omschrijving}
             onChange={(e) => setOmschrijving(e.target.value)}
             rows={3}
           />
           <div className={styles.ernstRow}>
-            <span className={styles.ernstLabel}>Ernst</span>
+            <span className={styles.ernstLabel}>{t('ernst')}</span>
             <SeverityChips value={ernst} onChange={setErnst} />
           </div>
           <PhotoUpload photos={defectPhotos} onChange={setDefectPhotos} maxPhotos={5} />
           <div className={styles.defectFormActions}>
             <button type="button" className={styles.defectCancelBtn} onClick={() => setDefectFormOpen(false)}>
-              Annuleren
+              {tCommon('annuleren')}
             </button>
             <button
               type="button"
@@ -268,13 +275,13 @@ export function IncidentenPanel({
               onClick={handleDefectSave}
               disabled={saving || !omschrijving.trim()}
             >
-              {saved ? 'Opgeslagen ✓' : saving ? 'Bezig...' : 'Defect opslaan'}
+              {saved ? t('opgeslagen') : saving ? tCommon('bezig') : t('defectOpslaan')}
             </button>
           </div>
         </div>
       ) : (
         <button type="button" className={styles.openDefectBtn} onClick={() => setDefectFormOpen(true)}>
-          + Defect melden
+          {t('openDefectMelden')}
         </button>
       )}
     </div>

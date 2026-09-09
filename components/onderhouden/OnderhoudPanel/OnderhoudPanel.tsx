@@ -25,6 +25,7 @@ export function OnderhoudPanel({
   tasks: OnderhoudTask[];
   siteId?: string;
 }) {
+  const t = useTranslations('onderhoud');
   const [tasks, setTasks] = useState(initial);
   const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
   const [completing, setCompleting] = useState<string | null>(null);
@@ -60,7 +61,7 @@ export function OnderhoudPanel({
     <div className={styles.wrap}>
       {overdue.length > 0 && (
         <div className={styles.section}>
-          <h2 className={styles.sectionTitle}>Verlopen</h2>
+          <h2 className={styles.sectionTitle}>{t('verlopen')}</h2>
           {overdue.map((t) => (
             <TaskCard
               key={t.id}
@@ -79,7 +80,7 @@ export function OnderhoudPanel({
 
       {approaching.length > 0 && (
         <div className={styles.section}>
-          <h2 className={styles.sectionTitle}>Binnenkort</h2>
+          <h2 className={styles.sectionTitle}>{t('binnenkort')}</h2>
           {approaching.map((t) => (
             <TaskCard
               key={t.id}
@@ -98,7 +99,7 @@ export function OnderhoudPanel({
 
       {ok.length > 0 && (
         <div className={styles.section}>
-          <h2 className={styles.sectionTitle}>In orde</h2>
+          <h2 className={styles.sectionTitle}>{t('inOrde')}</h2>
           {ok.map((t) => (
             <TaskCard
               key={t.id}
@@ -116,7 +117,7 @@ export function OnderhoudPanel({
       )}
 
       {tasks.length === 0 && (
-        <p className={styles.empty}>Geen onderhoudstaken gevonden. Voeg taken toe in instellingen.</p>
+        <p className={styles.empty}>{t('geenTaken')}</p>
       )}
     </div>
   );
@@ -142,11 +143,12 @@ function TaskCard({
   siteId: string;
 }) {
   const t = useTranslations('onderhoud');
+  const tAlerts = useTranslations('alerts');
   const TRIGGER_LABEL: Record<string, string> = {
     washes: t('wassingen'),
-    months: 'maanden',
-    fixed_date: 'vaste datum',
-    fixed_months: 'vaste maanden',
+    months: t('maanden'),
+    fixed_date: t('vasteDatum'),
+    fixed_months: t('vasteMaanden'),
   };
   return (
     <div className={[styles.taskCard, task.isOverdue ? styles.overdue : task.isApproaching ? styles.approaching : styles.ok].join(' ')}>
@@ -154,46 +156,46 @@ function TaskCard({
         <div className={styles.taskTitleRow}>
           <p className={styles.taskTitle}>{task.description}</p>
           {task.isOverdue ? (
-            <Badge variant="red" size="sm">Te laat</Badge>
+            <Badge variant="red" size="sm">{t('teLaat')}</Badge>
           ) : task.isApproaching ? (
-            <Badge variant="amber" size="sm">Bijna</Badge>
+            <Badge variant="amber" size="sm">{t('bijna')}</Badge>
           ) : (
-            <Badge variant="teal" size="sm">Op schema</Badge>
+            <Badge variant="teal" size="sm">{t('opSchema')}</Badge>
           )}
         </div>
         <Link href={`/onderhouden/${task.id}?site=${siteId}`} className={styles.historyLink}>
-          Historiek bekijken →
+          {t('historiekBekijken')}
         </Link>
         <div className={styles.taskMeta}>
           {task.triggerType === 'washes' && task.triggerValue > 0 && (
-            <span>Elke {task.triggerValue.toLocaleString('nl-BE')} {TRIGGER_LABEL[task.triggerType]}</span>
+            <span>{t('elke', { count: task.triggerValue.toLocaleString('nl-BE'), unit: TRIGGER_LABEL[task.triggerType] })}</span>
           )}
           {task.triggerType === 'months' && task.triggerValue > 0 && (
-            <span>Elke {task.triggerValue} {TRIGGER_LABEL[task.triggerType]}</span>
+            <span>{t('elke', { count: task.triggerValue, unit: TRIGGER_LABEL[task.triggerType] })}</span>
           )}
-          {task.lastDoneAt && <span>Laatste keer: {task.lastDoneAt}</span>}
+          {task.lastDoneAt && <span>{t('laatsteKeer', { date: task.lastDoneAt })}</span>}
           {task.washesRemaining != null && task.washesRemaining > 0 && (
-            <span className={styles.remaining}>Nog {task.washesRemaining.toLocaleString('nl-BE')} {t('wassingen')}</span>
+            <span className={styles.remaining}>{t('nogTeGaan', { count: task.washesRemaining.toLocaleString('nl-BE'), unit: t('wassingen') })}</span>
           )}
           {task.isOverdue && task.washesRemaining != null && task.washesRemaining <= 0 && (
-            <span className={styles.overdueLabel}>Verlopen</span>
+            <span className={styles.overdueLabel}>{t('verlopen')}</span>
           )}
         </div>
         <input
           className={styles.noteInput}
           type="text"
-          placeholder="Opmerking (optioneel)"
+          placeholder={t('opmerkingOptioneel')}
           value={note}
           onChange={(e) => onNoteChange(e.target.value)}
         />
       </div>
       {confirming ? (
         <div className={styles.confirmRow}>
-          <span className={styles.confirmText}>Bevestigen?</span>
+          <span className={styles.confirmText}>{t('bevestigen')}</span>
           <button type="button" className={styles.confirmYes} onClick={onComplete} disabled={completing}>
-            {completing ? '...' : 'Ja'}
+            {completing ? '...' : tAlerts('ja')}
           </button>
-          <button type="button" className={styles.confirmNo} onClick={() => onConfirmToggle(false)}>Nee</button>
+          <button type="button" className={styles.confirmNo} onClick={() => onConfirmToggle(false)}>{tAlerts('nee')}</button>
         </div>
       ) : (
         <button
@@ -202,7 +204,7 @@ function TaskCard({
           onClick={() => onConfirmToggle(true)}
           disabled={completing}
         >
-          Uitgevoerd
+          {t('uitgevoerd')}
         </button>
       )}
     </div>

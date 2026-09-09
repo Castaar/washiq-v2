@@ -1,3 +1,4 @@
+import { getTranslations } from 'next-intl/server';
 import styles from './WagensCard.module.scss';
 
 interface WagensCardProps {
@@ -6,14 +7,15 @@ interface WagensCardProps {
   tellerstand?: number;
 }
 
-export function WagensCard({ count, delta, tellerstand }: WagensCardProps) {
+export async function WagensCard({ count, delta, tellerstand }: WagensCardProps) {
+  const t = await getTranslations('dashboard');
   const displayValue = tellerstand != null && tellerstand > 0 ? tellerstand : count;
   const isPositive = delta >= 0;
   const sign = isPositive ? '+' : '';
 
   return (
     <div className={styles.card}>
-      <span className={styles.label}>Wagens</span>
+      <span className={styles.label}>{t('wagens')}</span>
       <span className={styles.value}>{displayValue.toLocaleString('nl-BE')}</span>
       {delta !== 0 && (
         <span className={[styles.delta, isPositive ? styles.positive : styles.negative].join(' ')}>

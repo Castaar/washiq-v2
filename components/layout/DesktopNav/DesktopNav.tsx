@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import {
   IconHome, IconFileText, IconWarning, IconMoreHorizontal, IconCheck, IconCart,
 } from '@/components/ui/icons';
@@ -17,17 +18,18 @@ function isActive(pathname: string, href: string) {
 
 export function DesktopNav({ role, siteType = 'wasstraat' }: { role: UserRole; siteType?: 'wasstraat' | 'selfcarwash' }) {
   const pathname = usePathname();
+  const t = useTranslations('nav');
   const [meerOpen, setMeerOpen] = useState(false);
 
   if (role === 'technician') {
     const tabs = [
-      { href: '/technieker', label: 'Werklijst', icon: IconHome },
-      { href: '/logboek', label: 'Logboek', icon: IconCheck },
-      { href: '/leveringen', label: 'Leveringen', icon: IconCart },
-      { href: '/account', label: 'Account', icon: IconFileText },
+      { href: '/technieker', label: t('werklijst'), icon: IconHome },
+      { href: '/logboek', label: t('logboek'), icon: IconCheck },
+      { href: '/leveringen', label: t('leveringen'), icon: IconCart },
+      { href: '/account', label: t('account'), icon: IconFileText },
     ];
     return (
-      <nav className={styles.nav} aria-label="Desktopnavigatie">
+      <nav className={styles.nav} aria-label={t('hoofdnavigatie')}>
         <div className={styles.inner}>
           {tabs.map((tab) => (
             <Link
@@ -47,15 +49,15 @@ export function DesktopNav({ role, siteType = 'wasstraat' }: { role: UserRole; s
   // Selfcarwash owners/developers have no wagen-based weekly ingave — the
   // slot becomes a shortcut to voorraad (Leveringen) instead.
   const ingaveHref = role === 'employee' ? '/dagfiche' : siteType === 'selfcarwash' ? '/leveringen' : '/wekelijkse-ingave';
-  const ingaveLabel = role !== 'employee' && siteType === 'selfcarwash' ? 'Leveringen' : 'Ingave';
+  const ingaveLabel = role !== 'employee' && siteType === 'selfcarwash' ? t('leveringen') : t('ingave');
 
   return (
     <>
-      <nav className={styles.nav} aria-label="Desktopnavigatie">
+      <nav className={styles.nav} aria-label={t('hoofdnavigatie')}>
         <div className={styles.inner}>
           <Link href="/" className={[styles.pill, isActive(pathname, '/') ? styles.active : ''].filter(Boolean).join(' ')}>
             <IconHome size={16} />
-            <span>Dashboard</span>
+            <span>{t('dashboard')}</span>
           </Link>
           <Link
             href={ingaveHref}
@@ -69,7 +71,7 @@ export function DesktopNav({ role, siteType = 'wasstraat' }: { role: UserRole; s
             className={[styles.pill, isActive(pathname, '/incidenten') ? styles.active : ''].filter(Boolean).join(' ')}
           >
             <IconWarning size={16} />
-            <span>Melden</span>
+            <span>{t('melden')}</span>
           </Link>
           <button
             type="button"
@@ -78,7 +80,7 @@ export function DesktopNav({ role, siteType = 'wasstraat' }: { role: UserRole; s
             aria-haspopup="dialog"
           >
             <IconMoreHorizontal size={16} />
-            <span>Meer</span>
+            <span>{t('meer')}</span>
           </button>
         </div>
       </nav>

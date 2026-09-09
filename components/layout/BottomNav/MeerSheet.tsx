@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { BottomSheet } from '@/components/ui/BottomSheet/BottomSheet';
 import {
   IconBarChart, IconClipboard, IconCalendar, IconGrid, IconUser,
@@ -17,41 +18,41 @@ interface BeforeInstallPromptEvent extends Event {
 
 interface MeerLink {
   href: string;
-  label: string;
+  labelKey: string;
   icon: typeof IconBarChart;
 }
 
 const OWNER_LINKS: MeerLink[] = [
-  { href: '/historiek', label: 'Historiek', icon: IconBarChart },
-  { href: '/opdrachten', label: 'Opdrachten', icon: IconClipboard },
-  { href: '/planning', label: 'Planning', icon: IconCalendar },
-  { href: '/logboek', label: 'Logboek', icon: IconCheck },
-  { href: '/dagfiches', label: 'Dagfiches', icon: IconFileText },
-  { href: '/onderhouden', label: 'Onderhoud', icon: IconWrench },
-  { href: '/leveringen', label: 'Leveringen', icon: IconCart },
-  { href: '/orders', label: 'Orders', icon: IconPackage },
-  { href: '/diversen', label: 'Diversen', icon: IconGrid },
-  { href: '/vertalingen', label: 'Vertalingen', icon: IconGlobe },
-  { href: '/instellingen', label: 'Instellingen', icon: IconSettings },
-  { href: '/account', label: 'Account', icon: IconUser },
-  { href: '/handleiding', label: 'Handleiding', icon: IconMessageSquare },
+  { href: '/historiek', labelKey: 'historiek', icon: IconBarChart },
+  { href: '/opdrachten', labelKey: 'opdrachten', icon: IconClipboard },
+  { href: '/planning', labelKey: 'planning', icon: IconCalendar },
+  { href: '/logboek', labelKey: 'logboek', icon: IconCheck },
+  { href: '/dagfiches', labelKey: 'dagfiches', icon: IconFileText },
+  { href: '/onderhouden', labelKey: 'onderhoud', icon: IconWrench },
+  { href: '/leveringen', labelKey: 'leveringen', icon: IconCart },
+  { href: '/orders', labelKey: 'orders', icon: IconPackage },
+  { href: '/diversen', labelKey: 'diversen', icon: IconGrid },
+  { href: '/vertalingen', labelKey: 'vertalingen', icon: IconGlobe },
+  { href: '/instellingen', labelKey: 'instellingen', icon: IconSettings },
+  { href: '/account', labelKey: 'account', icon: IconUser },
+  { href: '/handleiding', labelKey: 'handleiding', icon: IconMessageSquare },
 ];
 
 const DEVELOPER_LINKS: MeerLink[] = [
   ...OWNER_LINKS,
-  { href: '/developer', label: 'Developer paneel', icon: IconBox },
+  { href: '/developer', labelKey: 'developerPaneel', icon: IconBox },
 ];
 
 const EMPLOYEE_LINKS: MeerLink[] = [
-  { href: '/logboek', label: 'Logboek', icon: IconCheck },
-  { href: '/opdrachten', label: 'Opdrachten', icon: IconClipboard },
-  { href: '/planning', label: 'Planning', icon: IconCalendar },
-  { href: '/leveringen', label: 'Leveringen', icon: IconCart },
-  { href: '/onderhouden', label: 'Onderhoud', icon: IconWrench },
-  { href: '/orders', label: 'Orders', icon: IconPackage },
-  { href: '/diversen', label: 'Diversen', icon: IconGrid },
-  { href: '/account', label: 'Account', icon: IconUser },
-  { href: '/handleiding', label: 'Handleiding', icon: IconMessageSquare },
+  { href: '/logboek', labelKey: 'logboek', icon: IconCheck },
+  { href: '/opdrachten', labelKey: 'opdrachten', icon: IconClipboard },
+  { href: '/planning', labelKey: 'planning', icon: IconCalendar },
+  { href: '/leveringen', labelKey: 'leveringen', icon: IconCart },
+  { href: '/onderhouden', labelKey: 'onderhoud', icon: IconWrench },
+  { href: '/orders', labelKey: 'orders', icon: IconPackage },
+  { href: '/diversen', labelKey: 'diversen', icon: IconGrid },
+  { href: '/account', labelKey: 'account', icon: IconUser },
+  { href: '/handleiding', labelKey: 'handleiding', icon: IconMessageSquare },
 ];
 
 function linksForRole(role: UserRole, siteType: 'wasstraat' | 'selfcarwash'): MeerLink[] {
@@ -61,6 +62,7 @@ function linksForRole(role: UserRole, siteType: 'wasstraat' | 'selfcarwash'): Me
 }
 
 export function MeerSheet({ role, siteType = 'wasstraat', open, onClose }: { role: UserRole; siteType?: 'wasstraat' | 'selfcarwash'; open: boolean; onClose: () => void }) {
+  const t = useTranslations('nav');
   const links = linksForRole(role, siteType);
 
   const [installPrompt, setInstallPrompt] = useState<Event | null>(null);
@@ -91,26 +93,27 @@ export function MeerSheet({ role, siteType = 'wasstraat', open, onClose }: { rol
   }
 
   const canInstall = !isStandalone && (installPrompt || isSafari);
+  const tLogin = useTranslations('login');
 
   return (
-    <BottomSheet open={open} onClose={onClose} title="Meer">
+    <BottomSheet open={open} onClose={onClose} title={t('meer')}>
       <div className={styles.grid}>
         {links.map((link) => (
           <Link key={link.href} href={link.href} className={styles.item} onClick={onClose}>
             <span className={styles.iconCircle}><link.icon size={19} /></span>
-            <span className={styles.label}>{link.label}</span>
+            <span className={styles.label}>{t(link.labelKey)}</span>
           </Link>
         ))}
         {canInstall && (
           <button type="button" className={styles.item} onClick={handleInstall}>
             <span className={styles.iconCircle}><IconDownload size={19} /></span>
-            <span className={styles.label}>App installeren</span>
+            <span className={styles.label}>{tLogin('appInstalleren')}</span>
           </button>
         )}
       </div>
       {showSafariTip && (
         <p className={styles.safariTip}>
-          Op Safari: kies <strong>Bestand → Voeg toe aan Dock</strong> (macOS) of gebruik de deelknop → <strong>Zet op beginscherm</strong> (iOS).
+          {tLogin.rich('safariTip', { b: (chunks) => <strong>{chunks}</strong> })}
         </p>
       )}
     </BottomSheet>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, type ReactNode } from 'react';
+import { useTranslations } from 'next-intl';
 import styles from './BottomSheet.module.scss';
 
 export interface BottomSheetProps {
@@ -11,6 +12,7 @@ export interface BottomSheetProps {
 }
 
 export function BottomSheet({ open, onClose, title, children }: BottomSheetProps) {
+  const t = useTranslations('common');
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -35,7 +37,7 @@ export function BottomSheet({ open, onClose, title, children }: BottomSheetProps
         {title && (
           <div className={styles.header}>
             <span className={styles.title}>{title}</span>
-            <button type="button" className={styles.closeBtn} onClick={onClose} aria-label="Sluiten">×</button>
+            <button type="button" className={styles.closeBtn} onClick={onClose} aria-label={t('sluiten')}>×</button>
           </div>
         )}
         <div className={styles.body}>{children}</div>

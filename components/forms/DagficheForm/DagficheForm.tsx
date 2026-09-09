@@ -3,29 +3,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { SeverityChips, type Severity } from '@/components/ui/Chip/Chip';
 import { PhotoUpload } from '@/components/ui/PhotoUpload/PhotoUpload';
 import styles from './DagficheForm.module.scss';
-
-const CHECKLIST_ITEMS = [
-  'Stofzuigers nagezien en ok?',
-  'Chemie voorraad ok?',
-  'Textiel borstels nagekeken?',
-  'Wastunnel uitgespoten en nagekeken?',
-  'Selfboxen nagekeken en ok?',
-  'Keuken / bureau in orde?',
-  'Vuilbakken leeggemaakt?',
-  'Kassa ok / afgesloten?',
-];
-
-// Selfcarwash-sites hebben geen wastunnel, textiel borstels of kassa — enkel
-// deze 4 punten zijn relevant voor de avondcheck.
-const CHECKLIST_ITEMS_SELFCARWASH = [
-  'Stofzuigers ok?',
-  'Vuilbakken leeg ok?',
-  'Voorraad chemie nagezien?',
-  'Boxen uitgespoten?',
-];
 
 export interface TodayEvent {
   kind: 'inlog' | 'uitlog' | 'incident' | 'defect' | 'levering' | 'onderhoud';
@@ -45,6 +26,7 @@ export interface DagficheFormProps {
 }
 
 function buildReport(
+  t: (key: string, values?: Record<string, string | number>) => string,
   userName: string,
   siteName: string,
   totalWagens: number,
@@ -66,26 +48,28 @@ function buildReport(
     .map((i) => (i.opmerking.trim() ? `${i.label} (${i.opmerking.trim()})` : i.label));
 
   const checkedMaintenance = maintenanceTasks
-    .filter((t) => maintenanceChecks[t.id]?.checked)
-    .map((t) => {
-      const note = maintenanceChecks[t.id]?.opmerking?.trim();
-      return note ? `${t.description} (${note})` : t.description;
+    .filter((task) => maintenanceChecks[task.id]?.checked)
+    .map((task) => {
+      const note = maintenanceChecks[task.id]?.opmerking?.trim();
+      return note ? `${task.description} (${note})` : task.description;
     });
 
   const allEntries = [...checkedEntries, ...checkedMaintenance];
   const checkText = allEntries.length > 0 ? ` · ${allEntries.join(' · ')}` : '';
 
-  return `[Automatisch gegenereerd dagrapport: ${shortName} · ${date} · ${siteName} · ${totalWagens} wassingen${checkText}]`;
+  return t('reportTemplate', { name: shortName, date, site: siteName, count: totalWagens, extra: checkText });
 }
 
 export function DagficheForm({ siteId, siteName, siteType = 'wasstraat', userName, totalWagens, maintenanceTasks = [], todayEvents = [] }: DagficheFormProps) {
   const router = useRouter();
-  const checklistItems = siteType === 'selfcarwash' ? CHECKLIST_ITEMS_SELFCARWASH : CHECKLIST_ITEMS;
+  const t = useTranslations('dagfiche');
+  const tCommon = useTranslations('common');
+  const checklistItems = (siteType === 'selfcarwash' ? t.raw('checklistItemsSelfcarwash') : t.raw('checklistItems')) as string[];
   const [items, setItems] = useState(
     checklistItems.map((label) => ({ label, checked: false, opmerking: '' })),
   );
   const [maintenanceChecks, setMaintenanceChecks] = useState<Record<string, { checked: boolean; opmerking: string }>>(
-    Object.fromEntries(maintenanceTasks.map((t) => [t.id, { checked: false, opmerking: '' }])),
+    Object.fromEntries(maintenanceTasks.map((task) => [task.id, { checked: false, opmerking: '' }])),
   );
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -117,7 +101,7 @@ export function DagficheForm({ siteId, siteName, siteType = 'wasstraat', userNam
     }
   }
 
-  const dagrapport = buildReport(userName, siteName, totalWagens, items, maintenanceTasks, maintenanceChecks);
+  const dagrapport = buildReport(t, userName, siteName, totalWagens, items, maintenanceTasks, maintenanceChecks);
 
   // Auto-resize the textarea to fit its content
   useEffect(() => {
@@ -175,7 +159,7 @@ export function DagficheForm({ siteId, siteName, siteType = 'wasstraat', userNam
   if (submitted) {
     return (
       <div className={styles.card}>
-        <p className={styles.success}>Dagfiche verstuurd ✓</p>
+        <p className={styles.success}>{t('dagficheVerstuurd')}</p>
       </div>
     );
   }
@@ -186,13 +170,13 @@ export function DagficheForm({ siteId, siteName, siteType = 'wasstraat', userNam
     <form className={styles.card} onSubmit={handleSubmit} noValidate>
       <div className={styles.header}>
         <div>
-          <h1 className={styles.title}>Dagfiche</h1>
+          <h1 className={styles.title}>{t('titel')}</h1>
           <p className={styles.subline}>{siteName}</p>
         </div>
         {siteType !== 'selfcarwash' && (
           <div className={styles.washCount}>
             <span className={styles.washCountValue}>{totalWagens}</span>
-            <span className={styles.washCountLabel}>wasbeurten vandaag</span>
+            <span className={styles.washCountLabel}>{t('wasbeurtenVandaag')}</span>
           </div>
         )}
       </div>
@@ -200,7 +184,7 @@ export function DagficheForm({ siteId, siteName, siteType = 'wasstraat', userNam
       {/* ── Checklist ────────────────────────────────────── */}
       <div className={styles.section}>
         <h2 className={styles.sectionLabel}>
-          Controlepunten ({items.filter((i) => i.checked).length}/{items.length})
+          {t('controlepunten', { checked: items.filter((i) => i.checked).length, total: items.length })}
         </h2>
         <div className={styles.itemList}>
           {items.map((item, i) => (
@@ -209,7 +193,7 @@ export function DagficheForm({ siteId, siteName, siteType = 'wasstraat', userNam
                 type="button"
                 className={[styles.checkBtn, item.checked ? styles.checkBtnActive : ''].join(' ')}
                 onClick={() => toggleChecked(i)}
-                aria-label={item.checked ? 'Gezien' : 'Markeer als gezien'}
+                aria-label={item.checked ? t('gezien') : t('markeerGezien')}
               >
                 ✓
               </button>
@@ -217,7 +201,7 @@ export function DagficheForm({ siteId, siteName, siteType = 'wasstraat', userNam
               <input
                 className={styles.opmerkingInput}
                 type="text"
-                placeholder="Opmerking toevoegen..."
+                placeholder={t('opmerkingToevoegen')}
                 value={item.opmerking}
                 onChange={(e) => setOpmerking(i, e.target.value)}
               />
@@ -229,7 +213,7 @@ export function DagficheForm({ siteId, siteName, siteType = 'wasstraat', userNam
       {/* ── Onderhoud vandaag ────────────────────────────── */}
       {maintenanceTasks.length > 0 && (
         <div className={styles.section}>
-          <h2 className={styles.sectionLabel}>Onderhoud vandaag</h2>
+          <h2 className={styles.sectionLabel}>{t('onderhoudVandaag')}</h2>
           <div className={styles.itemList}>
             {maintenanceTasks.map((task) => (
               <div key={task.id} className={styles.checklistItem}>
@@ -237,7 +221,7 @@ export function DagficheForm({ siteId, siteName, siteType = 'wasstraat', userNam
                   type="button"
                   className={[styles.checkBtn, maintenanceChecks[task.id]?.checked ? styles.checkBtnActive : ''].join(' ')}
                   onClick={() => toggleMaintenance(task.id)}
-                  aria-label={maintenanceChecks[task.id]?.checked ? 'Uitgevoerd' : 'Markeer als uitgevoerd'}
+                  aria-label={maintenanceChecks[task.id]?.checked ? t('uitgevoerd') : t('markeerUitgevoerd')}
                 >
                   ✓
                 </button>
@@ -245,7 +229,7 @@ export function DagficheForm({ siteId, siteName, siteType = 'wasstraat', userNam
                 <input
                   className={styles.opmerkingInput}
                   type="text"
-                  placeholder="Opmerking toevoegen..."
+                  placeholder={t('opmerkingToevoegen')}
                   value={maintenanceChecks[task.id]?.opmerking ?? ''}
                   onChange={(e) => setMaintenanceOpmerking(task.id, e.target.value)}
                 />
@@ -258,7 +242,7 @@ export function DagficheForm({ siteId, siteName, siteType = 'wasstraat', userNam
       {/* ── Gemelde defecten ─────────────────────────────── */}
       {reportedDefects.length > 0 && (
         <div className={styles.section}>
-          <h2 className={styles.sectionLabel}>Gemelde defecten</h2>
+          <h2 className={styles.sectionLabel}>{t('gemeldeDefecten')}</h2>
           <div className={styles.itemList}>
             {reportedDefects.map((ev, i) => (
               <div key={i} className={styles.defectRow}>
@@ -274,13 +258,13 @@ export function DagficheForm({ siteId, siteName, siteType = 'wasstraat', userNam
       {showDefect ? (
         <div className={styles.defectPanel}>
           {defectSubmitted ? (
-            <p className={styles.defectSuccess}>Defect gemeld ✓</p>
+            <p className={styles.defectSuccess}>{t('defectGemeld')}</p>
           ) : (
             <form onSubmit={handleDefectSubmit} noValidate className={styles.defectForm}>
-              <h2 className={styles.sectionLabel}>Defect melden</h2>
+              <h2 className={styles.sectionLabel}>{t('defectMelden')}</h2>
               <textarea
                 className={styles.defectTextarea}
-                placeholder="Omschrijf het defect..."
+                placeholder={t('omschrijfDefect')}
                 value={defectOmschrijving}
                 onChange={(e) => setDefectOmschrijving(e.target.value)}
                 rows={2}
@@ -289,10 +273,10 @@ export function DagficheForm({ siteId, siteName, siteType = 'wasstraat', userNam
               <PhotoUpload photos={defectPhotos} onChange={setDefectPhotos} maxPhotos={5} />
               <div className={styles.defectFormActions}>
                 <button type="button" className={styles.cancelSmallBtn} onClick={() => setShowDefect(false)}>
-                  Annuleer
+                  {t('annuleer')}
                 </button>
                 <button type="submit" className={styles.defectSubmitBtn} disabled={defectSubmitting || !defectOmschrijving.trim()}>
-                  {defectSubmitting ? 'Bezig...' : 'Melden'}
+                  {defectSubmitting ? tCommon('bezig') : t('melden')}
                 </button>
               </div>
             </form>
@@ -300,13 +284,13 @@ export function DagficheForm({ siteId, siteName, siteType = 'wasstraat', userNam
         </div>
       ) : (
         <button type="button" className={styles.openDefectBtn} onClick={() => setShowDefect(true)}>
-          + Defect melden
+          {t('openDefectMelden')}
         </button>
       )}
 
       {/* ── Dagrapport (auto-gegenereerd) ─────────────────── */}
       <div className={styles.section}>
-        <h2 className={styles.sectionLabel}>Dagrapport</h2>
+        <h2 className={styles.sectionLabel}>{t('dagrapport')}</h2>
         <textarea
           ref={reportRef}
           className={styles.reportArea}
@@ -319,7 +303,7 @@ export function DagficheForm({ siteId, siteName, siteType = 'wasstraat', userNam
       {/* ── Gebeurtenissen vandaag (timeline) ─────────────── */}
       {todayEvents.length > 0 && (
         <div className={styles.section}>
-          <h2 className={styles.sectionLabel}>Gebeurtenissen vandaag</h2>
+          <h2 className={styles.sectionLabel}>{t('gebeurtenissenVandaag')}</h2>
           <div className={styles.timeline}>
             {todayEvents.map((ev, i) => (
               <div key={i} className={styles.timelineRow}>
@@ -340,10 +324,10 @@ export function DagficheForm({ siteId, siteName, siteType = 'wasstraat', userNam
 
       <div className={styles.footer}>
         <Link href={`/incidenten?site=${siteId}`} className={styles.incidentBtn}>
-          Incidenten melden
+          {t('incidentenMelden')}
         </Link>
         <button type="submit" className={styles.submitBtn} disabled={submitting}>
-          {submitting ? 'Bezig...' : 'Verzenden'}
+          {submitting ? tCommon('bezig') : t('verzenden')}
         </button>
       </div>
     </form>

@@ -1,19 +1,20 @@
 'use client';
 
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import styles from './UsageToggle.module.scss';
 
 type UsageMode = 'totaal' | 'wagen';
-
-const tabs: { id: UsageMode; label: string }[] = [
-  { id: 'totaal', label: 'Totaalverbruik' },
-  { id: 'wagen',  label: 'Wagenverbruik'  },
-];
 
 export function UsageToggle({ activeUsage = 'wagen' }: { activeUsage?: UsageMode }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const t = useTranslations('dashboard');
+  const tabs: { id: UsageMode; label: string }[] = [
+    { id: 'totaal', label: t('totaalverbruik') },
+    { id: 'wagen',  label: t('wagenverbruik')  },
+  ];
 
   function handleClick(mode: UsageMode) {
     const params = new URLSearchParams(searchParams.toString());
@@ -26,7 +27,7 @@ export function UsageToggle({ activeUsage = 'wagen' }: { activeUsage?: UsageMode
   }
 
   return (
-    <div className={styles.group} role="tablist" aria-label="Verbruiksweergave">
+    <div className={styles.group} role="tablist" aria-label={t('verbruiksweergave')}>
       {tabs.map(tab => (
         <button
           key={tab.id}

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Toggle } from '@/components/ui/Toggle/Toggle';
 import styles from './ProgrammaCard.module.scss';
 
@@ -35,6 +36,7 @@ export function ProgrammaCard({ programs, totalWagens, costBreakdown, prevCostBr
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const t = useTranslations('dashboard');
 
   function togglePerLiter(checked: boolean) {
     const params = new URLSearchParams(searchParams.toString());
@@ -43,7 +45,7 @@ export function ProgrammaCard({ programs, totalWagens, costBreakdown, prevCostBr
   }
 
   const totalPrevCount = programs.reduce((s, p) => s + p.prevCount, 0);
-  const allOption: ProgramOption = { id: ALL_ID, name: "Alle programma's", count: totalWagens, prevCount: totalPrevCount };
+  const allOption: ProgramOption = { id: ALL_ID, name: t('alleProgrammas'), count: totalWagens, prevCount: totalPrevCount };
   const options = [allOption, ...programs];
 
   const [selectedId, setSelectedId] = useState(ALL_ID);
@@ -82,18 +84,18 @@ export function ProgrammaCard({ programs, totalWagens, costBreakdown, prevCostBr
   return (
     <div className={styles.card}>
       <div className={styles.header}>
-        <span className={styles.headerLabel}>Wasprogramma&apos;s</span>
-        <Toggle checked={view === 'liter'} onChange={togglePerLiter} label="per liter" className={styles.perLiterToggle} />
+        <span className={styles.headerLabel}>{t('wasprogrammas')}</span>
+        <Toggle checked={view === 'liter'} onChange={togglePerLiter} label={t('perLiter')} className={styles.perLiterToggle} />
       </div>
 
       <div className={styles.header}>
-        <span className={styles.headerLabel}>Programma</span>
+        <span className={styles.headerLabel}>{t('programma')}</span>
         <div className={styles.selectorPill}>
           <select
             className={styles.hiddenSelect}
             value={selectedId}
             onChange={(e) => setSelectedId(e.target.value)}
-            aria-label="Selecteer programma"
+            aria-label={t('selecteerProgramma')}
           >
             {options.map((p) => (
               <option key={p.id} value={p.id}>{p.name}</option>
@@ -106,7 +108,7 @@ export function ProgrammaCard({ programs, totalWagens, costBreakdown, prevCostBr
       <div className={styles.divider} />
 
       <div className={styles.countRow}>
-        <span className={styles.chemieLabel}>Wagens</span>
+        <span className={styles.chemieLabel}>{t('wagens')}</span>
         <div className={styles.chemieValues}>
           <span className={styles.chemieValue}>{selected.count.toLocaleString('nl-BE')}</span>
           {countDelta !== 0 && (
@@ -123,7 +125,7 @@ export function ProgrammaCard({ programs, totalWagens, costBreakdown, prevCostBr
           {isPrijs && (
             <>
               <div className={styles.totalRow}>
-                <span className={styles.totalLabel}>{isAllPrograms ? 'Gem. kostprijs / wagen' : 'Kostprijs basis / wagen'}</span>
+                <span className={styles.totalLabel}>{isAllPrograms ? t('gemKostprijsWagen') : t('kostprijsBasisWagen')}</span>
                 <span className={styles.totalValue}>€ {grandTotal}</span>
               </div>
               <div className={styles.divider} />

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import styles from './AnnouncementBanner.module.scss';
 
 export interface AnnouncementItem {
@@ -26,6 +26,7 @@ export function AnnouncementBanner({
   canManage: boolean;
 }) {
   const locale = useLocale();
+  const t = useTranslations('announcement');
   const [items, setItems] = useState(initialAnnouncements);
 
   if (items.length === 0) return null;
@@ -47,7 +48,7 @@ export function AnnouncementBanner({
                 <span className={styles.meta}>
                   {item.created_by_name && `${item.created_by_name} · `}
                   {fmtDate(item.created_at)}
-                  {item.is_all_sites && ' · Alle filialen'}
+                  {item.is_all_sites && ` · ${t('alleFilialen')}`}
                 </span>
               </div>
               {canManage && (
@@ -55,7 +56,7 @@ export function AnnouncementBanner({
                   type="button"
                   className={styles.deleteBtn}
                   onClick={() => handleDelete(item.id)}
-                  title="Verwijderen"
+                  title={t('verwijderen')}
                 >
                   ✕
                 </button>

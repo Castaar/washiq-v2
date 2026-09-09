@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { getLocale } from 'next-intl/server';
+import { getLocale, getTranslations } from 'next-intl/server';
 import { dbConnect } from '@/lib/db/mongoose';
 import { getTranslationMap, translateContent } from '@/lib/contentTranslations';
 import {
@@ -74,6 +74,7 @@ export async function CarwashPage({
   await dbConnect();
   const locale = await getLocale();
   const contentTranslations = await getTranslationMap(locale);
+  const t = await getTranslations('dashboard');
 
   // ── Resolve site ─────────────────────────────────────────────
   const resolvedSite = propSiteId
@@ -953,14 +954,14 @@ export async function CarwashPage({
   // Runs server-side (Vercel = UTC) — pin the timezone, else "Goedemorgen"
   // shows during the Belgian afternoon.
   const hour = Number(new Date().toLocaleString('nl-BE', { hour: '2-digit', hour12: false, timeZone: 'Europe/Brussels' }).split(':')[0]);
-  const daypart = hour < 12 ? 'Goedemorgen' : hour < 18 ? 'Goedemiddag' : 'Goedenavond';
+  const daypart = hour < 12 ? t('goedemorgen') : hour < 18 ? t('goedemiddag') : t('goedenavond');
   const firstName = userName.trim().split(' ')[0] || '';
   const heroGreeting = firstName ? `${daypart}, ${firstName}` : daypart;
   const heroSubline = isEmployee
-    ? (siteName ? `Klaar voor je shift op ${siteName}?` : 'Klaar voor je shift?')
+    ? (siteName ? t('klaarVoorShiftSite', { site: siteName }) : t('klaarVoorShift'))
     : isTechnician
-      ? 'Hier is je openstaande werklijst.'
-      : (siteName ? `Overzicht voor ${siteName}.` : 'Overzicht van vandaag.');
+      ? t('openstaandeWerklijst')
+      : (siteName ? t('overzichtVoorSite', { site: siteName }) : t('overzichtVanVandaag'));
 
   // Top consumption anomaly (owner/developer only — technicians already see these merged into their alerts tab)
   const topAnomaly = !isTechnician ? consumptionAlertItems[0] : undefined;

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Badge } from '@/components/ui/Badge/Badge';
 import styles from './BrushesPanel.module.scss';
 
@@ -14,12 +15,6 @@ export interface BrushItem {
   washesAtLastReplacement: number;
   lastReplacedAt: string | null;
 }
-
-const CATEGORY_LABEL: Record<BrushCategory, string> = {
-  verticaal_links: 'Verticaal links',
-  verticaal_rechts: 'Verticaal rechts',
-  horizontaal: 'Horizontaal',
-};
 
 const CATEGORIES: BrushCategory[] = ['verticaal_links', 'verticaal_rechts', 'horizontaal'];
 
@@ -41,6 +36,14 @@ export function BrushesPanel({
   isOwner: boolean;
   initialBrushes: BrushItem[];
 }) {
+  const t = useTranslations('brushes');
+  const tAlerts = useTranslations('alerts');
+  const tCommon = useTranslations('common');
+  const CATEGORY_LABEL: Record<BrushCategory, string> = {
+    verticaal_links: t('verticaalLinks'),
+    verticaal_rechts: t('verticaalRechts'),
+    horizontaal: t('horizontaal'),
+  };
   const [brushes, setBrushes] = useState(initialBrushes);
   const [replacingId, setReplacingId] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
@@ -135,13 +138,13 @@ export function BrushesPanel({
   return (
     <div className={styles.wrap}>
       {brushes.length === 0 && !isOwner && (
-        <p className={styles.empty}>Geen borstels geconfigureerd.</p>
+        <p className={styles.empty}>{t('geenBorstels')}</p>
       )}
 
       {grouped.map(({ category, items }) => (
         <div key={category} className={styles.section}>
           <h2 className={styles.sectionTitle}>{CATEGORY_LABEL[category]}</h2>
-          {items.length === 0 && <p className={styles.empty}>Nog geen borstels in deze categorie.</p>}
+          {items.length === 0 && <p className={styles.empty}>{t('nogGeenBorstelsCategorie')}</p>}
           {items.map((b) => {
             const washesSince = currentTellerstand > 0 ? Math.max(0, currentTellerstand - b.washesAtLastReplacement) : null;
             const worn = washesSince != null && washesSince >= WEAR_WARNING_THRESHOLD;
@@ -166,27 +169,27 @@ export function BrushesPanel({
                         {b.label}
                       </p>
                     )}
-                    {worn && <Badge variant="amber" size="sm">Slijtage</Badge>}
+                    {worn && <Badge variant="amber" size="sm">{t('slijtage')}</Badge>}
                   </div>
                   <div className={styles.brushMeta}>
                     {washesSince != null && (
-                      <span>{washesSince.toLocaleString('nl-BE')} wasbeurten sinds vervanging</span>
+                      <span>{t('wasbeurtenSindsVervanging', { count: washesSince.toLocaleString('nl-BE') })}</span>
                     )}
-                    {b.lastReplacedAt && <span>Laatste textiel: {fmtDate(b.lastReplacedAt)}</span>}
+                    {b.lastReplacedAt && <span>{t('laatsteTextiel', { date: fmtDate(b.lastReplacedAt) })}</span>}
                   </div>
                 </div>
                 <div className={styles.brushActions}>
                   {confirmId === b.id ? (
                     <div className={styles.confirmRow}>
-                      <span className={styles.confirmText}>Nieuw textiel vandaag?</span>
+                      <span className={styles.confirmText}>{t('nieuwTextielVandaag')}</span>
                       <button type="button" className={styles.confirmYes} onClick={() => handleReplace(b)} disabled={replacingId === b.id}>
-                        {replacingId === b.id ? '...' : 'Ja'}
+                        {replacingId === b.id ? '...' : tAlerts('ja')}
                       </button>
-                      <button type="button" className={styles.confirmNo} onClick={() => setConfirmId(null)}>Nee</button>
+                      <button type="button" className={styles.confirmNo} onClick={() => setConfirmId(null)}>{tAlerts('nee')}</button>
                     </div>
                   ) : (
                     <button type="button" className={styles.replaceBtn} onClick={() => setConfirmId(b.id)} disabled={replacingId === b.id}>
-                      Nieuw textiel gestoken
+                      {t('nieuwTextielGestoken')}
                     </button>
                   )}
                   {isOwner && (
@@ -195,7 +198,7 @@ export function BrushesPanel({
                       className={styles.deleteBtn}
                       onClick={() => handleDelete(b.id)}
                       disabled={deletingId === b.id}
-                      aria-label={`${b.label} verwijderen`}
+                      aria-label={t('verwijderen', { label: b.label })}
                     >
                       {deletingId === b.id ? '...' : '✕'}
                     </button>
@@ -224,15 +227,15 @@ export function BrushesPanel({
               />
             </div>
             <div className={styles.addFormActions}>
-              <button type="button" className={styles.cancelBtn} onClick={() => { setFormOpen(false); setNewLabel(''); }}>Annuleren</button>
+              <button type="button" className={styles.cancelBtn} onClick={() => { setFormOpen(false); setNewLabel(''); }}>{tCommon('annuleren')}</button>
               <button type="button" className={styles.saveBtn} onClick={handleAdd} disabled={saving}>
-                {saving ? 'Bezig...' : 'Borstel toevoegen'}
+                {saving ? tCommon('bezig') : t('borstelToevoegen')}
               </button>
             </div>
           </div>
         ) : (
           <button type="button" className={styles.openFormBtn} onClick={() => { setNewLabel(''); setFormOpen(true); }}>
-            + Borstel toevoegen
+            {t('openBorstelToevoegen')}
           </button>
         )
       )}
