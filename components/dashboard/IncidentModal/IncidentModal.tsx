@@ -1,5 +1,7 @@
 'use client';
 
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import type { IncidentPayload } from '@/lib/types/dashboard';
 import { ActivitySection } from '@/components/dashboard/ActivitySection/ActivitySection';
@@ -40,15 +42,52 @@ function BoolRow({ label, value, jaNee }: { label: string; value: boolean; jaNee
 export function IncidentModal({ payload, refId, refType, siteId, onClose }: IncidentModalProps) {
   const t = useTranslations('modals');
   const tAlerts = useTranslations('alerts');
+  const router = useRouter();
   const jaNee = { ja: tAlerts('ja'), nee: tAlerts('nee') };
   const typeLabels: Record<string, string> = { schade: t('typeSchade'), ehbo: t('typeEhbo'), defect: t('typeDefect') };
   const ernstLabels: Record<string, string> = { laag: t('ernstLaag'), medium: t('ernstMedium'), hoog: t('ernstHoog') };
   const typeLabel = typeLabels[payload.type] ?? payload.type;
 
+  // EHBO has no resolved-state — only schade/defect can be marked resolved.
+  const canResolve = payload.type === 'schade' || payload.type === 'defect';
+  const [isResolved, setIsResolved] = useState(canResolve ? Boolean(payload.isResolved) : false);
+  const [resolving, setResolving] = useState(false);
+
+  async function handleToggleResolve() {
+    if (!canResolve) return;
+    setResolving(true);
+    try {
+      const endpoint = payload.type === 'defect'
+        ? `/api/incidents/defect/${refId}`
+        : `/api/incidents/schade/${refId}`;
+      const res = await fetch(endpoint, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_resolved: !isResolved }),
+      });
+      if (res.ok) {
+        setIsResolved((v) => !v);
+        router.refresh();
+      }
+    } finally {
+      setResolving(false);
+    }
+  }
+
   return (
     <BottomSheet open onClose={onClose} title={typeLabel}>
       <div className={styles.headerTop}>
         <span className={[styles.badge, styles[`badge-${payload.type}`]].join(' ')}>{typeLabel}</span>
+        {canResolve && (
+          <button
+            type="button"
+            className={[styles.resolveBtn, isResolved ? styles.resolveBtnDone : ''].filter(Boolean).join(' ')}
+            onClick={handleToggleResolve}
+            disabled={resolving}
+          >
+            {isResolved ? t('opgelost') : resolving ? '...' : t('markeerOpgelost')}
+          </button>
+        )}
       </div>
       <p className={styles.meta}>
         <span className={styles.metaValue}>{payload.reportedBy || t('onbekend')}</span>

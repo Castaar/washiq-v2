@@ -72,6 +72,7 @@ export default async function IncidentenPage({
     ...schades.map((s) => {
       const payload: IncidentSchadePayload = {
         type: 'schade',
+        isResolved: (s.is_resolved as boolean) ?? false,
         reportedBy: (s.reported_by_name as string) || '',
         date: fmtDate(new Date(s.created_at as Date)),
         typeVoertuig: (s.type_voertuig as string) || '',
@@ -127,6 +128,7 @@ export default async function IncidentenPage({
     ...defects.map((d) => {
       const payload: DefectPayload = {
         type: 'defect',
+        isResolved: (d.is_resolved as boolean) ?? false,
         reportedBy: (d.reported_by_name as string) || '',
         date: fmtDate(new Date(d.created_at as Date)),
         omschrijving: (d.omschrijving as string) || '',

@@ -392,7 +392,10 @@
     "eenKeerPerJaar": "1× per jaar",
     "omDe2Jaar": "Om de 2 jaar",
     "elkeMaanden": "Elke {count} maanden",
-    "jaarlijks": "{date} (jaarlijks)"
+    "jaarlijks": "{date} (jaarlijks)",
+    "markeerOpgelost": "Markeer opgelost",
+    "markeerOnopgelost": "Markeer onopgelost",
+    "opgelost": "✓ Opgelost"
   },
   "alerts": {
     "meldingen": "Meldingen",

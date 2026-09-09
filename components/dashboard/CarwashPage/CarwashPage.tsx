@@ -540,6 +540,7 @@ export async function CarwashPage({
       const id = (d._id as Types.ObjectId).toString();
       const payload: DefectPayload = {
         type: 'defect',
+        isResolved: Boolean(d.is_resolved),
         reportedBy: (d.reported_by_name as string) || '',
         date: fmtDate(new Date(d.created_at as Date)),
         omschrijving: (d.omschrijving as string) || '',
@@ -710,6 +711,7 @@ export async function CarwashPage({
     const id = (s._id as Types.ObjectId).toString();
     const payload: IncidentSchadePayload = {
       type: 'schade',
+      isResolved: Boolean(s.is_resolved),
       reportedBy: (s.reported_by_name as string) || '',
       date: fmtDate(ts),
       typeVoertuig: (s.type_voertuig as string) || '',
@@ -773,6 +775,7 @@ export async function CarwashPage({
     const id = (d._id as Types.ObjectId).toString();
     const payload: DefectPayload = {
       type: 'defect',
+      isResolved: Boolean(d.is_resolved),
       reportedBy: (d.reported_by_name as string) || '',
       date: fmtDate(ts),
       omschrijving: (d.omschrijving as string) || '',
