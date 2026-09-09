@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
-import { Opdracht } from '@/lib/models';
+import { Opdracht, User } from '@/lib/models';
 import { getSessionFromRequest } from '@/lib/session';
 import { sendPushToUser } from '@/lib/push';
 import type { Types } from 'mongoose';
@@ -88,10 +88,18 @@ export async function POST(req: NextRequest) {
     is_done: false,
   });
 
+  // Empty assignedToIds means "voor iedereen" — the opdracht is visible to
+  // every employee/technician at the site (see the $size:0 clause in GET
+  // above), so they must all be pushed too, not just explicitly-assigned staff.
   const assignedIds = body.assignedToIds ?? [];
-  if (assignedIds.length > 0) {
+  const notifyIds = assignedIds.length > 0
+    ? assignedIds
+    : (await User.find({ site_ids: body.siteId, role: { $in: ['employee', 'technician'] }, is_active: true }).select('_id').lean())
+        .map((u) => (u._id as Types.ObjectId).toString());
+
+  if (notifyIds.length > 0) {
     Promise.allSettled(
-      assignedIds.map((uid) =>
+      notifyIds.map((uid) =>
         sendPushToUser(uid, {
           title: 'Nieuwe opdracht',
           body: body.text.trim(),

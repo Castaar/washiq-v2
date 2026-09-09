@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
-import { DailyChecklist, MaintenanceTask, MaintenanceLog } from '@/lib/models';
+import { DailyChecklist, MaintenanceTask, MaintenanceLog, User } from '@/lib/models';
 import { getSession } from '@/lib/session';
-import { sendPushToSite } from '@/lib/push';
+import { sendPushToUser } from '@/lib/push';
 import type { Types } from 'mongoose';
 
 export async function POST(req: NextRequest) {
@@ -58,11 +58,21 @@ export async function POST(req: NextRequest) {
     (body.dagrapport && body.dagrapport.trim().length > 0);
 
   if (hasIssues) {
-    sendPushToSite(body.siteId, {
-      title: 'Dagfiche ingediend met opmerkingen',
-      body: body.dagrapport?.trim() || 'Controleer de dagfiche voor details.',
-      url: `/dagfiches?site=${body.siteId}&item=${(doc._id as Types.ObjectId).toString()}`,
-    }).catch(() => {});
+    User.find({ site_ids: body.siteId, role: { $in: ['owner', 'developer'] }, is_active: true })
+      .select('_id')
+      .lean()
+      .then((notifyUsers) =>
+        Promise.allSettled(
+          notifyUsers.map((u) =>
+            sendPushToUser((u._id as Types.ObjectId).toString(), {
+              title: 'Dagfiche ingediend met opmerkingen',
+              body: body.dagrapport?.trim() || 'Controleer de dagfiche voor details.',
+              url: `/dagfiches?site=${body.siteId}&item=${(doc._id as Types.ObjectId).toString()}`,
+            }),
+          ),
+        ),
+      )
+      .catch(() => {});
   }
 
   return NextResponse.json({ id: (doc._id as Types.ObjectId).toString() }, { status: 201 });

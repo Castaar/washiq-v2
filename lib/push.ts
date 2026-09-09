@@ -31,8 +31,19 @@ async function sendToSubscriptions(
           const status = (err as { statusCode: number }).statusCode;
           if (status === 404 || status === 410) {
             await PushSubscription.deleteOne({ _id: sub._id });
+            return;
           }
         }
+        // Anything else (bad VAPID keys, malformed payload, provider outage, ...)
+        // was previously swallowed with zero trace — log it so a real delivery
+        // failure shows up in the server logs instead of looking like "nothing
+        // happened".
+        console.error('[push] sendNotification failed', {
+          endpoint: sub.endpoint,
+          statusCode: (err as { statusCode?: number } | null)?.statusCode,
+          body: (err as { body?: string } | null)?.body,
+          message: err instanceof Error ? err.message : String(err),
+        });
       }
     }),
   );

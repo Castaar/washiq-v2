@@ -113,7 +113,7 @@ export async function CarwashPage({
   // Both batches are independent (day-log batch only needs dayStart/dayEnd,
   // not the results of the first) — fired together to save a Mongo round trip.
   const [
-    entries, monthEntries, prevMonthEntries, lastTwoEntries, programs, priceConfigs, stocks, tasks, logs, checklists, incSchades, incEhbos, energyBillCur, energyBillPrev, readings, openOrderRequests,
+    entries, monthEntries, prevMonthEntries, lastTwoEntries, programs, priceConfigs, stocks, tasks, logs, checklists, incSchades, incEhbos, openDefects, energyBillCur, energyBillPrev, readings, openOrderRequests,
     dayAttendance, dayDeliveries, dayChecklists, dayMaintenanceLogs, daySchades, dayEhbos, dayDefects,
   ] = await Promise.all([
     period === 'week'
@@ -131,6 +131,9 @@ export async function CarwashPage({
     DailyChecklist.find(filter).sort({ submitted_at: -1 }).limit(7).lean(),
     IncidentSchade.find({ ...filter, $or: [{ is_resolved: false }, { is_resolved: { $exists: false } }] }).sort({ created_at: -1 }).limit(8).lean(),
     IncidentEhbo.find(filter).sort({ created_at: -1 }).limit(8).lean(),
+    // Unresolved defects/pannes — stay visible on the dashboard until marked resolved,
+    // regardless of which day they were originally reported.
+    Defect.find({ ...filter, $or: [{ is_resolved: false }, { is_resolved: { $exists: false } }] }).sort({ created_at: -1 }).limit(8).lean(),
     siteId ? EnergyBill.findOne({ site_id: siteId, year: curYear,  month: curMonth  }).lean() : null,
     siteId ? EnergyBill.findOne({ site_id: siteId, year: prevYear, month: prevMonth }).lean() : null,
     // All stock readings for this site, oldest first — used to derive monthly chemistry consumption
@@ -588,6 +591,24 @@ export async function CarwashPage({
         payload,
       };
     }),
+    ...openDefects.map((d) => {
+      const id = (d._id as Types.ObjectId).toString();
+      const payload: DefectPayload = {
+        type: 'defect',
+        reportedBy: (d.reported_by_name as string) || '',
+        date: fmtDate(new Date(d.created_at as Date)),
+        omschrijving: (d.omschrijving as string) || '',
+        ernst: (d.ernst as string) || 'medium',
+      };
+      return {
+        id, refId: id, refType: 'defect' as const, siteId: siteId ?? '',
+        title: (d.omschrijving as string)?.slice(0, 40) || 'Defect',
+        date: fmtDate(new Date(d.created_at as Date)),
+        severity: (d.ernst === 'hoog' ? 'high' : d.ernst === 'laag' ? 'low' : 'medium') as 'high' | 'medium' | 'low',
+        iconName: 'warning',
+        payload,
+      };
+    }),
   ];
 
   // Consumption-per-car anomaly alerts: flags water/energy spikes and wax/chemical
@@ -845,63 +866,6 @@ export async function CarwashPage({
     };
   });
 
-  const dayIncidentItems: AlertItem[] = [
-    ...daySchades.map((s) => {
-      const id = (s._id as Types.ObjectId).toString();
-      const ts = new Date(s.created_at as Date);
-      const payload: IncidentSchadePayload = {
-        type: 'schade',
-        reportedBy: (s.reported_by_name as string) || '',
-        date: fmtDate(ts),
-        typeVoertuig: (s.type_voertuig as string) || '',
-        merkModel: (s.merk_model as string) || '',
-        nummerplaat: (s.nummerplaat as string) || '',
-        naamEigenaar: (s.naam_eigenaar as string) || '',
-        telGsm: (s.tel_gsm as string) || '',
-        email: (s.email as string) || '',
-        omschrijving: (s.omschrijving as string) || '',
-        onbetwist: Boolean(s.onbetwist),
-        installatiefout: Boolean(s.installatiefout),
-        klantVerantwoordelijk: Boolean(s.klant_verantwoordelijk),
-        verzekeringsdocumenten: Boolean(s.verzekeringsdocumenten),
-      };
-      return {
-        id, refId: id, refType: 'incident_schade' as const, siteId: siteId ?? '',
-        title: (s.merk_model as string) || 'Schade',
-        subtitle: (s.omschrijving as string) || '',
-        date: fmtDate(ts),
-        severity: 'high' as const,
-        iconName: 'warning',
-        payload,
-      };
-    }),
-    ...dayEhbos.map((e) => {
-      const ts = new Date(e.created_at as Date);
-      const payload: IncidentEhboPayload = {
-        type: 'ehbo',
-        reportedBy: (e.reported_by_name as string) || '',
-        date: fmtDate(ts),
-        uur: (e.uur as string) || '',
-        naamSlachtoffer: (e.naam_slachtoffer as string) || '',
-        afdelingLocatie: (e.afdeling_locatie as string) || '',
-        verwonding: (e.verwonding as string) || '',
-        ehboHandeling: (e.ehbo_handeling as string) || '',
-        ehboVerlener: (e.ehbo_verlener as string) || '',
-        beschrijving: (e.beschrijving as string) || '',
-        dokterNodig: Boolean(e.dokter_nodig),
-      };
-      return {
-        id: (e._id as Types.ObjectId).toString(),
-        refType: 'incident_ehbo' as const, siteId: siteId ?? '',
-        title: (e.naam_slachtoffer as string) || 'EHBO',
-        subtitle: (e.verwonding as string) || '',
-        date: fmtDate(ts),
-        severity: 'medium' as const,
-        iconName: 'warning',
-        payload,
-      };
-    }),
-  ];
 
   const WEEKDAYS_NL = ['zondag', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag'];
   const MONTHS_NL_SHORT = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
@@ -933,8 +897,14 @@ export async function CarwashPage({
     alerts: isTechnician
       ? [...consumptionAlertItems, ...alertItems, ...approachingItems, ...dagficheAlerts]
       : dayLogItems,
-    onderhoud: isTechnician ? onderhoudItems : dayOnderhoudItems,
-    incident:  isTechnician ? incidentItems  : dayIncidentItems,
+    // Owner/developer also need to see overdue/due-soon maintenance on the
+    // dashboard (not just the technician's Meldingen tab) — combined with
+    // today's completed-log entries so both "still to do" and "done today"
+    // are visible in one place, staying until actually resolved.
+    onderhoud: isTechnician ? onderhoudItems : [...alertItems, ...approachingItems, ...dayOnderhoudItems],
+    // Unresolved incidents (schade/EHBO/defect) stay visible for everyone
+    // regardless of which day they were reported, until marked resolved.
+    incident: incidentItems,
     bestellingen: isTechnician ? [] : bestellingenItems,
   };
 

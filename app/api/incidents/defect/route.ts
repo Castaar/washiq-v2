@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
-import { Defect } from '@/lib/models';
+import { Defect, User } from '@/lib/models';
 import { getSessionFromRequest } from '@/lib/session';
-import { sendPushToAll } from '@/lib/push';
+import { sendPushToUser } from '@/lib/push';
+import type { Types } from 'mongoose';
 
 const ERNST_LABEL: Record<string, string> = { laag: 'Laag', medium: 'Medium', hoog: 'HOOG ⚠️' };
 
@@ -25,11 +26,21 @@ export async function POST(req: NextRequest) {
     photos: Array.isArray(body.photos) ? body.photos : [],
   });
 
-  sendPushToAll({
-    title: `Nieuw defect gemeld — ${ERNST_LABEL[ernst]}`,
-    body: body.omschrijving ?? 'Een defect werd ingediend.',
-    url: `/incidenten?site=${body.siteId}&item=${doc._id.toString()}`,
-  }).catch(() => {});
+  User.find({ site_ids: body.siteId, role: { $in: ['owner', 'developer'] }, is_active: true })
+    .select('_id')
+    .lean()
+    .then((notifyUsers) =>
+      Promise.allSettled(
+        notifyUsers.map((u) =>
+          sendPushToUser((u._id as Types.ObjectId).toString(), {
+            title: `Nieuw defect gemeld — ${ERNST_LABEL[ernst]}`,
+            body: body.omschrijving ?? 'Een defect werd ingediend.',
+            url: `/incidenten?site=${body.siteId}&item=${doc._id.toString()}`,
+          }),
+        ),
+      ),
+    )
+    .catch(() => {});
 
   return NextResponse.json({ id: doc._id.toString() }, { status: 201 });
 }

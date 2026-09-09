@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
-import { IncidentEhbo } from '@/lib/models';
+import { IncidentEhbo, User } from '@/lib/models';
 import { getSessionFromRequest } from '@/lib/session';
-import { sendPushToAll } from '@/lib/push';
+import { sendPushToUser } from '@/lib/push';
+import type { Types } from 'mongoose';
 
 export async function POST(req: NextRequest) {
   const session = await getSessionFromRequest(req);
@@ -27,11 +28,21 @@ export async function POST(req: NextRequest) {
     photos: Array.isArray(body.photos) ? body.photos : [],
   });
 
-  sendPushToAll({
-    title: 'Nieuw EHBO-incident',
-    body: body.naam_slachtoffer ? `Slachtoffer: ${body.naam_slachtoffer}` : 'Een EHBO-incident werd ingediend.',
-    url: `/incidenten?site=${body.siteId}&item=${doc._id.toString()}`,
-  }).catch(() => {});
+  User.find({ site_ids: body.siteId, role: { $in: ['owner', 'developer'] }, is_active: true })
+    .select('_id')
+    .lean()
+    .then((notifyUsers) =>
+      Promise.allSettled(
+        notifyUsers.map((u) =>
+          sendPushToUser((u._id as Types.ObjectId).toString(), {
+            title: 'Nieuw EHBO-incident',
+            body: body.naam_slachtoffer ? `Slachtoffer: ${body.naam_slachtoffer}` : 'Een EHBO-incident werd ingediend.',
+            url: `/incidenten?site=${body.siteId}&item=${doc._id.toString()}`,
+          }),
+        ),
+      ),
+    )
+    .catch(() => {});
 
   return NextResponse.json({ id: doc._id.toString() }, { status: 201 });
 }
