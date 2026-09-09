@@ -11,6 +11,11 @@
 .scrollArea {
   flex: 1;
   overflow-y: auto;
+  // Always reserve space for the vertical scrollbar, so switching tabs
+  // with a different number of items (which changes page height) doesn't
+  // shift the whole layout left/right when the scrollbar appears or
+  // disappears.
+  scrollbar-gutter: stable;
   display: flex;
   flex-direction: column;
 
