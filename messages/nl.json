@@ -414,6 +414,7 @@
     "geenItems": "Geen items",
     "vorigeDag": "Vorige dag",
     "volgendeDag": "Volgende dag",
+    "kiesDatum": "Kies datum",
     "itemsTotaal": "{count} items totaal",
     "verwijderdCount": "{count} verwijderd",
     "toonAlleItems": "Toon alle {count} items",

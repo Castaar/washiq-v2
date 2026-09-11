@@ -1,12 +1,14 @@
 'use client';
 
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { siteLabel } from '@/lib/siteLabel';
 import styles from './SiteSelector.module.scss';
 
 interface Site {
   id: string;
   name: string;
   location: string;
+  siteType?: 'wasstraat' | 'selfcarwash';
 }
 
 interface SiteSelectorProps {
@@ -30,7 +32,7 @@ export function SiteSelector({ sites, activeSiteId }: SiteSelectorProps) {
   const active = sites.find((s) => s.id === activeSiteId);
 
   if (sites.length <= 1) {
-    return <span className={styles.staticValue}>{active?.location ?? '—'}</span>;
+    return <span className={styles.staticValue}>{siteLabel(active)}</span>;
   }
 
   return (
@@ -43,13 +45,13 @@ export function SiteSelector({ sites, activeSiteId }: SiteSelectorProps) {
       >
         {sites.map((s) => (
           <option key={s.id} value={s.id}>
-            {s.location}
+            {siteLabel(s)}
           </option>
         ))}
       </select>
       {/* visible value label (mirrors the select) */}
       <span className={styles.value} aria-hidden="true">
-        {active?.location ?? '—'}
+        {siteLabel(active)}
         <span className={styles.chevron} />
       </span>
     </div>

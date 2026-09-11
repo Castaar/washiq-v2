@@ -38,6 +38,7 @@ export default async function DashboardPage({
     location: (s.location as string) ?? '',
     setup_done: (s.setup_done as boolean) ?? false,
     site_type: ((s.site_type as string) ?? 'wasstraat') as 'wasstraat' | 'selfcarwash',
+    siteType: ((s.site_type as string) ?? 'wasstraat') as 'wasstraat' | 'selfcarwash',
   }));
 
   const userRole = (userDoc?.role as string) ?? session?.role ?? 'employee';

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import type { AlertItem, AlertsPanelData, DagfichePayload, IncidentPayload, MaintenanceTaskPayload } from '@/lib/types/dashboard';
 import { DynamicIcon, IconTrash, IconMessageSquare, IconX, IconChevronLeft, IconChevronRight } from '@/components/ui/icons';
@@ -289,6 +290,8 @@ interface DayLog {
   prevHref: string;
   nextHref: string;
   todayHref: string;
+  dateStr: string;
+  siteQuery: string;
 }
 
 interface AlertsPanelProps {
@@ -299,6 +302,8 @@ interface AlertsPanelProps {
 export function AlertsPanel({ data, dayLog }: AlertsPanelProps) {
   const t = useTranslations('alerts');
   const tCommon = useTranslations('common');
+  const router = useRouter();
+  const dateInputRef = useRef<HTMLInputElement>(null);
   const [active, setActive]               = useState<AlertTab>('alerts');
   const [archiveOpen, setArchiveOpen]     = useState(false);
   const [dagficheOpen, setDagficheOpen]   = useState<DagficheModalState | null>(null);
@@ -385,11 +390,25 @@ export function AlertsPanel({ data, dayLog }: AlertsPanelProps) {
             <Link href={dayLog.prevHref} className={styles.dayNavBtn} aria-label={t('vorigeDag')}>
               <IconChevronLeft size={16} />
             </Link>
-            {dayLog.isToday ? (
-              <span className={styles.dayLabel}>{tCommon('vandaag')} · {dayLog.label}</span>
-            ) : (
-              <Link href={dayLog.todayHref} className={styles.dayLabelLink}>{dayLog.label}</Link>
-            )}
+            <span className={styles.dayLabelWrap}>
+              <span className={dayLog.isToday ? styles.dayLabel : styles.dayLabelLink}>
+                {dayLog.isToday ? `${tCommon('vandaag')} · ${dayLog.label}` : dayLog.label}
+              </span>
+              {/* Invisible native date input laid directly over the label —
+                  a tap goes straight to the real input, opening the OS date
+                  picker without relying on showPicker() (unsupported on
+                  several iOS Safari versions). */}
+              <input
+                ref={dateInputRef}
+                type="date"
+                className={styles.dayDateInput}
+                value={dayLog.dateStr}
+                onChange={(e) => {
+                  if (e.target.value) router.push(`/?date=${e.target.value}${dayLog.siteQuery}`);
+                }}
+                aria-label={t('kiesDatum')}
+              />
+            </span>
             <Link href={dayLog.nextHref} className={styles.dayNavBtn} aria-label={t('volgendeDag')}>
               <IconChevronRight size={16} />
             </Link>

@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { IconChevronLeft } from '@/components/ui/icons';
 import { SiteSelector } from './SiteSelector';
+import { siteLabel } from '@/lib/siteLabel';
 import { LogoutButton } from './LogoutButton';
 import styles from './NavBar.module.scss';
 
@@ -10,6 +11,7 @@ interface Site {
   id: string;
   name: string;
   location: string;
+  siteType?: 'wasstraat' | 'selfcarwash';
 }
 
 interface NavBarProps {
@@ -42,7 +44,7 @@ export async function NavBar({ centerTitle, sites, activeSiteId, addHref, addLab
             <>
               <span className={styles.brandText}>WashIQ</span>
               {sites && sites.length > 0 && activeSiteId ? (
-                <Suspense fallback={<span className={styles.siteFallback}>{sites.find((s) => s.id === activeSiteId)?.location ?? '—'}</span>}>
+                <Suspense fallback={<span className={styles.siteFallback}>{siteLabel(sites.find((s) => s.id === activeSiteId))}</span>}>
                   <SiteSelector sites={sites} activeSiteId={activeSiteId} />
                 </Suspense>
               ) : null}

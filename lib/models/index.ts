@@ -595,6 +595,33 @@ const AgendaEventSchema = new Schema<IAgendaEvent>({
 AgendaEventSchema.index({ site_id: 1, date: 1 });
 export const AgendaEvent = models.AgendaEvent || model<IAgendaEvent>('AgendaEvent', AgendaEventSchema);
 
+// ─── Verlof (leave/vacation days) ──────────────────────────────
+// Not site-scoped — an employee's leave applies wherever they'd otherwise
+// be scheduled, across every carwash. Stored as a date range so multi-day
+// leave is a single row; a single day off is just start === end.
+export interface IVerlof extends Document {
+  user_id: Types.ObjectId;
+  user_name: string;
+  start_date: Date;
+  end_date: Date;
+  note: string;
+  created_by: Types.ObjectId;
+  created_by_name: string;
+  created_at: Date;
+}
+const VerlofSchema = new Schema<IVerlof>({
+  user_id: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  user_name: { type: String, default: '' },
+  start_date: { type: Date, required: true },
+  end_date: { type: Date, required: true },
+  note: { type: String, default: '' },
+  created_by: { type: Schema.Types.ObjectId, ref: 'User' },
+  created_by_name: { type: String, default: '' },
+  created_at: { type: Date, default: Date.now },
+});
+VerlofSchema.index({ user_id: 1, start_date: 1 });
+export const Verlof = models.Verlof || model<IVerlof>('Verlof', VerlofSchema);
+
 // ─── Announcement ─────────────────────────────────────────────
 export interface IAnnouncement extends Document {
   text: string;

@@ -33,6 +33,15 @@ export interface AgendaEventItem {
   createdByName: string;
 }
 
+export interface VerlofItem {
+  id: string;
+  userId: string;
+  userName: string;
+  startDate: string;
+  endDate: string;
+  note: string;
+}
+
 interface PlanningPanelProps {
   siteId: string;
   userRole: string;
@@ -40,6 +49,7 @@ interface PlanningPanelProps {
   shifts: Shift[];
   employees: PlanningEmployee[];
   agendaEvents: AgendaEventItem[];
+  verlofItems: VerlofItem[];
   weekStart: string;
   allowedSites?: AllowedSite[];
 }
@@ -76,6 +86,13 @@ function shiftHours(startTime: string, endTime: string): number {
   return Math.max(0, (eh * 60 + em - sh * 60 - sm) / 60);
 }
 
+const MONTH_NAMES_LONG = ['januari', 'februari', 'maart', 'april', 'mei', 'juni', 'juli', 'augustus', 'september', 'oktober', 'november', 'december'];
+
+function monthLabel(dateStr: string): string {
+  const d = new Date(`${dateStr}T00:00:00Z`);
+  return `${MONTH_NAMES_LONG[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+}
+
 function isWeekend(dateStr: string): boolean {
   const d = new Date(`${dateStr}T00:00:00Z`).getUTCDay();
   return d === 0 || d === 6;
@@ -92,10 +109,20 @@ function weekendsInWindow(shifts: Shift[], userId: string, windowWeeks: number, 
   return days.size;
 }
 
-export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initialShifts, employees, agendaEvents: initialAgendaEvents, weekStart: initialWeekStart, allowedSites = [] }: PlanningPanelProps) {
+export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initialShifts, employees, agendaEvents: initialAgendaEvents, verlofItems: initialVerlofItems, weekStart: initialWeekStart, allowedSites = [] }: PlanningPanelProps) {
   const [shifts, setShifts] = useState<Shift[]>(initialShifts);
   const [agendaEvents, setAgendaEvents] = useState<AgendaEventItem[]>(initialAgendaEvents);
+  const [verlofItems, setVerlofItems] = useState<VerlofItem[]>(initialVerlofItems);
   const [weekStart, setWeekStart] = useState(getMondayOf(initialWeekStart));
+  const [hoursView, setHoursView] = useState<'week' | 'month'>('week');
+  const [shiftError, setShiftError] = useState('');
+
+  // New verlof form (per day, opened inline like agenda-item)
+  const [verlofFormDate, setVerlofFormDate] = useState<string | null>(null);
+  const [verlofUserId, setVerlofUserId] = useState('');
+  const [verlofStart, setVerlofStart] = useState('');
+  const [verlofEnd, setVerlofEnd] = useState('');
+  const [savingVerlof, setSavingVerlof] = useState(false);
 
   // New agenda-note form (per day, opened inline)
   const [agendaFormDate, setAgendaFormDate] = useState<string | null>(null);
@@ -140,11 +167,22 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
 
   // Filter shifts to current week
   const weekShifts = shifts.filter((s) => weekDays.includes(s.date));
+  // Filter shifts to the calendar month the currently viewed week falls in
+  const monthPrefix = weekStart.slice(0, 7); // "YYYY-MM"
+  const monthShifts = shifts.filter((s) => s.date.startsWith(monthPrefix));
+  const hoursShifts = hoursView === 'week' ? weekShifts : monthShifts;
   const weekAgenda = agendaEvents.filter((a) => weekDays.includes(a.date));
   // Upcoming agenda notes, for the employee view (not tied to their own shifts)
   const upcomingAgenda = agendaEvents
     .filter((a) => a.date >= today)
     .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
+
+  function verlofOn(date: string): VerlofItem[] {
+    return verlofItems.filter((v) => v.startDate <= date && v.endDate >= date);
+  }
+  function isOnVerlof(userId: string, date: string): boolean {
+    return verlofItems.some((v) => v.userId === userId && v.startDate <= date && v.endDate >= date);
+  }
 
   // My shifts (for employee view)
   const myShifts = shifts
@@ -154,7 +192,12 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
   async function handleAddShift(e: React.FormEvent) {
     e.preventDefault();
     if (!newUserId || !newDate) return;
+    setShiftError('');
     const emp = employees.find((em) => em.id === newUserId);
+    if (isOnVerlof(newUserId, newDate)) {
+      setShiftError(`${emp?.name ?? 'Deze medewerker'} heeft verlof op ${newDate}.`);
+      return;
+    }
     setSaving(true);
     const res = await fetch('/api/planning', {
       method: 'POST',
@@ -178,8 +221,52 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
         setShifts((prev) => [...prev, shift]);
       }
       setNewNote('');
+    } else {
+      const err = (await res.json().catch(() => null)) as { error?: string } | null;
+      setShiftError(err?.error ?? 'Opslaan mislukt.');
     }
     setSaving(false);
+  }
+
+  async function handleAddVerlof() {
+    if (!verlofUserId || !verlofStart || !verlofEnd) return;
+    const emp = employees.find((em) => em.id === verlofUserId);
+    setSavingVerlof(true);
+    try {
+      const res = await fetch('/api/verlof', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: verlofUserId,
+          userName: emp?.name ?? '',
+          startDate: verlofStart,
+          endDate: verlofEnd,
+        }),
+      });
+      if (res.ok) {
+        const item = (await res.json()) as VerlofItem;
+        setVerlofItems((prev) => [...prev, item]);
+        // Any shifts already scheduled for this employee within the new
+        // leave range no longer make sense — remove them for real, not just
+        // from the local view, so they don't reappear on reload.
+        const conflicting = shifts.filter((s) => s.userId === verlofUserId && s.date >= verlofStart && s.date <= verlofEnd);
+        if (conflicting.length > 0) {
+          await Promise.allSettled(conflicting.map((s) => fetch(`/api/planning/${s.id}`, { method: 'DELETE' })));
+          setShifts((prev) => prev.filter((s) => !conflicting.some((c) => c.id === s.id)));
+        }
+        setVerlofFormDate(null);
+        setVerlofUserId('');
+        setVerlofStart('');
+        setVerlofEnd('');
+      }
+    } finally {
+      setSavingVerlof(false);
+    }
+  }
+
+  async function handleDeleteVerlof(id: string) {
+    const res = await fetch(`/api/verlof/${id}`, { method: 'DELETE' });
+    if (res.ok) setVerlofItems((prev) => prev.filter((v) => v.id !== id));
   }
 
   async function handleDelete(id: string) {
@@ -284,6 +371,7 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
         {weekDays.map((date, i) => {
           const dayShifts = weekShifts.filter((s) => s.date === date);
           const dayAgenda = weekAgenda.filter((a) => a.date === date);
+          const dayVerlof = verlofOn(date);
           const isToday = date === today;
           return (
             <div key={date} className={[styles.dayRow, isToday ? styles.todayCol : ''].join(' ')}>
@@ -292,6 +380,71 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
                 <span className={styles.dayDate}>{fmtDayLabel(date)}</span>
                 {isToday && <span className={styles.todayBadge}>Vandaag</span>}
               </div>
+
+              {dayVerlof.length > 0 && (
+                <div className={styles.verlofBand}>
+                  {dayVerlof.map((v) => (
+                    <span key={v.id} className={styles.verlofChip}>
+                      Verlof: {v.userName}
+                      <button
+                        type="button"
+                        className={styles.verlofDelete}
+                        onClick={() => handleDeleteVerlof(v.id)}
+                        aria-label="Verlof verwijderen"
+                      >✕</button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {verlofFormDate === date ? (
+                <div className={styles.agendaAddRow}>
+                  <select
+                    className={styles.agendaTextInput}
+                    value={verlofUserId}
+                    onChange={(e) => setVerlofUserId(e.target.value)}
+                  >
+                    <option value="">Medewerker...</option>
+                    {employees.map((em) => (
+                      <option key={em.id} value={em.id}>{em.name}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="date"
+                    className={styles.agendaTimeInput}
+                    value={verlofStart}
+                    onChange={(e) => setVerlofStart(e.target.value)}
+                  />
+                  <input
+                    type="date"
+                    className={styles.agendaTimeInput}
+                    value={verlofEnd}
+                    onChange={(e) => setVerlofEnd(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className={styles.agendaAddBtn}
+                    onClick={handleAddVerlof}
+                    disabled={savingVerlof || !verlofUserId || !verlofStart || !verlofEnd}
+                  >
+                    {savingVerlof ? '...' : 'OK'}
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.chipDelete}
+                    onClick={() => { setVerlofFormDate(null); setVerlofUserId(''); setVerlofStart(''); setVerlofEnd(''); }}
+                    aria-label="Annuleren"
+                  >✕</button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className={styles.navBtn}
+                  onClick={() => { setVerlofFormDate(date); setVerlofStart(date); setVerlofEnd(date); }}
+                >
+                  + Verlof
+                </button>
+              )}
 
               {dayAgenda.length > 0 && (
                 <div className={styles.agendaList}>
@@ -375,11 +528,31 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
       {/* ── Uren & weekend overzicht per medewerker ─────────── */}
       {employees.length > 0 && (
         <div className={styles.hoursTable}>
-          <h3 className={styles.hoursTitle}>Overzicht deze week</h3>
+          <div className={styles.hoursHeader}>
+            <h3 className={styles.hoursTitle}>
+              {hoursView === 'week' ? 'Overzicht deze week' : `Overzicht ${monthLabel(weekStart)}`}
+            </h3>
+            <div className={styles.hoursToggle}>
+              <button
+                type="button"
+                className={[styles.hoursToggleBtn, hoursView === 'week' ? styles.hoursToggleActive : ''].filter(Boolean).join(' ')}
+                onClick={() => setHoursView('week')}
+              >
+                Week
+              </button>
+              <button
+                type="button"
+                className={[styles.hoursToggleBtn, hoursView === 'month' ? styles.hoursToggleActive : ''].filter(Boolean).join(' ')}
+                onClick={() => setHoursView('month')}
+              >
+                Maand
+              </button>
+            </div>
+          </div>
           <div className={styles.hoursRows}>
             {employees.map((emp) => {
-              const empWeekShifts = weekShifts.filter((s) => s.userId === emp.id);
-              const totalHours = empWeekShifts.reduce((sum, s) => sum + shiftHours(s.startTime, s.endTime), 0);
+              const empHoursShifts = hoursShifts.filter((s) => s.userId === emp.id);
+              const totalHours = empHoursShifts.reduce((sum, s) => sum + shiftHours(s.startTime, s.endTime), 0);
               const weekendDays4w = weekendsInWindow(shifts, emp.id, 4, weekStart);
               const weekendWarn = weekendDays4w >= 4;
               return (
@@ -422,10 +595,12 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
             <select
               className={styles.select}
               value={newUserId}
-              onChange={(e) => setNewUserId(e.target.value)}
+              onChange={(e) => { setNewUserId(e.target.value); setShiftError(''); }}
             >
               {siteEmployees.map((em) => (
-                <option key={em.id} value={em.id}>{em.name}</option>
+                <option key={em.id} value={em.id} disabled={isOnVerlof(em.id, newDate)}>
+                  {em.name}{isOnVerlof(em.id, newDate) ? ' (verlof)' : ''}
+                </option>
               ))}
             </select>
           </div>
@@ -435,7 +610,7 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
               type="date"
               className={styles.input}
               value={newDate}
-              onChange={(e) => setNewDate(e.target.value)}
+              onChange={(e) => { setNewDate(e.target.value); setShiftError(''); }}
             />
           </div>
           <div className={styles.formField}>
@@ -467,10 +642,11 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
             />
           </div>
         </div>
+        {shiftError && <p className={styles.shiftError}>{shiftError}</p>}
         <button
           type="submit"
           className={styles.submitBtn}
-          disabled={saving || !newUserId || !newDate}
+          disabled={saving || !newUserId || !newDate || isOnVerlof(newUserId, newDate)}
         >
           {saving ? 'Opslaan...' : 'Shift toevoegen'}
         </button>

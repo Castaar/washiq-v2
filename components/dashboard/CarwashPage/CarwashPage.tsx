@@ -981,6 +981,8 @@ export async function CarwashPage({
                 prevHref: dayLogPrevHref,
                 nextHref: dayLogNextHref,
                 todayHref: dayLogTodayHref,
+                dateStr: logDateStr,
+                siteQuery: dayLogSiteQuery,
               } : undefined}
             />
             <VoorraadPanel items={voorraad} />

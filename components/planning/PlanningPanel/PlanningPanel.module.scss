@@ -96,6 +96,47 @@
   margin-bottom: var(--space-2);
 }
 
+// ─── Verlof band — spans the full width of the day cell ───────
+.verlofBand {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.verlofChip {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--color-accent-red-dim);
+  border: 1px solid var(--color-accent-red-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-accent-red);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.verlofDelete {
+  background: transparent;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: 0.75rem;
+  padding: 2px;
+  opacity: 0.8;
+
+  &:hover { opacity: 1; }
+}
+
+.shiftError {
+  font-size: 0.8125rem;
+  color: var(--color-accent-red);
+  margin: 0;
+}
+
 .agendaChip {
   background: var(--color-accent-amber-dim);
   border: 1px solid var(--color-accent-amber-border);
@@ -229,6 +270,40 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+}
+
+.hoursHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.hoursToggle {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.hoursToggleBtn {
+  height: 26px;
+  padding: 0 var(--space-3);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+
+  &:hover { color: var(--color-text-secondary); }
+}
+
+.hoursToggleActive {
+  border-color: var(--color-accent-blue);
+  color: var(--color-accent-blue);
 }
 
 .hoursTitle {

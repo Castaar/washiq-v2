@@ -1,9 +1,9 @@
 import { cookies } from 'next/headers';
 import { NavBar } from '@/components/layout/NavBar/NavBar';
 import { PlanningPanel } from '@/components/planning/PlanningPanel/PlanningPanel';
-import type { Shift, PlanningEmployee, AgendaEventItem } from '@/components/planning/PlanningPanel/PlanningPanel';
+import type { Shift, PlanningEmployee, AgendaEventItem, VerlofItem } from '@/components/planning/PlanningPanel/PlanningPanel';
 import { dbConnect } from '@/lib/db/mongoose';
-import { Site, Planning, User, AgendaEvent } from '@/lib/models';
+import { Site, Planning, User, AgendaEvent, Verlof } from '@/lib/models';
 import { getSession } from '@/lib/session';
 import type { Types } from 'mongoose';
 import { filterSitesForUser, resolveActiveSite, redirectIfSetupNeeded, redirectWithSiteParam } from '@/lib/getUserSites';
@@ -37,18 +37,20 @@ export default async function PlanningPage({
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const twoWeeksLater = new Date(today);
-  twoWeeksLater.setDate(twoWeeksLater.getDate() + 14);
 
-  const from = new Date(today);
-  from.setDate(from.getDate() - 7);
+  // Wide enough window to cover the "per maand" uren-overzicht (the full
+  // calendar month around today) plus a few weeks of navigation either
+  // side of it — the week/day switchers only filter this already-fetched
+  // set client-side, they don't refetch.
+  const from = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+  const to = new Date(today.getFullYear(), today.getMonth() + 2, 0);
 
-  const [shiftDocs, employeeDocs, agendaDocs] = await Promise.all([
+  const [shiftDocs, employeeDocs, agendaDocs, verlofDocs] = await Promise.all([
     // Scoped to the currently active carwash only — matches the site
     // selector in the top bar, same as every other page.
     Planning.find({
       site_id: siteId,
-      date: { $gte: from, $lte: twoWeeksLater },
+      date: { $gte: from, $lte: to },
       ...(!isOwner && session?.userId ? { user_id: session.userId } : {}),
     }).sort({ date: 1, start_time: 1 }).lean(),
     // Any employee account can be scheduled at any carwash, not just the
@@ -58,8 +60,12 @@ export default async function PlanningPage({
       : Promise.resolve([]),
     // Day-notes (VIP-behandeling, groepsboeking, ...) — visible to everyone,
     // not tied to a specific employee's shift.
-    AgendaEvent.find({ site_id: siteId, date: { $gte: from, $lte: twoWeeksLater } })
+    AgendaEvent.find({ site_id: siteId, date: { $gte: from, $lte: to } })
       .sort({ date: 1, time: 1 }).lean(),
+    // Verlof isn't site-scoped — an employee off work is off work everywhere.
+    isOwner
+      ? Verlof.find({ start_date: { $lte: to }, end_date: { $gte: from } }).sort({ start_date: 1 }).lean()
+      : Promise.resolve([]),
   ]);
 
   const shifts: Shift[] = shiftDocs.map((d) => ({
@@ -76,6 +82,15 @@ export default async function PlanningPage({
     id: u._id.toString(),
     name: u.name,
     siteIds: (u.site_ids ?? []).map((sid) => sid.toString()),
+  }));
+
+  const verlofItems: VerlofItem[] = verlofDocs.map((d) => ({
+    id: (d._id as Types.ObjectId).toString(),
+    userId: (d.user_id as Types.ObjectId).toString(),
+    userName: (d.user_name as string) ?? '',
+    startDate: (d.start_date as Date).toISOString().slice(0, 10),
+    endDate: (d.end_date as Date).toISOString().slice(0, 10),
+    note: (d.note as string) ?? '',
   }));
 
   const agendaEvents: AgendaEventItem[] = agendaDocs.map((d) => ({
@@ -100,6 +115,7 @@ export default async function PlanningPage({
             shifts={shifts}
             employees={employees}
             agendaEvents={agendaEvents}
+            verlofItems={verlofItems}
             weekStart={weekStart}
             allowedSites={allowedSites}
           />

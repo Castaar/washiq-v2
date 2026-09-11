@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
-import { Planning } from '@/lib/models';
+import { Planning, Verlof } from '@/lib/models';
 import { getSessionFromRequest } from '@/lib/session';
 import { sendPushToUser } from '@/lib/push';
 import type { Types } from 'mongoose';
@@ -68,6 +68,18 @@ export async function POST(req: NextRequest) {
   }
 
   await dbConnect();
+
+  // An employee on verlof that day can't be scheduled — enforce it here too,
+  // not just in the UI, since the API can be called directly.
+  const date = new Date(body.date);
+  const onLeave = await Verlof.findOne({
+    user_id: body.userId,
+    start_date: { $lte: date },
+    end_date: { $gte: date },
+  }).lean();
+  if (onLeave) {
+    return NextResponse.json({ error: `${body.userName} heeft verlof op ${body.date}` }, { status: 409 });
+  }
 
   const doc = await Planning.create({
     site_id: body.siteId,
