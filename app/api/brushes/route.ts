@@ -39,6 +39,7 @@ export async function POST(req: NextRequest) {
     category: 'verticaal_links' | 'verticaal_rechts' | 'horizontaal';
     label: string;
     currentTellerstand?: number;
+    alreadyUsed?: number;
   };
   if (!body.siteId || !body.category || !body.label?.trim()) {
     return NextResponse.json({ error: 'siteId, category and label required' }, { status: 400 });
@@ -48,14 +49,19 @@ export async function POST(req: NextRequest) {
 
   const count = await Brush.countDocuments({ site_id: body.siteId, category: body.category });
 
+  // A brand-new brush starts its wear count from today's tellerstand (0
+  // washes done yet). If it's an already-used brush being registered for
+  // the first time, "alreadyUsed" backdates that starting point so the
+  // wear-since-replacement figure is correct from day one.
+  const currentTellerstand = body.currentTellerstand ?? 0;
+  const alreadyUsed = Math.max(0, body.alreadyUsed ?? 0);
+
   const doc = await Brush.create({
     site_id: body.siteId,
     category: body.category,
     label: body.label.trim(),
     order: count,
-    // A brush added today starts its wear count from today's tellerstand,
-    // not from zero — otherwise it would look worn out immediately.
-    washes_at_last_replacement: body.currentTellerstand ?? 0,
+    washes_at_last_replacement: currentTellerstand - alreadyUsed,
     last_replaced_at: new Date(),
   });
 

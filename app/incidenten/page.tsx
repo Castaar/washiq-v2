@@ -86,6 +86,7 @@ export default async function IncidentenPage({
         installatiefout: Boolean(s.installatiefout),
         klantVerantwoordelijk: Boolean(s.klant_verantwoordelijk),
         verzekeringsdocumenten: Boolean(s.verzekeringsdocumenten),
+        photos: (s.photos as string[]) ?? [],
       };
       return {
         id: (s._id as Types.ObjectId).toString(),
@@ -112,6 +113,7 @@ export default async function IncidentenPage({
         ehboVerlener: (e.ehbo_verlener as string) || '',
         beschrijving: (e.beschrijving as string) || '',
         dokterNodig: Boolean(e.dokter_nodig),
+        photos: (e.photos as string[]) ?? [],
       };
       return {
         id: (e._id as Types.ObjectId).toString(),
@@ -133,6 +135,7 @@ export default async function IncidentenPage({
         date: fmtDate(new Date(d.created_at as Date)),
         omschrijving: (d.omschrijving as string) || '',
         ernst: (d.ernst as string) || 'medium',
+        photos: (d.photos as string[]) ?? [],
       };
       return {
         id: (d._id as Types.ObjectId).toString(),

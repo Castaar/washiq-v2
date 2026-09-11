@@ -52,6 +52,8 @@ export function IncidentModal({ payload, refId, refType, siteId, onClose }: Inci
   const canResolve = payload.type === 'schade' || payload.type === 'defect';
   const [isResolved, setIsResolved] = useState(canResolve ? Boolean(payload.isResolved) : false);
   const [resolving, setResolving] = useState(false);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+  const photos = payload.photos ?? [];
 
   async function handleToggleResolve() {
     if (!canResolve) return;
@@ -178,9 +180,34 @@ export function IncidentModal({ payload, refId, refType, siteId, onClose }: Inci
             </>
           )}
 
+        {photos.length > 0 && (
+          <div className={styles.section}>
+            <p className={styles.sectionTitle}>{t('fotos')}</p>
+            <div className={styles.photoGrid}>
+              {photos.map((src, i) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  key={i}
+                  src={src}
+                  alt={t('fotoAltText', { number: i + 1 })}
+                  className={styles.photoThumb}
+                  onClick={() => setLightboxSrc(src)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Historiek + reacties */}
         <ActivitySection refId={refId} refType={refType} siteId={siteId} />
       </div>
+
+      {lightboxSrc && (
+        <div className={styles.lightbox} onClick={() => setLightboxSrc(null)}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={lightboxSrc} alt="" className={styles.lightboxImg} />
+        </div>
+      )}
     </BottomSheet>
   );
 }

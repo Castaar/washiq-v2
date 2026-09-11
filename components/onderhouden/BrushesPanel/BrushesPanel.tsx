@@ -54,6 +54,7 @@ export function BrushesPanel({
   const [formOpen, setFormOpen] = useState(false);
   const [newCategory, setNewCategory] = useState<BrushCategory>('verticaal_links');
   const [newLabel, setNewLabel] = useState('');
+  const [newAlreadyUsed, setNewAlreadyUsed] = useState('');
   const [saving, setSaving] = useState(false);
 
   function suggestLabel(category: BrushCategory) {
@@ -63,12 +64,13 @@ export function BrushesPanel({
 
   async function handleAdd() {
     const label = newLabel.trim() || suggestLabel(newCategory);
+    const alreadyUsed = Math.max(0, Number(newAlreadyUsed) || 0);
     setSaving(true);
     try {
       const res = await fetch('/api/brushes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ siteId, category: newCategory, label, currentTellerstand }),
+        body: JSON.stringify({ siteId, category: newCategory, label, currentTellerstand, alreadyUsed }),
       });
       if (res.ok) {
         const { id } = (await res.json()) as { id: string };
@@ -79,11 +81,12 @@ export function BrushesPanel({
             category: newCategory,
             label,
             order: prev.filter((b) => b.category === newCategory).length,
-            washesAtLastReplacement: currentTellerstand,
+            washesAtLastReplacement: currentTellerstand - alreadyUsed,
             lastReplacedAt: new Date().toISOString(),
           },
         ]);
         setNewLabel('');
+        setNewAlreadyUsed('');
         setFormOpen(false);
       }
     } finally {
@@ -226,6 +229,17 @@ export function BrushesPanel({
                 onChange={(e) => setNewLabel(e.target.value)}
               />
             </div>
+            <div className={styles.addFormRow}>
+              <input
+                type="number"
+                min="0"
+                className={styles.input}
+                placeholder={t('reedsGebruikt')}
+                value={newAlreadyUsed}
+                onChange={(e) => setNewAlreadyUsed(e.target.value)}
+              />
+            </div>
+            <p className={styles.addFormHint}>{t('reedsGebruiktHint')}</p>
             <div className={styles.addFormActions}>
               <button type="button" className={styles.cancelBtn} onClick={() => { setFormOpen(false); setNewLabel(''); }}>{tCommon('annuleren')}</button>
               <button type="button" className={styles.saveBtn} onClick={handleAdd} disabled={saving}>

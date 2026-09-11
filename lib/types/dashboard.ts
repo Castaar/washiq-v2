@@ -38,6 +38,7 @@ export interface IncidentSchadePayload {
   installatiefout: boolean;
   klantVerantwoordelijk: boolean;
   verzekeringsdocumenten: boolean;
+  photos?: string[];
 }
 
 export interface IncidentEhboPayload {
@@ -52,6 +53,7 @@ export interface IncidentEhboPayload {
   ehboVerlener: string;
   beschrijving: string;
   dokterNodig: boolean;
+  photos?: string[];
 }
 
 export interface DefectPayload {
@@ -61,6 +63,7 @@ export interface DefectPayload {
   date: string;
   omschrijving: string;
   ernst: string;
+  photos?: string[];
 }
 
 export type IncidentPayload = IncidentSchadePayload | IncidentEhboPayload | DefectPayload;

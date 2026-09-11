@@ -271,7 +271,9 @@
     "nieuwTextielGestoken": "Nieuw textiel gestoken",
     "verwijderen": "{label} verwijderen",
     "borstelToevoegen": "Borstel toevoegen",
-    "openBorstelToevoegen": "+ Borstel toevoegen"
+    "openBorstelToevoegen": "+ Borstel toevoegen",
+    "reedsGebruikt": "Reeds gebruikt (wasbeurten)",
+    "reedsGebruiktHint": "Optioneel — laat leeg voor een nieuwe borstel. Vul in als deze borstel al versleten wasbeurten heeft."
   },
   "leveringen": {
     "leveringGeregistreerd": "Levering geregistreerd",
@@ -395,7 +397,9 @@
     "jaarlijks": "{date} (jaarlijks)",
     "markeerOpgelost": "Markeer opgelost",
     "markeerOnopgelost": "Markeer onopgelost",
-    "opgelost": "✓ Opgelost"
+    "opgelost": "✓ Opgelost",
+    "fotos": "Foto's",
+    "fotoAltText": "Foto {number}"
   },
   "alerts": {
     "meldingen": "Meldingen",

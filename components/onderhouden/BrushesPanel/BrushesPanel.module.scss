@@ -209,6 +209,12 @@
   flex-wrap: wrap;
 }
 
+.addFormHint {
+  margin: -4px 0 0;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
 .select,
 .input {
   height: 40px;

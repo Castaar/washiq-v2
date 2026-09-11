@@ -545,6 +545,7 @@ export async function CarwashPage({
         date: fmtDate(new Date(d.created_at as Date)),
         omschrijving: (d.omschrijving as string) || '',
         ernst: (d.ernst as string) || 'medium',
+        photos: (d.photos as string[]) ?? [],
       };
       return {
         id, refId: id, refType: 'defect' as const, siteId: siteId ?? '',
@@ -725,6 +726,7 @@ export async function CarwashPage({
       installatiefout: Boolean(s.installatiefout),
       klantVerantwoordelijk: Boolean(s.klant_verantwoordelijk),
       verzekeringsdocumenten: Boolean(s.verzekeringsdocumenten),
+      photos: (s.photos as string[]) ?? [],
     };
     dayLogEntries.push({
       ts: ts.getTime(),
@@ -754,6 +756,7 @@ export async function CarwashPage({
       ehboVerlener: (e.ehbo_verlener as string) || '',
       beschrijving: (e.beschrijving as string) || '',
       dokterNodig: Boolean(e.dokter_nodig),
+      photos: (e.photos as string[]) ?? [],
     };
     dayLogEntries.push({
       ts: ts.getTime(),
@@ -780,6 +783,7 @@ export async function CarwashPage({
       date: fmtDate(ts),
       omschrijving: (d.omschrijving as string) || '',
       ernst: (d.ernst as string) || 'medium',
+      photos: (d.photos as string[]) ?? [],
     };
     dayLogEntries.push({
       ts: ts.getTime(),

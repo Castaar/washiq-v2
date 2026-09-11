@@ -32,7 +32,9 @@ export async function POST(req: NextRequest) {
     photos: Array.isArray(body.photos) ? body.photos : [],
   });
 
-  User.find({ site_ids: body.siteId, role: { $in: ['owner', 'developer'] }, is_active: true })
+  // Developers see every site regardless of their assigned site_ids —
+  // owners stay scoped to their own sites.
+  User.find({ is_active: true, $or: [{ role: 'developer' }, { site_ids: body.siteId, role: 'owner' }] })
     .select('_id')
     .lean()
     .then((notifyUsers) =>

@@ -29,7 +29,9 @@ export async function GET(req: NextRequest) {
     const [tasks, latestEntry, notifyUsers] = await Promise.all([
       MaintenanceTask.find({ site_id: siteId }).lean(),
       WeeklyEntry.findOne({ site_id: siteId }).sort({ week_start: -1 }).select('tellerstand').lean(),
-      User.find({ site_ids: siteId, role: { $in: ['owner', 'developer'] }, is_active: true }).select('_id').lean(),
+      // Developers see every site regardless of their assigned site_ids —
+      // owners stay scoped to their own sites.
+      User.find({ is_active: true, $or: [{ role: 'developer' }, { site_ids: siteId, role: 'owner' }] }).select('_id').lean(),
     ]);
 
     const currentTellerstand = (latestEntry as { tellerstand?: number } | null)?.tellerstand ?? 0;

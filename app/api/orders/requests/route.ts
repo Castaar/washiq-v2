@@ -56,7 +56,9 @@ export async function POST(req: NextRequest) {
 
   const [siteDoc, notifyUsers] = await Promise.all([
     Site.findById(body.siteId).select('name').lean(),
-    User.find({ site_ids: body.siteId, role: { $in: ['owner', 'developer'] }, is_active: true }).select('_id').lean(),
+    // Developers see every site regardless of their assigned site_ids —
+    // owners stay scoped to their own sites.
+    User.find({ is_active: true, $or: [{ role: 'developer' }, { site_ids: body.siteId, role: 'owner' }] }).select('_id').lean(),
   ]);
   const siteName = (siteDoc as { name?: string } | null)?.name ?? '';
 
