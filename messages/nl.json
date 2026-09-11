@@ -399,7 +399,9 @@
     "markeerOnopgelost": "Markeer onopgelost",
     "opgelost": "✓ Opgelost",
     "fotos": "Foto's",
-    "fotoAltText": "Foto {number}"
+    "fotoAltText": "Foto {number}",
+    "markeerNietGedaan": "Markeer niet gedaan",
+    "nietGedaanGezet": "✓ Terug open gezet"
   },
   "alerts": {
     "meldingen": "Meldingen",

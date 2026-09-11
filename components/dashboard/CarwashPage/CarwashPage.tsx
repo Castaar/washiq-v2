@@ -516,17 +516,30 @@ export async function CarwashPage({
 
   const onderhoudItems: AlertItem[] = [
     ...logs.map((l) => {
-      const taskDesc = (l.task_id as unknown as { description?: string } | null)?.description ?? '';
+      const task = l.task_id as unknown as { _id: Types.ObjectId; description?: string } | null;
+      const taskDesc = task?.description ?? '';
       const title = taskDesc
         ? `Onderhoud: ${taskDesc}${l.notes ? ` — ${l.notes}` : ''}`
         : l.notes ? `Onderhoud: ${l.notes}` : 'Onderhoud uitgevoerd';
+      const payload: MaintenanceTaskPayload | undefined = task ? {
+        type: 'maintenance_task',
+        description: taskDesc,
+        triggerType: 'washes',
+        triggerValue: 0,
+        lastDoneAt: fmtDate(new Date(l.done_at as Date)),
+        taskId: task._id.toString(),
+        canUndo: true,
+        notes: (l.notes as string) ?? '',
+      } : undefined;
       return {
         id:      l._id.toString(),
-        refType: 'maintenance_log' as const,
+        refId:   task ? task._id.toString() : l._id.toString(),
+        refType: 'maintenance_task' as const,
         siteId:  siteId ?? '',
         title,
         severity: 'low' as const,
         iconName: 'check',
+        payload,
       };
     }),
   ];
@@ -690,19 +703,33 @@ export async function CarwashPage({
 
   for (const l of dayMaintenanceLogs) {
     const ts = new Date(l.done_at as Date);
-    const taskDesc = (l.task_id as unknown as { description?: string } | null)?.description ?? '';
+    const task = l.task_id as unknown as { _id: Types.ObjectId; description?: string } | null;
+    const taskDesc = task?.description ?? '';
     const title = taskDesc
       ? `Onderhoud: ${taskDesc}${l.notes ? ` — ${l.notes}` : ''}`
       : l.notes ? `Onderhoud: ${l.notes}` : 'Onderhoud uitgevoerd';
+    const payload: MaintenanceTaskPayload | undefined = task ? {
+      type: 'maintenance_task',
+      description: taskDesc,
+      triggerType: 'washes',
+      triggerValue: 0,
+      lastDoneAt: fmtDate(ts),
+      taskId: task._id.toString(),
+      canUndo: true,
+      notes: (l.notes as string) ?? '',
+    } : undefined;
     dayLogEntries.push({
       ts: ts.getTime(),
       item: {
         id: `daylog-${l._id.toString()}`,
+        refId: task ? task._id.toString() : l._id.toString(),
+        refType: 'maintenance_task' as const,
         siteId: siteId ?? '',
         title,
         date: fmtTime(ts),
         severity: 'low' as const,
         iconName: 'check',
+        payload,
       },
     });
   }
@@ -803,18 +830,31 @@ export async function CarwashPage({
 
   // Onderhoud/Incidenten tabs, scoped to the same selected day as Meldingen
   const dayOnderhoudItems: AlertItem[] = dayMaintenanceLogs.map((l) => {
-    const taskDesc = (l.task_id as unknown as { description?: string } | null)?.description ?? '';
+    const task = l.task_id as unknown as { _id: Types.ObjectId; description?: string } | null;
+    const taskDesc = task?.description ?? '';
     const title = taskDesc
       ? `Onderhoud: ${taskDesc}${l.notes ? ` — ${l.notes}` : ''}`
       : l.notes ? `Onderhoud: ${l.notes}` : 'Onderhoud uitgevoerd';
+    const payload: MaintenanceTaskPayload | undefined = task ? {
+      type: 'maintenance_task',
+      description: taskDesc,
+      triggerType: 'washes',
+      triggerValue: 0,
+      lastDoneAt: fmtDate(new Date(l.done_at as Date)),
+      taskId: task._id.toString(),
+      canUndo: true,
+      notes: (l.notes as string) ?? '',
+    } : undefined;
     return {
       id:      l._id.toString(),
-      refType: 'maintenance_log' as const,
+      refId:   task ? task._id.toString() : l._id.toString(),
+      refType: 'maintenance_task' as const,
       siteId:  siteId ?? '',
       title,
       date:    fmtTime(new Date(l.done_at as Date)),
       severity: 'low' as const,
       iconName: 'check',
+      payload,
     };
   });
 

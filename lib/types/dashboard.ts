@@ -80,6 +80,9 @@ export interface MaintenanceTaskPayload {
   washesAtLastDone?: number;
   washesRemaining?: number;
   currentTellerstand?: number;
+  taskId?: string;
+  canUndo?: boolean;
+  notes?: string;
 }
 
 export interface AlertItem {

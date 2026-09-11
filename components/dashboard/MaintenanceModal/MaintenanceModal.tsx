@@ -1,5 +1,7 @@
 'use client';
 
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import type { MaintenanceTaskPayload } from '@/lib/types/dashboard';
 import { ActivitySection } from '@/components/dashboard/ActivitySection/ActivitySection';
@@ -37,9 +39,39 @@ function triggerLabel(payload: MaintenanceTaskPayload, t: (key: string, values?:
 
 export function MaintenanceModal({ payload, refId, refType, siteId, onClose }: MaintenanceModalProps) {
   const t = useTranslations('modals');
+  const router = useRouter();
+  const [undoing, setUndoing] = useState(false);
+  const [undone, setUndone] = useState(false);
+  const taskId = payload.taskId ?? refId;
+
+  async function handleUndo() {
+    setUndoing(true);
+    try {
+      const res = await fetch(`/api/maintenance/${taskId}/undo-complete`, { method: 'POST' });
+      if (res.ok) {
+        setUndone(true);
+        router.refresh();
+      }
+    } finally {
+      setUndoing(false);
+    }
+  }
+
   return (
     <BottomSheet open onClose={onClose} title={t('onderhoud')}>
-      <p className={styles.meta}>{payload.description}</p>
+      <div className={styles.headerTop}>
+        <p className={styles.meta}>{payload.description}</p>
+        {payload.canUndo && (
+          <button
+            type="button"
+            className={styles.undoBtn}
+            onClick={handleUndo}
+            disabled={undoing || undone}
+          >
+            {undone ? t('nietGedaanGezet') : undoing ? '...' : t('markeerNietGedaan')}
+          </button>
+        )}
+      </div>
 
       <div className={styles.body}>
         <div className={styles.section}>
