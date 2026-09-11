@@ -12,9 +12,9 @@ import styles from './page.module.scss';
 export default async function PlanningPage({
   searchParams,
 }: {
-  searchParams: Promise<{ site?: string }>;
+  searchParams: Promise<{ site?: string; week?: string }>;
 }) {
-  const { site } = await searchParams;
+  const { site, week } = await searchParams;
   const session = await getSession();
   await dbConnect();
 
@@ -101,7 +101,12 @@ export default async function PlanningPage({
     createdByName: (d.created_by_name as string) ?? '',
   }));
 
-  const weekStart = today.toISOString().slice(0, 10);
+  // Deep-link from a push notification/dashboard click: ?week=<date> jumps
+  // straight to that date's week instead of always showing the current one.
+  const weekParam = week && /^\d{4}-\d{2}-\d{2}$/.test(week) ? new Date(week) : null;
+  const weekStart = (weekParam && !isNaN(weekParam.getTime()))
+    ? weekParam.toISOString().slice(0, 10)
+    : today.toISOString().slice(0, 10);
 
   return (
     <div className={styles.root}>

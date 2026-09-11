@@ -642,6 +642,7 @@ export async function CarwashPage({
       !isDeparture ? fmtTime(ts) : undefined,
       isDeparture && workedHours ? workedHours : undefined,
     ].filter(Boolean);
+    const attendanceDate = ts.toISOString().slice(0, 10);
     dayLogEntries.push({
       ts: ts.getTime(),
       item: {
@@ -652,6 +653,7 @@ export async function CarwashPage({
         date: fmtTime(ts),
         severity: 'low' as const,
         iconName: 'check',
+        href: `/planning?site=${siteId}&week=${attendanceDate}`,
       },
     });
   }
