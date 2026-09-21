@@ -230,6 +230,7 @@ export interface IMaintenanceTask extends Document {
   trigger_month: number;          // fixed_date: month (1-12)
   trigger_month_list: number[];   // fixed_months: e.g. [4, 11]
   last_done_at: Date;
+  last_done_by_name: string;
   washes_at_last_done: number;
   is_overdue: boolean;
   overdue_notified_at: Date | null;
@@ -243,6 +244,7 @@ const MaintenanceTaskSchema = new Schema<IMaintenanceTask>({
   trigger_month: { type: Number, default: 0 },
   trigger_month_list: [{ type: Number }],
   last_done_at: Date,
+  last_done_by_name: { type: String, default: '' },
   washes_at_last_done: { type: Number, default: 0 },
   is_overdue: Boolean,
   // Set when a push reminder was last sent for this overdue task — re-notify
@@ -257,6 +259,7 @@ export interface IMaintenanceLog extends Document {
   task_id: Types.ObjectId;
   site_id: Types.ObjectId;
   done_by: Types.ObjectId;
+  done_by_name: string;
   done_at: Date;
   notes: string;
 }
@@ -264,6 +267,7 @@ const MaintenanceLogSchema = new Schema<IMaintenanceLog>({
   task_id: { type: Schema.Types.ObjectId, ref: 'MaintenanceTask' },
   site_id: { type: Schema.Types.ObjectId, ref: 'Site' },
   done_by: { type: Schema.Types.ObjectId, ref: 'User' },
+  done_by_name: { type: String, default: '' },
   done_at: Date,
   notes: String,
 });
@@ -496,7 +500,7 @@ export interface IAttendanceLog extends Document {
   user_id: Types.ObjectId;
   user_name: string;
   type: 'opening' | 'sluiting';
-  person_type: 'employee' | 'technician_extern';
+  person_type: 'employee' | 'technician_extern' | 'jobstudent';
   registered_by_name: string;
   timestamp: Date;
   note: string;
@@ -506,7 +510,7 @@ const AttendanceLogSchema = new Schema<IAttendanceLog>({
   user_id: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   user_name: String,
   type: { type: String, enum: ['opening', 'sluiting'], required: true },
-  person_type: { type: String, enum: ['employee', 'technician_extern'], default: 'employee' },
+  person_type: { type: String, enum: ['employee', 'technician_extern', 'jobstudent'], default: 'employee' },
   registered_by_name: { type: String, default: '' },
   timestamp: { type: Date, default: Date.now },
   note: { type: String, default: '' },

@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import type { IncidentSchadePayload, IncidentEhboPayload } from '@/lib/types/dashboard';
+import { IncidentModal } from '@/components/dashboard/IncidentModal/IncidentModal';
 import styles from './EventHistoryPanel.module.scss';
 
 export interface DefectHistoryItem {
@@ -20,6 +22,8 @@ export interface SchadeHistoryItem {
   subtitle: string;
   reportedByName: string;
   createdAt: string;
+  siteId: string;
+  payload: IncidentSchadePayload | IncidentEhboPayload;
 }
 
 export interface OrderHistoryItem {
@@ -61,6 +65,7 @@ function fmtDate(iso: string) {
 
 export function EventHistoryPanel({ defects, schades, orders, maintenance }: EventHistoryPanelProps) {
   const [tab, setTab] = useState<Tab>('pannes');
+  const [openSchade, setOpenSchade] = useState<SchadeHistoryItem | null>(null);
   const counts: Record<Tab, number> = {
     pannes: defects.length,
     schade: schades.length,
@@ -105,7 +110,7 @@ export function EventHistoryPanel({ defects, schades, orders, maintenance }: Eve
         <div className={styles.list}>
           {schades.length === 0 && <p className={styles.empty}>Geen schadegevallen of EHBO-incidenten gevonden.</p>}
           {schades.map((s) => (
-            <div key={s.id} className={styles.row}>
+            <div key={s.id} className={[styles.row, styles.rowClickable].join(' ')} onClick={() => setOpenSchade(s)}>
               <div className={styles.rowBody}>
                 <span className={styles.rowTitle}>{s.title}</span>
                 {s.subtitle && <span className={styles.rowSub}>{s.subtitle}</span>}
@@ -151,6 +156,16 @@ export function EventHistoryPanel({ defects, schades, orders, maintenance }: Eve
             </div>
           ))}
         </div>
+      )}
+
+      {openSchade && (
+        <IncidentModal
+          payload={openSchade.payload}
+          refId={openSchade.id}
+          refType={openSchade.kind === 'schade' ? 'incident_schade' : 'incident_ehbo'}
+          siteId={openSchade.siteId}
+          onClose={() => setOpenSchade(null)}
+        />
       )}
     </div>
   );

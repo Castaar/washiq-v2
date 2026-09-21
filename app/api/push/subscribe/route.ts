@@ -21,6 +21,18 @@ export async function POST(req: NextRequest) {
 
   await dbConnect();
 
+  // Reinstalling the PWA (or re-granting permission) issues a brand new
+  // endpoint on the same platform without ever invalidating the old one —
+  // left unchecked, a user's push-endpoint host (fcm.googleapis.com,
+  // web.push.apple.com, ...) accumulates dead/orphaned subscriptions that
+  // still receive pushes but no longer route clicks into the current app
+  // install. Only ever keep the newest subscription per platform per user.
+  const platform = new URL(endpoint).host;
+  await PushSubscription.deleteMany({
+    user_id: session.userId,
+    endpoint: { $ne: endpoint, $regex: platform.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') },
+  });
+
   await PushSubscription.findOneAndUpdate(
     { endpoint },
     {

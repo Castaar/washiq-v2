@@ -436,6 +436,7 @@ export async function CarwashPage({
         washesAtLastDone: t.washes_at_last_done,
         washesRemaining: remaining ?? undefined,
         currentTellerstand: currentTellerstand > 0 ? currentTellerstand : undefined,
+        doneByName: t.last_done_by_name || undefined,
       };
       return {
         id:       t._id.toString(),
@@ -467,6 +468,7 @@ export async function CarwashPage({
             washesAtLastDone: t.washes_at_last_done,
             washesRemaining: remaining ?? undefined,
             currentTellerstand,
+            doneByName: t.last_done_by_name || undefined,
           };
           return {
             id:       `approaching-${t._id.toString()}`,
@@ -518,8 +520,9 @@ export async function CarwashPage({
     ...logs.map((l) => {
       const task = l.task_id as unknown as { _id: Types.ObjectId; description?: string } | null;
       const taskDesc = task?.description ?? '';
+      const doneByName = (l.done_by_name as string) || '';
       const title = taskDesc
-        ? `Onderhoud: ${taskDesc}${l.notes ? ` — ${l.notes}` : ''}`
+        ? `Onderhoud: ${taskDesc}${l.notes ? ` — ${l.notes}` : ''}${doneByName ? ` (${doneByName})` : ''}`
         : l.notes ? `Onderhoud: ${l.notes}` : 'Onderhoud uitgevoerd';
       const payload: MaintenanceTaskPayload | undefined = task ? {
         type: 'maintenance_task',
@@ -530,6 +533,7 @@ export async function CarwashPage({
         taskId: task._id.toString(),
         canUndo: true,
         notes: (l.notes as string) ?? '',
+        doneByName: doneByName || undefined,
       } : undefined;
       return {
         id:      l._id.toString(),
@@ -707,8 +711,9 @@ export async function CarwashPage({
     const ts = new Date(l.done_at as Date);
     const task = l.task_id as unknown as { _id: Types.ObjectId; description?: string } | null;
     const taskDesc = task?.description ?? '';
+    const doneByName = (l.done_by_name as string) || '';
     const title = taskDesc
-      ? `Onderhoud: ${taskDesc}${l.notes ? ` — ${l.notes}` : ''}`
+      ? `Onderhoud: ${taskDesc}${l.notes ? ` — ${l.notes}` : ''}${doneByName ? ` (${doneByName})` : ''}`
       : l.notes ? `Onderhoud: ${l.notes}` : 'Onderhoud uitgevoerd';
     const payload: MaintenanceTaskPayload | undefined = task ? {
       type: 'maintenance_task',
@@ -719,6 +724,7 @@ export async function CarwashPage({
       taskId: task._id.toString(),
       canUndo: true,
       notes: (l.notes as string) ?? '',
+      doneByName: doneByName || undefined,
     } : undefined;
     dayLogEntries.push({
       ts: ts.getTime(),
@@ -834,8 +840,9 @@ export async function CarwashPage({
   const dayOnderhoudItems: AlertItem[] = dayMaintenanceLogs.map((l) => {
     const task = l.task_id as unknown as { _id: Types.ObjectId; description?: string } | null;
     const taskDesc = task?.description ?? '';
+    const doneByName = (l.done_by_name as string) || '';
     const title = taskDesc
-      ? `Onderhoud: ${taskDesc}${l.notes ? ` — ${l.notes}` : ''}`
+      ? `Onderhoud: ${taskDesc}${l.notes ? ` — ${l.notes}` : ''}${doneByName ? ` (${doneByName})` : ''}`
       : l.notes ? `Onderhoud: ${l.notes}` : 'Onderhoud uitgevoerd';
     const payload: MaintenanceTaskPayload | undefined = task ? {
       type: 'maintenance_task',
@@ -846,6 +853,7 @@ export async function CarwashPage({
       taskId: task._id.toString(),
       canUndo: true,
       notes: (l.notes as string) ?? '',
+      doneByName: doneByName || undefined,
     } : undefined;
     return {
       id:      l._id.toString(),

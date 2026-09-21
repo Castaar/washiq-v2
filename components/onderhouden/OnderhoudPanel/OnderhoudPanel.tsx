@@ -12,6 +12,7 @@ export interface OnderhoudTask {
   triggerType: 'washes' | 'months' | 'fixed_date' | 'fixed_months';
   triggerValue: number;
   lastDoneAt?: string;
+  lastDoneByName?: string;
   washesAtLastDone?: number;
   isOverdue: boolean;
   isApproaching: boolean;
@@ -173,7 +174,12 @@ function TaskCard({
           {task.triggerType === 'months' && task.triggerValue > 0 && (
             <span>{t('elke', { count: task.triggerValue, unit: TRIGGER_LABEL[task.triggerType] })}</span>
           )}
-          {task.lastDoneAt && <span>{t('laatsteKeer', { date: task.lastDoneAt })}</span>}
+          {task.lastDoneAt && (
+            <span>
+              {t('laatsteKeer', { date: task.lastDoneAt })}
+              {task.lastDoneByName ? ` · ${task.lastDoneByName}` : ''}
+            </span>
+          )}
           {task.washesRemaining != null && task.washesRemaining > 0 && (
             <span className={styles.remaining}>{t('nogTeGaan', { count: task.washesRemaining.toLocaleString('nl-BE'), unit: t('wassingen') })}</span>
           )}

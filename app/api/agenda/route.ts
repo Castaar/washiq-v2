@@ -33,16 +33,16 @@ export async function GET(req: NextRequest) {
       time: d.time ?? '',
       text: d.text,
       createdByName: d.created_by_name ?? '',
+      createdBy: (d.created_by as Types.ObjectId | undefined)?.toString() ?? '',
     })),
   );
 }
 
-// POST /api/agenda  — add a day-note (owner/developer only)
+// POST /api/agenda — add a day-note (any logged-in role, e.g. an employee
+// noting an appointment they booked for a customer)
 export async function POST(req: NextRequest) {
   const session = await getSessionFromRequest(req);
-  if (!session || (session.role !== 'owner' && session.role !== 'developer')) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const body = (await req.json()) as { siteId: string; date: string; time?: string; text: string };
   if (!body.siteId || !body.date || !body.text?.trim()) {
@@ -67,5 +67,6 @@ export async function POST(req: NextRequest) {
     time: doc.time,
     text: doc.text,
     createdByName: doc.created_by_name,
+    createdBy: session.userId,
   }, { status: 201 });
 }

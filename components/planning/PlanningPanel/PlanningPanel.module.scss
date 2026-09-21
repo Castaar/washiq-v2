@@ -214,6 +214,8 @@
   font-size: 0.8125rem;
   color: var(--color-text-primary);
   display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: var(--space-2);
 }
 

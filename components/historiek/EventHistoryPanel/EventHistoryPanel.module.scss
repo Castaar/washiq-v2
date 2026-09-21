@@ -61,6 +61,13 @@
   opacity: 0.6;
 }
 
+.rowClickable {
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:hover { background: var(--color-bg-hover, var(--color-bg-tertiary)); }
+}
+
 .rowBody {
   display: flex;
   flex-direction: column;

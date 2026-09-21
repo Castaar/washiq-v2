@@ -83,6 +83,7 @@ export interface MaintenanceTaskPayload {
   taskId?: string;
   canUndo?: boolean;
   notes?: string;
+  doneByName?: string;
 }
 
 export interface AlertItem {

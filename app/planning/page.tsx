@@ -99,6 +99,7 @@ export default async function PlanningPage({
     time: (d.time as string) ?? '',
     text: d.text as string,
     createdByName: (d.created_by_name as string) ?? '',
+    createdBy: (d.created_by as Types.ObjectId | undefined)?.toString() ?? '',
   }));
 
   // Deep-link from a push notification/dashboard click: ?week=<date> jumps
@@ -114,6 +115,7 @@ export default async function PlanningPage({
       <main className={styles.main}>
         <div className={styles.content}>
           <PlanningPanel
+            key={siteId}
             siteId={siteId}
             userRole={userRole}
             currentUserId={session?.userId ?? ''}

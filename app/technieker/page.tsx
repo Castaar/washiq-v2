@@ -3,7 +3,7 @@ import { NavBar } from '@/components/layout/NavBar/NavBar';
 import { TechniekerPanel } from '@/components/technieker/TechniekerPanel/TechniekerPanel';
 import type { TechniekerItem } from '@/components/technieker/TechniekerPanel/TechniekerPanel';
 import { dbConnect } from '@/lib/db/mongoose';
-import { Site, User, Defect, IncidentSchade, MaintenanceTask, WeeklyEntry } from '@/lib/models';
+import { Site, User, Defect, IncidentSchade, MaintenanceTask, WeeklyEntry, OrderRequest } from '@/lib/models';
 import { getSession } from '@/lib/session';
 import { computeIsOverdue, computeIsApproaching, washesRemaining } from '@/lib/maintenance';
 import styles from './page.module.scss';
@@ -35,7 +35,7 @@ export default async function TechniekerPage() {
     allowedSites.map((s) => [(s._id as Types.ObjectId).toString(), s.name as string]),
   );
 
-  const [defects, schades, tasks, latestEntries, techUsers] = await Promise.all([
+  const [defects, schades, tasks, latestEntries, techUsers, orders] = await Promise.all([
     Defect.find({
       site_id: { $in: siteIds },
       $or: [{ is_resolved: false }, { is_resolved: { $exists: false } }],
@@ -49,6 +49,7 @@ export default async function TechniekerPage() {
       siteIds.map((sId) => WeeklyEntry.findOne({ site_id: sId }).sort({ week_start: -1 }).select('tellerstand').lean()),
     ),
     User.find({ site_ids: { $in: siteIds }, role: { $in: ['employee', 'technician'] } }).select('_id name').lean(),
+    OrderRequest.find({ site_id: { $in: siteIds }, is_handled: false }).sort({ requested_at: -1 }).lean(),
   ]);
 
   const tellerstandBySite: Record<string, number> = {};
@@ -69,6 +70,16 @@ export default async function TechniekerPage() {
       severity: ((d.ernst as string) === 'hoog' ? 'high' : (d.ernst as string) === 'laag' ? 'low' : 'medium') as 'low' | 'medium' | 'high',
       date: fmtDate(new Date(d.created_at as Date)),
       assignedToName: (d.assigned_to_name as string) || undefined,
+    })),
+    ...orders.map((o) => ({
+      id: (o._id as Types.ObjectId).toString(),
+      kind: 'bestelling' as const,
+      siteId: (o.site_id as Types.ObjectId).toString(),
+      siteName: siteNameById[(o.site_id as Types.ObjectId).toString()] ?? '',
+      title: (o.item_name as string) || 'Bestelling',
+      subtitle: (o.details as string) || '',
+      severity: 'low' as const,
+      date: fmtDate(new Date(o.requested_at as Date)),
     })),
     ...schades.map((s) => ({
       id: (s._id as Types.ObjectId).toString(),

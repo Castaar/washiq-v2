@@ -1,7 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
-import { AttendanceLog } from '@/lib/models';
+import { AttendanceLog, WeeklyEntry } from '@/lib/models';
 import { getSessionFromRequest } from '@/lib/session';
+
+async function washCountForRange(siteId: string, from: Date, to: Date): Promise<number> {
+  const entries = await WeeklyEntry.find({ site_id: siteId, week_start: { $gte: from, $lt: to } })
+    .select('program_counts')
+    .lean();
+  return entries.reduce((sum, e) => {
+    const counts = (e.program_counts ?? []) as { count?: number }[];
+    return sum + counts.reduce((s, pc) => s + (pc.count ?? 0), 0);
+  }, 0);
+}
 
 export interface DayRecord {
   date: string;       // YYYY-MM-DD
@@ -104,5 +114,44 @@ export async function GET(req: NextRequest) {
 
   result.sort((a, b) => a.userName.localeCompare(b.userName));
 
-  return NextResponse.json(result);
+  const totalWashes = await washCountForRange(siteId, from, to);
+
+  // Last 6 months (including the requested one) — hours + wasbeurten trend,
+  // so an owner can see history at a glance instead of switching month by month.
+  const history: { year: number; month: number; totalHours: number; totalWashes: number }[] = [];
+  for (let i = 5; i >= 0; i--) {
+    const hFrom = new Date(year, month - 1 - i, 1);
+    const hTo = new Date(year, month - i, 1);
+    const [hLogs, hWashes] = await Promise.all([
+      AttendanceLog.find({
+        site_id: siteId,
+        timestamp: { $gte: hFrom, $lt: hTo },
+        person_type: { $ne: 'technician_extern' },
+      }).select('user_id timestamp type').lean(),
+      washCountForRange(siteId, hFrom, hTo),
+    ]);
+    const byUserDate = new Map<string, Map<string, typeof hLogs>>();
+    for (const l of hLogs) {
+      const uid = l.user_id.toString();
+      const d = new Date(l.timestamp as Date);
+      const dateStr = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+      if (!byUserDate.has(uid)) byUserDate.set(uid, new Map());
+      const byDate = byUserDate.get(uid)!;
+      if (!byDate.has(dateStr)) byDate.set(dateStr, []);
+      byDate.get(dateStr)!.push(l);
+    }
+    let hTotalHours = 0;
+    for (const byDate of byUserDate.values()) {
+      for (const dayLogs of byDate.values()) {
+        const arrivals = dayLogs.filter((l) => l.type === 'opening').sort((a, b) => (a.timestamp as Date).getTime() - (b.timestamp as Date).getTime());
+        const departures = dayLogs.filter((l) => l.type === 'sluiting').sort((a, b) => (b.timestamp as Date).getTime() - (a.timestamp as Date).getTime());
+        const inTs = arrivals[0]?.timestamp as Date | undefined;
+        const outTs = departures[0]?.timestamp as Date | undefined;
+        if (inTs && outTs) hTotalHours += Math.max(0, (outTs.getTime() - inTs.getTime()) / 36e5);
+      }
+    }
+    history.push({ year: hFrom.getFullYear(), month: hFrom.getMonth() + 1, totalHours: Math.round(hTotalHours * 10) / 10, totalWashes: hWashes });
+  }
+
+  return NextResponse.json({ employees: result, totalWashes, history });
 }

@@ -324,10 +324,11 @@
       "Kassa ok / afgesloten?"
     ],
     "checklistItemsSelfcarwash": [
-      "Stofzuigers ok?",
-      "Vuilbakken leeg ok?",
-      "Voorraad chemie nagezien?",
-      "Boxen uitgespoten?"
+      "Machinekamer ok?",
+      "Voorraad chemie ok?",
+      "Boxen uitgespoten?",
+      "Vuilbakken leeg?",
+      "Stofzuigers nagezien?"
     ]
   },
   "activity": {
@@ -383,6 +384,7 @@
     "details": "Details",
     "frequentie": "Frequentie",
     "laatstGedaan": "Laatst gedaan",
+    "doorWie": "Door wie",
     "nogNooit": "Nog nooit",
     "wassingenBijLaatste": "Wassingen bij laatste uitvoering",
     "huidigeTellerstand": "Huidige tellerstand",
@@ -401,7 +403,10 @@
     "fotos": "Foto's",
     "fotoAltText": "Foto {number}",
     "markeerNietGedaan": "Markeer niet gedaan",
-    "nietGedaanGezet": "✓ Terug open gezet"
+    "nietGedaanGezet": "✓ Terug open gezet",
+    "bewerken": "Bewerken",
+    "annuleren": "Annuleren",
+    "opslaan": "Opslaan"
   },
   "alerts": {
     "meldingen": "Meldingen",

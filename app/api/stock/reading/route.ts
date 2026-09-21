@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
     const siteId = (stock.site_id as mongoose.Types.ObjectId).toString();
     // Developers see every site regardless of their assigned site_ids —
     // owners stay scoped to their own sites.
-    User.find({ is_active: true, $or: [{ role: 'developer' }, { site_ids: siteId, role: 'owner' }] })
+    User.find({ is_active: true, $or: [{ role: 'developer' }, { site_ids: siteId, role: { $in: ['owner', 'technician', 'employee'] } }] })
       .select('_id')
       .lean()
       .then((notifyUsers) =>

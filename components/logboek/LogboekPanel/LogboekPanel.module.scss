@@ -108,6 +108,37 @@
   border-radius: var(--radius-sm);
 }
 
+.onBehalfBadge {
+  margin-left: var(--space-2);
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.kindToggle {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.kindBtn {
+  flex: 1;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.kindBtnActive {
+  border-color: var(--color-accent-teal);
+  color: var(--color-accent-teal);
+}
+
 // ─── Logboek overzicht ────────────────────────────────────────
 .logSection {
   background: var(--color-surface);
@@ -259,6 +290,80 @@
   align-items: center;
   gap: var(--space-3);
   flex-wrap: wrap;
+}
+
+.totalsRow {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.totalTile {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-4);
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.totalLabel {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-muted);
+}
+
+.totalValue {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-accent-teal);
+}
+
+.historyRow {
+  display: flex;
+  gap: var(--space-2);
+  overflow-x: auto;
+  padding-bottom: var(--space-1);
+}
+
+.historyTile {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 56px;
+  padding: var(--space-2);
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.historyTileActive {
+  border-color: var(--color-accent-teal);
+}
+
+.historyMonth {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.historyHours {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.historyWashes {
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
 }
 
 .monthSelect {

@@ -5,7 +5,7 @@ import styles from './TechniekerPanel.module.scss';
 
 export interface TechniekerItem {
   id: string;
-  kind: 'defect' | 'schade' | 'maintenance';
+  kind: 'defect' | 'schade' | 'maintenance' | 'bestelling';
   siteId: string;
   siteName: string;
   title: string;
@@ -19,6 +19,7 @@ const KIND_LABEL: Record<TechniekerItem['kind'], string> = {
   defect: 'Defect',
   schade: 'Schade',
   maintenance: 'Onderhoud',
+  bestelling: 'Bestelling',
 };
 
 const UNDO_TIMEOUT_MS = 6000;
@@ -94,6 +95,12 @@ export function TechniekerPanel({ items: initial, userRole = 'technician', allow
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ is_resolved: true }),
         });
+      } else if (item.kind === 'bestelling') {
+        await fetch(`/api/orders/requests/${item.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ is_handled: true }),
+        });
       } else {
         await fetch(`/api/maintenance/${item.id}/complete`, {
           method: 'POST',
@@ -127,6 +134,12 @@ export function TechniekerPanel({ items: initial, userRole = 'technician', allow
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ is_resolved: false }),
+        });
+      } else if (entry.item.kind === 'bestelling') {
+        await fetch(`/api/orders/requests/${entry.item.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ is_handled: false }),
         });
       } else {
         await fetch(`/api/maintenance/${entry.item.id}/undo-complete`, {

@@ -29,6 +29,7 @@ export async function POST(
   await MaintenanceTask.findByIdAndUpdate(id, {
     $set: {
       last_done_at: prevLog ? prevLog.done_at : null,
+      last_done_by_name: prevLog ? (prevLog as Record<string, unknown>).done_by_name ?? '' : '',
       washes_at_last_done: prevLog ? (prevLog as Record<string, unknown>).washes_at_last_done ?? 0 : 0,
       is_overdue: true,
     },

@@ -56,35 +56,51 @@ export async function POST(req: NextRequest) {
     siteId: string;
     type: 'opening' | 'sluiting';
     note?: string;
-    personType?: 'employee' | 'technician_extern';
+    personType?: 'employee' | 'technician_extern' | 'jobstudent';
     personName?: string;
+    onBehalfOfUserId?: string;
+    onBehalfOfUserName?: string;
+    timestamp?: string;
   };
   if (!body.siteId || !body.type) {
     return NextResponse.json({ error: 'siteId and type required' }, { status: 400 });
   }
 
-  const isTechnician = body.personType === 'technician_extern';
-  if (isTechnician && !body.personName?.trim()) {
-    return NextResponse.json({ error: 'personName required for technician_extern' }, { status: 400 });
+  const isExtern = body.personType === 'technician_extern' || body.personType === 'jobstudent';
+  if (isExtern && !body.personName?.trim()) {
+    return NextResponse.json({ error: 'personName required' }, { status: 400 });
+  }
+
+  // Owner/developer registering on behalf of an employee who forgot to
+  // check themselves in/out — logged under that employee's own account so
+  // it counts correctly toward their monthly hours.
+  const isOnBehalf = Boolean(body.onBehalfOfUserId);
+  if (isOnBehalf && session.role !== 'owner' && session.role !== 'developer') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   await dbConnect();
 
+  // Owner/developer can backdate an on-behalf registration to the time it
+  // actually happened (e.g. filling it in after the fact at end of day) —
+  // everyone else always logs at "now".
+  const timestamp = isOnBehalf && body.timestamp ? new Date(body.timestamp) : new Date();
+
   const log = await AttendanceLog.create({
     site_id: body.siteId,
-    user_id: session.userId,
-    user_name: isTechnician ? body.personName!.trim() : session.name,
+    user_id: isOnBehalf ? body.onBehalfOfUserId : session.userId,
+    user_name: isOnBehalf ? (body.onBehalfOfUserName ?? '') : isExtern ? body.personName!.trim() : session.name,
     type: body.type,
-    person_type: isTechnician ? 'technician_extern' : 'employee',
-    registered_by_name: isTechnician ? session.name : '',
-    timestamp: new Date(),
+    person_type: isOnBehalf ? 'employee' : isExtern ? body.personType! : 'employee',
+    registered_by_name: (isOnBehalf || isExtern) ? session.name : '',
+    timestamp,
     note: body.note?.trim() ?? '',
   });
 
   const actionLabel = body.type === 'opening' ? 'aangekomen' : 'vertrokken';
   // Developers see every site regardless of their assigned site_ids (same
   // as the site picker elsewhere) — owners stay scoped to their own sites.
-  User.find({ is_active: true, $or: [{ role: 'developer' }, { site_ids: body.siteId, role: 'owner' }] })
+  User.find({ is_active: true, $or: [{ role: 'developer' }, { site_ids: body.siteId, role: { $in: ['owner', 'technician', 'employee'] } }] })
     .select('_id')
     .lean()
     .then((notifyUsers) =>

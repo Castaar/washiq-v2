@@ -31,6 +31,7 @@ export interface AgendaEventItem {
   time: string;
   text: string;
   createdByName: string;
+  createdBy: string;
 }
 
 export interface VerlofItem {
@@ -129,6 +130,9 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
   const [agendaTime, setAgendaTime] = useState('');
   const [agendaText, setAgendaText] = useState('');
   const [savingAgenda, setSavingAgenda] = useState(false);
+  // Employee view's own standalone add-form (not tied to a day-cell like the owner's)
+  const [empAgendaOpen, setEmpAgendaOpen] = useState(false);
+  const [empAgendaDate, setEmpAgendaDate] = useState('');
 
   // New shift form
   const [newSiteId, setNewSiteId] = useState(siteId);
@@ -307,19 +311,71 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
     // ── Employee view: my upcoming shifts ───────────────────
     return (
       <div className={styles.wrapper}>
-        {upcomingAgenda.length > 0 && (
-          <div className={styles.myShiftsCard}>
-            <h2 className={styles.cardTitle}>Agenda</h2>
+        <div className={styles.myShiftsCard}>
+          <h2 className={styles.cardTitle}>Agenda</h2>
+          {upcomingAgenda.length > 0 && (
             <div className={styles.myList}>
               {upcomingAgenda.map((a) => (
                 <div key={a.id} className={styles.myAgendaRow}>
                   <span>{fmtDayLabel(a.date)}{a.time ? ` · ${a.time}` : ''}</span>
                   <span>{a.text}</span>
+                  {a.createdBy === currentUserId && (
+                    <button
+                      type="button"
+                      className={styles.chipDelete}
+                      onClick={() => handleDeleteAgenda(a.id)}
+                      aria-label="Verwijderen"
+                    >✕</button>
+                  )}
                 </div>
               ))}
             </div>
-          </div>
-        )}
+          )}
+
+          {empAgendaOpen ? (
+            <div className={styles.agendaAddRow}>
+              <input
+                type="date"
+                className={styles.agendaTimeInput}
+                value={empAgendaDate}
+                onChange={(e) => setEmpAgendaDate(e.target.value)}
+                min={today}
+              />
+              <input
+                type="time"
+                className={styles.agendaTimeInput}
+                value={agendaTime}
+                onChange={(e) => setAgendaTime(e.target.value)}
+              />
+              <input
+                type="text"
+                className={styles.agendaTextInput}
+                placeholder="Bv. Interieur-afspraak 14u"
+                value={agendaText}
+                onChange={(e) => setAgendaText(e.target.value)}
+                autoFocus
+              />
+              <button
+                type="button"
+                className={styles.agendaAddBtn}
+                onClick={async () => {
+                  if (!empAgendaDate) return;
+                  await handleAddAgenda(empAgendaDate);
+                  setEmpAgendaOpen(false);
+                  setEmpAgendaDate('');
+                }}
+                disabled={savingAgenda || !agendaText.trim() || !empAgendaDate}
+              >
+                {savingAgenda ? '...' : 'OK'}
+              </button>
+              <button type="button" className={styles.chipDelete} onClick={() => setEmpAgendaOpen(false)} aria-label="Annuleren">✕</button>
+            </div>
+          ) : (
+            <button type="button" className={styles.navBtn} onClick={() => { setEmpAgendaOpen(true); setEmpAgendaDate(today); }}>
+              + Agenda-item toevoegen
+            </button>
+          )}
+        </div>
         <div className={styles.myShiftsCard}>
           <h2 className={styles.cardTitle}>Mijn werkschema</h2>
           {myShifts.length === 0 ? (

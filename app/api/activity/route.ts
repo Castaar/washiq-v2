@@ -1,9 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
-import { ActivityLog } from '@/lib/models';
+import { ActivityLog, User } from '@/lib/models';
 import { getSessionFromRequest } from '@/lib/session';
+import { sendPushToUser } from '@/lib/push';
 import type { Types } from 'mongoose';
 import type { ActivityRefType } from '@/lib/types/dashboard';
+
+function activityUrl(refType: string, refId: string, siteId: string): string {
+  if (refType === 'incident_schade' || refType === 'incident_ehbo' || refType === 'defect') {
+    return `/incidenten?site=${siteId}&item=${refId}`;
+  }
+  if (refType === 'maintenance_task' || refType === 'maintenance_log') {
+    return `/onderhouden?site=${siteId}`;
+  }
+  return `/?site=${siteId}`;
+}
 
 const VALID_REF_TYPES: ActivityRefType[] = [
   'maintenance_task',
@@ -79,6 +90,28 @@ export async function POST(req: NextRequest) {
     performed_by:      session.userId,
     performed_by_name: session.name,
   });
+
+  // Notify everyone else at this site (any role) plus every developer —
+  // a reaction on a melding is easy to miss otherwise.
+  User.find({
+    is_active: true,
+    _id: { $ne: session.userId },
+    $or: [{ role: 'developer' }, { site_ids: siteId }],
+  })
+    .select('_id')
+    .lean()
+    .then((recipients) =>
+      Promise.allSettled(
+        recipients.map((u) =>
+          sendPushToUser((u._id as Types.ObjectId).toString(), {
+            title: `Nieuwe reactie — ${session.name}`,
+            body: text.trim(),
+            url: activityUrl(refType, refId, siteId),
+          }),
+        ),
+      ),
+    )
+    .catch(() => {});
 
   return NextResponse.json(
     {

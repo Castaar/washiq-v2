@@ -81,10 +81,18 @@ export function MaintenanceModal({ payload, refId, refType, siteId, onClose }: M
               <span className={styles.rowValue}>{triggerLabel(payload, t)}</span>
             </div>
             {payload.lastDoneAt ? (
-              <div className={styles.row}>
-                <span className={styles.rowLabel}>{t('laatstGedaan')}</span>
-                <span className={styles.rowValue}>{payload.lastDoneAt}</span>
-              </div>
+              <>
+                <div className={styles.row}>
+                  <span className={styles.rowLabel}>{t('laatstGedaan')}</span>
+                  <span className={styles.rowValue}>{payload.lastDoneAt}</span>
+                </div>
+                {payload.doneByName && (
+                  <div className={styles.row}>
+                    <span className={styles.rowLabel}>{t('doorWie')}</span>
+                    <span className={styles.rowValue}>{payload.doneByName}</span>
+                  </div>
+                )}
+              </>
             ) : (
               <div className={styles.row}>
                 <span className={styles.rowLabel}>{t('laatstGedaan')}</span>

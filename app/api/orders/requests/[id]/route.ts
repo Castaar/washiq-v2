@@ -9,7 +9,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getSessionFromRequest(req);
-  if (!session || (session.role !== 'owner' && session.role !== 'developer')) {
+  if (!session || !['owner', 'developer', 'technician'].includes(session.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 

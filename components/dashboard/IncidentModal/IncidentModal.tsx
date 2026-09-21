@@ -55,6 +55,55 @@ export function IncidentModal({ payload, refId, refType, siteId, onClose }: Inci
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const photos = payload.photos ?? [];
 
+  // Schade reports can be edited in place — e.g. to correct a report that
+  // was originally logged at the wrong site or with the wrong details.
+  const canEdit = payload.type === 'schade';
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [draft, setDraft] = useState(() => payload.type === 'schade' ? {
+    typeVoertuig: payload.typeVoertuig,
+    merkModel: payload.merkModel,
+    nummerplaat: payload.nummerplaat,
+    naamEigenaar: payload.naamEigenaar,
+    telGsm: payload.telGsm,
+    email: payload.email,
+    omschrijving: payload.omschrijving,
+    onbetwist: payload.onbetwist,
+    installatiefout: payload.installatiefout,
+    klantVerantwoordelijk: payload.klantVerantwoordelijk,
+    verzekeringsdocumenten: payload.verzekeringsdocumenten,
+  } : null);
+
+  async function handleSaveEdit() {
+    if (!draft) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/incidents/schade/${refId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type_voertuig: draft.typeVoertuig,
+          merk_model: draft.merkModel,
+          nummerplaat: draft.nummerplaat,
+          naam_eigenaar: draft.naamEigenaar,
+          tel_gsm: draft.telGsm,
+          email: draft.email,
+          omschrijving: draft.omschrijving,
+          onbetwist: draft.onbetwist,
+          installatiefout: draft.installatiefout,
+          klant_verantwoordelijk: draft.klantVerantwoordelijk,
+          verzekeringsdocumenten: draft.verzekeringsdocumenten,
+        }),
+      });
+      if (res.ok) {
+        setEditing(false);
+        router.refresh();
+      }
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function handleToggleResolve() {
     if (!canResolve) return;
     setResolving(true);
@@ -80,16 +129,33 @@ export function IncidentModal({ payload, refId, refType, siteId, onClose }: Inci
     <BottomSheet open onClose={onClose} title={typeLabel}>
       <div className={styles.headerTop}>
         <span className={[styles.badge, styles[`badge-${payload.type}`]].join(' ')}>{typeLabel}</span>
-        {canResolve && (
-          <button
-            type="button"
-            className={[styles.resolveBtn, isResolved ? styles.resolveBtnDone : ''].filter(Boolean).join(' ')}
-            onClick={handleToggleResolve}
-            disabled={resolving}
-          >
-            {isResolved ? t('opgelost') : resolving ? '...' : t('markeerOpgelost')}
-          </button>
-        )}
+        <div className={styles.headerActions}>
+          {canEdit && !editing && (
+            <button type="button" className={styles.resolveBtn} onClick={() => setEditing(true)}>
+              {t('bewerken')}
+            </button>
+          )}
+          {canEdit && editing && (
+            <>
+              <button type="button" className={styles.resolveBtn} onClick={() => setEditing(false)} disabled={saving}>
+                {t('annuleren')}
+              </button>
+              <button type="button" className={styles.resolveBtnDone} onClick={handleSaveEdit} disabled={saving}>
+                {saving ? '...' : t('opslaan')}
+              </button>
+            </>
+          )}
+          {canResolve && (
+            <button
+              type="button"
+              className={[styles.resolveBtn, isResolved ? styles.resolveBtnDone : ''].filter(Boolean).join(' ')}
+              onClick={handleToggleResolve}
+              disabled={resolving}
+            >
+              {isResolved ? t('opgelost') : resolving ? '...' : t('markeerOpgelost')}
+            </button>
+          )}
+        </div>
       </div>
       <p className={styles.meta}>
         <span className={styles.metaValue}>{payload.reportedBy || t('onbekend')}</span>
@@ -102,7 +168,42 @@ export function IncidentModal({ payload, refId, refType, siteId, onClose }: Inci
 
       {/* Body */}
       <div className={styles.body}>
-          {payload.type === 'schade' && (
+          {payload.type === 'schade' && editing && draft && (
+            <>
+              <div className={styles.section}>
+                <p className={styles.sectionTitle}>{t('voertuig')}</p>
+                <input className={styles.editInput} placeholder={t('type')} value={draft.typeVoertuig} onChange={(e) => setDraft({ ...draft, typeVoertuig: e.target.value })} />
+                <input className={styles.editInput} placeholder={t('merkModel')} value={draft.merkModel} onChange={(e) => setDraft({ ...draft, merkModel: e.target.value })} />
+                <input className={styles.editInput} placeholder={t('nummerplaat')} value={draft.nummerplaat} onChange={(e) => setDraft({ ...draft, nummerplaat: e.target.value })} />
+              </div>
+              <div className={styles.section}>
+                <p className={styles.sectionTitle}>{t('eigenaar')}</p>
+                <input className={styles.editInput} placeholder={t('naam')} value={draft.naamEigenaar} onChange={(e) => setDraft({ ...draft, naamEigenaar: e.target.value })} />
+                <input className={styles.editInput} placeholder={t('telGsm')} value={draft.telGsm} onChange={(e) => setDraft({ ...draft, telGsm: e.target.value })} />
+                <input className={styles.editInput} placeholder={t('email')} value={draft.email} onChange={(e) => setDraft({ ...draft, email: e.target.value })} />
+              </div>
+              <div className={styles.section}>
+                <p className={styles.sectionTitle}>{t('omschrijving')}</p>
+                <textarea className={styles.editTextarea} value={draft.omschrijving} onChange={(e) => setDraft({ ...draft, omschrijving: e.target.value })} />
+              </div>
+              <div className={styles.section}>
+                <p className={styles.sectionTitle}>{t('beoordeling')}</p>
+                {([
+                  ['onbetwist', t('onbetwist')],
+                  ['installatiefout', t('installatiefout')],
+                  ['klantVerantwoordelijk', t('klantVerantwoordelijk')],
+                  ['verzekeringsdocumenten', t('verzekeringsdocumenten')],
+                ] as const).map(([key, label]) => (
+                  <label key={key} className={styles.editCheckboxRow}>
+                    <input type="checkbox" checked={draft[key]} onChange={(e) => setDraft({ ...draft, [key]: e.target.checked })} />
+                    {label}
+                  </label>
+                ))}
+              </div>
+            </>
+          )}
+
+          {payload.type === 'schade' && !editing && (
             <>
               <div className={styles.section}>
                 <p className={styles.sectionTitle}>{t('voertuig')}</p>

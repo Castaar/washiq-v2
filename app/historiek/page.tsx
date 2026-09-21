@@ -10,7 +10,7 @@ import { dbConnect } from '@/lib/db/mongoose';
 import { Site, WashProgram, WeeklyEntry, ChemicalStock, StockReading, User, EnergyBill, Defect, IncidentSchade, IncidentEhbo, OrderRequest, MaintenanceLog } from '@/lib/models';
 import { getSession } from '@/lib/session';
 import type { Types } from 'mongoose';
-import { filterSitesForUser, resolveActiveSite, redirectIfSetupNeeded, redirectIfSelfCarwash, redirectWithSiteParam } from '@/lib/getUserSites';
+import { filterSitesForUser, resolveActiveSite, redirectIfSetupNeeded, redirectWithSiteParam } from '@/lib/getUserSites';
 import styles from './page.module.scss';
 
 export default async function HistoriekPage({
@@ -36,10 +36,14 @@ export default async function HistoriekPage({
   const allowedSites = filterSitesForUser(siteDocs as Parameters<typeof filterSitesForUser>[0], userSiteIds, userRole);
   const siteId = resolveActiveSite(allowedSites, site ?? cookieSite) || null;
   await redirectIfSetupNeeded(siteId ?? '', userRole);
-  await redirectIfSelfCarwash(siteId ?? '');
   redirectWithSiteParam('/historiek', { site }, siteId ?? '');
   const siteName = allowedSites.find((s) => s.id === siteId)?.name ?? '';
   const siteDoc = siteDocs.find((s) => (s._id as Types.ObjectId).toString() === siteId);
+  // Selfcarwash sites don't track per-program wagen counts, so the
+  // wagen/chemie graphs and weekly-ingave list don't apply to them — but
+  // the pannes/schade/bestellingen/onderhouden history below is still
+  // fully relevant, so only skip the wagen-specific sections, not the page.
+  const isSelfcarwash = siteDoc?.site_type === 'selfcarwash';
   const startCarCount = (siteDoc?.start_car_count as number) ?? 0;
   const startWaterCount = (siteDoc?.start_water_count as number) ?? 0;
   const filter = siteId ? { site_id: siteId } : {};
@@ -168,6 +172,25 @@ export default async function HistoriekPage({
       subtitle: (s.omschrijving as string) || '',
       reportedByName: (s.reported_by_name as string) || '',
       createdAt: (s.created_at as Date).toISOString(),
+      siteId: siteId ?? '',
+      payload: {
+        type: 'schade' as const,
+        isResolved: Boolean(s.is_resolved),
+        reportedBy: (s.reported_by_name as string) || '',
+        date: new Date(s.created_at as Date).toLocaleDateString('nl-BE', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+        typeVoertuig: (s.type_voertuig as string) || '',
+        merkModel: (s.merk_model as string) || '',
+        nummerplaat: (s.nummerplaat as string) || '',
+        naamEigenaar: (s.naam_eigenaar as string) || '',
+        telGsm: (s.tel_gsm as string) || '',
+        email: (s.email as string) || '',
+        omschrijving: (s.omschrijving as string) || '',
+        onbetwist: Boolean(s.onbetwist),
+        installatiefout: Boolean(s.installatiefout),
+        klantVerantwoordelijk: Boolean(s.klant_verantwoordelijk),
+        verzekeringsdocumenten: Boolean(s.verzekeringsdocumenten),
+        photos: (s.photos as string[]) ?? [],
+      },
     })),
     ...ehboDocs.map((e) => ({
       id: (e._id as Types.ObjectId).toString(),
@@ -176,6 +199,21 @@ export default async function HistoriekPage({
       subtitle: (e.verwonding as string) || '',
       reportedByName: (e.reported_by_name as string) || '',
       createdAt: (e.created_at as Date).toISOString(),
+      siteId: siteId ?? '',
+      payload: {
+        type: 'ehbo' as const,
+        reportedBy: (e.reported_by_name as string) || '',
+        date: new Date(e.created_at as Date).toLocaleDateString('nl-BE', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+        uur: (e.uur as string) || '',
+        naamSlachtoffer: (e.naam_slachtoffer as string) || '',
+        afdelingLocatie: (e.afdeling_locatie as string) || '',
+        verwonding: (e.verwonding as string) || '',
+        ehboHandeling: (e.ehbo_handeling as string) || '',
+        ehboVerlener: (e.ehbo_verlener as string) || '',
+        beschrijving: (e.beschrijving as string) || '',
+        dokterNodig: Boolean(e.dokter_nodig),
+        photos: (e.photos as string[]) ?? [],
+      },
     })),
   ].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
@@ -204,7 +242,7 @@ export default async function HistoriekPage({
       <main className={styles.main}>
 
         {/* ── Verbruiksgrafieken ──────────────────────────────── */}
-        {allProducts.length > 0 && (
+        {!isSelfcarwash && allProducts.length > 0 && (
           <div className={styles.card}>
             <div className={styles.header}>
               <h2 className={styles.title}>Verbruik per wassing — {siteName}</h2>
@@ -215,13 +253,15 @@ export default async function HistoriekPage({
         )}
 
         {/* ── Chemieverbruik uit voorraadtellingen ───────────────── */}
-        <div className={styles.card}>
-          <div className={styles.header}>
-            <h2 className={styles.title}>Chemieverbruik per maand — {siteName}</h2>
-            <p className={styles.subtitle}>Berekend uit voorraadtellingen bij Instellingen (vorige telling + leveringen − nieuwe telling)</p>
+        {!isSelfcarwash && (
+          <div className={styles.card}>
+            <div className={styles.header}>
+              <h2 className={styles.title}>Chemieverbruik per maand — {siteName}</h2>
+              <p className={styles.subtitle}>Berekend uit voorraadtellingen bij Instellingen (vorige telling + leveringen − nieuwe telling)</p>
+            </div>
+            <ChemieChart data={chemieChartData} products={chemieProducts} />
           </div>
-          <ChemieChart data={chemieChartData} products={chemieProducts} />
-        </div>
+        )}
 
         {/* ── Historiek pannes/schade/bestellingen/onderhouden ────── */}
         <div className={styles.card}>
@@ -238,12 +278,14 @@ export default async function HistoriekPage({
         </div>
 
         {/* ── Maandelijkse ingaves lijst ─────────────────────────── */}
-        <div className={styles.card}>
-          <div className={styles.header}>
-            <h1 className={styles.title}>Maandelijkse Ingaves — {siteName}</h1>
+        {!isSelfcarwash && (
+          <div className={styles.card}>
+            <div className={styles.header}>
+              <h1 className={styles.title}>Maandelijkse Ingaves — {siteName}</h1>
+            </div>
+            <HistoryList entries={entries} programs={programs} startCarCount={startCarCount} startWaterCount={startWaterCount} siteId={siteId ?? ''} energyBillsByMonth={energyBillsByMonth} />
           </div>
-          <HistoryList entries={entries} programs={programs} startCarCount={startCarCount} startWaterCount={startWaterCount} siteId={siteId ?? ''} energyBillsByMonth={energyBillsByMonth} />
-        </div>
+        )}
       </main>
     </div>
   );

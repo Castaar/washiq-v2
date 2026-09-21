@@ -57,7 +57,7 @@ export default async function LeveringenPage({
             <h1 className={styles.title}>Leveringen — {siteName}</h1>
             <p className={styles.subtitle}>Registreer een levering om de voorraad bij te werken.</p>
           </div>
-          <LeveringenPanel stocks={stocks} siteId={siteId ?? ''} otherSites={otherSites} />
+          <LeveringenPanel key={siteId ?? ''} stocks={stocks} siteId={siteId ?? ''} otherSites={otherSites} />
         </div>
       </main>
     </div>

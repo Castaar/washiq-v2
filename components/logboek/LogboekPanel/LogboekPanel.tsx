@@ -9,11 +9,18 @@ export interface LogEntry {
   userId: string;
   userName: string;
   type: 'opening' | 'sluiting';
-  personType: 'employee' | 'technician_extern';
+  personType: 'employee' | 'technician_extern' | 'jobstudent';
   registeredByName: string;
   timestamp: string;
   note: string;
 }
+
+interface EmployeeOption { id: string; name: string; }
+
+const PERSON_TYPE_LABEL: Record<'technician_extern' | 'jobstudent', string> = {
+  technician_extern: 'Technieker',
+  jobstudent: 'Jobstudent',
+};
 
 interface DayRecord {
   date: string;
@@ -36,6 +43,7 @@ interface LogboekPanelProps {
   userName: string;
   currentUserId: string;
   recentLogs: LogEntry[];
+  employees?: EmployeeOption[];
 }
 
 function fmtTime(iso: string) {
@@ -66,19 +74,30 @@ function fmtDayNL(dateStr: string) {
   return d.toLocaleDateString('nl-BE', { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
-export function LogboekPanel({ siteId, userRole, userName, currentUserId, recentLogs }: LogboekPanelProps) {
+export function LogboekPanel({ siteId, userRole, userName, currentUserId, recentLogs, employees = [] }: LogboekPanelProps) {
   const [logs, setLogs] = useState<LogEntry[]>(recentLogs);
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
   const [lastAction, setLastAction] = useState<'opening' | 'sluiting' | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  // Externe technieker registratie (door de werknemer/eigenaar ter plaatse ingevuld)
+  // Externe persoon (technieker of jobstudent) — door de werknemer/eigenaar
+  // ter plaatse ingevuld, want die heeft zelf geen app-account.
+  const [techKind, setTechKind] = useState<'technician_extern' | 'jobstudent'>('technician_extern');
   const [techName, setTechName] = useState('');
   const [techNote, setTechNote] = useState('');
   const [techSaving, setTechSaving] = useState(false);
   const [techLastAction, setTechLastAction] = useState<'opening' | 'sluiting' | null>(null);
   const [techError, setTechError] = useState('');
+
+  // Owner/developer: registreren namens een medewerker die vergat zelf in-
+  // of uit te checken. Tijdstip is aanpasbaar zodat het achteraf op het
+  // juiste (werkelijke) moment kan ingevuld worden i.p.v. altijd "nu".
+  const [onBehalfUserId, setOnBehalfUserId] = useState('');
+  const [onBehalfTime, setOnBehalfTime] = useState('');
+  const [onBehalfSaving, setOnBehalfSaving] = useState(false);
+  const [onBehalfLastAction, setOnBehalfLastAction] = useState<'opening' | 'sluiting' | null>(null);
+  const [onBehalfError, setOnBehalfError] = useState('');
 
   const isOwner = userRole === 'owner' || userRole === 'developer';
   const [view, setView] = useState<'logboek' | 'maand'>('logboek');
@@ -105,6 +124,8 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
   const [selYear, setSelYear] = useState(now.getFullYear());
   const [selMonth, setSelMonth] = useState(now.getMonth() + 1);
   const [summary, setSummary] = useState<EmployeeSummary[] | null>(null);
+  const [totalWashes, setTotalWashes] = useState(0);
+  const [monthHistory, setMonthHistory] = useState<{ year: number; month: number; totalHours: number; totalWashes: number }[]>([]);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
 
@@ -127,14 +148,14 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
   async function registerTechnician(type: 'opening' | 'sluiting') {
     setTechError('');
     if (!techName.trim()) {
-      setTechError('Vul de naam van de technieker in');
+      setTechError(`Vul de naam van de ${techKind === 'jobstudent' ? 'jobstudent' : 'technieker'} in`);
       return;
     }
     setTechSaving(true);
     const res = await fetch('/api/attendance', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ siteId, type, note: techNote, personType: 'technician_extern', personName: techName }),
+      body: JSON.stringify({ siteId, type, note: techNote, personType: techKind, personName: techName }),
     });
     if (res.ok) {
       const entry = (await res.json()) as LogEntry;
@@ -145,6 +166,35 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
       setTechError('Registreren mislukt, probeer opnieuw');
     }
     setTechSaving(false);
+  }
+
+  async function registerOnBehalf(type: 'opening' | 'sluiting') {
+    setOnBehalfError('');
+    if (!onBehalfUserId) {
+      setOnBehalfError('Kies een medewerker');
+      return;
+    }
+    const emp = employees.find((e) => e.id === onBehalfUserId);
+    setOnBehalfSaving(true);
+    const res = await fetch('/api/attendance', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        siteId, type,
+        onBehalfOfUserId: onBehalfUserId,
+        onBehalfOfUserName: emp?.name ?? '',
+        timestamp: onBehalfTime ? new Date(onBehalfTime).toISOString() : undefined,
+      }),
+    });
+    if (res.ok) {
+      const entry = (await res.json()) as LogEntry;
+      setLogs((prev) => [entry, ...prev]);
+      setOnBehalfLastAction(type);
+      setOnBehalfTime('');
+    } else {
+      setOnBehalfError('Registreren mislukt, probeer opnieuw');
+    }
+    setOnBehalfSaving(false);
   }
 
   async function handleDeleteLog(id: string) {
@@ -163,7 +213,12 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
     setSummary(null);
     try {
       const res = await fetch(`/api/attendance/monthly?siteId=${siteId}&year=${year}&month=${month}`);
-      if (res.ok) setSummary(await res.json() as EmployeeSummary[]);
+      if (res.ok) {
+        const data = await res.json() as { employees: EmployeeSummary[]; totalWashes: number; history: { year: number; month: number; totalHours: number; totalWashes: number }[] };
+        setSummary(data.employees);
+        setTotalWashes(data.totalWashes);
+        setMonthHistory(data.history);
+      }
     } finally {
       setSummaryLoading(false);
     }
@@ -247,19 +302,36 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
         )}
       </div>
 
-      {/* ── Externe technieker ───────────────────────────────────── */}
+      {/* ── Externe persoon (technieker / jobstudent) ─────────────── */}
       <div className={styles.registerCard}>
-        <h2 className={styles.registerTitle}>Externe technieker</h2>
+        <h2 className={styles.registerTitle}>Technieker of jobstudent</h2>
         <p className={styles.registerSub}>
-          Komt er een technieker van buitenaf langs (bv. voor herstelling)? Registreer hier wanneer hij aankomt en vertrekt.
+          Komt er iemand zonder app-account langs (technieker van buitenaf, jobstudent,…)? Registreer hier wanneer die aankomt en vertrekt.
         </p>
+
+        <div className={styles.kindToggle}>
+          <button
+            type="button"
+            className={[styles.kindBtn, techKind === 'technician_extern' ? styles.kindBtnActive : ''].filter(Boolean).join(' ')}
+            onClick={() => setTechKind('technician_extern')}
+          >
+            Technieker
+          </button>
+          <button
+            type="button"
+            className={[styles.kindBtn, techKind === 'jobstudent' ? styles.kindBtnActive : ''].filter(Boolean).join(' ')}
+            onClick={() => setTechKind('jobstudent')}
+          >
+            Jobstudent
+          </button>
+        </div>
 
         <input
           className={styles.noteInput}
           type="text"
           value={techName}
           onChange={(e) => setTechName(e.target.value)}
-          placeholder="Naam van de technieker"
+          placeholder={`Naam van de ${techKind === 'jobstudent' ? 'jobstudent' : 'technieker'}`}
           maxLength={80}
         />
         <input
@@ -267,7 +339,7 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
           type="text"
           value={techNote}
           onChange={(e) => setTechNote(e.target.value)}
-          placeholder="Opmerking (optioneel, bv. reden van het bezoek)"
+          placeholder="Opmerking (optioneel)"
           maxLength={120}
         />
 
@@ -279,23 +351,77 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
             onClick={() => registerTechnician('opening')}
             disabled={techSaving}
           >
-            Technieker komt aan
+            Komt aan
           </button>
           <button
             className={[styles.btn, styles.closeBtn].join(' ')}
             onClick={() => registerTechnician('sluiting')}
             disabled={techSaving}
           >
-            Technieker vertrekt
+            Vertrekt
           </button>
         </div>
 
         {techLastAction && (
           <p className={styles.confirm}>
-            {techLastAction === 'opening' ? 'Aankomst' : 'Vertrek'} van technieker geregistreerd
+            {techLastAction === 'opening' ? 'Aankomst' : 'Vertrek'} geregistreerd
           </p>
         )}
       </div>
+
+      {/* ── Namens medewerker registreren (owner/developer) ───────── */}
+      {isOwner && employees.length > 0 && (
+        <div className={styles.registerCard}>
+          <h2 className={styles.registerTitle}>Voor medewerker registreren</h2>
+          <p className={styles.registerSub}>
+            Vergat iemand zelf in of uit te checken? Registreer het hier in hun plaats.
+          </p>
+
+          <select
+            className={styles.noteInput}
+            value={onBehalfUserId}
+            onChange={(e) => setOnBehalfUserId(e.target.value)}
+          >
+            <option value="">Kies medewerker...</option>
+            {employees.map((emp) => (
+              <option key={emp.id} value={emp.id}>{emp.name}</option>
+            ))}
+          </select>
+
+          <input
+            className={styles.noteInput}
+            type="datetime-local"
+            value={onBehalfTime}
+            onChange={(e) => setOnBehalfTime(e.target.value)}
+            title="Laat leeg voor het huidige tijdstip"
+          />
+
+          {onBehalfError && <p className={styles.error}>{onBehalfError}</p>}
+
+          <div className={styles.btnRow}>
+            <button
+              className={[styles.btn, styles.openBtn].join(' ')}
+              onClick={() => registerOnBehalf('opening')}
+              disabled={onBehalfSaving}
+            >
+              Komt aan
+            </button>
+            <button
+              className={[styles.btn, styles.closeBtn].join(' ')}
+              onClick={() => registerOnBehalf('sluiting')}
+              disabled={onBehalfSaving}
+            >
+              Vertrekt
+            </button>
+          </div>
+
+          {onBehalfLastAction && (
+            <p className={styles.confirm}>
+              {onBehalfLastAction === 'opening' ? 'Aankomst' : 'Vertrek'} geregistreerd
+            </p>
+          )}
+        </div>
+      )}
 
       {/* ── Owner tabs ─────────────────────────────────────────── */}
       {isOwner && (
@@ -355,6 +481,38 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
           </div>
 
           {summaryLoading && <p className={styles.empty}>Laden...</p>}
+
+          {!summaryLoading && summary !== null && (
+            <div className={styles.totalsRow}>
+              <div className={styles.totalTile}>
+                <span className={styles.totalLabel}>Totaal gewerkte uren</span>
+                <span className={styles.totalValue}>
+                  {summary.reduce((s, e) => s + e.totalHours, 0).toFixed(1).replace('.0', '')} u
+                </span>
+              </div>
+              <div className={styles.totalTile}>
+                <span className={styles.totalLabel}>Aantal wasbeurten</span>
+                <span className={styles.totalValue}>{totalWashes.toLocaleString('nl-BE')}</span>
+              </div>
+            </div>
+          )}
+
+          {!summaryLoading && monthHistory.length > 0 && (
+            <div className={styles.historyRow}>
+              {monthHistory.map((h) => (
+                <button
+                  key={`${h.year}-${h.month}`}
+                  type="button"
+                  className={[styles.historyTile, h.year === selYear && h.month === selMonth ? styles.historyTileActive : ''].filter(Boolean).join(' ')}
+                  onClick={() => handleMonthChange(h.year, h.month)}
+                >
+                  <span className={styles.historyMonth}>{MONTH_NAMES[h.month - 1].slice(0, 3)}</span>
+                  <span className={styles.historyHours}>{h.totalHours.toFixed(0)}u</span>
+                  <span className={styles.historyWashes}>{h.totalWashes.toLocaleString('nl-BE')}w</span>
+                </button>
+              ))}
+            </div>
+          )}
 
           {!summaryLoading && summary !== null && summary.length === 0 && (
             <p className={styles.empty}>Geen registraties gevonden voor deze maand.</p>
@@ -437,8 +595,11 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
                   </span>
                   <span className={styles.logName}>
                     {l.userName}
-                    {l.personType === 'technician_extern' && (
-                      <span className={styles.technicianBadge}>Externe technieker</span>
+                    {(l.personType === 'technician_extern' || l.personType === 'jobstudent') && (
+                      <span className={styles.technicianBadge}>{PERSON_TYPE_LABEL[l.personType]}</span>
+                    )}
+                    {l.registeredByName && (
+                      <span className={styles.onBehalfBadge}>door {l.registeredByName}</span>
                     )}
                   </span>
                   <span className={styles.logTime}>{fmtTime(l.timestamp)}</span>

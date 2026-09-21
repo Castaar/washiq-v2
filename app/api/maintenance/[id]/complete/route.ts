@@ -29,12 +29,13 @@ export async function POST(
   const now = new Date();
   await Promise.all([
     MaintenanceTask.findByIdAndUpdate(id, {
-      $set: { last_done_at: now, washes_at_last_done: currentTellerstand, is_overdue: false, overdue_notified_at: null },
+      $set: { last_done_at: now, last_done_by_name: session.name, washes_at_last_done: currentTellerstand, is_overdue: false, overdue_notified_at: null },
     }),
     MaintenanceLog.create({
       task_id: id,
       site_id: task.site_id,
       done_by: session.userId,
+      done_by_name: session.name,
       done_at: now,
       notes: body.notes?.trim() ?? '',
     }),

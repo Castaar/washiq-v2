@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
 
   // Developers see every site regardless of their assigned site_ids —
   // owners stay scoped to their own sites.
-  User.find({ is_active: true, $or: [{ role: 'developer' }, { site_ids: body.siteId, role: 'owner' }] })
+  User.find({ is_active: true, _id: { $ne: session.userId }, $or: [{ role: 'developer' }, { site_ids: body.siteId, role: { $in: ['owner', 'technician', 'employee'] } }] })
     .select('_id')
     .lean()
     .then((notifyUsers) =>

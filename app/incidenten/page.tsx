@@ -159,6 +159,7 @@ export default async function IncidentenPage({
       <NavBar sites={allowedSites} activeSiteId={siteId} backHref="/" addHref={addHref} addLabel={addLabel} />
       <main className={styles.main}>
         <IncidentenPanel
+          key={siteId}
           siteId={siteId}
           initialIncidents={incidents}
           stats={{ totalSchade, currentTellerstand, schadesPer1000, schadeLocatieStats }}

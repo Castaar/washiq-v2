@@ -73,7 +73,7 @@ export default async function OrdersPage({
       <NavBar sites={allowedSites} activeSiteId={siteId} backHref="/" />
       <main className={styles.main}>
         <div className={styles.content}>
-          <OrdersPanel siteId={siteId} initialItems={items} initialRequests={requests} canManage={canManage} otherSites={otherSites} />
+          <OrdersPanel key={siteId} siteId={siteId} initialItems={items} initialRequests={requests} canManage={canManage} otherSites={otherSites} />
         </div>
       </main>
     </div>

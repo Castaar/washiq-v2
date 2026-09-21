@@ -56,9 +56,7 @@ const EMPLOYEE_LINKS: MeerLink[] = [
 ];
 
 function linksForRole(role: UserRole, siteType: 'wasstraat' | 'selfcarwash'): MeerLink[] {
-  const base = role === 'developer' ? DEVELOPER_LINKS : role === 'owner' ? OWNER_LINKS : EMPLOYEE_LINKS;
-  // Selfcarwash sites don't track wagens — Historiek (weekly wagen entries) doesn't apply.
-  return siteType === 'selfcarwash' ? base.filter((l) => l.href !== '/historiek') : base;
+  return role === 'developer' ? DEVELOPER_LINKS : role === 'owner' ? OWNER_LINKS : EMPLOYEE_LINKS;
 }
 
 export function MeerSheet({ role, siteType = 'wasstraat', open, onClose }: { role: UserRole; siteType?: 'wasstraat' | 'selfcarwash'; open: boolean; onClose: () => void }) {

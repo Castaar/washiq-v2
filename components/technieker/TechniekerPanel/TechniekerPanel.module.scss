@@ -68,6 +68,7 @@
   &.kind_defect { color: var(--color-accent-amber); }
   &.kind_schade { color: var(--color-accent-red); }
   &.kind_maintenance { color: var(--color-accent-teal); }
+  &.kind_bestelling { color: var(--color-accent-blue, #6c8cff); }
 }
 
 .itemDate {

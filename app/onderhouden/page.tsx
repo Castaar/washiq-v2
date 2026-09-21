@@ -65,6 +65,7 @@ export default async function OnderhoudPage({
       triggerType: t.trigger_type as OnderhoudTask['triggerType'],
       triggerValue: t.trigger_value as number ?? 0,
       lastDoneAt: t.last_done_at ? new Date(t.last_done_at as Date).toLocaleDateString('nl-BE', { day: '2-digit', month: '2-digit', year: 'numeric' }) : undefined,
+      lastDoneByName: (t.last_done_by_name as string) || undefined,
       washesAtLastDone: t.washes_at_last_done as number ?? 0,
       isOverdue: overdue,
       isApproaching: approaching,
@@ -92,7 +93,7 @@ export default async function OnderhoudPage({
           <div className={styles.header}>
             <h1 className={styles.title}>Onderhoud — {siteName}</h1>
           </div>
-          <OnderhoudPanel tasks={tasks} siteId={siteId ?? ''} />
+          <OnderhoudPanel key={siteId ?? ''} tasks={tasks} siteId={siteId ?? ''} />
 
           {siteType !== 'selfcarwash' && (
             <div className={styles.header} style={{ marginTop: 'var(--space-6)' }}>
@@ -100,7 +101,7 @@ export default async function OnderhoudPage({
             </div>
           )}
           {siteType !== 'selfcarwash' && (
-            <BrushesPanel siteId={siteId ?? ''} currentTellerstand={currentTellerstand} isOwner={isOwner} initialBrushes={brushes} />
+            <BrushesPanel key={siteId ?? ''} siteId={siteId ?? ''} currentTellerstand={currentTellerstand} isOwner={isOwner} initialBrushes={brushes} />
           )}
         </div>
       </main>

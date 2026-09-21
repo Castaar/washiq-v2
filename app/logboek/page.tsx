@@ -35,6 +35,11 @@ export default async function LogboekPage({
 
   const isOwner = userRole === 'owner' || userRole === 'developer';
 
+  const employeeDocs = isOwner
+    ? await User.find({ site_ids: siteId, role: 'employee', is_active: true }).select('_id name').lean()
+    : [];
+  const employees = employeeDocs.map((u) => ({ id: (u._id as Types.ObjectId).toString(), name: u.name as string }));
+
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
@@ -50,7 +55,7 @@ export default async function LogboekPage({
     userId: (l.user_id as Types.ObjectId).toString(),
     userName: (l.user_name as string) ?? '',
     type: l.type as 'opening' | 'sluiting',
-    personType: (l.person_type as 'employee' | 'technician_extern') ?? 'employee',
+    personType: (l.person_type as 'employee' | 'technician_extern' | 'jobstudent') ?? 'employee',
     registeredByName: (l.registered_by_name as string) ?? '',
     timestamp: (l.timestamp as Date).toISOString(),
     note: (l.note as string) ?? '',
@@ -67,6 +72,7 @@ export default async function LogboekPage({
             userName={(userDoc?.name as string) ?? session?.name ?? ''}
             currentUserId={session?.userId ?? ''}
             recentLogs={recentLogs}
+            employees={employees}
           />
         </div>
       </main>

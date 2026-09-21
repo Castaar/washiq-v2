@@ -1,4 +1,4 @@
-const CACHE = 'dodane-v4';
+const CACHE = 'dodane-v5';
 
 const PRECACHE = [
   '/',
@@ -102,26 +102,22 @@ self.addEventListener('notificationclick', (event) => {
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async (windowClients) => {
-      // If a window is already open, focus it and navigate. client.navigate()
-      // silently no-ops on several iOS/PWA versions (the tab just stays on
-      // whatever page it already had open) — so on top of it, always also
-      // postMessage the page and let its own JS force the navigation as a
-      // fallback that doesn't depend on this API actually working.
+      // postMessage every open window first (fire-and-forget) so the page's
+      // own JS can force an in-app route change as a belt-and-braces fallback.
       for (const client of windowClients) {
-        if ('focus' in client) {
-          await client.focus();
-          try {
-            await client.navigate(targetUrl);
-          } catch {
-            // ignore — postMessage fallback below still fires
-          }
-          client.postMessage({ type: 'notification-navigate', url: targetUrl });
-          return;
-        }
+        client.postMessage({ type: 'notification-navigate', url: targetUrl });
       }
-      // No window open at all — open a fresh one straight to the target.
+      // clients.openWindow() is the primary path, not focus()+navigate() —
+      // navigate() silently no-ops on several iOS/PWA versions (the tab just
+      // stays on whatever page it already had open, which is exactly the
+      // "app opens but wrong screen" symptom). openWindow() on a URL within
+      // the PWA's scope reuses/focuses the existing standalone app window
+      // and drives it to the target URL, which is far more reliable on iOS.
       if (clients.openWindow) {
         return clients.openWindow(targetUrl);
+      }
+      if (windowClients[0] && 'focus' in windowClients[0]) {
+        return windowClients[0].focus();
       }
     }),
   );
