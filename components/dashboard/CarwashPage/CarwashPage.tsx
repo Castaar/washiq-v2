@@ -113,7 +113,7 @@ export async function CarwashPage({
   // Both batches are independent (day-log batch only needs dayStart/dayEnd,
   // not the results of the first) — fired together to save a Mongo round trip.
   const [
-    entries, monthEntries, prevMonthEntries, lastTwoEntries, programs, priceConfigs, stocks, tasks, logs, checklists, openDefects, energyBillCur, energyBillPrev, readings, openOrderRequests,
+    entries, monthEntries, prevMonthEntries, lastTwoEntries, programs, priceConfigs, stocks, tasks, logs, checklists, openDefects, openSchades, energyBillCur, energyBillPrev, readings, openOrderRequests,
     dayAttendance, dayDeliveries, dayChecklists, dayMaintenanceLogs, daySchades, dayEhbos, dayDefects,
   ] = await Promise.all([
     period === 'week'
@@ -132,6 +132,9 @@ export async function CarwashPage({
     // Unresolved defects/pannes — stay visible on the dashboard until marked resolved,
     // regardless of which day they were originally reported.
     Defect.find({ ...filter, $or: [{ is_resolved: false }, { is_resolved: { $exists: false } }] }).sort({ created_at: -1 }).limit(8).lean(),
+    // Unresolved schadegevallen — same "stays visible until resolved" rule as
+    // defects, since an unhandled damage claim is just as actionable.
+    IncidentSchade.find({ ...filter, $or: [{ is_resolved: false }, { is_resolved: { $exists: false } }] }).sort({ created_at: -1 }).limit(8).lean(),
     siteId ? EnergyBill.findOne({ site_id: siteId, year: curYear,  month: curMonth  }).lean() : null,
     siteId ? EnergyBill.findOne({ site_id: siteId, year: prevYear, month: prevMonth }).lean() : null,
     // All stock readings for this site, oldest first — used to derive monthly chemistry consumption
@@ -548,10 +551,10 @@ export async function CarwashPage({
     }),
   ];
 
-  // Incidenten-tab op het hoofdblad toont enkel pannes (defecten) — die zijn
-  // actionable en moeten blijven staan tot opgelost. Schade/EHBO zijn geen
-  // "nog te doen"-items; die blijven zichtbaar in de Meldingen-tab op de dag
-  // zelf, en zijn nadien terug te vinden via Historiek.
+  // Incidenten-tab op het hoofdblad toont pannes (defecten) én onopgeloste
+  // schadegevallen — beide blijven staan tot opgelost. EHBO heeft geen
+  // opgelost-status en blijft dus enkel zichtbaar in de Meldingen-tab op de
+  // dag zelf, en nadien terug te vinden via Historiek.
   const incidentItems: AlertItem[] = [
     ...openDefects.map((d) => {
       const id = (d._id as Types.ObjectId).toString();
@@ -569,6 +572,36 @@ export async function CarwashPage({
         title: (d.omschrijving as string)?.slice(0, 40) || 'Defect',
         date: fmtDate(new Date(d.created_at as Date)),
         severity: (d.ernst === 'hoog' ? 'high' : d.ernst === 'laag' ? 'low' : 'medium') as 'high' | 'medium' | 'low',
+        iconName: 'warning',
+        payload,
+      };
+    }),
+    ...openSchades.map((s) => {
+      const id = (s._id as Types.ObjectId).toString();
+      const payload: IncidentSchadePayload = {
+        type: 'schade',
+        isResolved: Boolean(s.is_resolved),
+        reportedBy: (s.reported_by_name as string) || '',
+        date: fmtDate(new Date(s.created_at as Date)),
+        typeVoertuig: (s.type_voertuig as string) || '',
+        merkModel: (s.merk_model as string) || '',
+        nummerplaat: (s.nummerplaat as string) || '',
+        naamEigenaar: (s.naam_eigenaar as string) || '',
+        telGsm: (s.tel_gsm as string) || '',
+        email: (s.email as string) || '',
+        omschrijving: (s.omschrijving as string) || '',
+        onbetwist: Boolean(s.onbetwist),
+        installatiefout: Boolean(s.installatiefout),
+        klantVerantwoordelijk: Boolean(s.klant_verantwoordelijk),
+        verzekeringsdocumenten: Boolean(s.verzekeringsdocumenten),
+        photos: (s.photos as string[]) ?? [],
+      };
+      return {
+        id, refId: id, refType: 'incident_schade' as const, siteId: siteId ?? '',
+        title: (s.merk_model as string) || 'Schade',
+        subtitle: (s.omschrijving as string) || '',
+        date: fmtDate(new Date(s.created_at as Date)),
+        severity: 'high' as const,
         iconName: 'warning',
         payload,
       };

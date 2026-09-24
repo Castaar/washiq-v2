@@ -39,6 +39,31 @@ export function LeveringenPanel({
   const [transferError, setTransferError] = useState<Record<string, string>>({});
   const [transferTargetHasProduct, setTransferTargetHasProduct] = useState<Record<string, boolean | null>>({});
 
+  // Diverse levering — vrije tekst, geen voorraad gekoppeld (bv. "5 dozen doekjes geleverd")
+  const [diverseText, setDiverseText] = useState('');
+  const [diverseSaving, setDiverseSaving] = useState(false);
+  const [diverseSaved, setDiverseSaved] = useState(false);
+
+  async function handleDeliverDiverse() {
+    if (!diverseText.trim()) return;
+    setDiverseSaving(true);
+    try {
+      const res = await fetch('/api/stock/delivery-note', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ siteId, text: diverseText }),
+      });
+      if (res.ok) {
+        setDiverseText('');
+        setDiverseSaved(true);
+        setTimeout(() => setDiverseSaved(false), 2000);
+        showToast(t('leveringGeregistreerd'));
+      }
+    } finally {
+      setDiverseSaving(false);
+    }
+  }
+
   async function handleDeliver(id: string) {
     const qty = parseFloat(qtyDraft[id] ?? '');
     if (!qty || qty <= 0) return;
@@ -108,12 +133,10 @@ export function LeveringenPanel({
     }
   }
 
-  if (stocks.length === 0) {
-    return <p className={styles.empty}>{t('geenProducten')}</p>;
-  }
-
   return (
+    <div className={styles.wrap}>
     <div className={styles.list}>
+      {stocks.length === 0 && <p className={styles.empty}>{t('geenProducten')}</p>}
       {stocks.map((s) => {
         const isLow = s.current_stock <= s.min_stock_alert && s.min_stock_alert > 0;
         const hasQty = !!qtyDraft[s.id];
@@ -214,6 +237,30 @@ export function LeveringenPanel({
           </div>
         );
       })}
+    </div>
+
+      <div className={styles.diverseCard}>
+        <h2 className={styles.diverseTitle}>{t('diversenTitel')}</h2>
+        <p className={styles.diverseSub}>{t('diversenUitleg')}</p>
+        <div className={styles.diverseRow}>
+          <input
+            className={styles.diverseInput}
+            type="text"
+            placeholder={t('diversenPlaceholder')}
+            value={diverseText}
+            onChange={(e) => setDiverseText(e.target.value)}
+            maxLength={200}
+          />
+          <button
+            type="button"
+            className={styles.deliverBtn}
+            disabled={!diverseText.trim() || diverseSaving}
+            onClick={handleDeliverDiverse}
+          >
+            {diverseSaving ? '...' : diverseSaved ? t('opgeslagen') : t('melden')}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

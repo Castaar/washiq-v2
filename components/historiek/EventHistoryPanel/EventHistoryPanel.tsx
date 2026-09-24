@@ -43,19 +43,31 @@ export interface MaintenanceHistoryItem {
   doneAt: string;
 }
 
+export interface DeliveryHistoryItem {
+  id: string;
+  productName: string;
+  quantity: number;
+  unit: string;
+  note: string;
+  loggedByName: string;
+  deliveredAt: string;
+}
+
 interface EventHistoryPanelProps {
   defects: DefectHistoryItem[];
   schades: SchadeHistoryItem[];
   orders: OrderHistoryItem[];
   maintenance: MaintenanceHistoryItem[];
+  deliveries: DeliveryHistoryItem[];
 }
 
-type Tab = 'pannes' | 'schade' | 'bestellingen' | 'onderhouden';
+type Tab = 'pannes' | 'schade' | 'bestellingen' | 'leveringen' | 'onderhouden';
 
 const TAB_LABEL: Record<Tab, string> = {
   pannes: 'Pannes',
   schade: 'Schade / EHBO',
   bestellingen: 'Bestellingen',
+  leveringen: 'Leveringen',
   onderhouden: 'Onderhouden',
 };
 
@@ -63,13 +75,14 @@ function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString('nl-BE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
-export function EventHistoryPanel({ defects, schades, orders, maintenance }: EventHistoryPanelProps) {
+export function EventHistoryPanel({ defects, schades, orders, maintenance, deliveries }: EventHistoryPanelProps) {
   const [tab, setTab] = useState<Tab>('pannes');
   const [openSchade, setOpenSchade] = useState<SchadeHistoryItem | null>(null);
   const counts: Record<Tab, number> = {
     pannes: defects.length,
     schade: schades.length,
     bestellingen: orders.length,
+    leveringen: deliveries.length,
     onderhouden: maintenance.length,
   };
 
@@ -137,6 +150,25 @@ export function EventHistoryPanel({ defects, schades, orders, maintenance }: Eve
               <span className={[styles.badge, o.isHandled ? styles.badgeDone : styles.badgeOpen].join(' ')}>
                 {o.isHandled ? '✓ Besteld' : 'Open'}
               </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tab === 'leveringen' && (
+        <div className={styles.list}>
+          {deliveries.length === 0 && <p className={styles.empty}>Geen leveringen gevonden.</p>}
+          {deliveries.map((d) => (
+            <div key={d.id} className={styles.row}>
+              <div className={styles.rowBody}>
+                <span className={styles.rowTitle}>
+                  {d.productName ? d.productName : d.note}
+                </span>
+                {d.productName && (
+                  <span className={styles.rowSub}>{d.quantity.toLocaleString('nl-BE')} {d.unit}{d.note ? ` — ${d.note}` : ''}</span>
+                )}
+                <span className={styles.rowMeta}>{d.loggedByName} · {fmtDate(d.deliveredAt)}</span>
+              </div>
             </div>
           ))}
         </div>

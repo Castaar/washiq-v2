@@ -288,7 +288,11 @@
     "opgeslagen": "✓ Opgeslagen",
     "levering": "+ Levering",
     "verplaatsen": "⇄ Verplaatsen",
-    "bestaatNogNiet": "Bestaat nog niet daar — wordt automatisch aangemaakt zonder prijs/wasprogramma-koppeling."
+    "bestaatNogNiet": "Bestaat nog niet daar — wordt automatisch aangemaakt zonder prijs/wasprogramma-koppeling.",
+    "diversenTitel": "Diversen",
+    "diversenUitleg": "Levering die niet in de voorraad zit? Meld het hier met een korte tekst.",
+    "diversenPlaceholder": "Bv. 5 dozen doekjes geleverd",
+    "melden": "Melden"
   },
   "dagfiche": {
     "titel": "Dagfiche",

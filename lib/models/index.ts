@@ -173,19 +173,25 @@ export const ChemicalStock = models.ChemicalStock || model<IChemicalStock>('Chem
 // ─── StockDelivery ────────────────────────────────────────────
 export interface IStockDelivery extends Document {
   site_id: Types.ObjectId;
-  chemical_id: Types.ObjectId;
+  chemical_id: Types.ObjectId | null;
   quantity: number;
   unit_price: number;
+  // Set for a "diverse" delivery logged as a plain text note instead of a
+  // tracked chemical + quantity (chemical_id is null in that case).
+  note: string;
   delivered_at: Date;
   logged_by: Types.ObjectId;
+  logged_by_name: string;
 }
 const StockDeliverySchema = new Schema<IStockDelivery>({
   site_id: { type: Schema.Types.ObjectId, ref: 'Site' },
-  chemical_id: { type: Schema.Types.ObjectId, ref: 'ChemicalStock' },
+  chemical_id: { type: Schema.Types.ObjectId, ref: 'ChemicalStock', default: null },
   quantity: Number,
   unit_price: Number,
+  note: { type: String, default: '' },
   delivered_at: Date,
   logged_by: { type: Schema.Types.ObjectId, ref: 'User' },
+  logged_by_name: { type: String, default: '' },
 });
 StockDeliverySchema.index({ site_id: 1, delivered_at: -1 });
 export const StockDelivery = models.StockDelivery || model<IStockDelivery>('StockDelivery', StockDeliverySchema);

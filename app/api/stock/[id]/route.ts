@@ -52,6 +52,7 @@ export async function PATCH(
       unit_price: Number(body.unit_price) || 0,
       delivered_at: new Date(),
       logged_by: session?.userId ? new mongoose.Types.ObjectId(session.userId) : undefined,
+      logged_by_name: session?.name ?? '',
     });
 
     stock.current_stock = (stock.current_stock ?? 0) + body.delivery_quantity;

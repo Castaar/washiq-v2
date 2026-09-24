@@ -17,6 +17,7 @@ export interface AnnouncementItem {
   kind: 'general' | 'birthday';
   created_by_name: string;
   created_at: string;
+  isAllSites: boolean;
 }
 
 function fmtDate(iso: string) {
@@ -27,16 +28,21 @@ export function DiversenPanel({
   birthdays,
   announcements: initialAnnouncements,
   canPostGeneral,
+  siteId,
+  siteName,
 }: {
   birthdays: BirthdayPerson[];
   announcements: AnnouncementItem[];
   canPostGeneral: boolean;
+  siteId?: string;
+  siteName?: string;
 }) {
   const locale = useLocale();
   const [announcements, setAnnouncements] = useState(initialAnnouncements);
   const [wishedIds, setWishedIds] = useState<string[]>([]);
   const [generalText, setGeneralText] = useState('');
   const [generalTextFr, setGeneralTextFr] = useState('');
+  const [perSiteOnly, setPerSiteOnly] = useState(false);
   const [posting, setPosting] = useState(false);
 
   function displayText(a: AnnouncementItem) {
@@ -54,7 +60,7 @@ export function DiversenPanel({
     if (res.ok) {
       const data = (await res.json()) as { id: string };
       setAnnouncements((prev) => [
-        { id: data.id, text, text_fr, kind: 'birthday', created_by_name: '', created_at: new Date().toISOString() },
+        { id: data.id, text, text_fr, kind: 'birthday', created_by_name: '', created_at: new Date().toISOString(), isAllSites: true },
         ...prev,
       ]);
       setWishedIds((prev) => [...prev, person.id]);
@@ -68,12 +74,18 @@ export function DiversenPanel({
       const res = await fetch('/api/announcements', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: generalText.trim(), text_fr: generalTextFr.trim(), kind: 'general', is_all_sites: true }),
+        body: JSON.stringify({
+          text: generalText.trim(),
+          text_fr: generalTextFr.trim(),
+          kind: 'general',
+          is_all_sites: !perSiteOnly,
+          siteId: perSiteOnly ? siteId : undefined,
+        }),
       });
       if (res.ok) {
         const data = (await res.json()) as { id: string };
         setAnnouncements((prev) => [
-          { id: data.id, text: generalText.trim(), text_fr: generalTextFr.trim(), kind: 'general', created_by_name: '', created_at: new Date().toISOString() },
+          { id: data.id, text: generalText.trim(), text_fr: generalTextFr.trim(), kind: 'general', created_by_name: '', created_at: new Date().toISOString(), isAllSites: !perSiteOnly },
           ...prev,
         ]);
         setGeneralText('');
@@ -109,7 +121,7 @@ export function DiversenPanel({
 
       {canPostGeneral && (
         <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>Algemeen bericht (alle filialen)</h2>
+          <h2 className={styles.sectionTitle}>Algemeen bericht</h2>
           <textarea
             className={styles.textarea}
             placeholder="Bv. Start promotie morgen!"
@@ -124,6 +136,16 @@ export function DiversenPanel({
             onChange={(e) => setGeneralTextFr(e.target.value)}
             rows={3}
           />
+          {siteId && (
+            <label className={styles.perSiteToggle}>
+              <input
+                type="checkbox"
+                checked={perSiteOnly}
+                onChange={(e) => setPerSiteOnly(e.target.checked)}
+              />
+              Enkel voor {siteName || 'dit filiaal'} (anders zichtbaar bij alle filialen)
+            </label>
+          )}
           <button
             type="button"
             className={styles.postBtn}
@@ -148,6 +170,7 @@ export function DiversenPanel({
                   <p className={styles.itemText}>{displayText(a)}</p>
                   <span className={styles.itemMeta}>
                     {a.created_by_name && `${a.created_by_name} · `}{fmtDate(a.created_at)}
+                    {a.kind === 'general' && !a.isAllSites && ' · dit filiaal'}
                   </span>
                 </div>
               </div>
