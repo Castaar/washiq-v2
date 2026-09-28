@@ -125,6 +125,7 @@ export default async function DagfichePage({
       <NavBar sites={allowedSites} activeSiteId={siteId} backHref="/" />
       <main className={styles.main}>
         <DagficheForm
+          key={siteId}
           siteId={siteId}
           siteName={siteName}
           siteType={siteDoc?.siteType ?? 'wasstraat'}

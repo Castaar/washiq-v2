@@ -87,6 +87,7 @@ export default async function OpdrachtenPage({
             <h1 className={styles.title}>Opdrachten — {siteName}</h1>
           </div>
           <OpdrachtenPanel
+            key={siteId}
             siteId={siteId}
             userRole={userRole}
             opdrachten={opdrachten}

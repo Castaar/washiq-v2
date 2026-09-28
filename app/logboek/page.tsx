@@ -67,6 +67,7 @@ export default async function LogboekPage({
       <main className={styles.main}>
         <div className={styles.content}>
           <LogboekPanel
+            key={siteId}
             siteId={siteId}
             userRole={userRole}
             userName={(userDoc?.name as string) ?? session?.name ?? ''}

@@ -113,6 +113,7 @@ export default async function InstellingenPage({
       <NavBar sites={allowedSites} activeSiteId={siteId ?? ''} backHref="/" />
       <main className={styles.main}>
         <InstellingenForm
+          key={siteId}
           siteId={siteId ?? ''}
           siteName={siteName}
           siteType={siteType}

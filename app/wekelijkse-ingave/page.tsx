@@ -117,6 +117,7 @@ export default async function WekelijkseIngavePage({
       <NavBar sites={allowedSites} activeSiteId={siteId ?? ''} backHref="/" />
       <main className={styles.main}>
         <WeeklyEntryForm
+          key={siteId}
           siteId={siteId ?? ''}
           programs={programsWithChemicals}
           products={products}

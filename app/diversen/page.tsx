@@ -71,6 +71,7 @@ export default async function DiversenPage({
       <main className={styles.main}>
         <div className={styles.content}>
           <DiversenPanel
+            key={siteId}
             birthdays={birthdays}
             announcements={announcements}
             canPostGeneral={canPostGeneral}

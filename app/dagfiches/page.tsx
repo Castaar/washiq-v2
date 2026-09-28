@@ -83,7 +83,7 @@ export default async function DagfichesPage({
         <div className={styles.content}>
           <h1 className={styles.title}>Dagfiches — {siteName}</h1>
           <p className={styles.subtitle}>Laatste 30 dagen. Klik op een regel voor het volledige overzicht.</p>
-          <DagfichesPanel items={items} siteId={siteId ?? ''} />
+          <DagfichesPanel key={siteId} items={items} siteId={siteId ?? ''} />
         </div>
       </main>
     </div>
