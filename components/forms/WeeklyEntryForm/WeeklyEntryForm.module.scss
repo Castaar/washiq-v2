@@ -231,6 +231,12 @@
   font-style: italic;
 }
 
+.sectionHint {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  margin: -4px 0 var(--space-2);
+}
+
 // ─── Tellerstand read-only display ───────────────────────────
 .tellerstandDisplay {
   display: flex;

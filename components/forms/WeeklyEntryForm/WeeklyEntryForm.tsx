@@ -144,7 +144,10 @@ export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesT
   const [electricityAmount, setElectricityAmount] = useState('');
   const [newWaterTellerstand, setNewWaterTellerstand] = useState('');
   const [energyKw, setEnergyKw] = useState('');
-  const [chemicalUsages, setChemicalUsages] = useState<Record<string, string>>(
+  // Per product: the new physical stock count (not a usage amount) — posted
+  // straight to /api/stock/reading, which derives consumption itself from
+  // (previous reading + deliveries since - this new count), same as Instellingen.
+  const [stockCounts, setStockCounts] = useState<Record<string, string>>(
     () => Object.fromEntries(uniqueChemicals.map((c) => [c.id, ''])),
   );
   const [pickedDate, setPickedDate] = useState<string>(() => dateToDateString(new Date()));
@@ -177,16 +180,13 @@ export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesT
     setProgramCounts((prev) => ({ ...prev, [id]: v }));
   }, []);
 
-  const setChemical = useCallback((key: string, v: string) => {
-    setChemicalUsages((prev) => ({ ...prev, [key]: v }));
+  const setStockCount = useCallback((key: string, v: string) => {
+    setStockCounts((prev) => ({ ...prev, [key]: v }));
   }, []);
 
-  // Delta lookup maps from last entry
+  // Delta lookup map from last entry
   const lastCountMap = Object.fromEntries(
     (lastEntry?.programCounts ?? []).map((pc) => [pc.programId, pc.count]),
-  );
-  const lastChemMap = Object.fromEntries(
-    (lastEntry?.chemicalUsages ?? []).map((cu) => [cu.chemicalId, cu.amount]),
   );
 
   async function handleSubmit(e: React.FormEvent) {
@@ -220,12 +220,6 @@ export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesT
         name: p.name,
         count: parseFloat(programCounts[p.id]) || 0,
       })),
-      chemical_usages: uniqueChemicals.map((c) => ({
-        chemical_id: c.id,
-        name: c.name,
-        amount: parseFloat(chemicalUsages[c.id]) || 0,
-        unit: c.unit,
-      })),
     };
 
     try {
@@ -238,6 +232,20 @@ export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesT
         setSubmitError('Opslaan mislukt — probeer opnieuw.');
         return;
       }
+
+      // Each filled-in product count is a physical stock reading — post it
+      // to the same endpoint Instellingen uses, so consumption is derived
+      // automatically instead of typed in directly.
+      const readings = uniqueChemicals
+        .filter((c) => stockCounts[c.id]?.trim() !== '')
+        .map((c) =>
+          fetch('/api/stock/reading', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chemicalId: c.id, quantity: parseFloat(stockCounts[c.id]) || 0 }),
+          }),
+        );
+      if (readings.length > 0) await Promise.allSettled(readings);
 
       if (electricityAmount.trim() !== '') {
         await fetch('/api/energy-bills', {
@@ -367,20 +375,20 @@ export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesT
         )}
       </section>
 
-      {/* ── Section 3: Chemie totaal per product ────────────── */}
+      {/* ── Section 3: Voorraad per product ─────────────────── */}
       {uniqueChemicals.length > 0 && (
         <section className={styles.section}>
-          <SectionTitle>Chemie — totaal verbruik per product</SectionTitle>
+          <SectionTitle>Voorraad per product</SectionTitle>
+          <p className={styles.sectionHint}>Geef de nieuwe voorraad in — het verbruik wordt automatisch berekend.</p>
           <div className={styles.fieldsRow}>
             {uniqueChemicals.map((c) => (
               <EntryField
                 key={c.id}
-                label={`${tProduct(c.name)} (${c.unit})`}
-                value={chemicalUsages[c.id] ?? ''}
-                onChange={(v) => setChemical(c.id, v)}
-                delta={getDelta(chemicalUsages[c.id] ?? '', lastChemMap[c.id])}
-                lastValue={lastChemMap[c.id] ?? null}
-                stockLabel={c.current_stock != null ? `Voorraad: ${c.current_stock} ${c.unit}` : undefined}
+                label={`${tProduct(c.name)} — nieuwe voorraad (${c.unit})`}
+                value={stockCounts[c.id] ?? ''}
+                onChange={(v) => setStockCount(c.id, v)}
+                delta={getDelta(stockCounts[c.id] ?? '', c.current_stock ?? null)}
+                lastValue={c.current_stock ?? null}
               />
             ))}
           </div>

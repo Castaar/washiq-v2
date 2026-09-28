@@ -58,8 +58,11 @@ export default async function WekelijkseIngavePage({
     };
   }
 
+  // Real ChemicalStock _id (not the name) — the "nieuwe voorraad" field posts
+  // straight to /api/stock/reading, the same endpoint Instellingen uses, so
+  // both flows write to the same StockReading/ChemicalStock source of truth.
   const products = stockDocs.map((s) => ({
-    id: s.name as string,
+    id: (s._id as Types.ObjectId).toString(),
     name: s.name as string,
     unit: (s.unit as string) ?? '',
     current_stock: (s.current_stock as number) ?? 0,
