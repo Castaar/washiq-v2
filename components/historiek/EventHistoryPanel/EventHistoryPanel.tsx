@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import type { IncidentSchadePayload, IncidentEhboPayload } from '@/lib/types/dashboard';
+import type { IncidentSchadePayload, IncidentEhboPayload, DefectPayload } from '@/lib/types/dashboard';
 import { IncidentModal } from '@/components/dashboard/IncidentModal/IncidentModal';
 import styles from './EventHistoryPanel.module.scss';
 
@@ -13,6 +13,8 @@ export interface DefectHistoryItem {
   reportedByName: string;
   resolvedByName: string;
   createdAt: string;
+  siteId: string;
+  payload: DefectPayload;
 }
 
 export interface SchadeHistoryItem {
@@ -78,6 +80,7 @@ function fmtDate(iso: string) {
 export function EventHistoryPanel({ defects, schades, orders, maintenance, deliveries }: EventHistoryPanelProps) {
   const [tab, setTab] = useState<Tab>('pannes');
   const [openSchade, setOpenSchade] = useState<SchadeHistoryItem | null>(null);
+  const [openDefect, setOpenDefect] = useState<DefectHistoryItem | null>(null);
   const counts: Record<Tab, number> = {
     pannes: defects.length,
     schade: schades.length,
@@ -106,7 +109,7 @@ export function EventHistoryPanel({ defects, schades, orders, maintenance, deliv
         <div className={styles.list}>
           {defects.length === 0 && <p className={styles.empty}>Geen pannes gevonden.</p>}
           {defects.map((d) => (
-            <div key={d.id} className={[styles.row, d.isResolved ? styles.rowDone : ''].join(' ')}>
+            <div key={d.id} className={[styles.row, styles.rowClickable, d.isResolved ? styles.rowDone : ''].join(' ')} onClick={() => setOpenDefect(d)}>
               <div className={styles.rowBody}>
                 <span className={styles.rowTitle}>{d.omschrijving}</span>
                 <span className={styles.rowMeta}>{d.reportedByName} · {fmtDate(d.createdAt)}</span>
@@ -123,14 +126,14 @@ export function EventHistoryPanel({ defects, schades, orders, maintenance, deliv
         <div className={styles.list}>
           {schades.length === 0 && <p className={styles.empty}>Geen schadegevallen of EHBO-incidenten gevonden.</p>}
           {schades.map((s) => (
-            <div key={s.id} className={[styles.row, styles.rowClickable].join(' ')} onClick={() => setOpenSchade(s)}>
+            <div key={s.id} className={[styles.row, styles.rowClickable, s.payload.isResolved ? styles.rowDone : ''].join(' ')} onClick={() => setOpenSchade(s)}>
               <div className={styles.rowBody}>
                 <span className={styles.rowTitle}>{s.title}</span>
                 {s.subtitle && <span className={styles.rowSub}>{s.subtitle}</span>}
                 <span className={styles.rowMeta}>{s.reportedByName} · {fmtDate(s.createdAt)}</span>
               </div>
-              <span className={[styles.badge, s.kind === 'schade' ? styles.badgeSchade : styles.badgeEhbo].join(' ')}>
-                {s.kind === 'schade' ? 'Schade' : 'EHBO'}
+              <span className={[styles.badge, s.payload.isResolved ? styles.badgeDone : (s.kind === 'schade' ? styles.badgeSchade : styles.badgeEhbo)].join(' ')}>
+                {s.payload.isResolved ? '✓ Opgelost' : s.kind === 'schade' ? 'Schade' : 'EHBO'}
               </span>
             </div>
           ))}
@@ -197,6 +200,16 @@ export function EventHistoryPanel({ defects, schades, orders, maintenance, deliv
           refType={openSchade.kind === 'schade' ? 'incident_schade' : 'incident_ehbo'}
           siteId={openSchade.siteId}
           onClose={() => setOpenSchade(null)}
+        />
+      )}
+
+      {openDefect && (
+        <IncidentModal
+          payload={openDefect.payload}
+          refId={openDefect.id}
+          refType="defect"
+          siteId={openDefect.siteId}
+          onClose={() => setOpenDefect(null)}
         />
       )}
     </div>

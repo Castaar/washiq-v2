@@ -369,6 +369,8 @@ export interface IIncidentEhbo extends Document {
   beschrijving: string;
   dokter_nodig: boolean;
   photos: string[];
+  is_resolved: boolean;
+  resolved_by_name: string;
   created_at: Date;
 }
 const IncidentEhboSchema = new Schema<IIncidentEhbo>({
@@ -384,6 +386,8 @@ const IncidentEhboSchema = new Schema<IIncidentEhbo>({
   ehbo_verlener: String,
   beschrijving: String,
   dokter_nodig: Boolean,
+  is_resolved: { type: Boolean, default: false },
+  resolved_by_name: { type: String, default: '' },
   photos: { type: [String], default: [] },
   created_at: { type: Date, default: Date.now },
 });

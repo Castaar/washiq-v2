@@ -110,7 +110,7 @@ export async function POST(req: NextRequest) {
           .map((u) =>
             sendPushToUser((u._id as Types.ObjectId).toString(), {
               title: `${log.user_name} is ${actionLabel}`,
-              body: new Date().toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' }),
+              body: timestamp.toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Brussels' }),
               url: `/logboek?site=${body.siteId}&item=${(log._id as Types.ObjectId).toString()}`,
             }),
           ),

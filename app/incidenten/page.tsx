@@ -73,6 +73,7 @@ export default async function IncidentenPage({
       const payload: IncidentSchadePayload = {
         type: 'schade',
         isResolved: (s.is_resolved as boolean) ?? false,
+        resolvedByName: (s.resolved_by_name as string) || '',
         reportedBy: (s.reported_by_name as string) || '',
         date: fmtDate(new Date(s.created_at as Date)),
         typeVoertuig: (s.type_voertuig as string) || '',
@@ -103,6 +104,8 @@ export default async function IncidentenPage({
     ...ehbos.map((e) => {
       const payload: IncidentEhboPayload = {
         type: 'ehbo',
+        isResolved: Boolean(e.is_resolved),
+        resolvedByName: (e.resolved_by_name as string) || '',
         reportedBy: (e.reported_by_name as string) || '',
         date: fmtDate(new Date(e.created_at as Date)),
         uur: (e.uur as string) || '',
@@ -121,8 +124,8 @@ export default async function IncidentenPage({
         title: (e.naam_slachtoffer as string) || 'EHBO',
         subtitle: (e.verwonding as string) || '',
         date: fmtDate(new Date(e.created_at as Date)),
-        is_resolved: false,
-        resolved_by_name: '',
+        is_resolved: Boolean(e.is_resolved),
+        resolved_by_name: (e.resolved_by_name as string) ?? '',
         payload,
         refType: 'incident_ehbo',
       };
@@ -131,6 +134,7 @@ export default async function IncidentenPage({
       const payload: DefectPayload = {
         type: 'defect',
         isResolved: (d.is_resolved as boolean) ?? false,
+        resolvedByName: (d.resolved_by_name as string) || '',
         reportedBy: (d.reported_by_name as string) || '',
         date: fmtDate(new Date(d.created_at as Date)),
         omschrijving: (d.omschrijving as string) || '',

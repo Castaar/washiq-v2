@@ -39,7 +39,7 @@ export async function PUT(
   // Notify the employee their shift was changed
   sendPushToUser((doc.user_id as Types.ObjectId).toString(), {
     title: 'Planning gewijzigd',
-    body: `${(doc.date as Date).toLocaleDateString('nl-BE')} van ${doc.start_time} tot ${doc.end_time}${doc.note ? ` — ${doc.note}` : ''}`,
+    body: `${(doc.date as Date).toLocaleDateString('nl-BE', { timeZone: 'Europe/Brussels' })} van ${doc.start_time} tot ${doc.end_time}${doc.note ? ` — ${doc.note}` : ''}`,
     url: `/planning?site=${(doc.site_id as Types.ObjectId).toString()}&item=${id}`,
   }).catch(() => {});
 
@@ -64,7 +64,7 @@ export async function DELETE(
   if (doc) {
     sendPushToUser((doc.user_id as Types.ObjectId).toString(), {
       title: 'Shift verwijderd',
-      body: `Je shift op ${(doc.date as Date).toLocaleDateString('nl-BE')} is verwijderd.`,
+      body: `Je shift op ${(doc.date as Date).toLocaleDateString('nl-BE', { timeZone: 'Europe/Brussels' })} is verwijderd.`,
       url: `/planning?site=${(doc.site_id as Types.ObjectId).toString()}`,
     }).catch(() => {});
   }

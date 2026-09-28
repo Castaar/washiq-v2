@@ -3,6 +3,28 @@ import { dbConnect } from '@/lib/db/mongoose';
 import { AttendanceLog, WeeklyEntry } from '@/lib/models';
 import { getSessionFromRequest } from '@/lib/session';
 
+// Server runs in UTC (Vercel) — Date.getHours()/getDate() etc. would be 1-2h
+// off from actual Belgian local time. Extract the Brussels-local date/time
+// parts explicitly instead of relying on the server's own timezone.
+function brusselsParts(d: Date): { y: number; m: number; day: number; h: number; min: number } {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Brussels',
+    year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false,
+  }).formatToParts(d);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? '0';
+  return { y: Number(get('year')), m: Number(get('month')), day: Number(get('day')), h: Number(get('hour')) % 24, min: Number(get('minute')) };
+}
+
+function brusselsDateStr(d: Date): string {
+  const p = brusselsParts(d);
+  return `${p.y}-${String(p.m).padStart(2, '0')}-${String(p.day).padStart(2, '0')}`;
+}
+
+function brusselsTimeStr(d: Date): string {
+  const p = brusselsParts(d);
+  return `${String(p.h).padStart(2, '0')}:${String(p.min).padStart(2, '0')}`;
+}
+
 async function washCountForRange(siteId: string, from: Date, to: Date): Promise<number> {
   const entries = await WeeklyEntry.find({ site_id: siteId, week_start: { $gte: from, $lt: to } })
     .select('program_counts')
@@ -66,8 +88,7 @@ export async function GET(req: NextRequest) {
     if (!byUser.has(uid)) byUser.set(uid, { userName: l.user_name ?? '', byDate: new Map() });
     const userData = byUser.get(uid)!;
 
-    const d = new Date(l.timestamp as Date);
-    const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const dateStr = brusselsDateStr(new Date(l.timestamp as Date));
 
     if (!userData.byDate.has(dateStr)) userData.byDate.set(dateStr, []);
     userData.byDate.get(dateStr)!.push(l);
@@ -89,17 +110,14 @@ export async function GET(req: NextRequest) {
       const checkInTs = arrivals[0]?.timestamp as Date | undefined;
       const checkOutTs = departures[0]?.timestamp as Date | undefined;
 
-      const fmt = (d: Date) =>
-        `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-
       const hours = checkInTs && checkOutTs
         ? Math.max(0, Math.round(((checkOutTs.getTime() - checkInTs.getTime()) / 36e5) * 10) / 10)
         : 0;
 
       days.push({
         date,
-        checkIn: checkInTs ? fmt(new Date(checkInTs)) : '',
-        checkOut: checkOutTs ? fmt(new Date(checkOutTs)) : '',
+        checkIn: checkInTs ? brusselsTimeStr(new Date(checkInTs)) : '',
+        checkOut: checkOutTs ? brusselsTimeStr(new Date(checkOutTs)) : '',
         hours,
       });
     }
@@ -133,8 +151,7 @@ export async function GET(req: NextRequest) {
     const byUserDate = new Map<string, Map<string, typeof hLogs>>();
     for (const l of hLogs) {
       const uid = l.user_id.toString();
-      const d = new Date(l.timestamp as Date);
-      const dateStr = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+      const dateStr = brusselsDateStr(new Date(l.timestamp as Date));
       if (!byUserDate.has(uid)) byUserDate.set(uid, new Map());
       const byDate = byUserDate.get(uid)!;
       if (!byDate.has(dateStr)) byDate.set(dateStr, []);

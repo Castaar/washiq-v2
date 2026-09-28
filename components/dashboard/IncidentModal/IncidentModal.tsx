@@ -48,8 +48,7 @@ export function IncidentModal({ payload, refId, refType, siteId, onClose }: Inci
   const ernstLabels: Record<string, string> = { laag: t('ernstLaag'), medium: t('ernstMedium'), hoog: t('ernstHoog') };
   const typeLabel = typeLabels[payload.type] ?? payload.type;
 
-  // EHBO has no resolved-state — only schade/defect can be marked resolved.
-  const canResolve = payload.type === 'schade' || payload.type === 'defect';
+  const canResolve = payload.type === 'schade' || payload.type === 'defect' || payload.type === 'ehbo';
   const [isResolved, setIsResolved] = useState(canResolve ? Boolean(payload.isResolved) : false);
   const [resolving, setResolving] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
@@ -110,7 +109,9 @@ export function IncidentModal({ payload, refId, refType, siteId, onClose }: Inci
     try {
       const endpoint = payload.type === 'defect'
         ? `/api/incidents/defect/${refId}`
-        : `/api/incidents/schade/${refId}`;
+        : payload.type === 'ehbo'
+          ? `/api/incidents/ehbo/${refId}`
+          : `/api/incidents/schade/${refId}`;
       const res = await fetch(endpoint, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -165,6 +166,11 @@ export function IncidentModal({ payload, refId, refType, siteId, onClose }: Inci
           <><span className={styles.metaSep}>·</span><span className={styles.metaValue}>{payload.uur}</span></>
         )}
       </p>
+      {isResolved && payload.resolvedByName && (
+        <p className={styles.meta}>
+          <span className={styles.metaValue}>{t('opgelostDoor', { name: payload.resolvedByName })}</span>
+        </p>
+      )}
 
       {/* Body */}
       <div className={styles.body}>

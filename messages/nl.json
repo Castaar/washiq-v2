@@ -402,6 +402,7 @@
     "elkeMaanden": "Elke {count} maanden",
     "jaarlijks": "{date} (jaarlijks)",
     "markeerOpgelost": "Markeer opgelost",
+    "opgelostDoor": "Opgelost door {name}",
     "markeerOnopgelost": "Markeer onopgelost",
     "opgelost": "✓ Opgelost",
     "fotos": "Foto's",
@@ -410,7 +411,13 @@
     "nietGedaanGezet": "✓ Terug open gezet",
     "bewerken": "Bewerken",
     "annuleren": "Annuleren",
-    "opslaan": "Opslaan"
+    "opslaan": "Opslaan",
+    "markeerUitgevoerd": "Markeer uitgevoerd",
+    "gedaanGezet": "✓ Uitgevoerd",
+    "bevestigen": "Zeker?",
+    "ja": "Ja",
+    "nee": "Nee",
+    "historiekBekijken": "Historiek bekijken →"
   },
   "alerts": {
     "meldingen": "Meldingen",

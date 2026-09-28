@@ -58,6 +58,13 @@ export default async function WekelijkseIngavePage({
     };
   }
 
+  const products = stockDocs.map((s) => ({
+    id: s.name as string,
+    name: s.name as string,
+    unit: (s.unit as string) ?? '',
+    current_stock: (s.current_stock as number) ?? 0,
+  }));
+
   const programsWithChemicals = programs.map((p) => ({
     id: (p._id as Types.ObjectId).toString(),
     name: (p.name as string) ?? '',
@@ -109,6 +116,7 @@ export default async function WekelijkseIngavePage({
         <WeeklyEntryForm
           siteId={siteId ?? ''}
           programs={programsWithChemicals}
+          products={products}
           lastEntry={lastEntryData}
           washesTasks={washesTasksData}
           startCarCount={startCarCount}

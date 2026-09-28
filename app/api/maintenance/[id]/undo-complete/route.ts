@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
-import { MaintenanceTask, MaintenanceLog } from '@/lib/models';
+import { MaintenanceTask, MaintenanceLog, WeeklyEntry, Site } from '@/lib/models';
 import { getSessionFromRequest } from '@/lib/session';
 
 // POST /api/maintenance/[id]/undo-complete — reverts the most recent completion
@@ -26,11 +26,25 @@ export async function POST(
 
   // Find the previous log entry (if any) to restore last_done_at
   const prevLog = await MaintenanceLog.findOne({ task_id: id }).sort({ done_at: -1 }).lean();
+
+  // MaintenanceLog never recorded the tellerstand at completion time, so the
+  // exact historical value can't be reconstructed — fall back to the same
+  // "current tellerstand" formula used everywhere else (latest weekly
+  // reading, else the site's baseline). A bare 0 here made the task look
+  // instantly overdue again right after undoing.
+  const [latestEntry, siteDoc] = await Promise.all([
+    WeeklyEntry.findOne({ site_id: task.site_id }).sort({ week_start: -1 }).select('tellerstand').lean(),
+    Site.findById(task.site_id).select('start_car_count').lean(),
+  ]);
+  const currentTellerstand = (latestEntry as { tellerstand?: number } | null)?.tellerstand
+    ?? (siteDoc as { start_car_count?: number } | null)?.start_car_count
+    ?? 0;
+
   await MaintenanceTask.findByIdAndUpdate(id, {
     $set: {
       last_done_at: prevLog ? prevLog.done_at : null,
       last_done_by_name: prevLog ? (prevLog as Record<string, unknown>).done_by_name ?? '' : '',
-      washes_at_last_done: prevLog ? (prevLog as Record<string, unknown>).washes_at_last_done ?? 0 : 0,
+      washes_at_last_done: prevLog ? currentTellerstand : 0,
       is_overdue: true,
     },
   });

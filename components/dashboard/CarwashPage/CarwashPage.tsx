@@ -561,6 +561,7 @@ export async function CarwashPage({
       const payload: DefectPayload = {
         type: 'defect',
         isResolved: Boolean(d.is_resolved),
+        resolvedByName: (d.resolved_by_name as string) || '',
         reportedBy: (d.reported_by_name as string) || '',
         date: fmtDate(new Date(d.created_at as Date)),
         omschrijving: (d.omschrijving as string) || '',
@@ -581,6 +582,7 @@ export async function CarwashPage({
       const payload: IncidentSchadePayload = {
         type: 'schade',
         isResolved: Boolean(s.is_resolved),
+        resolvedByName: (s.resolved_by_name as string) || '',
         reportedBy: (s.reported_by_name as string) || '',
         date: fmtDate(new Date(s.created_at as Date)),
         typeVoertuig: (s.type_voertuig as string) || '',
@@ -781,6 +783,7 @@ export async function CarwashPage({
     const payload: IncidentSchadePayload = {
       type: 'schade',
       isResolved: Boolean(s.is_resolved),
+      resolvedByName: (s.resolved_by_name as string) || '',
       reportedBy: (s.reported_by_name as string) || '',
       date: fmtDate(ts),
       typeVoertuig: (s.type_voertuig as string) || '',
@@ -814,6 +817,8 @@ export async function CarwashPage({
     const ts = new Date(e.created_at as Date);
     const payload: IncidentEhboPayload = {
       type: 'ehbo',
+      isResolved: Boolean(e.is_resolved),
+      resolvedByName: (e.resolved_by_name as string) || '',
       reportedBy: (e.reported_by_name as string) || '',
       date: fmtDate(ts),
       uur: (e.uur as string) || '',
@@ -847,6 +852,7 @@ export async function CarwashPage({
     const payload: DefectPayload = {
       type: 'defect',
       isResolved: Boolean(d.is_resolved),
+      resolvedByName: (d.resolved_by_name as string) || '',
       reportedBy: (d.reported_by_name as string) || '',
       date: fmtDate(ts),
       omschrijving: (d.omschrijving as string) || '',

@@ -163,6 +163,17 @@ export default async function HistoriekPage({
     reportedByName: (d.reported_by_name as string) || '',
     resolvedByName: (d.resolved_by_name as string) || '',
     createdAt: (d.created_at as Date).toISOString(),
+    siteId: siteId ?? '',
+    payload: {
+      type: 'defect' as const,
+      isResolved: Boolean(d.is_resolved),
+      resolvedByName: (d.resolved_by_name as string) || '',
+      reportedBy: (d.reported_by_name as string) || '',
+      date: new Date(d.created_at as Date).toLocaleDateString('nl-BE', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+      omschrijving: (d.omschrijving as string) || '',
+      ernst: (d.ernst as string) || 'medium',
+      photos: (d.photos as string[]) ?? [],
+    },
   }));
 
   const schadeHistory: SchadeHistoryItem[] = [
@@ -177,6 +188,7 @@ export default async function HistoriekPage({
       payload: {
         type: 'schade' as const,
         isResolved: Boolean(s.is_resolved),
+        resolvedByName: (s.resolved_by_name as string) || '',
         reportedBy: (s.reported_by_name as string) || '',
         date: new Date(s.created_at as Date).toLocaleDateString('nl-BE', { day: '2-digit', month: '2-digit', year: 'numeric' }),
         typeVoertuig: (s.type_voertuig as string) || '',
@@ -203,6 +215,8 @@ export default async function HistoriekPage({
       siteId: siteId ?? '',
       payload: {
         type: 'ehbo' as const,
+        isResolved: Boolean(e.is_resolved),
+        resolvedByName: (e.resolved_by_name as string) || '',
         reportedBy: (e.reported_by_name as string) || '',
         date: new Date(e.created_at as Date).toLocaleDateString('nl-BE', { day: '2-digit', month: '2-digit', year: 'numeric' }),
         uur: (e.uur as string) || '',

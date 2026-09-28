@@ -25,6 +25,7 @@ export interface DagfichePayload {
 export interface IncidentSchadePayload {
   type: 'schade';
   isResolved?: boolean;
+  resolvedByName?: string;
   reportedBy: string;
   date: string;
   typeVoertuig: string;
@@ -43,6 +44,8 @@ export interface IncidentSchadePayload {
 
 export interface IncidentEhboPayload {
   type: 'ehbo';
+  isResolved?: boolean;
+  resolvedByName?: string;
   reportedBy: string;
   date: string;
   uur: string;
@@ -59,6 +62,7 @@ export interface IncidentEhboPayload {
 export interface DefectPayload {
   type: 'defect';
   isResolved?: boolean;
+  resolvedByName?: string;
   reportedBy: string;
   date: string;
   omschrijving: string;

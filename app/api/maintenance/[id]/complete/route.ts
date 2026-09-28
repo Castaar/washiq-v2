@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
-import { MaintenanceTask, MaintenanceLog, WeeklyEntry } from '@/lib/models';
+import { MaintenanceTask, MaintenanceLog, WeeklyEntry, Site } from '@/lib/models';
 import { getSessionFromRequest } from '@/lib/session';
 
 // POST /api/maintenance/[id]/complete — any logged-in user (e.g. technician) checks off
@@ -20,11 +20,19 @@ export async function POST(
   const task = await MaintenanceTask.findById(id).lean();
   if (!task) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  const latestEntry = await WeeklyEntry.findOne({ site_id: task.site_id })
-    .sort({ week_start: -1 })
-    .select('tellerstand')
-    .lean();
-  const currentTellerstand = (latestEntry as { tellerstand?: number } | null)?.tellerstand ?? 0;
+  // Must match the same "current tellerstand" formula used everywhere else
+  // (dashboard, onderhouden page): latest weekly reading, falling back to
+  // the site's baseline start_car_count when no reading exists yet. Using
+  // a bare 0 fallback here reset washes_at_last_done to 0 on every
+  // completion, which made a washes-type task look instantly overdue again
+  // the moment it was marked done (baseline tellerstand >> 0 + interval).
+  const [latestEntry, siteDoc] = await Promise.all([
+    WeeklyEntry.findOne({ site_id: task.site_id }).sort({ week_start: -1 }).select('tellerstand').lean(),
+    Site.findById(task.site_id).select('start_car_count').lean(),
+  ]);
+  const currentTellerstand = (latestEntry as { tellerstand?: number } | null)?.tellerstand
+    ?? (siteDoc as { start_car_count?: number } | null)?.start_car_count
+    ?? 0;
 
   const now = new Date();
   await Promise.all([

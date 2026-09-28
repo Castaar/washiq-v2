@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { MaintenanceTaskPayload } from '@/lib/types/dashboard';
 import { ActivitySection } from '@/components/dashboard/ActivitySection/ActivitySection';
@@ -42,7 +43,13 @@ export function MaintenanceModal({ payload, refId, refType, siteId, onClose }: M
   const router = useRouter();
   const [undoing, setUndoing] = useState(false);
   const [undone, setUndone] = useState(false);
+  const [completing, setCompleting] = useState(false);
+  const [completed, setCompleted] = useState(false);
+  const [confirmingComplete, setConfirmingComplete] = useState(false);
   const taskId = payload.taskId ?? refId;
+  // Overdue/approaching tasks (not yet done today) have no canUndo flag —
+  // that's exactly when a "mark as done" action needs to be offered.
+  const canComplete = !payload.canUndo;
 
   async function handleUndo() {
     setUndoing(true);
@@ -54,6 +61,24 @@ export function MaintenanceModal({ payload, refId, refType, siteId, onClose }: M
       }
     } finally {
       setUndoing(false);
+    }
+  }
+
+  async function handleComplete() {
+    setConfirmingComplete(false);
+    setCompleting(true);
+    try {
+      const res = await fetch(`/api/maintenance/${taskId}/complete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes: '' }),
+      });
+      if (res.ok) {
+        setCompleted(true);
+        router.refresh();
+      }
+    } finally {
+      setCompleting(false);
     }
   }
 
@@ -71,7 +96,27 @@ export function MaintenanceModal({ payload, refId, refType, siteId, onClose }: M
             {undone ? t('nietGedaanGezet') : undoing ? '...' : t('markeerNietGedaan')}
           </button>
         )}
+        {canComplete && !confirmingComplete && (
+          <button
+            type="button"
+            className={styles.completeBtn}
+            onClick={() => setConfirmingComplete(true)}
+            disabled={completing || completed}
+          >
+            {completed ? t('gedaanGezet') : completing ? '...' : t('markeerUitgevoerd')}
+          </button>
+        )}
+        {canComplete && confirmingComplete && (
+          <div className={styles.confirmRow}>
+            <span className={styles.confirmText}>{t('bevestigen')}</span>
+            <button type="button" className={styles.confirmYesBtn} onClick={handleComplete}>{t('ja')}</button>
+            <button type="button" className={styles.confirmNoBtn} onClick={() => setConfirmingComplete(false)}>{t('nee')}</button>
+          </div>
+        )}
       </div>
+      <Link href={`/onderhouden/${taskId}?site=${siteId}`} className={styles.historyLink}>
+        {t('historiekBekijken')}
+      </Link>
 
       <div className={styles.body}>
         <div className={styles.section}>
