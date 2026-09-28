@@ -46,8 +46,29 @@ export interface EmployeeSummary {
   userId: string;
   userName: string;
   totalHours: number;
+  totalHoursAllSites: number;
   daysWorked: number;
   days: DayRecord[];
+}
+
+// Sum worked hours from a list of attendance logs, grouping by (site, day)
+// so a check-in at one carwash is never paired with a check-out at another.
+function sumHoursBySiteAndDay(logs: { user_id: unknown; site_id: unknown; timestamp: unknown; type: unknown }[]): number {
+  const byKey = new Map<string, typeof logs>();
+  for (const l of logs) {
+    const key = `${(l.site_id as { toString(): string }).toString()}_${brusselsDateStr(new Date(l.timestamp as Date))}`;
+    if (!byKey.has(key)) byKey.set(key, []);
+    byKey.get(key)!.push(l);
+  }
+  let total = 0;
+  for (const dayLogs of byKey.values()) {
+    const arrivals = dayLogs.filter((l) => l.type === 'opening').sort((a, b) => (new Date(a.timestamp as Date)).getTime() - (new Date(b.timestamp as Date)).getTime());
+    const departures = dayLogs.filter((l) => l.type === 'sluiting').sort((a, b) => (new Date(b.timestamp as Date)).getTime() - (new Date(a.timestamp as Date)).getTime());
+    const inTs = arrivals[0]?.timestamp as Date | undefined;
+    const outTs = departures[0]?.timestamp as Date | undefined;
+    if (inTs && outTs) total += Math.max(0, (new Date(outTs).getTime() - new Date(inTs).getTime()) / 36e5);
+  }
+  return total;
 }
 
 // GET /api/attendance/monthly?siteId=xxx&year=2025&month=6
@@ -127,7 +148,29 @@ export async function GET(req: NextRequest) {
     const totalHours = Math.round(days.reduce((s, d) => s + d.hours, 0) * 10) / 10;
     const daysWorked = days.filter((d) => d.hours > 0).length;
 
-    result.push({ userId, userName, totalHours, daysWorked, days });
+    result.push({ userId, userName, totalHours, totalHoursAllSites: totalHours, daysWorked, days });
+  }
+
+  // Cross-site total per employee — "hoeveel heeft deze persoon deze maand
+  // in totaal gewerkt, over alle carwashes heen" — not just at this site.
+  if (result.length > 0) {
+    const userIds = result.map((r) => r.userId);
+    const allSiteLogs = await AttendanceLog.find({
+      user_id: { $in: userIds },
+      timestamp: { $gte: from, $lt: to },
+      person_type: { $ne: 'technician_extern' },
+    }).select('user_id site_id timestamp type').lean();
+
+    const byUserAllSites = new Map<string, typeof allSiteLogs>();
+    for (const l of allSiteLogs) {
+      const uid = (l.user_id as { toString(): string }).toString();
+      if (!byUserAllSites.has(uid)) byUserAllSites.set(uid, []);
+      byUserAllSites.get(uid)!.push(l);
+    }
+    for (const r of result) {
+      const logsForUser = byUserAllSites.get(r.userId) ?? [];
+      r.totalHoursAllSites = Math.round(sumHoursBySiteAndDay(logsForUser) * 10) / 10;
+    }
   }
 
   result.sort((a, b) => a.userName.localeCompare(b.userName));

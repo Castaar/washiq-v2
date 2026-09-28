@@ -33,6 +33,7 @@ interface EmployeeSummary {
   userId: string;
   userName: string;
   totalHours: number;
+  totalHoursAllSites: number;
   daysWorked: number;
   days: DayRecord[];
 }
@@ -248,7 +249,8 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
           day.hours > 0 ? day.hours.toFixed(2) : '',
         ]);
       }
-      rows.push([emp.userName, 'Totaal', '', '', emp.totalHours.toFixed(2)]);
+      rows.push([emp.userName, 'Totaal (deze site)', '', '', emp.totalHours.toFixed(2)]);
+      rows.push([emp.userName, 'Totaal (alle sites)', '', '', emp.totalHoursAllSites.toFixed(2)]);
     }
     const csv = rows.map((r) => r.map((v) => `"${v.replace(/"/g, '""')}"`).join(';')).join('\n');
     const blob = new Blob([`﻿${csv}`], { type: 'text/csv;charset=utf-8;' });
@@ -485,9 +487,9 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
           {!summaryLoading && summary !== null && (
             <div className={styles.totalsRow}>
               <div className={styles.totalTile}>
-                <span className={styles.totalLabel}>Totaal gewerkte uren</span>
+                <span className={styles.totalLabel}>Totaal gewerkte uren (alle sites)</span>
                 <span className={styles.totalValue}>
-                  {summary.reduce((s, e) => s + e.totalHours, 0).toFixed(1).replace('.0', '')} u
+                  {summary.reduce((s, e) => s + e.totalHoursAllSites, 0).toFixed(1).replace('.0', '')} u
                 </span>
               </div>
               <div className={styles.totalTile}>
@@ -535,7 +537,7 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
                     <span className={styles.colName}>{emp.userName}</span>
                     <span className={styles.colDays}>{emp.daysWorked} dag{emp.daysWorked !== 1 ? 'en' : ''}</span>
                     <span className={styles.colHoursVal}>
-                      {emp.totalHours.toFixed(1).replace('.0', '')} u
+                      {emp.totalHoursAllSites.toFixed(1).replace('.0', '')} u
                     </span>
                     <button
                       type="button"
@@ -561,7 +563,10 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
                         </div>
                       ))}
                       <div className={styles.dayDetailTotal}>
-                        Totaal: <strong>{emp.totalHours.toFixed(1).replace('.0', '')} uur</strong>
+                        Deze site: <strong>{emp.totalHours.toFixed(1).replace('.0', '')} uur</strong>
+                        {emp.totalHoursAllSites !== emp.totalHours && (
+                          <> · Alle sites: <strong>{emp.totalHoursAllSites.toFixed(1).replace('.0', '')} uur</strong></>
+                        )}
                       </div>
                     </div>
                   )}
