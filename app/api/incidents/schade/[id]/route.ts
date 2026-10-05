@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
-import { IncidentSchade } from '@/lib/models';
+import { IncidentSchade, ActivityLog } from '@/lib/models';
+import { canModify } from '@/lib/permissions';
 import { getSessionFromRequest } from '@/lib/session';
 
 interface SchadeUpdateBody {
@@ -37,6 +38,13 @@ export async function PUT(
   await dbConnect();
 
   const update: Record<string, unknown> = {};
+  if (EDITABLE_FIELDS.some((f) => body[f] !== undefined)) {
+    const existing = await IncidentSchade.findById(id).select('reported_by').lean();
+    if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    if (!canModify(session, (existing as { reported_by?: unknown }).reported_by)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+  }
   if (body.is_resolved !== undefined) {
     Object.assign(update, body.is_resolved
       ? { is_resolved: true, resolved_at: new Date(), resolved_by_name: session.name }
@@ -49,5 +57,27 @@ export async function PUT(
   const doc = await IncidentSchade.findByIdAndUpdate(id, update, { new: true });
   if (!doc) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
+  return NextResponse.json({ ok: true });
+}
+
+// DELETE /api/incidents/schade/[id] — remove a wrong report (manager or reporter)
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const session = await getSessionFromRequest(req);
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const { id } = await params;
+  await dbConnect();
+
+  const doc = await IncidentSchade.findById(id).select('reported_by').lean();
+  if (!doc) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  if (!canModify(session, (doc as { reported_by?: unknown }).reported_by)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
+  await IncidentSchade.findByIdAndDelete(id);
+  await ActivityLog.deleteMany({ ref_id: id, ref_type: 'incident_schade' });
   return NextResponse.json({ ok: true });
 }

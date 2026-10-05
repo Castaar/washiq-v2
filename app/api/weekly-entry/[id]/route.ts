@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
 import { WeeklyEntry, PriceConfig } from '@/lib/models';
 import { getSessionFromRequest } from '@/lib/session';
+import { isManager } from '@/lib/permissions';
 import { computeTotalCost } from '@/lib/weeklyEntryCost';
 
 export async function GET(
@@ -52,5 +53,22 @@ export async function PATCH(
 
   await WeeklyEntry.findByIdAndUpdate(id, update);
 
+  return NextResponse.json({ ok: true });
+}
+
+// DELETE /api/weekly-entry/[id] — remove a wrong ingave (owner/developer). Later
+// entries are untouched; the current tellerstand falls back to the previous entry.
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const session = await getSessionFromRequest(req);
+  if (!isManager(session)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
+  const { id } = await params;
+  await dbConnect();
+
+  const deleted = await WeeklyEntry.findByIdAndDelete(id);
+  if (!deleted) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   return NextResponse.json({ ok: true });
 }

@@ -2,24 +2,21 @@ import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
 import { ChemicalStock, StockDelivery } from '@/lib/models';
 import { getSessionFromRequest } from '@/lib/session';
+import { canModify } from '@/lib/permissions';
 import { recomputeChemical } from '@/lib/stock-ledger';
-
-async function guard(req: NextRequest) {
-  const session = await getSessionFromRequest(req);
-  if (!session || (session.role !== 'owner' && session.role !== 'developer')) return null;
-  return session;
-}
 
 // DELETE /api/stock/delivery/[id] — remove a wrong delivery; stock and later
 // consumption fall back to what the remaining records imply.
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  if (!(await guard(req))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const session = await getSessionFromRequest(req);
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   await dbConnect();
   const { id } = await params;
 
   const delivery = await StockDelivery.findById(id);
   if (!delivery) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  if (!canModify(session, delivery.logged_by)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const chemicalId = delivery.chemical_id?.toString() ?? null;
   const qty = (delivery.quantity as number) ?? 0;
@@ -40,7 +37,8 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
 // PATCH /api/stock/delivery/[id] — correct the quantity of a delivery (or the text of a "diverse" note)
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  if (!(await guard(req))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const session = await getSessionFromRequest(req);
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   await dbConnect();
   const { id } = await params;
@@ -48,6 +46,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const delivery = await StockDelivery.findById(id);
   if (!delivery) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  if (!canModify(session, delivery.logged_by)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   if (!delivery.chemical_id) {
     if (typeof body.note === 'string' && body.note.trim()) {

@@ -5,6 +5,8 @@ import { LeveringenPanel } from '@/components/leveringen/LeveringenPanel/Leverin
 import type { StockItem } from '@/components/leveringen/LeveringenPanel/LeveringenPanel';
 import { dbConnect } from '@/lib/db/mongoose';
 import Link from 'next/link';
+import { HistoryDeleteButton } from '@/components/leveringen/HistoryDeleteButton/HistoryDeleteButton';
+import { canModify } from '@/lib/permissions';
 import { Site, ChemicalStock, User, StockDelivery, StockTransfer } from '@/lib/models';
 import { getSession } from '@/lib/session';
 import { filterSitesForUser, resolveActiveSite, redirectIfSetupNeeded, redirectWithSiteParam } from '@/lib/getUserSites';
@@ -55,6 +57,7 @@ export default async function LeveringenPage({
       ])
     : [[], []];
 
+  const canSeeHistoriek = userRole === 'owner' || userRole === 'developer';
   const fmtWhen = (d: Date) => d.toLocaleString('nl-BE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Brussels' });
   const history = [
     ...deliveryDocs.map((d) => {
@@ -65,6 +68,7 @@ export default async function LeveringenPage({
         title: chem?.name ? `Levering: ${chem.name}` : `Levering: ${(d.note as string) || 'diverse'}`,
         detail: chem?.name ? `+${((d.quantity as number) ?? 0).toLocaleString('nl-BE')} ${chem.unit ?? ''}` : '',
         by: (d.logged_by_name as string) || '',
+        deleteUrl: canModify(session, d.logged_by) ? `/api/stock/delivery/${(d._id as Types.ObjectId).toString()}` : '',
       };
     }),
     ...transferDocs.map((t) => {
@@ -77,10 +81,10 @@ export default async function LeveringenPage({
         title: outgoing ? `Verplaatst naar ${to?.name ?? '?'}: ${t.name}` : `Ontvangen van ${from?.name ?? '?'}: ${t.name}`,
         detail: `${outgoing ? '−' : '+'}${((t.quantity as number) ?? 0).toLocaleString('nl-BE')} ${t.unit ?? ''}`,
         by: (t.logged_by_name as string) || '',
+        deleteUrl: canSeeHistoriek ? `/api/stock/transfer/${(t._id as Types.ObjectId).toString()}` : '',
       };
     }),
   ].sort((a, b) => b.at.getTime() - a.at.getTime()).slice(0, 60);
-  const canSeeHistoriek = userRole === 'owner' || userRole === 'developer';
 
   const otherSites = allowedSites.filter((s) => s.id !== siteId).map((s) => ({ id: s.id, name: s.name }));
 
@@ -115,6 +119,7 @@ export default async function LeveringenPage({
                   <span className={styles.histTitle}>{h.title}</span>
                   {h.detail && <span className={styles.histDetail}>{h.detail}</span>}
                   <span className={styles.histMeta}>{h.by ? `${h.by} · ` : ''}{fmtWhen(h.at)}</span>
+                  {h.deleteUrl && <HistoryDeleteButton url={h.deleteUrl} label={h.title} />}
                 </div>
               ))}
             </div>

@@ -132,6 +132,19 @@ function EntryRow({
   const newWaterTellerstandNum = newWaterTellerstand.trim() === '' ? null : parseFloat(newWaterTellerstand);
   const waterUsage = newWaterTellerstandNum !== null ? newWaterTellerstandNum - previousWaterTellerstand : 0;
 
+  async function handleDelete() {
+    if (!confirm(`Ingave van ${formatDate(entry.createdAt ?? entry.weekStart)} definitief verwijderen? De tellerstand valt terug op de vorige ingave.`)) return;
+    setSaving(true);
+    setError('');
+    try {
+      const res = await fetch(`/api/weekly-entry/${entry.id}`, { method: 'DELETE' });
+      if (!res.ok) { setError('Verwijderen mislukt'); return; }
+      router.refresh();
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function handleSave() {
     setError('');
     if (newTellerstandNum === null) {
@@ -382,6 +395,7 @@ function EntryRow({
 
               {error && <p className={styles.error}>{error}</p>}
               <div className={styles.editFooter}>
+                <button type="button" className={styles.cancelBtn} onClick={handleDelete} disabled={saving}>Ingave verwijderen</button>
                 <button type="button" className={styles.cancelBtn} onClick={() => setEditing(false)}>Annuleren</button>
                 <button type="button" className={styles.saveBtn} onClick={handleSave} disabled={saving}>
                   {saving ? 'Opslaan...' : 'Opslaan'}

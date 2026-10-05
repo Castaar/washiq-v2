@@ -242,8 +242,17 @@ export default async function HistoriekPage({
     requestedAt: (o.requested_at as Date).toISOString(),
   }));
 
+  // Undo only applies to the most recent completion of a task.
+  const latestLogPerTask = new Map<string, string>();
+  for (const l of maintenanceLogDocs) {
+    const tid = ((l.task_id as unknown as { _id?: Types.ObjectId } | null)?._id)?.toString();
+    if (tid && !latestLogPerTask.has(tid)) latestLogPerTask.set(tid, (l._id as Types.ObjectId).toString());
+  }
+
   const maintenanceHistory: MaintenanceHistoryItem[] = maintenanceLogDocs.map((l) => ({
     id: (l._id as Types.ObjectId).toString(),
+    taskId: ((l.task_id as unknown as { _id?: Types.ObjectId } | null)?._id)?.toString() ?? '',
+    canUndo: latestLogPerTask.get(((l.task_id as unknown as { _id?: Types.ObjectId } | null)?._id)?.toString() ?? '') === (l._id as Types.ObjectId).toString(),
     description: (l.task_id as unknown as { description?: string } | null)?.description ?? '',
     notes: (l.notes as string) || '',
     doneByName: (l.done_by as unknown as { name?: string } | null)?.name ?? '',

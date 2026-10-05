@@ -133,3 +133,47 @@
   margin: 0;
   white-space: pre-wrap;
 }
+
+.actions {
+  display: flex;
+  gap: var(--space-2);
+  justify-content: flex-end;
+  margin-bottom: var(--space-3);
+}
+
+.actionBtn,
+.actionBtnPrimary {
+  height: 32px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+  font-size: 0.8125rem;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.actionBtnPrimary {
+  background: var(--color-accent-amber);
+  border-color: transparent;
+  color: var(--color-text-inverse);
+  font-weight: 600;
+}
+
+.editInput,
+.editTextarea {
+  width: 100%;
+  padding: var(--space-2);
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-primary);
+  font-size: 0.8125rem;
+  font-family: inherit;
+}
+
+.editTextarea {
+  min-height: 90px;
+  resize: vertical;
+}

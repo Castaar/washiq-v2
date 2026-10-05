@@ -41,6 +41,8 @@ export interface OrderHistoryItem {
 
 export interface MaintenanceHistoryItem {
   id: string;
+  taskId: string;
+  canUndo: boolean;
   description: string;
   notes: string;
   doneByName: string;
@@ -107,6 +109,22 @@ export function EventHistoryPanel({ defects, schades, orders, maintenance, stock
       } else {
         const err = (await res.json().catch(() => null)) as { error?: string } | null;
         showToast(err?.error ?? 'Mislukt, probeer opnieuw');
+      }
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function simpleAction(id: string, url: string, method: 'DELETE' | 'POST', confirmText: string, okText: string) {
+    if (!confirm(confirmText)) return;
+    setBusyId(id);
+    try {
+      const res = await fetch(url, { method });
+      if (res.ok) {
+        showToast(okText);
+        router.refresh();
+      } else {
+        showToast(res.status === 403 ? 'Enkel de maker of een beheerder kan dit doen' : 'Mislukt, probeer opnieuw');
       }
     } finally {
       setBusyId(null);
@@ -203,6 +221,12 @@ export function EventHistoryPanel({ defects, schades, orders, maintenance, stock
               <span className={[styles.badge, o.isHandled ? styles.badgeDone : styles.badgeOpen].join(' ')}>
                 {o.isHandled ? '✓ Besteld' : 'Open'}
               </span>
+              <button
+                type="button"
+                className={styles.tab}
+                disabled={busyId === o.id}
+                onClick={() => simpleAction(o.id, `/api/orders/requests/${o.id}`, 'DELETE', `"${o.itemName}" verwijderen?`, 'Bestelling verwijderd')}
+              >Verwijder</button>
             </div>
           ))}
         </div>
@@ -240,6 +264,14 @@ export function EventHistoryPanel({ defects, schades, orders, maintenance, stock
                 <span className={styles.rowMeta}>{m.doneByName} · {fmtDate(m.doneAt)}</span>
               </div>
               <span className={[styles.badge, styles.badgeDone].join(' ')}>✓ Gedaan</span>
+              {m.canUndo && m.taskId && (
+                <button
+                  type="button"
+                  className={styles.tab}
+                  disabled={busyId === m.id}
+                  onClick={() => simpleAction(m.id, `/api/maintenance/${m.taskId}/undo-complete`, 'POST', `"${m.description}" als niet uitgevoerd terugzetten?`, 'Onderhoud teruggezet')}
+                >Ongedaan maken</button>
+              )}
             </div>
           ))}
         </div>

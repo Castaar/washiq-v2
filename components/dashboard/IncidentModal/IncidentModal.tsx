@@ -56,7 +56,7 @@ export function IncidentModal({ payload, refId, refType, siteId, onClose }: Inci
 
   // Schade reports can be edited in place — e.g. to correct a report that
   // was originally logged at the wrong site or with the wrong details.
-  const canEdit = payload.type === 'schade';
+  const canEdit = true;
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [draft, setDraft] = useState(() => payload.type === 'schade' ? {
@@ -73,7 +73,56 @@ export function IncidentModal({ payload, refId, refType, siteId, onClose }: Inci
     verzekeringsdocumenten: payload.verzekeringsdocumenten,
   } : null);
 
+  const [defectDraft, setDefectDraft] = useState(() => payload.type === 'defect'
+    ? { omschrijving: payload.omschrijving, ernst: payload.ernst } : null);
+  const [ehboDraft, setEhboDraft] = useState(() => payload.type === 'ehbo'
+    ? { naamSlachtoffer: payload.naamSlachtoffer, verwonding: payload.verwonding, beschrijving: payload.beschrijving } : null);
+  const [actionError, setActionError] = useState('');
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleDelete() {
+    if (!confirm(t('bevestigVerwijderen'))) return;
+    setDeleting(true);
+    setActionError('');
+    try {
+      const endpoint = payload.type === 'defect'
+        ? `/api/incidents/defect/${refId}`
+        : payload.type === 'ehbo'
+          ? `/api/incidents/ehbo/${refId}`
+          : `/api/incidents/schade/${refId}`;
+      const res = await fetch(endpoint, { method: 'DELETE' });
+      if (res.ok) {
+        onClose();
+        router.refresh();
+      } else {
+        setActionError(res.status === 403 ? t('enkelMelderOfBeheerder') : t('actieMislukt'));
+      }
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   async function handleSaveEdit() {
+    setActionError('');
+    if (payload.type === 'defect' || payload.type === 'ehbo') {
+      const endpoint = payload.type === 'defect' ? `/api/incidents/defect/${refId}` : `/api/incidents/ehbo/${refId}`;
+      const body = payload.type === 'defect'
+        ? { omschrijving: defectDraft?.omschrijving ?? '', ernst: defectDraft?.ernst }
+        : { naam_slachtoffer: ehboDraft?.naamSlachtoffer ?? '', verwonding: ehboDraft?.verwonding ?? '', beschrijving: ehboDraft?.beschrijving ?? '' };
+      setSaving(true);
+      try {
+        const res = await fetch(endpoint, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        if (res.ok) {
+          setEditing(false);
+          router.refresh();
+        } else {
+          setActionError(res.status === 403 ? t('enkelMelderOfBeheerder') : t('actieMislukt'));
+        }
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
     if (!draft) return;
     setSaving(true);
     try {
@@ -156,8 +205,14 @@ export function IncidentModal({ payload, refId, refType, siteId, onClose }: Inci
               {isResolved ? t('opgelost') : resolving ? '...' : t('markeerOpgelost')}
             </button>
           )}
+          {!editing && (
+            <button type="button" className={styles.resolveBtn} onClick={handleDelete} disabled={deleting}>
+              {deleting ? '...' : t('verwijderen')}
+            </button>
+          )}
         </div>
       </div>
+      {actionError && <p className={styles.meta}><span className={styles.metaValue}>{actionError}</span></p>}
       <p className={styles.meta}>
         <span className={styles.metaValue}>{payload.reportedBy || t('onbekend')}</span>
         <span className={styles.metaSep}>·</span>
@@ -239,7 +294,28 @@ export function IncidentModal({ payload, refId, refType, siteId, onClose }: Inci
             </>
           )}
 
-          {payload.type === 'ehbo' && (
+          {payload.type === 'ehbo' && editing && ehboDraft && (
+            <div className={styles.section}>
+              <p className={styles.sectionTitle}>{t('slachtoffer')}</p>
+              <input className={styles.editInput} placeholder={t('naam')} value={ehboDraft.naamSlachtoffer} onChange={(e) => setEhboDraft({ ...ehboDraft, naamSlachtoffer: e.target.value })} />
+              <input className={styles.editInput} placeholder={t('aard')} value={ehboDraft.verwonding} onChange={(e) => setEhboDraft({ ...ehboDraft, verwonding: e.target.value })} />
+              <textarea className={styles.editTextarea} placeholder={t('beschrijving')} value={ehboDraft.beschrijving} onChange={(e) => setEhboDraft({ ...ehboDraft, beschrijving: e.target.value })} />
+            </div>
+          )}
+
+          {payload.type === 'defect' && editing && defectDraft && (
+            <div className={styles.section}>
+              <p className={styles.sectionTitle}>{t('defect')}</p>
+              <select className={styles.editInput} value={defectDraft.ernst} onChange={(e) => setDefectDraft({ ...defectDraft, ernst: e.target.value })}>
+                <option value="laag">{ernstLabels.laag}</option>
+                <option value="medium">{ernstLabels.medium}</option>
+                <option value="hoog">{ernstLabels.hoog}</option>
+              </select>
+              <textarea className={styles.editTextarea} value={defectDraft.omschrijving} onChange={(e) => setDefectDraft({ ...defectDraft, omschrijving: e.target.value })} />
+            </div>
+          )}
+
+          {payload.type === 'ehbo' && !editing && (
             <>
               <div className={styles.section}>
                 <p className={styles.sectionTitle}>{t('slachtoffer')}</p>
@@ -262,7 +338,7 @@ export function IncidentModal({ payload, refId, refType, siteId, onClose }: Inci
             </>
           )}
 
-          {payload.type === 'defect' && (
+          {payload.type === 'defect' && !editing && (
             <>
               <div className={styles.section}>
                 <p className={styles.sectionTitle}>{t('defect')}</p>
