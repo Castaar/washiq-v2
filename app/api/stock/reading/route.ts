@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
-import { ChemicalStock, StockDelivery, StockReading, User } from '@/lib/models';
+import { ChemicalStock, StockReading, User } from '@/lib/models';
+import { consumptionBetween } from '@/lib/stock-ledger';
 import { getSessionFromRequest } from '@/lib/session';
-import { sendPushToUser } from '@/lib/push';
+import { sendPushToUser, afterResponse } from '@/lib/push';
 import mongoose from 'mongoose';
 
 // POST /api/stock/reading — record a physical stock count for one product.
 // Consumption since the previous reading is derived automatically:
-// previous.quantity + deliveries since then - new quantity.
+// previous.quantity + deliveries + transfers in - transfers out since then - new quantity.
 export async function POST(req: NextRequest) {
   const session = await getSessionFromRequest(req);
   if (!session || (session.role !== 'owner' && session.role !== 'developer')) {
@@ -33,12 +34,14 @@ export async function POST(req: NextRequest) {
   let deliveredSince = 0;
 
   if (previous) {
-    const deliveries = await StockDelivery.find({
-      chemical_id: chemicalId,
-      delivered_at: { $gt: previous.recorded_at, $lte: now },
-    }).select('quantity').lean();
-    deliveredSince = deliveries.reduce((s, d) => s + ((d.quantity as number) ?? 0), 0);
-    consumption = previous.quantity + deliveredSince - quantity;
+    const r = await consumptionBetween(
+      chemicalId,
+      { quantity: previous.quantity as number, recorded_at: previous.recorded_at as Date },
+      quantity,
+      now,
+    );
+    consumption = r.consumption;
+    deliveredSince = r.delivered;
   }
 
   const reading = await StockReading.create({
@@ -60,7 +63,7 @@ export async function POST(req: NextRequest) {
     const siteId = (stock.site_id as mongoose.Types.ObjectId).toString();
     // Developers see every site regardless of their assigned site_ids —
     // owners stay scoped to their own sites.
-    User.find({ is_active: true, $or: [{ role: 'developer' }, { site_ids: siteId, role: { $in: ['owner', 'technician', 'employee'] } }] })
+    afterResponse(User.find({ is_active: true, $or: [{ role: 'developer' }, { site_ids: siteId, role: { $in: ['owner', 'technician', 'employee'] } }] })
       .select('_id')
       .lean()
       .then((notifyUsers) =>
@@ -76,7 +79,7 @@ export async function POST(req: NextRequest) {
             ),
         ),
       )
-      .catch(() => {});
+      .catch(() => {}));
   }
 
   return NextResponse.json({

@@ -8,10 +8,19 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const authSession = await getSession();
+  if (!authSession) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const isManager = authSession.role === 'owner' || authSession.role === 'developer';
+
   await dbConnect();
 
   const { id } = await params;
   const body = await req.json();
+
+  // Non-managers may only log deliveries, never override stock or product settings.
+  if (!isManager && (typeof body.set_stock === 'number' || typeof body.min_stock_alert === 'number' || body.name || body.unit)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
 
   const stock = await ChemicalStock.findById(id);
   if (!stock) {

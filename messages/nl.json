@@ -278,6 +278,7 @@
   "leveringen": {
     "leveringGeregistreerd": "Levering geregistreerd",
     "voorraadVerplaatst": "Voorraad verplaatst",
+    "verplaatstBevestiging": "{qty} {unit} {name} verplaatst naar {target}",
     "verplaatsenMislukt": "Verplaatsen mislukt",
     "deAndereCarwash": "de andere carwash",
     "confirmAutoCreate": "\"{name}\" bestaat nog niet bij {target}. Het wordt daar automatisch aangemaakt, maar zonder prijs en zonder koppeling aan een wasprogramma — dat moet je nadien nog zelf instellen. Doorgaan?",

@@ -487,6 +487,13 @@ export async function CarwashPage({
         })
     : [];
 
+  // Resolve user names for checklists
+  const checklistUserIds = [...new Set([...checklists, ...dayChecklists].map((cl) => cl.user_id?.toString()).filter(Boolean))];
+  const checklistUsers = checklistUserIds.length
+    ? await User.find({ _id: { $in: checklistUserIds } }).select('_id name').lean()
+    : [];
+  const userNameMap = Object.fromEntries(checklistUsers.map((u) => [(u._id as Types.ObjectId).toString(), u.name as string]));
+
   // Dagfiche alerts: unchecked items, items with remarks, and defect notes
   const dagficheAlerts: AlertItem[] = [];
   for (const cl of checklists) {
@@ -501,9 +508,10 @@ export async function CarwashPage({
           refType: 'daily_checklist' as const,
           siteId:  siteId ?? '',
           title: it.label,
-          subtitle: hasOpmerking
-            ? String(it.opmerking).trim()
-            : 'Niet afgevinkt',
+          subtitle: [
+            hasOpmerking ? String(it.opmerking).trim() : 'Niet afgevinkt',
+            userNameMap[cl.user_id?.toString() ?? ''] ? `Gemeld door ${userNameMap[cl.user_id?.toString() ?? '']}` : '',
+          ].filter(Boolean).join(' · '),
           date: clDate,
           severity: (!it.checked ? 'high' : 'medium') as 'high' | 'medium',
           iconName: 'clipboard',
@@ -511,13 +519,6 @@ export async function CarwashPage({
       }
     }
   }
-
-  // Resolve user names for checklists
-  const checklistUserIds = [...new Set([...checklists, ...dayChecklists].map((cl) => cl.user_id?.toString()).filter(Boolean))];
-  const checklistUsers = checklistUserIds.length
-    ? await User.find({ _id: { $in: checklistUserIds } }).select('_id name').lean()
-    : [];
-  const userNameMap = Object.fromEntries(checklistUsers.map((u) => [(u._id as Types.ObjectId).toString(), u.name as string]));
 
   const onderhoudItems: AlertItem[] = [
     ...logs.map((l) => {
@@ -601,7 +602,7 @@ export async function CarwashPage({
       return {
         id, refId: id, refType: 'incident_schade' as const, siteId: siteId ?? '',
         title: (s.merk_model as string) || 'Schade',
-        subtitle: (s.omschrijving as string) || '',
+        subtitle: [(s.omschrijving as string) || '', (s.reported_by_name as string) ? `Gemeld door ${s.reported_by_name as string}` : ''].filter(Boolean).join(' · '),
         date: fmtDate(new Date(s.created_at as Date)),
         severity: 'high' as const,
         iconName: 'warning',
@@ -699,15 +700,16 @@ export async function CarwashPage({
 
   for (const d of dayDeliveries) {
     const ts = new Date(d.delivered_at as Date);
-    const chemName = ((d.chemical_id as unknown as { name?: string } | null)?.name) ?? 'Product';
-    const loggedByName = ((d.logged_by as unknown as { name?: string } | null)?.name) ?? '';
+    const chemName = ((d.chemical_id as unknown as { name?: string } | null)?.name) ?? '';
+    const note = (d.note as string) || '';
+    const loggedByName = ((d.logged_by as unknown as { name?: string } | null)?.name) || (d.logged_by_name as string) || '';
     dayLogEntries.push({
       ts: ts.getTime(),
       item: {
         id: `delivery-${(d._id as Types.ObjectId).toString()}`,
         siteId: siteId ?? '',
-        title: `Levering: ${chemName}`,
-        subtitle: [`${d.quantity ?? 0}`, loggedByName ? `door ${loggedByName}` : undefined].filter(Boolean).join(' · '),
+        title: `Levering: ${chemName || note || 'Product'}`,
+        subtitle: [chemName ? `${d.quantity ?? 0}` : undefined, loggedByName ? `door ${loggedByName}` : undefined].filter(Boolean).join(' · '),
         date: fmtTime(ts),
         severity: 'low' as const,
         iconName: 'package',
@@ -804,7 +806,7 @@ export async function CarwashPage({
       item: {
         id, refId: id, refType: 'incident_schade' as const, siteId: siteId ?? '',
         title: (s.merk_model as string) || 'Schade',
-        subtitle: (s.omschrijving as string) || '',
+        subtitle: [(s.omschrijving as string) || '', (s.reported_by_name as string) ? `Gemeld door ${s.reported_by_name as string}` : ''].filter(Boolean).join(' · '),
         date: fmtTime(ts),
         severity: 'high' as const,
         iconName: 'warning',
@@ -837,7 +839,7 @@ export async function CarwashPage({
         id: (e._id as Types.ObjectId).toString(),
         refType: 'incident_ehbo' as const, siteId: siteId ?? '',
         title: (e.naam_slachtoffer as string) || 'EHBO',
-        subtitle: (e.verwonding as string) || '',
+        subtitle: [(e.verwonding as string) || '', (e.reported_by_name as string) ? `Gemeld door ${e.reported_by_name as string}` : ''].filter(Boolean).join(' · '),
         date: fmtTime(ts),
         severity: 'medium' as const,
         iconName: 'warning',
@@ -864,7 +866,7 @@ export async function CarwashPage({
       item: {
         id, refId: id, refType: 'defect' as const, siteId: siteId ?? '',
         title: (d.omschrijving as string)?.slice(0, 40) || 'Defect',
-        subtitle: d.ernst as string,
+        subtitle: [d.ernst as string, (d.reported_by_name as string) ? `Gemeld door ${d.reported_by_name as string}` : ''].filter(Boolean).join(' · '),
         date: fmtTime(ts),
         severity: d.ernst === 'hoog' ? 'high' as const : 'medium' as const,
         iconName: 'wrench',

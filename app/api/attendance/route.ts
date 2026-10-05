@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
 import { AttendanceLog, User } from '@/lib/models';
 import { getSessionFromRequest } from '@/lib/session';
-import { sendPushToUser } from '@/lib/push';
+import { sendPushToUser, afterResponse } from '@/lib/push';
 import type { Types } from 'mongoose';
 
 // GET /api/attendance?siteId=xxx&date=YYYY-MM-DD
@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
   const actionLabel = body.type === 'opening' ? 'aangekomen' : 'vertrokken';
   // Developers see every site regardless of their assigned site_ids (same
   // as the site picker elsewhere) — owners stay scoped to their own sites.
-  User.find({ is_active: true, $or: [{ role: 'developer' }, { site_ids: body.siteId, role: { $in: ['owner', 'technician', 'employee'] } }] })
+  afterResponse(User.find({ is_active: true, $or: [{ role: 'developer' }, { site_ids: body.siteId, role: { $in: ['owner', 'technician', 'employee'] } }] })
     .select('_id')
     .lean()
     .then((notifyUsers) =>
@@ -116,7 +116,7 @@ export async function POST(req: NextRequest) {
           ),
       ),
     )
-    .catch(() => {});
+    .catch(() => {}));
 
   return NextResponse.json({
     id: (log._id as Types.ObjectId).toString(),

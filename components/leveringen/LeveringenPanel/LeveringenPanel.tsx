@@ -119,11 +119,12 @@ export function LeveringenPanel({
         body: JSON.stringify({ fromSiteId: siteId, toSiteId: transfer.toSiteId, name, quantity: qty }),
       });
       if (res.ok) {
-        const data = (await res.json()) as { from: { current_stock: number } };
+        const data = (await res.json()) as { from: { current_stock: number }; toSiteName?: string };
+        const unit = stocks.find((x) => x.id === stockId)?.unit ?? '';
         setStocks((prev) => prev.map((s) => (s.id === stockId ? { ...s, current_stock: data.from.current_stock } : s)));
         setTransferOpen((prev) => { const n = { ...prev }; delete n[stockId]; return n; });
         setTransferTargetHasProduct((prev) => { const n = { ...prev }; delete n[stockId]; return n; });
-        showToast(t('voorraadVerplaatst'));
+        showToast(t('verplaatstBevestiging', { qty, unit, name, target: data.toSiteName || otherSites.find((x) => x.id === transfer.toSiteId)?.name || '' }));
       } else {
         const err = (await res.json().catch(() => null)) as { error?: string } | null;
         setTransferError((prev) => ({ ...prev, [stockId]: err?.error ?? t('verplaatsenMislukt') }));

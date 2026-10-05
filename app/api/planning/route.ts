@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
 import { Planning, Verlof } from '@/lib/models';
 import { getSessionFromRequest } from '@/lib/session';
-import { sendPushToUser } from '@/lib/push';
+import { sendPushToUser, afterResponse } from '@/lib/push';
 import type { Types } from 'mongoose';
 
 // GET /api/planning?siteId=xxx&from=YYYY-MM-DD&to=YYYY-MM-DD
@@ -93,11 +93,11 @@ export async function POST(req: NextRequest) {
   });
 
   // Notify the scheduled employee
-  sendPushToUser(body.userId, {
+  afterResponse(sendPushToUser(body.userId, {
     title: 'Nieuwe shift ingepland',
     body: `${body.date} van ${body.startTime} tot ${body.endTime}${body.note ? ` — ${body.note}` : ''}`,
     url: `/planning?site=${body.siteId}&item=${(doc._id as Types.ObjectId).toString()}`,
-  }).catch(() => {});
+  }).catch(() => {}));
 
   return NextResponse.json({
     id: (doc._id as Types.ObjectId).toString(),

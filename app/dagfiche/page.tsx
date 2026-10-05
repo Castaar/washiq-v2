@@ -55,8 +55,8 @@ export default async function DagfichePage({
       .select('_id description trigger_type trigger_value trigger_day trigger_month trigger_month_list last_done_at is_overdue')
       .lean(),
     MaintenanceLog.find({ site_id: siteId, done_at: { $gte: todayStart, $lt: todayEnd } }).populate('task_id', 'description').lean(),
-    IncidentSchade.find({ site_id: siteId, created_at: { $gte: todayStart, $lt: todayEnd } }).select('merk_model naam_eigenaar omschrijving created_at').lean(),
-    IncidentEhbo.find({ site_id: siteId, created_at: { $gte: todayStart, $lt: todayEnd } }).select('naam_slachtoffer verwonding created_at').lean(),
+    IncidentSchade.find({ site_id: siteId, created_at: { $gte: todayStart, $lt: todayEnd } }).select('merk_model naam_eigenaar omschrijving reported_by_name created_at').lean(),
+    IncidentEhbo.find({ site_id: siteId, created_at: { $gte: todayStart, $lt: todayEnd } }).select('naam_slachtoffer verwonding reported_by_name created_at').lean(),
     Defect.find({ site_id: siteId, created_at: { $gte: todayStart, $lt: todayEnd } }).select('omschrijving ernst reported_by_name created_at').lean(),
     StockDelivery.find({ site_id: siteId, delivered_at: { $gte: todayStart, $lt: todayEnd } }).populate('chemical_id', 'name unit').lean(),
     AttendanceLog.find({ site_id: siteId, timestamp: { $gte: todayStart, $lt: todayEnd } }).sort({ timestamp: 1 }).lean(),
@@ -86,13 +86,13 @@ export default async function DagfichePage({
       kind: 'incident' as const,
       label: `Schade: ${(s.merk_model as string) || (s.naam_eigenaar as string) || 'Voertuig'}`,
       time: fmtTime(new Date(s.created_at as Date)),
-      detail: (s.omschrijving as string) || undefined,
+      detail: [(s.omschrijving as string) || '', (s.reported_by_name as string) ? `Door: ${s.reported_by_name as string}` : ''].filter(Boolean).join(' · ') || undefined,
     })),
     ...incEhbosToday.map((e) => ({
       kind: 'incident' as const,
       label: `EHBO: ${(e.naam_slachtoffer as string) || 'Slachtoffer'}`,
       time: fmtTime(new Date(e.created_at as Date)),
-      detail: (e.verwonding as string) || undefined,
+      detail: [(e.verwonding as string) || '', (e.reported_by_name as string) ? `Door: ${e.reported_by_name as string}` : ''].filter(Boolean).join(' · ') || undefined,
     })),
     ...defectsToday.map((d) => ({
       kind: 'defect' as const,
@@ -104,9 +104,9 @@ export default async function DagfichePage({
       const chem = d.chemical_id as { name?: string; unit?: string } | null;
       return {
         kind: 'levering' as const,
-        label: `Levering: ${chem?.name ?? 'Product'}`,
+        label: `Levering: ${chem?.name ?? ((d.note as string) || 'Product')}`,
         time: fmtTime(new Date(d.delivered_at as Date)),
-        detail: `${d.quantity as number} ${chem?.unit ?? ''}`,
+        detail: chem?.name ? `${d.quantity as number} ${chem?.unit ?? ''}` : ((d.logged_by_name as string) ? `Door: ${d.logged_by_name as string}` : undefined),
       };
     }),
     ...maintenanceLogsToday.map((l) => {

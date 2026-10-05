@@ -224,6 +224,39 @@ const StockReadingSchema = new Schema<IStockReading>({
 StockReadingSchema.index({ site_id: 1, chemical_id: 1, recorded_at: -1 });
 export const StockReading = models.StockReading || model<IStockReading>('StockReading', StockReadingSchema);
 
+// ─── StockTransfer ────────────────────────────────────────────
+// Stock moved from one site to another. Counts as outflow for the source
+// product and inflow for the target product when consumption is derived.
+export interface IStockTransfer extends Document {
+  from_site_id: Types.ObjectId;
+  to_site_id: Types.ObjectId;
+  from_chemical_id: Types.ObjectId;
+  to_chemical_id: Types.ObjectId;
+  name: string;
+  unit: string;
+  quantity: number;
+  transferred_at: Date;
+  logged_by: Types.ObjectId;
+  logged_by_name: string;
+}
+const StockTransferSchema = new Schema<IStockTransfer>({
+  from_site_id: { type: Schema.Types.ObjectId, ref: 'Site' },
+  to_site_id: { type: Schema.Types.ObjectId, ref: 'Site' },
+  from_chemical_id: { type: Schema.Types.ObjectId, ref: 'ChemicalStock' },
+  to_chemical_id: { type: Schema.Types.ObjectId, ref: 'ChemicalStock' },
+  name: String,
+  unit: String,
+  quantity: Number,
+  transferred_at: { type: Date, default: Date.now },
+  logged_by: { type: Schema.Types.ObjectId, ref: 'User' },
+  logged_by_name: { type: String, default: '' },
+});
+StockTransferSchema.index({ from_chemical_id: 1, transferred_at: -1 });
+StockTransferSchema.index({ to_chemical_id: 1, transferred_at: -1 });
+StockTransferSchema.index({ from_site_id: 1, transferred_at: -1 });
+StockTransferSchema.index({ to_site_id: 1, transferred_at: -1 });
+export const StockTransfer = models.StockTransfer || model<IStockTransfer>('StockTransfer', StockTransferSchema);
+
 // ─── MaintenanceTask ──────────────────────────────────────────
 export interface IMaintenanceTask extends Document {
   site_id: Types.ObjectId;

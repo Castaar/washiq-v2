@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
 import { Planning } from '@/lib/models';
 import { getSessionFromRequest } from '@/lib/session';
-import { sendPushToUser } from '@/lib/push';
+import { sendPushToUser, afterResponse } from '@/lib/push';
 import type { Types } from 'mongoose';
 
 // PUT /api/planning/[id] — update shift (owner/developer only)
@@ -37,11 +37,11 @@ export async function PUT(
   if (!doc) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   // Notify the employee their shift was changed
-  sendPushToUser((doc.user_id as Types.ObjectId).toString(), {
+  afterResponse(sendPushToUser((doc.user_id as Types.ObjectId).toString(), {
     title: 'Planning gewijzigd',
     body: `${(doc.date as Date).toLocaleDateString('nl-BE', { timeZone: 'Europe/Brussels' })} van ${doc.start_time} tot ${doc.end_time}${doc.note ? ` — ${doc.note}` : ''}`,
     url: `/planning?site=${(doc.site_id as Types.ObjectId).toString()}&item=${id}`,
-  }).catch(() => {});
+  }).catch(() => {}));
 
   return NextResponse.json({ ok: true });
 }
@@ -62,11 +62,11 @@ export async function DELETE(
   const doc = await Planning.findByIdAndDelete(id);
 
   if (doc) {
-    sendPushToUser((doc.user_id as Types.ObjectId).toString(), {
+    afterResponse(sendPushToUser((doc.user_id as Types.ObjectId).toString(), {
       title: 'Shift verwijderd',
       body: `Je shift op ${(doc.date as Date).toLocaleDateString('nl-BE', { timeZone: 'Europe/Brussels' })} is verwijderd.`,
       url: `/planning?site=${(doc.site_id as Types.ObjectId).toString()}`,
-    }).catch(() => {});
+    }).catch(() => {}));
   }
 
   return NextResponse.json({ ok: true });

@@ -1,3 +1,4 @@
+import { after } from 'next/server';
 import webpush from 'web-push';
 import { dbConnect } from './db/mongoose';
 import { PushSubscription } from './models';
@@ -15,6 +16,20 @@ export interface PushPayload {
   icon?: string;
 }
 
+// Keep a fire-and-forget job (typically: look up recipients, then push) alive until it
+// finishes. On serverless the instance may freeze right after the response is sent,
+// which silently dropped notifications; after() holds it open.
+export function afterResponse(work: PromiseLike<unknown>): void {
+  const safe = Promise.resolve(work).catch((err) => console.error('[push] background job failed', err));
+  try {
+    after(safe);
+  } catch {
+    // not inside a request scope (e.g. a script) — the promise still runs
+  }
+}
+
+const PUSH_OPTIONS = { TTL: 60 * 60 * 12, urgency: 'high' as const };
+
 async function sendToSubscriptions(
   subscriptions: Awaited<ReturnType<typeof PushSubscription.find>>,
   data: string,
@@ -25,6 +40,7 @@ async function sendToSubscriptions(
         await webpush.sendNotification(
           { endpoint: sub.endpoint, keys: sub.keys as { p256dh: string; auth: string } },
           data,
+          PUSH_OPTIONS,
         );
       } catch (err: unknown) {
         if (err && typeof err === 'object' && 'statusCode' in err) {

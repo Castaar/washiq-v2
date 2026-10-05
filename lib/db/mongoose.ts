@@ -21,7 +21,14 @@ export async function dbConnect(): Promise<typeof mongoose> {
   if (cache.conn) return cache.conn;
 
   if (!cache.promise) {
-    cache.promise = mongoose.connect(MONGODB_URI, { bufferCommands: false }).then((m) => m);
+    cache.promise = mongoose
+      .connect(MONGODB_URI, { bufferCommands: false, maxPoolSize: 10, serverSelectionTimeoutMS: 8000 })
+      .then((m) => m)
+      .catch((err) => {
+        // Don't cache a failed connect — the next request must be able to retry.
+        cache.promise = null;
+        throw err;
+      });
   }
 
   cache.conn = await cache.promise;

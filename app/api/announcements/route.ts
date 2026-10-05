@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
 import { Announcement } from '@/lib/models';
 import { getSessionFromRequest } from '@/lib/session';
-import { sendPushToAll, sendPushToSite } from '@/lib/push';
+import { sendPushToAll, sendPushToSite, afterResponse } from '@/lib/push';
 import type { Types } from 'mongoose';
 
 // GET /api/announcements?siteId=xxx
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
 
   if (kind === 'general') {
     const pushPayload = { title: 'Nieuw bericht', body: body.text.trim(), url: '/diversen' };
-    (isAll ? sendPushToAll(pushPayload) : sendPushToSite(body.siteId!, pushPayload)).catch(() => {});
+    afterResponse(isAll ? sendPushToAll(pushPayload) : sendPushToSite(body.siteId!, pushPayload));
   }
 
   return NextResponse.json({ id: (doc._id as Types.ObjectId).toString() }, { status: 201 });

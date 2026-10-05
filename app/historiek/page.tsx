@@ -5,9 +5,9 @@ import type { HistoryEntry, HistoryProgram } from '@/components/forms/HistoryLis
 import { ChemieChart } from '@/components/historiek/ChemieChart/ChemieChart';
 import type { ChemieDataPoint } from '@/components/historiek/ChemieChart/ChemieChart';
 import { EventHistoryPanel } from '@/components/historiek/EventHistoryPanel/EventHistoryPanel';
-import type { DefectHistoryItem, SchadeHistoryItem, OrderHistoryItem, MaintenanceHistoryItem, DeliveryHistoryItem } from '@/components/historiek/EventHistoryPanel/EventHistoryPanel';
+import type { DefectHistoryItem, SchadeHistoryItem, OrderHistoryItem, MaintenanceHistoryItem, StockLedgerItem } from '@/components/historiek/EventHistoryPanel/EventHistoryPanel';
 import { dbConnect } from '@/lib/db/mongoose';
-import { Site, WashProgram, WeeklyEntry, ChemicalStock, StockReading, User, EnergyBill, Defect, IncidentSchade, IncidentEhbo, OrderRequest, MaintenanceLog, StockDelivery } from '@/lib/models';
+import { Site, WashProgram, WeeklyEntry, ChemicalStock, StockReading, User, EnergyBill, Defect, IncidentSchade, IncidentEhbo, OrderRequest, MaintenanceLog, StockDelivery, StockTransfer } from '@/lib/models';
 import { getSession } from '@/lib/session';
 import type { Types } from 'mongoose';
 import { filterSitesForUser, resolveActiveSite, redirectIfSetupNeeded, redirectWithSiteParam } from '@/lib/getUserSites';
@@ -48,18 +48,19 @@ export default async function HistoriekPage({
   const startWaterCount = (siteDoc?.start_water_count as number) ?? 0;
   const filter = siteId ? { site_id: siteId } : {};
 
-  const [programDocs, entryDocs, stockDocs, energyBillDocs, readingDocs, defectDocs, schadeDocs, ehboDocs, orderDocs, maintenanceLogDocs, deliveryDocs] = await Promise.all([
+  const [programDocs, entryDocs, stockDocs, energyBillDocs, readingDocs, defectDocs, schadeDocs, ehboDocs, orderDocs, maintenanceLogDocs, deliveryDocs, transferDocs] = await Promise.all([
     WashProgram.find(filter).select('_id name tier chemicals').sort({ tier: 1 }).lean(),
     WeeklyEntry.find(filter).sort({ week_start: 1 }).lean(),
     ChemicalStock.find(filter).select('name unit').sort({ name: 1 }).lean(),
     EnergyBill.find(filter).select('year month amount_euro').lean(),
-    StockReading.find(filter).select('name unit consumption recorded_at').sort({ recorded_at: 1 }).lean(),
+    StockReading.find(filter).select('name unit quantity consumption recorded_at recorded_by chemical_id').sort({ recorded_at: 1 }).lean(),
     Defect.find(filter).sort({ created_at: -1 }).limit(200).lean(),
     IncidentSchade.find(filter).sort({ created_at: -1 }).limit(200).lean(),
     IncidentEhbo.find(filter).sort({ created_at: -1 }).limit(200).lean(),
     OrderRequest.find(filter).sort({ requested_at: -1 }).limit(200).lean(),
     MaintenanceLog.find(filter).sort({ done_at: -1 }).limit(200).populate('task_id', 'description').populate('done_by', 'name').lean(),
     StockDelivery.find(filter).sort({ delivered_at: -1 }).limit(200).populate('chemical_id', 'name unit').lean(),
+    siteId ? StockTransfer.find({ $or: [{ from_site_id: siteId }, { to_site_id: siteId }] }).sort({ transferred_at: -1 }).limit(200).populate('from_site_id', 'name').populate('to_site_id', 'name').lean() : Promise.resolve([]),
   ]);
 
   const energyBillsByMonth: Record<string, number> = {};
@@ -249,18 +250,61 @@ export default async function HistoriekPage({
     doneAt: (l.done_at as Date).toISOString(),
   }));
 
-  const deliveryHistory: DeliveryHistoryItem[] = deliveryDocs.map((d) => {
-    const chem = d.chemical_id as unknown as { name?: string; unit?: string } | null;
-    return {
-      id: (d._id as Types.ObjectId).toString(),
-      productName: chem?.name ?? '',
-      quantity: (d.quantity as number) ?? 0,
-      unit: chem?.unit ?? '',
-      note: (d.note as string) || '',
-      loggedByName: (d.logged_by_name as string) || '',
-      deliveredAt: (d.delivered_at as Date).toISOString(),
-    };
-  });
+  const readerIds = [...new Set(readingDocs.map((r) => (r.recorded_by as Types.ObjectId | undefined)?.toString()).filter(Boolean))] as string[];
+  const readerDocs = readerIds.length > 0 ? await User.find({ _id: { $in: readerIds } }).select('name').lean() : [];
+  const readerName = new Map(readerDocs.map((u) => [(u._id as Types.ObjectId).toString(), (u.name as string) ?? '']));
+  // The earliest count per product is a baseline (no consumption derivable).
+  const firstReadingIds = new Set<string>();
+  const seenChem = new Set<string>();
+  for (const r of readingDocs) {
+    const cid = (r.chemical_id as Types.ObjectId | undefined)?.toString() ?? (r.name as string);
+    if (!seenChem.has(cid)) { seenChem.add(cid); firstReadingIds.add((r._id as Types.ObjectId).toString()); }
+  }
+
+  const stockLedger: StockLedgerItem[] = [
+    ...deliveryDocs.map((d): StockLedgerItem => {
+      const chem = d.chemical_id as unknown as { name?: string; unit?: string } | null;
+      return {
+        id: (d._id as Types.ObjectId).toString(),
+        kind: 'delivery',
+        title: chem?.name ? `Levering: ${chem.name}` : `Levering: ${(d.note as string) || 'diverse'}`,
+        detail: chem?.name ? `+${((d.quantity as number) ?? 0).toLocaleString('nl-BE')} ${chem.unit ?? ''}${d.note ? ` — ${d.note}` : ''}` : '',
+        quantity: chem?.name ? ((d.quantity as number) ?? 0) : undefined,
+        byName: (d.logged_by_name as string) || '',
+        at: (d.delivered_at as Date).toISOString(),
+      };
+    }),
+    ...transferDocs.map((t): StockLedgerItem => {
+      const from = (t.from_site_id as unknown as { _id?: Types.ObjectId; name?: string } | null);
+      const to = (t.to_site_id as unknown as { _id?: Types.ObjectId; name?: string } | null);
+      const outgoing = from?._id?.toString() === siteId;
+      const qty = ((t.quantity as number) ?? 0).toLocaleString('nl-BE');
+      return {
+        id: (t._id as Types.ObjectId).toString(),
+        kind: outgoing ? 'transfer-out' : 'transfer-in',
+        title: outgoing ? `Verplaatst naar ${to?.name ?? '?'}: ${t.name}` : `Ontvangen van ${from?.name ?? '?'}: ${t.name}`,
+        detail: `${outgoing ? '−' : '+'}${qty} ${t.unit ?? ''}`,
+        byName: (t.logged_by_name as string) || '',
+        at: (t.transferred_at as Date).toISOString(),
+      };
+    }),
+    ...readingDocs.map((r): StockLedgerItem => {
+      const isFirst = firstReadingIds.has((r._id as Types.ObjectId).toString());
+      const q = ((r.quantity as number) ?? 0).toLocaleString('nl-BE');
+      const c = Math.round(((r.consumption as number) ?? 0) * 100) / 100;
+      return {
+        id: (r._id as Types.ObjectId).toString(),
+        kind: 'reading',
+        title: `Telling: ${r.name}`,
+        detail: isFirst
+          ? `Voorraad ${q} ${r.unit ?? ''} (beginstand)`
+          : `Voorraad ${q} ${r.unit ?? ''} · verbruik ${c.toLocaleString('nl-BE')} ${r.unit ?? ''}`,
+        quantity: (r.quantity as number) ?? 0,
+        byName: readerName.get((r.recorded_by as Types.ObjectId | undefined)?.toString() ?? '') ?? '',
+        at: (r.recorded_at as Date).toISOString(),
+      };
+    }),
+  ].sort((a, b) => b.at.localeCompare(a.at));
 
   const backHref = siteId ? `/wekelijkse-ingave?site=${siteId}` : '/wekelijkse-ingave';
 
@@ -302,7 +346,7 @@ export default async function HistoriekPage({
             schades={schadeHistory}
             orders={orderHistory}
             maintenance={maintenanceHistory}
-            deliveries={deliveryHistory}
+            stockLedger={stockLedger}
           />
         </div>
 

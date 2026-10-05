@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
 import { IncidentEhbo, User } from '@/lib/models';
 import { getSessionFromRequest } from '@/lib/session';
-import { sendPushToUser } from '@/lib/push';
+import { sendPushToUser, afterResponse } from '@/lib/push';
 import type { Types } from 'mongoose';
 
 export async function POST(req: NextRequest) {
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
 
   // Developers see every site regardless of their assigned site_ids —
   // owners stay scoped to their own sites.
-  User.find({ is_active: true, _id: { $ne: session.userId }, $or: [{ role: 'developer' }, { site_ids: body.siteId, role: { $in: ['owner', 'technician', 'employee'] } }] })
+  afterResponse(User.find({ is_active: true, _id: { $ne: session.userId }, $or: [{ role: 'developer' }, { site_ids: body.siteId, role: { $in: ['owner', 'technician', 'employee'] } }] })
     .select('_id')
     .lean()
     .then((notifyUsers) =>
@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
         ),
       ),
     )
-    .catch(() => {});
+    .catch(() => {}));
 
   return NextResponse.json({ id: doc._id.toString() }, { status: 201 });
 }

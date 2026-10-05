@@ -161,9 +161,17 @@
 
 .agendaAddRow {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
   align-items: center;
   margin-bottom: var(--space-2);
+}
+
+.agendaError {
+  flex: 1 1 100%;
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--color-accent-red, #ef4444);
 }
 
 .agendaTimeInput {
@@ -179,7 +187,8 @@
 }
 
 .agendaTextInput {
-  flex: 1;
+  flex: 1 1 180px;
+  min-width: 140px;
   height: 30px;
   padding: 0 var(--space-2);
   background: var(--color-bg-tertiary);

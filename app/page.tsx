@@ -81,6 +81,15 @@ export default async function DashboardPage({
   const addHref = userRole === 'developer' ? '/developer' : (activeSiteId ? `${addBase}?site=${activeSiteId}` : addBase);
   const addLabel = userRole === 'developer' ? 'Developer' : userRole === 'employee' ? 'Dagfiche' : activeSiteType === 'selfcarwash' ? 'Voorraad' : 'Maandelijkse Ingave';
 
+  // Started now (exec() fires the query) so it runs alongside the attendance query below.
+  const announcementPromise = Announcement.find({
+    $or: [{ is_all_sites: true }, { site_ids: activeSiteId }],
+  })
+    .sort({ created_at: -1 })
+    .limit(5)
+    .lean()
+    .exec();
+
   // Fetch recent attendance logs for employees (shown on dashboard instead of alerts panel)
   let recentLogs: { id: string; userId: string; userName: string; type: 'opening' | 'sluiting'; personType: 'employee' | 'technician_extern'; registeredByName: string; timestamp: string; note: string }[] = [];
   if ((userRole === 'employee') && activeSiteId && session?.userId) {
@@ -104,12 +113,7 @@ export default async function DashboardPage({
   }
 
   // Fetch announcements visible for this site
-  const announcementDocs = await Announcement.find({
-    $or: [{ is_all_sites: true }, { site_ids: activeSiteId }],
-  })
-    .sort({ created_at: -1 })
-    .limit(5)
-    .lean();
+  const announcementDocs = await announcementPromise;
 
   const announcements = announcementDocs.map((a) => ({
     id: (a._id as Types.ObjectId).toString(),

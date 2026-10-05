@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
 import { Opdracht, User } from '@/lib/models';
 import { getSessionFromRequest } from '@/lib/session';
-import { sendPushToUser } from '@/lib/push';
+import { sendPushToUser, afterResponse } from '@/lib/push';
 import type { Types } from 'mongoose';
 
 // GET /api/opdrachten?siteId=xxx&date=YYYY-MM-DD
@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
         .map((u) => (u._id as Types.ObjectId).toString());
 
   if (notifyIds.length > 0) {
-    Promise.allSettled(
+    afterResponse(Promise.allSettled(
       notifyIds.map((uid) =>
         sendPushToUser(uid, {
           title: 'Nieuwe opdracht',
@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
           url: `/opdrachten?site=${body.siteId}&item=${(doc._id as Types.ObjectId).toString()}`,
         }),
       ),
-    ).catch(() => {});
+    ).catch(() => {}));
   }
 
   return NextResponse.json({

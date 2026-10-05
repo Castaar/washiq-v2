@@ -133,6 +133,7 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
   // Employee view's own standalone add-form (not tied to a day-cell like the owner's)
   const [empAgendaOpen, setEmpAgendaOpen] = useState(false);
   const [empAgendaDate, setEmpAgendaDate] = useState('');
+  const [agendaError, setAgendaError] = useState('');
 
   // New shift form
   const [newSiteId, setNewSiteId] = useState(siteId);
@@ -147,7 +148,7 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
   const [saving, setSaving] = useState(false);
 
   const isOwner = userRole === 'owner' || userRole === 'developer';
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Brussels' }).format(new Date());
 
   // Deep-link from a push notification: /planning?item=<id> scrolls to and
   // highlights that specific shift (employee's "Mijn werkschema" view).
@@ -278,22 +279,29 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
     if (res.ok) setShifts((prev) => prev.filter((s) => s.id !== id));
   }
 
-  async function handleAddAgenda(date: string) {
-    if (!agendaText.trim()) return;
+  async function handleAddAgenda(date: string): Promise<boolean> {
+    if (!agendaText.trim()) return false;
     setSavingAgenda(true);
+    setAgendaError('');
     try {
       const res = await fetch('/api/agenda', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ siteId, date, time: agendaTime, text: agendaText }),
       });
-      if (res.ok) {
-        const event = (await res.json()) as AgendaEventItem;
-        setAgendaEvents((prev) => [...prev, event]);
-        setAgendaText('');
-        setAgendaTime('');
-        setAgendaFormDate(null);
+      if (!res.ok) {
+        setAgendaError('Opslaan mislukt, probeer opnieuw');
+        return false;
       }
+      const event = (await res.json()) as AgendaEventItem;
+      setAgendaEvents((prev) => [...prev, event]);
+      setAgendaText('');
+      setAgendaTime('');
+      setAgendaFormDate(null);
+      return true;
+    } catch {
+      setAgendaError('Geen verbinding, probeer opnieuw');
+      return false;
     } finally {
       setSavingAgenda(false);
     }
@@ -337,6 +345,7 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
               <input
                 type="date"
                 className={styles.agendaTimeInput}
+                style={{ width: 140 }}
                 value={empAgendaDate}
                 onChange={(e) => setEmpAgendaDate(e.target.value)}
                 min={today}
@@ -360,15 +369,18 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
                 className={styles.agendaAddBtn}
                 onClick={async () => {
                   if (!empAgendaDate) return;
-                  await handleAddAgenda(empAgendaDate);
-                  setEmpAgendaOpen(false);
-                  setEmpAgendaDate('');
+                  const ok = await handleAddAgenda(empAgendaDate);
+                  if (ok) {
+                    setEmpAgendaOpen(false);
+                    setEmpAgendaDate('');
+                  }
                 }}
                 disabled={savingAgenda || !agendaText.trim() || !empAgendaDate}
               >
                 {savingAgenda ? '...' : 'OK'}
               </button>
-              <button type="button" className={styles.chipDelete} onClick={() => setEmpAgendaOpen(false)} aria-label="Annuleren">✕</button>
+              <button type="button" className={styles.chipDelete} onClick={() => { setEmpAgendaOpen(false); setAgendaError(''); }} aria-label="Annuleren">✕</button>
+              {agendaError && <p className={styles.agendaError}>{agendaError}</p>}
             </div>
           ) : (
             <button type="button" className={styles.navBtn} onClick={() => { setEmpAgendaOpen(true); setEmpAgendaDate(today); }}>
@@ -545,9 +557,10 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
                   <button
                     type="button"
                     className={styles.chipDelete}
-                    onClick={() => { setAgendaFormDate(null); setAgendaText(''); setAgendaTime(''); }}
+                    onClick={() => { setAgendaFormDate(null); setAgendaText(''); setAgendaTime(''); setAgendaError(''); }}
                     aria-label="Annuleren"
                   >✕</button>
+                  {agendaError && <p className={styles.agendaError}>{agendaError}</p>}
                 </div>
               ) : (
                 <button

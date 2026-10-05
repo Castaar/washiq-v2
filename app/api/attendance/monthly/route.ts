@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
 import { AttendanceLog, WeeklyEntry } from '@/lib/models';
 import { getSessionFromRequest } from '@/lib/session';
+import { buildSessions, type WorkSession } from '@/lib/attendance-hours';
 
 // Server runs in UTC (Vercel) — Date.getHours()/getDate() etc. would be 1-2h
 // off from actual Belgian local time. Extract the Brussels-local date/time
@@ -40,6 +41,7 @@ export interface DayRecord {
   checkIn: string;    // HH:MM
   checkOut: string;   // HH:MM or ''
   hours: number;
+  otherSite?: boolean; // check-in or check-out happened at another carwash
 }
 
 export interface EmployeeSummary {
@@ -51,22 +53,38 @@ export interface EmployeeSummary {
   days: DayRecord[];
 }
 
-// Sum worked hours from a list of attendance logs, grouping by (site, day)
-// so a check-in at one carwash is never paired with a check-out at another.
-function sumHoursBySiteAndDay(logs: { user_id: unknown; site_id: unknown; timestamp: unknown; type: unknown }[]): number {
-  const byKey = new Map<string, typeof logs>();
+type LeanLog = { user_id: unknown; user_name?: string; site_id: unknown; timestamp: unknown; type: unknown };
+
+function groupByUser(logs: LeanLog[]): Map<string, LeanLog[]> {
+  const m = new Map<string, LeanLog[]>();
   for (const l of logs) {
-    const key = `${(l.site_id as { toString(): string }).toString()}_${brusselsDateStr(new Date(l.timestamp as Date))}`;
-    if (!byKey.has(key)) byKey.set(key, []);
-    byKey.get(key)!.push(l);
+    const uid = (l.user_id as { toString(): string }).toString();
+    if (!m.has(uid)) m.set(uid, []);
+    m.get(uid)!.push(l);
   }
+  return m;
+}
+
+// Hours worked per site for the people who have any log at that site in the range.
+// A shift that starts at this site counts here, even when the check-out is elsewhere.
+async function siteHoursForRange(siteId: string, from: Date, to: Date): Promise<number> {
+  const siteLogs = await AttendanceLog.find({
+    site_id: siteId,
+    timestamp: { $gte: from, $lt: to },
+    person_type: { $ne: 'technician_extern' },
+  }).select('user_id').lean();
+  const userIds = [...new Set(siteLogs.map((l) => (l.user_id as { toString(): string }).toString()))];
+  if (userIds.length === 0) return 0;
+  const allLogs = await AttendanceLog.find({
+    user_id: { $in: userIds },
+    timestamp: { $gte: from, $lt: to },
+    person_type: { $ne: 'technician_extern' },
+  }).select('user_id site_id timestamp type').lean();
   let total = 0;
-  for (const dayLogs of byKey.values()) {
-    const arrivals = dayLogs.filter((l) => l.type === 'opening').sort((a, b) => (new Date(a.timestamp as Date)).getTime() - (new Date(b.timestamp as Date)).getTime());
-    const departures = dayLogs.filter((l) => l.type === 'sluiting').sort((a, b) => (new Date(b.timestamp as Date)).getTime() - (new Date(a.timestamp as Date)).getTime());
-    const inTs = arrivals[0]?.timestamp as Date | undefined;
-    const outTs = departures[0]?.timestamp as Date | undefined;
-    if (inTs && outTs) total += Math.max(0, (new Date(outTs).getTime() - new Date(inTs).getTime()) / 36e5);
+  for (const userLogs of groupByUser(allLogs as LeanLog[]).values()) {
+    for (const sess of buildSessions(userLogs)) {
+      if (sess.startSite === siteId) total += sess.hours;
+    }
   }
   return total;
 }
@@ -95,82 +113,59 @@ export async function GET(req: NextRequest) {
 
   await dbConnect();
 
-  const logs = await AttendanceLog.find({
+  const siteLogs = await AttendanceLog.find({
     site_id: siteId,
     timestamp: { $gte: from, $lt: to },
     person_type: { $ne: 'technician_extern' },
-  }).sort({ timestamp: 1 }).lean();
+  }).select('user_id user_name').lean();
 
-  // Group by userId → dateStr → [logs]
-  const byUser = new Map<string, { userName: string; byDate: Map<string, typeof logs> }>();
-
-  for (const l of logs) {
-    const uid = l.user_id.toString();
-    if (!byUser.has(uid)) byUser.set(uid, { userName: l.user_name ?? '', byDate: new Map() });
-    const userData = byUser.get(uid)!;
-
-    const dateStr = brusselsDateStr(new Date(l.timestamp as Date));
-
-    if (!userData.byDate.has(dateStr)) userData.byDate.set(dateStr, []);
-    userData.byDate.get(dateStr)!.push(l);
+  const names = new Map<string, string>();
+  for (const l of siteLogs) {
+    const uid = (l.user_id as { toString(): string }).toString();
+    if (!names.has(uid)) names.set(uid, (l.user_name as string) ?? '');
   }
+  const userIds = [...names.keys()];
 
+  const allLogs = userIds.length === 0 ? [] : await AttendanceLog.find({
+    user_id: { $in: userIds },
+    timestamp: { $gte: from, $lt: to },
+    person_type: { $ne: 'technician_extern' },
+  }).select('user_id user_name site_id timestamp type').lean();
+
+  const logsByUser = groupByUser(allLogs as LeanLog[]);
   const result: EmployeeSummary[] = [];
 
-  for (const [userId, { userName, byDate }] of byUser) {
+  for (const userId of userIds) {
+    const sessions = buildSessions(logsByUser.get(userId) ?? []);
+    const touchesSite = (s: WorkSession) => s.startSite === siteId || s.endSite === siteId;
+
+    const byDate = new Map<string, WorkSession[]>();
+    for (const sess of sessions.filter(touchesSite)) {
+      const date = brusselsDateStr(sess.start);
+      if (!byDate.has(date)) byDate.set(date, []);
+      byDate.get(date)!.push(sess);
+    }
+
     const days: DayRecord[] = [];
-
-    for (const [date, dayLogs] of byDate) {
-      const arrivals = dayLogs.filter((l) => l.type === 'opening').sort((a, b) =>
-        (a.timestamp as Date).getTime() - (b.timestamp as Date).getTime(),
-      );
-      const departures = dayLogs.filter((l) => l.type === 'sluiting').sort((a, b) =>
-        (b.timestamp as Date).getTime() - (a.timestamp as Date).getTime(),
-      );
-
-      const checkInTs = arrivals[0]?.timestamp as Date | undefined;
-      const checkOutTs = departures[0]?.timestamp as Date | undefined;
-
-      const hours = checkInTs && checkOutTs
-        ? Math.max(0, Math.round(((checkOutTs.getTime() - checkInTs.getTime()) / 36e5) * 10) / 10)
-        : 0;
-
+    for (const [date, daySessions] of byDate) {
+      const starts = daySessions.map((x) => x.start.getTime());
+      const ends = daySessions.map((x) => x.end?.getTime()).filter((x): x is number => x !== undefined);
+      const hours = daySessions.filter((x) => x.startSite === siteId).reduce((sum, x) => sum + x.hours, 0);
       days.push({
         date,
-        checkIn: checkInTs ? brusselsTimeStr(new Date(checkInTs)) : '',
-        checkOut: checkOutTs ? brusselsTimeStr(new Date(checkOutTs)) : '',
-        hours,
+        checkIn: brusselsTimeStr(new Date(Math.min(...starts))),
+        checkOut: ends.length > 0 ? brusselsTimeStr(new Date(Math.max(...ends))) : '',
+        hours: Math.round(hours * 10) / 10,
+        otherSite: daySessions.some((x) => x.startSite !== siteId || (x.endSite !== null && x.endSite !== siteId)) || undefined,
       });
     }
-
     days.sort((a, b) => a.date.localeCompare(b.date));
 
-    const totalHours = Math.round(days.reduce((s, d) => s + d.hours, 0) * 10) / 10;
+    const totalHours = Math.round(days.reduce((sum, d) => sum + d.hours, 0) * 10) / 10;
+    const totalHoursAllSites = Math.round(sessions.reduce((sum, x) => sum + x.hours, 0) * 10) / 10;
     const daysWorked = days.filter((d) => d.hours > 0).length;
 
-    result.push({ userId, userName, totalHours, totalHoursAllSites: totalHours, daysWorked, days });
-  }
-
-  // Cross-site total per employee — "hoeveel heeft deze persoon deze maand
-  // in totaal gewerkt, over alle carwashes heen" — not just at this site.
-  if (result.length > 0) {
-    const userIds = result.map((r) => r.userId);
-    const allSiteLogs = await AttendanceLog.find({
-      user_id: { $in: userIds },
-      timestamp: { $gte: from, $lt: to },
-      person_type: { $ne: 'technician_extern' },
-    }).select('user_id site_id timestamp type').lean();
-
-    const byUserAllSites = new Map<string, typeof allSiteLogs>();
-    for (const l of allSiteLogs) {
-      const uid = (l.user_id as { toString(): string }).toString();
-      if (!byUserAllSites.has(uid)) byUserAllSites.set(uid, []);
-      byUserAllSites.get(uid)!.push(l);
-    }
-    for (const r of result) {
-      const logsForUser = byUserAllSites.get(r.userId) ?? [];
-      r.totalHoursAllSites = Math.round(sumHoursBySiteAndDay(logsForUser) * 10) / 10;
-    }
+    result.push({ userId, userName: names.get(userId) ?? '', totalHours, totalHoursAllSites, daysWorked, days });
   }
 
   result.sort((a, b) => a.userName.localeCompare(b.userName));
@@ -179,39 +174,14 @@ export async function GET(req: NextRequest) {
 
   // Last 6 months (including the requested one) — hours + wasbeurten trend,
   // so an owner can see history at a glance instead of switching month by month.
-  const history: { year: number; month: number; totalHours: number; totalWashes: number }[] = [];
-  for (let i = 5; i >= 0; i--) {
-    const hFrom = new Date(year, month - 1 - i, 1);
-    const hTo = new Date(year, month - i, 1);
-    const [hLogs, hWashes] = await Promise.all([
-      AttendanceLog.find({
-        site_id: siteId,
-        timestamp: { $gte: hFrom, $lt: hTo },
-        person_type: { $ne: 'technician_extern' },
-      }).select('user_id timestamp type').lean(),
-      washCountForRange(siteId, hFrom, hTo),
-    ]);
-    const byUserDate = new Map<string, Map<string, typeof hLogs>>();
-    for (const l of hLogs) {
-      const uid = l.user_id.toString();
-      const dateStr = brusselsDateStr(new Date(l.timestamp as Date));
-      if (!byUserDate.has(uid)) byUserDate.set(uid, new Map());
-      const byDate = byUserDate.get(uid)!;
-      if (!byDate.has(dateStr)) byDate.set(dateStr, []);
-      byDate.get(dateStr)!.push(l);
-    }
-    let hTotalHours = 0;
-    for (const byDate of byUserDate.values()) {
-      for (const dayLogs of byDate.values()) {
-        const arrivals = dayLogs.filter((l) => l.type === 'opening').sort((a, b) => (a.timestamp as Date).getTime() - (b.timestamp as Date).getTime());
-        const departures = dayLogs.filter((l) => l.type === 'sluiting').sort((a, b) => (b.timestamp as Date).getTime() - (a.timestamp as Date).getTime());
-        const inTs = arrivals[0]?.timestamp as Date | undefined;
-        const outTs = departures[0]?.timestamp as Date | undefined;
-        if (inTs && outTs) hTotalHours += Math.max(0, (outTs.getTime() - inTs.getTime()) / 36e5);
-      }
-    }
-    history.push({ year: hFrom.getFullYear(), month: hFrom.getMonth() + 1, totalHours: Math.round(hTotalHours * 10) / 10, totalWashes: hWashes });
-  }
+  const history = await Promise.all(
+    [5, 4, 3, 2, 1, 0].map(async (i) => {
+      const hFrom = new Date(year, month - 1 - i, 1);
+      const hTo = new Date(year, month - i, 1);
+      const [hours, hWashes] = await Promise.all([siteHoursForRange(siteId, hFrom, hTo), washCountForRange(siteId, hFrom, hTo)]);
+      return { year: hFrom.getFullYear(), month: hFrom.getMonth() + 1, totalHours: Math.round(hours * 10) / 10, totalWashes: hWashes };
+    }),
+  );
 
   return NextResponse.json({ employees: result, totalWashes, history });
 }
