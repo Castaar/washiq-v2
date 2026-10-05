@@ -20,3 +20,35 @@
     padding-bottom: calc(var(--bottomnav-height) + var(--space-6));
   }
 }
+
+.histList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.histRow {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-3);
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.histTitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.histDetail {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary, var(--color-text-muted));
+}
+
+.histMeta {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './HistoryList.module.scss';
 
@@ -97,6 +97,33 @@ function EntryRow({
   );
   const totalWagens = entry.programCounts.reduce((s, pc) => s + pc.count, 0);
 
+  // Chemie: stock counts belong to the date of this ingave. A missing count is filled in
+  // for that date (not "today") and consumption is re-derived in date order.
+  const refIso = entry.createdAt ?? entry.weekStart;
+  const [stockProducts, setStockProducts] = useState<{ id: string; name: string; unit: string }[] | null>(null);
+  const [stockInputs, setStockInputs] = useState<Record<string, string>>({});
+  const [existingReadings, setExistingReadings] = useState<Record<string, { id: string; quantity: number }>>({});
+
+  useEffect(() => {
+    if (!editing || stockProducts) return;
+    const dayKey = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Brussels' }).format(new Date(iso));
+    (async () => {
+      const [pRes, rRes] = await Promise.all([
+        fetch(`/api/stock?siteId=${siteId}`),
+        fetch(`/api/stock/reading?siteId=${siteId}`),
+      ]);
+      const products = pRes.ok ? ((await pRes.json()) as { id: string; name: string; unit: string }[]) : [];
+      const readings = rRes.ok ? ((await rRes.json()) as { id: string; chemicalId: string; quantity: number; recordedAt: string }[]) : [];
+      const existing: Record<string, { id: string; quantity: number }> = {};
+      for (const r of readings) {
+        if (dayKey(r.recordedAt) === dayKey(refIso) && !existing[r.chemicalId]) existing[r.chemicalId] = { id: r.id, quantity: r.quantity };
+      }
+      setExistingReadings(existing);
+      setStockInputs(Object.fromEntries(products.filter((pr) => existing[pr.id]).map((pr) => [pr.id, String(existing[pr.id].quantity)])));
+      setStockProducts(products);
+    })().catch(() => setStockProducts([]));
+  }, [editing, stockProducts, siteId, refIso]);
+
   const newTellerstandNum = newTellerstand.trim() === '' ? null : parseFloat(newTellerstand);
   const programCountSum = programs.reduce((sum, p) => sum + (parseFloat(programCounts[p.id] ?? '') || 0), 0);
   const expectedDiff = newTellerstandNum !== null ? newTellerstandNum - previousTellerstand : null;
@@ -152,6 +179,34 @@ function EntryRow({
           }),
         });
       }
+      const stockCalls: Promise<Response>[] = [];
+      for (const pr of stockProducts ?? []) {
+        const raw = (stockInputs[pr.id] ?? '').trim();
+        if (raw === '') continue;
+        const qty = parseFloat(raw.replace(',', '.'));
+        if (!Number.isFinite(qty) || qty < 0) continue;
+        const ex = existingReadings[pr.id];
+        if (ex) {
+          if (qty !== ex.quantity) {
+            stockCalls.push(fetch(`/api/stock/reading/${ex.id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ quantity: qty }),
+            }));
+          }
+        } else {
+          stockCalls.push(fetch('/api/stock/reading', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chemicalId: pr.id, quantity: qty, recordedAt: refIso }),
+          }));
+        }
+      }
+      if (stockCalls.length > 0) {
+        const results = await Promise.all(stockCalls);
+        if (results.some((r) => !r.ok)) { setError('Weekingave opgeslagen, maar een chemie-telling is mislukt.'); return; }
+      }
+      setStockProducts(null);
       setEditing(false);
       router.refresh();
     } finally {
@@ -292,6 +347,37 @@ function EntryRow({
                     </div>
                   ))}
                 </div>
+              </div>
+
+              <div className={styles.editSection}>
+                <p className={styles.editSectionTitle}>Chemie — voorraad op {formatDate(refIso)}</p>
+                {stockProducts === null ? (
+                  <p className={styles.fieldLabel}>Laden...</p>
+                ) : stockProducts.length === 0 ? (
+                  <p className={styles.fieldLabel}>Geen producten gevonden.</p>
+                ) : (
+                  <>
+                    <div className={styles.fieldsRow}>
+                      {stockProducts.map((pr) => (
+                        <div key={pr.id} className={styles.fieldGroup}>
+                          <label className={styles.fieldLabel}>{pr.name} ({pr.unit})</label>
+                          <input
+                            className={styles.input}
+                            type="number"
+                            step="any"
+                            min="0"
+                            placeholder="niet ingegeven"
+                            value={stockInputs[pr.id] ?? ''}
+                            onChange={(e) => setStockInputs((prev) => ({ ...prev, [pr.id]: e.target.value }))}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <p className={styles.fieldLabel}>
+                      De telling wordt vastgelegd op de datum van deze ingave; het verbruik wordt automatisch herberekend.
+                    </p>
+                  </>
+                )}
               </div>
 
               {error && <p className={styles.error}>{error}</p>}

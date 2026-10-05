@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
 import { ChemicalStock, StockReading, User } from '@/lib/models';
-import { consumptionBetween } from '@/lib/stock-ledger';
+import { recomputeChemical } from '@/lib/stock-ledger';
 import { getSessionFromRequest } from '@/lib/session';
 import { sendPushToUser, afterResponse } from '@/lib/push';
 import mongoose from 'mongoose';
@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const body = await req.json() as { chemicalId?: string; quantity?: number };
+  const body = await req.json() as { chemicalId?: string; quantity?: number; recordedAt?: string };
   const chemicalId = body.chemicalId;
   const quantity = Number(body.quantity);
   if (!chemicalId || !Number.isFinite(quantity) || quantity < 0) {
@@ -27,22 +27,15 @@ export async function POST(req: NextRequest) {
   const stock = await ChemicalStock.findById(chemicalId);
   if (!stock) return NextResponse.json({ error: 'Product niet gevonden' }, { status: 404 });
 
-  const previous = await StockReading.findOne({ chemical_id: chemicalId }).sort({ recorded_at: -1 });
-
+  // A missing count can be filled in afterwards for the date it belongs to
+  // (never in the future). The chain is then re-derived in date order.
   const now = new Date();
-  let consumption = 0;
-  let deliveredSince = 0;
-
-  if (previous) {
-    const r = await consumptionBetween(
-      chemicalId,
-      { quantity: previous.quantity as number, recorded_at: previous.recorded_at as Date },
-      quantity,
-      now,
-    );
-    consumption = r.consumption;
-    deliveredSince = r.delivered;
+  let recordedAt = now;
+  if (body.recordedAt) {
+    const parsed = new Date(body.recordedAt);
+    if (!Number.isNaN(parsed.getTime()) && parsed.getTime() < now.getTime()) recordedAt = parsed;
   }
+  const isBackdated = recordedAt !== now;
 
   const reading = await StockReading.create({
     site_id: stock.site_id,
@@ -50,16 +43,20 @@ export async function POST(req: NextRequest) {
     name: stock.name,
     unit: stock.unit,
     quantity,
-    consumption,
-    recorded_at: now,
+    consumption: 0,
+    recorded_at: recordedAt,
     recorded_by: session.userId ? new mongoose.Types.ObjectId(session.userId) : undefined,
   });
 
-  stock.current_stock = quantity;
-  stock.last_updated = now;
-  await stock.save();
+  await recomputeChemical(chemicalId);
 
-  if (stock.min_stock_alert > 0 && quantity <= stock.min_stock_alert) {
+  const saved = await StockReading.findById(reading._id).select('consumption').lean();
+  const consumption = (saved?.consumption as number) ?? 0;
+  const isFirstReading = (await StockReading.countDocuments({ chemical_id: chemicalId, recorded_at: { $lt: recordedAt } })) === 0;
+  const current = await ChemicalStock.findById(chemicalId).select('current_stock').lean();
+  const currentStock = (current?.current_stock as number) ?? quantity;
+
+  if (!isBackdated && stock.min_stock_alert > 0 && currentStock <= stock.min_stock_alert) {
     const siteId = (stock.site_id as mongoose.Types.ObjectId).toString();
     // Developers see every site regardless of their assigned site_ids —
     // owners stay scoped to their own sites.
@@ -73,7 +70,7 @@ export async function POST(req: NextRequest) {
             .map((u) =>
               sendPushToUser((u._id as mongoose.Types.ObjectId).toString(), {
                 title: `Lage voorraad: ${stock.name}`,
-                body: `Nog ${quantity} ${stock.unit} — controleer of een levering nodig is.`,
+                body: `Nog ${currentStock} ${stock.unit} — controleer of een levering nodig is.`,
                 url: `/instellingen?site=${siteId}&product=${stock._id.toString()}`,
               }),
             ),
@@ -86,8 +83,7 @@ export async function POST(req: NextRequest) {
     id: reading._id.toString(),
     quantity,
     consumption,
-    deliveredSince,
-    isFirstReading: !previous,
+    isFirstReading,
   });
 }
 
