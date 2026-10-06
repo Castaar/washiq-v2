@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
 import { WeeklyEntry, PriceConfig } from '@/lib/models';
+import { priceAt } from '@/lib/prices';
 import { getSessionFromRequest } from '@/lib/session';
 import { isManager } from '@/lib/permissions';
 import { computeTotalCost } from '@/lib/weeklyEntryCost';
@@ -33,7 +34,7 @@ export async function PATCH(
   const entry = await WeeklyEntry.findById(id).lean();
   if (!entry) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  const priceConfig = await PriceConfig.findOne({ site_id: entry.site_id }).sort({ valid_from: -1 }).lean();
+  const priceConfig = priceAt(await PriceConfig.find({ site_id: entry.site_id }).lean(), new Date(body.week_start ?? (entry.week_start as Date)));
   const total_cost = computeTotalCost(body, priceConfig as Record<string, unknown> | null);
 
   const update: Record<string, unknown> = {

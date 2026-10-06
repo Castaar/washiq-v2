@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
 import { WeeklyEntry, ChemicalStock, MaintenanceTask, PriceConfig } from '@/lib/models';
+import { priceAt } from '@/lib/prices';
 import { computeTotalCost } from '@/lib/weeklyEntryCost';
 
 export async function POST(req: NextRequest) {
@@ -15,7 +16,7 @@ export async function POST(req: NextRequest) {
   const tellerstand: number = body.tellerstand ?? 0;
 
   // Calculate total cost using the latest PriceConfig for this site
-  const priceConfig = await PriceConfig.findOne({ site_id: body.site_id }).sort({ valid_from: -1 }).lean();
+  const priceConfig = priceAt(await PriceConfig.find({ site_id: body.site_id }).lean(), new Date(body.week_start));
   const total_cost = computeTotalCost(body, priceConfig as Record<string, unknown> | null);
 
   const entry = await WeeklyEntry.create({

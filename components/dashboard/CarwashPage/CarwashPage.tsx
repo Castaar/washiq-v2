@@ -30,6 +30,7 @@ import { LogboekPanel } from '@/components/logboek/LogboekPanel/LogboekPanel';
 import type { LogEntry } from '@/components/logboek/LogboekPanel/LogboekPanel';
 import type { AlertItem, AlertsPanelData, VoorraadItem, ConsumptionData, DagfichePayload, IncidentSchadePayload, IncidentEhboPayload, DefectPayload, MaintenanceTaskPayload } from '@/lib/types/dashboard';
 import { computeIsOverdue, computeIsApproaching, washesRemaining } from '@/lib/maintenance';
+import { priceAt } from '@/lib/prices';
 import styles from './CarwashPage.module.scss';
 import type { Types } from 'mongoose';
 
@@ -124,7 +125,7 @@ export async function CarwashPage({
     WeeklyEntry.find({ ...filter, week_start: { $gte: prevMonthStart, $lt: prevMonthEnd } }).lean(),
     WeeklyEntry.find(filter).sort({ week_start: -1 }).limit(2).lean(),
     WashProgram.find(filter).sort({ tier: 1 }).lean(),
-    PriceConfig.find(filter).sort({ valid_from: -1 }).limit(1).lean(),
+    PriceConfig.find(filter).sort({ valid_from: -1 }).lean(),
     ChemicalStock.find(filter).sort({ name: 1 }).lean(),
     MaintenanceTask.find(filter).lean(),
     MaintenanceLog.find(filter).sort({ done_at: -1 }).limit(10).populate('task_id', 'description').lean(),
@@ -161,7 +162,7 @@ export async function CarwashPage({
   // count, stored per reading) is divided by the wagens of the ingaven dated inside
   // that same period. A count is often entered a few days after the month's ingave,
   // so comparing calendar months would drop the chemistry entirely.
-  type ChemPeriod = { name: string; unit: string; amount: number; wagens: number };
+  type ChemPeriod = { name: string; unit: string; amount: number; wagens: number; at: Date };
   const brusselsDay = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Brussels' }).format(d);
   const entryWagenDays = (allEntriesLite as { week_start?: Date; program_counts?: { count?: number }[] }[]).map((e) => ({
     day: new Date(e.week_start as Date).toISOString().slice(0, 10),
@@ -185,8 +186,8 @@ export async function CarwashPage({
     const prev: ChemPeriod[] = [];
     for (const [name, { unit, list }] of byName) {
       const n = list.length - 1;
-      if (n >= 1) cur.push({ name, unit, amount: Math.max(0, list[n].consumption), wagens: wagensBetween(list[n - 1].at, list[n].at) });
-      if (n >= 2) prev.push({ name, unit, amount: Math.max(0, list[n - 1].consumption), wagens: wagensBetween(list[n - 2].at, list[n - 1].at) });
+      if (n >= 1) cur.push({ name, unit, amount: Math.max(0, list[n].consumption), wagens: wagensBetween(list[n - 1].at, list[n].at), at: list[n].at });
+      if (n >= 2) prev.push({ name, unit, amount: Math.max(0, list[n - 1].consumption), wagens: wagensBetween(list[n - 2].at, list[n - 1].at), at: list[n - 1].at });
     }
     return { cur, prev };
   }
@@ -195,10 +196,11 @@ export async function CarwashPage({
   // ── Per-wagen cost helper ─────────────────────────────────────
   type CostRow = { label: string; euroPerWagen: number; rawPerWagen?: number; unit?: string; isChemical?: boolean };
   function chemistryCostRows(periods: ChemPeriod[]): CostRow[] {
-    const p = priceConfigs[0] ?? null;
     const r2 = (v: number) => Math.round(v * 100) / 100;
     const r3 = (v: number) => Math.round(v * 1000) / 1000;
     return periods.filter((c) => c.wagens > 0).map((c) => {
+      // Priced with the version that was valid at the end of this count period
+      const p = priceAt(priceConfigs, c.at);
       const chemPrice = (p?.chemicals as { name: string; price_per_unit: number }[] | undefined)?.find((x) => x.name === c.name);
       return {
         label: translateContent(contentTranslations, 'product', c.name),
@@ -214,7 +216,7 @@ export async function CarwashPage({
 
   function costPerWagen(entry: typeof latestEntry, energyBill: number, chemRows: CostRow[]): CostRow[] {
     if (!entry) return [];
-    const p = priceConfigs[0] ?? null;
+    const p = priceAt(priceConfigs, new Date(entry.week_start as Date));
     const wagens = (entry.program_counts ?? []).reduce((s: number, pc: { count?: number }) => s + (pc.count ?? 0), 0);
     if (wagens === 0) return [];
     const r3 = (v: number) => Math.round(v * 1000) / 1000;
@@ -294,7 +296,7 @@ export async function CarwashPage({
   const previous = noCurrentData ? null : (period === 'month'
     ? aggregateEntries(prevMonthEntries)
     : (entries.find((e) => new Date(e.week_start as Date).getTime() === prevWeekStartMs) ?? null));
-  const price = priceConfigs[0] ?? null;
+  const price = priceAt(priceConfigs, current && 'week_start' in current && current.week_start ? new Date(current.week_start as Date) : (period === 'month' ? new Date(curMonthEnd.getTime() - 1) : curWeekStart));
 
   // ── Wagens (needed before consumption cards for per-car division) ─
   const wagensCount = current?.program_counts?.reduce((s: number, p: { count?: number }) => s + (p.count ?? 0), 0) ?? 0;

@@ -7,7 +7,7 @@ import { dbConnect } from '@/lib/db/mongoose';
 import Link from 'next/link';
 import { HistoryDeleteButton } from '@/components/leveringen/HistoryDeleteButton/HistoryDeleteButton';
 import { canModify } from '@/lib/permissions';
-import { Site, ChemicalStock, User, StockDelivery, StockTransfer } from '@/lib/models';
+import { Site, ChemicalStock, User, StockDelivery, StockTransfer, StockAdjustment } from '@/lib/models';
 import { getSession } from '@/lib/session';
 import { filterSitesForUser, resolveActiveSite, redirectIfSetupNeeded, redirectWithSiteParam } from '@/lib/getUserSites';
 import styles from './page.module.scss';
@@ -49,13 +49,14 @@ export default async function LeveringenPage({
     unit: (s.unit as string) ?? '',
   }));
 
-  const [deliveryDocs, transferDocs] = siteId
+  const [deliveryDocs, transferDocs, adjustmentDocs] = siteId
     ? await Promise.all([
         StockDelivery.find({ site_id: siteId }).sort({ delivered_at: -1 }).limit(60).populate('chemical_id', 'name unit').lean(),
         StockTransfer.find({ $or: [{ from_site_id: siteId }, { to_site_id: siteId }] })
           .sort({ transferred_at: -1 }).limit(60).populate('from_site_id', 'name').populate('to_site_id', 'name').lean(),
+        StockAdjustment.find({ site_id: siteId }).sort({ adjusted_at: -1 }).limit(60).populate('chemical_id', 'name unit').lean(),
       ])
-    : [[], []];
+    : [[], [], []];
 
   const canSeeHistoriek = userRole === 'owner' || userRole === 'developer';
   const fmtWhen = (d: Date) => d.toLocaleString('nl-BE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Brussels' });
@@ -82,6 +83,18 @@ export default async function LeveringenPage({
         detail: `${outgoing ? '−' : '+'}${((t.quantity as number) ?? 0).toLocaleString('nl-BE')} ${t.unit ?? ''}`,
         by: (t.logged_by_name as string) || '',
         deleteUrl: canSeeHistoriek ? `/api/stock/transfer/${(t._id as Types.ObjectId).toString()}` : '',
+      };
+    }),
+    ...adjustmentDocs.map((a) => {
+      const chem = a.chemical_id as unknown as { name?: string; unit?: string } | null;
+      const q = (a.quantity as number) ?? 0;
+      return {
+        key: `a-${(a._id as Types.ObjectId).toString()}`,
+        at: a.adjusted_at as Date,
+        title: `Correctie: ${chem?.name ?? 'product'}`,
+        detail: `${q >= 0 ? '+' : '−'}${Math.abs(q).toLocaleString('nl-BE')} ${chem?.unit ?? ''} (telt niet als verbruik)`,
+        by: (a.logged_by_name as string) || '',
+        deleteUrl: canSeeHistoriek ? `/api/stock/adjustment/${(a._id as Types.ObjectId).toString()}` : '',
       };
     }),
   ].sort((a, b) => b.at.getTime() - a.at.getTime()).slice(0, 60);

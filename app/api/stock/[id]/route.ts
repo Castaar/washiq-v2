@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
-import { ChemicalStock, StockDelivery, StockReading } from '@/lib/models';
+import { ChemicalStock, StockAdjustment, StockDelivery, StockReading } from '@/lib/models';
+import { recomputeChemical } from '@/lib/stock-ledger';
 import { getSession } from '@/lib/session';
 import mongoose from 'mongoose';
 
@@ -27,16 +28,15 @@ export async function PATCH(
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 
-  // Direct stock override (used by initial setup flow — no delivery log)
-  if (typeof body.set_stock === 'number') {
-    stock.current_stock = body.set_stock;
-    stock.last_updated = new Date();
-
-    // Seed a baseline reading so the next monthly count has something to
-    // compare against — only if this product has never been read yet.
+  // Stock override. Before the first count it seeds the baseline count; after that
+  // it is recorded as a correction (+/- difference) so the ledger stays complete and
+  // the corrected amount is not counted as consumption.
+  let needsRecompute = false;
+  if (typeof body.set_stock === 'number' && Number.isFinite(body.set_stock) && body.set_stock >= 0) {
     const hasReading = await StockReading.exists({ chemical_id: stock._id });
     if (!hasReading) {
-      const session = await getSession();
+      stock.current_stock = body.set_stock;
+      stock.last_updated = new Date();
       await StockReading.create({
         site_id: stock.site_id,
         chemical_id: stock._id,
@@ -45,8 +45,28 @@ export async function PATCH(
         quantity: body.set_stock,
         consumption: 0,
         recorded_at: new Date(),
-        recorded_by: session?.userId ? new mongoose.Types.ObjectId(session.userId) : undefined,
+        recorded_by: authSession.userId ? new mongoose.Types.ObjectId(authSession.userId) : undefined,
       });
+    } else {
+      // Compare against what the ledger says is in stock right now
+      await recomputeChemical(stock._id);
+      const derived = await ChemicalStock.findById(stock._id).select('current_stock').lean();
+      stock.current_stock = (derived as { current_stock?: number } | null)?.current_stock ?? stock.current_stock ?? 0;
+      const delta = body.set_stock - (stock.current_stock ?? 0);
+      if (delta !== 0) {
+        await StockAdjustment.create({
+          site_id: stock.site_id,
+          chemical_id: stock._id,
+          quantity: delta,
+          from_value: stock.current_stock ?? 0,
+          to_value: body.set_stock,
+          note: typeof body.note === 'string' ? body.note.trim() : '',
+          adjusted_at: new Date(),
+          logged_by: authSession.userId ? new mongoose.Types.ObjectId(authSession.userId) : undefined,
+          logged_by_name: authSession.name ?? '',
+        });
+        needsRecompute = true;
+      }
     }
   }
 
@@ -80,6 +100,14 @@ export async function PATCH(
   }
 
   await stock.save();
+  if (needsRecompute) {
+    await recomputeChemical(stock._id);
+    const fresh = await ChemicalStock.findById(stock._id).select('current_stock last_updated').lean();
+    if (fresh) {
+      stock.current_stock = (fresh as { current_stock: number }).current_stock;
+      stock.last_updated = (fresh as { last_updated: Date }).last_updated;
+    }
+  }
 
   return NextResponse.json({
     id: stock._id.toString(),
@@ -110,7 +138,7 @@ export async function DELETE(
   }
 
   // Remove related deliveries too
-  await StockDelivery.deleteMany({ chemical_id: id });
+  await Promise.all([StockDelivery.deleteMany({ chemical_id: id }), StockAdjustment.deleteMany({ chemical_id: id })]);
 
   return NextResponse.json({ success: true });
 }

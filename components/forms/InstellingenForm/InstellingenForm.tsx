@@ -156,6 +156,7 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
   );
   const [savingPrices, setSavingPrices] = useState(false);
   const [pricesSaved, setPricesSaved] = useState(false);
+  const [priceMode, setPriceMode] = useState<'correctie' | 'nieuw'>('correctie');
   const [hasPriceConfig, setHasPriceConfig] = useState(!!priceConfig);
 
   // ── Product list state (owner can add/remove products) ───
@@ -473,6 +474,7 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         siteId,
+        mode: priceMode,
         water_per_liter: parseFloat(waterPrice) || 0,
         chemicals: productList.map((s) => ({
           name: s.name,
@@ -491,18 +493,28 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
     e.preventDefault();
     setSavingStock(true);
     setStockSaved(false);
-    await Promise.all(
-      productList.map((s) =>
-        fetch(`/api/stock/${s.id}`, {
+    // Only send a stock value when it was actually changed — once a product has
+    // counts, a changed value is booked as a correction (+/- difference).
+    const results = await Promise.all(
+      productList.map(async (s) => {
+        const raw = (stockValues[s.id] ?? '').trim();
+        const val = parseFloat(raw.replace(',', '.'));
+        const changed = raw !== '' && Number.isFinite(val) && val !== s.current_stock;
+        const res = await fetch(`/api/stock/${s.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            set_stock: parseFloat(stockValues[s.id] ?? '') || 0,
+            ...(changed ? { set_stock: val, note: 'Correctie via Instellingen' } : {}),
             min_stock_alert: parseFloat(minAlertValues[s.id] ?? '') || 0,
           }),
-        }),
-      ),
+        });
+        return res.ok ? ((await res.json()) as { id: string; current_stock: number }) : null;
+      }),
     );
+    setProductList((prev) => prev.map((p) => {
+      const r = results.find((x) => x?.id === p.id);
+      return r ? { ...p, current_stock: r.current_stock } : p;
+    }));
     setSavingStock(false);
     setStockSaved(true);
   }
@@ -590,6 +602,23 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
             />
           ))}
         </div>
+
+        {hasPriceConfig && (
+          <div className={styles.priceModeGroup} role="radiogroup" aria-label="Soort aanpassing">
+            <label className={styles.priceModeOption}>
+              <input type="radio" name="priceMode" checked={priceMode === 'correctie'} onChange={() => setPriceMode('correctie')} />
+              <span>
+                <strong>Rechtzetting</strong> — de prijs was fout; wordt ook toegepast op eerdere periodes
+              </span>
+            </label>
+            <label className={styles.priceModeOption}>
+              <input type="radio" name="priceMode" checked={priceMode === 'nieuw'} onChange={() => setPriceMode('nieuw')} />
+              <span>
+                <strong>Nieuwe prijs vanaf vandaag</strong> — eerdere periodes behouden de oude prijs
+              </span>
+            </label>
+          </div>
+        )}
 
         <div className={styles.sectionFooter}>
           {pricesSaved && <span className={styles.savedMsg}>Opgeslagen</span>}

@@ -795,3 +795,30 @@
   0%   { background: var(--color-accent-blue-dim, var(--color-bg-secondary)); }
   100% { background: var(--color-bg-tertiary); }
 }
+
+.priceModeGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.priceModeOption {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-start;
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary, var(--color-text-muted));
+  cursor: pointer;
+
+  input {
+    margin-top: 3px;
+  }
+
+  strong {
+    color: var(--color-text-primary);
+  }
+}

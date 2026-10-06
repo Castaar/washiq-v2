@@ -36,23 +36,30 @@ export async function POST(req: NextRequest) {
   const { siteId, water_per_liter, energy_per_kw, salt_per_kg, flock_per_kg, cloth_per_unit, chemicals } = body;
   if (!siteId) return NextResponse.json({ error: 'siteId required' }, { status: 400 });
 
-  const config = await PriceConfig.findOneAndUpdate(
-    { site_id: siteId },
-    {
-      site_id: siteId,
-      water_per_liter: Number(water_per_liter) || 0,
-      energy_per_kw: Number(energy_per_kw) || 0,
-      salt_per_kg: Number(salt_per_kg) || 0,
-      flock_per_kg: Number(flock_per_kg) || 0,
-      cloth_per_unit: Number(cloth_per_unit) || 0,
-      chemicals: (chemicals ?? []).map((c: { name: string; price_per_unit: string | number }) => ({
-        name: c.name,
-        price_per_unit: Number(c.price_per_unit) || 0,
-      })),
-      valid_from: new Date(),
-    },
-    { upsert: true, new: true },
-  );
+  const values = {
+    site_id: siteId,
+    water_per_liter: Number(water_per_liter) || 0,
+    energy_per_kw: Number(energy_per_kw) || 0,
+    salt_per_kg: Number(salt_per_kg) || 0,
+    flock_per_kg: Number(flock_per_kg) || 0,
+    cloth_per_unit: Number(cloth_per_unit) || 0,
+    chemicals: (chemicals ?? []).map((c: { name: string; price_per_unit: string | number }) => ({
+      name: c.name,
+      price_per_unit: Number(c.price_per_unit) || 0,
+    })),
+  };
+
+  // "correctie": the current price was wrong — fix the current version in place so it
+  // also applies to the periods it already covered. "nieuw": a real price change —
+  // start a new version from now; earlier periods keep the price that was valid then.
+  const latest = await PriceConfig.findOne({ site_id: siteId }).sort({ valid_from: -1 });
+  let config;
+  if (latest && body.mode !== 'nieuw') {
+    latest.set(values);
+    config = await latest.save();
+  } else {
+    config = await PriceConfig.create({ ...values, valid_from: new Date() });
+  }
 
   return NextResponse.json({ id: config._id.toString() }, { status: 200 });
 }

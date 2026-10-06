@@ -7,7 +7,7 @@ import type { ChemieDataPoint } from '@/components/historiek/ChemieChart/ChemieC
 import { EventHistoryPanel } from '@/components/historiek/EventHistoryPanel/EventHistoryPanel';
 import type { DefectHistoryItem, SchadeHistoryItem, OrderHistoryItem, MaintenanceHistoryItem, StockLedgerItem } from '@/components/historiek/EventHistoryPanel/EventHistoryPanel';
 import { dbConnect } from '@/lib/db/mongoose';
-import { Site, WashProgram, WeeklyEntry, ChemicalStock, StockReading, User, EnergyBill, Defect, IncidentSchade, IncidentEhbo, OrderRequest, MaintenanceLog, StockDelivery, StockTransfer } from '@/lib/models';
+import { Site, WashProgram, WeeklyEntry, ChemicalStock, StockReading, User, EnergyBill, Defect, IncidentSchade, IncidentEhbo, OrderRequest, MaintenanceLog, StockDelivery, StockTransfer, StockAdjustment } from '@/lib/models';
 import { getSession } from '@/lib/session';
 import type { Types } from 'mongoose';
 import { filterSitesForUser, resolveActiveSite, redirectIfSetupNeeded, redirectWithSiteParam } from '@/lib/getUserSites';
@@ -48,7 +48,7 @@ export default async function HistoriekPage({
   const startWaterCount = (siteDoc?.start_water_count as number) ?? 0;
   const filter = siteId ? { site_id: siteId } : {};
 
-  const [programDocs, entryDocs, stockDocs, energyBillDocs, readingDocs, defectDocs, schadeDocs, ehboDocs, orderDocs, maintenanceLogDocs, deliveryDocs, transferDocs] = await Promise.all([
+  const [programDocs, entryDocs, stockDocs, energyBillDocs, readingDocs, defectDocs, schadeDocs, ehboDocs, orderDocs, maintenanceLogDocs, deliveryDocs, transferDocs, adjustmentDocs] = await Promise.all([
     WashProgram.find(filter).select('_id name tier chemicals').sort({ tier: 1 }).lean(),
     WeeklyEntry.find(filter).sort({ week_start: 1 }).lean(),
     ChemicalStock.find(filter).select('name unit').sort({ name: 1 }).lean(),
@@ -61,6 +61,7 @@ export default async function HistoriekPage({
     MaintenanceLog.find(filter).sort({ done_at: -1 }).limit(200).populate('task_id', 'description').populate('done_by', 'name').lean(),
     StockDelivery.find(filter).sort({ delivered_at: -1 }).limit(200).populate('chemical_id', 'name unit').lean(),
     siteId ? StockTransfer.find({ $or: [{ from_site_id: siteId }, { to_site_id: siteId }] }).sort({ transferred_at: -1 }).limit(200).populate('from_site_id', 'name').populate('to_site_id', 'name').lean() : Promise.resolve([]),
+    StockAdjustment.find(filter).sort({ adjusted_at: -1 }).limit(200).populate('chemical_id', 'name unit').lean(),
   ]);
 
   const energyBillsByMonth: Record<string, number> = {};
@@ -324,6 +325,18 @@ export default async function HistoriekPage({
         at: (t.transferred_at as Date).toISOString(),
       };
     }),
+    ...adjustmentDocs.map((a): StockLedgerItem => {
+      const chem = a.chemical_id as unknown as { name?: string; unit?: string } | null;
+      const q = (a.quantity as number) ?? 0;
+      return {
+        id: (a._id as Types.ObjectId).toString(),
+        kind: 'adjustment',
+        title: `Correctie: ${chem?.name ?? 'product'}`,
+        detail: `${((a.from_value as number) ?? 0).toLocaleString('nl-BE')} → ${((a.to_value as number) ?? 0).toLocaleString('nl-BE')} ${chem?.unit ?? ''} (${q >= 0 ? '+' : '−'}${Math.abs(q).toLocaleString('nl-BE')}) · telt niet als verbruik`,
+        byName: (a.logged_by_name as string) || '',
+        at: (a.adjusted_at as Date).toISOString(),
+      };
+    }),
     ...readingDocs.map((r): StockLedgerItem => {
       const isFirst = firstReadingIds.has((r._id as Types.ObjectId).toString());
       const q = ((r.quantity as number) ?? 0).toLocaleString('nl-BE');
@@ -365,7 +378,7 @@ export default async function HistoriekPage({
           <div className={styles.card}>
             <div className={styles.header}>
               <h2 className={styles.title}>Chemieverbruik per maand — {siteName}</h2>
-              <p className={styles.subtitle}>Berekend uit de voorraadtellingen: vorige telling + leveringen ± verplaatsingen − nieuwe telling</p>
+              <p className={styles.subtitle}>Berekend uit de voorraadtellingen: vorige telling + leveringen ± verplaatsingen ± correcties − nieuwe telling</p>
             </div>
             <ChemieChart data={chemieChartData} products={chemieProducts} />
           </div>

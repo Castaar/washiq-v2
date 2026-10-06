@@ -257,6 +257,36 @@ StockTransferSchema.index({ from_site_id: 1, transferred_at: -1 });
 StockTransferSchema.index({ to_site_id: 1, transferred_at: -1 });
 export const StockTransfer = models.StockTransfer || model<IStockTransfer>('StockTransfer', StockTransferSchema);
 
+// ─── StockAdjustment ──────────────────────────────────────────
+// A manual correction of a product's stock ("real stock is X"). Stored as the
+// difference so it behaves like a +/- movement: it shifts the stock without
+// being counted as consumption, and the periods between counts stay intact.
+export interface IStockAdjustment extends Document {
+  site_id: Types.ObjectId;
+  chemical_id: Types.ObjectId;
+  quantity: number; // signed delta
+  from_value: number;
+  to_value: number;
+  note: string;
+  adjusted_at: Date;
+  logged_by: Types.ObjectId;
+  logged_by_name: string;
+}
+const StockAdjustmentSchema = new Schema<IStockAdjustment>({
+  site_id: { type: Schema.Types.ObjectId, ref: 'Site' },
+  chemical_id: { type: Schema.Types.ObjectId, ref: 'ChemicalStock' },
+  quantity: Number,
+  from_value: Number,
+  to_value: Number,
+  note: { type: String, default: '' },
+  adjusted_at: { type: Date, default: Date.now },
+  logged_by: { type: Schema.Types.ObjectId, ref: 'User' },
+  logged_by_name: { type: String, default: '' },
+});
+StockAdjustmentSchema.index({ chemical_id: 1, adjusted_at: -1 });
+StockAdjustmentSchema.index({ site_id: 1, adjusted_at: -1 });
+export const StockAdjustment = models.StockAdjustment || model<IStockAdjustment>('StockAdjustment', StockAdjustmentSchema);
+
 // ─── MaintenanceTask ──────────────────────────────────────────
 export interface IMaintenanceTask extends Document {
   site_id: Types.ObjectId;

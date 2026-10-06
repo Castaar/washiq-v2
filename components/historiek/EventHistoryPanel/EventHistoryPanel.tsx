@@ -51,7 +51,7 @@ export interface MaintenanceHistoryItem {
 
 export interface StockLedgerItem {
   id: string;
-  kind: 'delivery' | 'transfer-in' | 'transfer-out' | 'reading';
+  kind: 'delivery' | 'transfer-in' | 'transfer-out' | 'reading' | 'adjustment';
   title: string;
   detail: string;
   // Set when the quantity can be corrected (tracked delivery or stock count)
@@ -87,6 +87,7 @@ const LEDGER_ENDPOINT: Record<StockLedgerItem['kind'], string> = {
   'transfer-in': '/api/stock/transfer',
   'transfer-out': '/api/stock/transfer',
   reading: '/api/stock/reading',
+  adjustment: '/api/stock/adjustment',
 };
 
 export function EventHistoryPanel({ defects, schades, orders, maintenance, stockLedger }: EventHistoryPanelProps) {
@@ -134,7 +135,8 @@ export function EventHistoryPanel({ defects, schades, orders, maintenance, stock
   function handleDeleteLedger(item: StockLedgerItem) {
     const extra = item.kind === 'reading'
       ? '\n\nDe voorraad keert terug naar de vorige telling.'
-      : item.kind === 'delivery' ? '\n\nDe voorraad wordt met deze levering verminderd.' : '\n\nDe voorraad gaat terug naar de oorspronkelijke carwash.';
+      : item.kind === 'delivery' ? '\n\nDe voorraad wordt met deze levering verminderd.'
+      : item.kind === 'adjustment' ? '\n\nDe correctie wordt ongedaan gemaakt.' : '\n\nDe voorraad gaat terug naar de oorspronkelijke carwash.';
     if (!confirm(`"${item.title}" verwijderen?${extra}`)) return;
     void ledgerRequest(item, 'DELETE');
   }
