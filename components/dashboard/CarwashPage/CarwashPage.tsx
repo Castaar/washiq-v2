@@ -28,7 +28,7 @@ import { AlertsPanel } from '@/components/dashboard/AlertsPanel/AlertsPanel';
 import { VoorraadPanel } from '@/components/dashboard/VoorraadPanel/VoorraadPanel';
 import { LogboekPanel } from '@/components/logboek/LogboekPanel/LogboekPanel';
 import type { LogEntry } from '@/components/logboek/LogboekPanel/LogboekPanel';
-import type { AlertItem, AlertsPanelData, VoorraadItem, ChemieRow, ConsumptionData, DagfichePayload, IncidentSchadePayload, IncidentEhboPayload, DefectPayload, MaintenanceTaskPayload } from '@/lib/types/dashboard';
+import type { AlertItem, AlertsPanelData, VoorraadItem, ConsumptionData, DagfichePayload, IncidentSchadePayload, IncidentEhboPayload, DefectPayload, MaintenanceTaskPayload } from '@/lib/types/dashboard';
 import { computeIsOverdue, computeIsApproaching, washesRemaining } from '@/lib/maintenance';
 import styles from './CarwashPage.module.scss';
 import type { Types } from 'mongoose';
@@ -113,7 +113,7 @@ export async function CarwashPage({
   // Both batches are independent (day-log batch only needs dayStart/dayEnd,
   // not the results of the first) — fired together to save a Mongo round trip.
   const [
-    entries, monthEntries, prevMonthEntries, lastTwoEntries, programs, priceConfigs, stocks, tasks, logs, checklists, openDefects, openSchades, energyBillCur, energyBillPrev, readings, openOrderRequests,
+    entries, monthEntries, prevMonthEntries, lastTwoEntries, programs, priceConfigs, stocks, tasks, logs, checklists, openDefects, openSchades, energyBillCur, energyBillPrev, readings, openOrderRequests, allEntriesLite,
     dayAttendance, dayDeliveries, dayChecklists, dayMaintenanceLogs, daySchades, dayEhbos, dayDefects,
   ] = await Promise.all([
     period === 'week'
@@ -141,6 +141,8 @@ export async function CarwashPage({
     StockReading.find(filter).select('name unit consumption recorded_at').sort({ recorded_at: 1 }).lean(),
     // Pending orders — stay visible until marked handled, regardless of the day/period toggle
     siteId ? OrderRequest.find({ site_id: siteId, is_handled: false }).sort({ requested_at: -1 }).lean() : [],
+    // Every ingave's date + wagens — chemistry per wagen divides a count period's consumption by the wagens in that period
+    WeeklyEntry.find(filter).select('week_start program_counts').sort({ week_start: 1 }).lean(),
     // ── Day log (owner/developer "Meldingen" tab: only the selected day) ──
     AttendanceLog.find({ ...filter, timestamp: { $gte: dayStart, $lt: dayEnd } }).sort({ timestamp: -1 }).lean(),
     StockDelivery.find({ ...filter, delivered_at: { $gte: dayStart, $lt: dayEnd } }).sort({ delivered_at: -1 }).populate('chemical_id', 'name').populate('logged_by', 'name').lean(),
@@ -154,54 +156,61 @@ export async function CarwashPage({
   const latestEntry = lastTwoEntries[0] ?? null;
   const prevIngave  = lastTwoEntries[1] ?? null;
 
-  // ── Monthly chemistry consumption, derived from stock readings ────
-  // Verbruik = vorige telling + leveringen − nieuwe telling (already computed
-  // per reading in /api/stock/reading). Each product's very first-ever
-  // reading is a baseline, not a period's consumption, so it's skipped here.
-  type ChemConsumption = { name: string; unit: string; amount: number };
-  function chemConsumptionForMonth(monthStart: Date, monthEnd: Date): ChemConsumption[] {
-    const byName = new Map<string, ChemConsumption>();
-    const seenFirst = new Set<string>();
-    for (const r of readings) {
-      const name = r.name as string;
-      if (!seenFirst.has(name)) { seenFirst.add(name); continue; }
-      const recordedAt = r.recorded_at as Date;
-      if (recordedAt < monthStart || recordedAt >= monthEnd) continue;
-      const existing = byName.get(name);
-      const amount = (existing?.amount ?? 0) + (r.consumption as number);
-      byName.set(name, { name, unit: r.unit as string, amount });
-    }
-    return [...byName.values()];
+  // ── Chemistry per wagen, derived from stock readings ──────────
+  // Consumption between two counts (previous count + deliveries ± transfers − new
+  // count, stored per reading) is divided by the wagens of the ingaven dated inside
+  // that same period. A count is often entered a few days after the month's ingave,
+  // so comparing calendar months would drop the chemistry entirely.
+  type ChemPeriod = { name: string; unit: string; amount: number; wagens: number };
+  const brusselsDay = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Brussels' }).format(d);
+  const entryWagenDays = (allEntriesLite as { week_start?: Date; program_counts?: { count?: number }[] }[]).map((e) => ({
+    day: new Date(e.week_start as Date).toISOString().slice(0, 10),
+    wagens: (e.program_counts ?? []).reduce((sum, pc) => sum + (pc.count ?? 0), 0),
+  }));
+  function wagensBetween(from: Date, to: Date): number {
+    const f = brusselsDay(from);
+    const t = brusselsDay(to);
+    return entryWagenDays.filter((e) => e.day > f && e.day <= t).reduce((sum, e) => sum + e.wagens, 0);
   }
-  const curMonthWagens = monthEntries.reduce(
-    (s, e) => s + ((e.program_counts ?? []) as { count?: number }[]).reduce((s2, pc) => s2 + (pc.count ?? 0), 0), 0,
-  );
-  const prevMonthWagens = prevMonthEntries.reduce(
-    (s, e) => s + ((e.program_counts ?? []) as { count?: number }[]).reduce((s2, pc) => s2 + (pc.count ?? 0), 0), 0,
-  );
-  const curChemConsumption = chemConsumptionForMonth(curMonthStart, curMonthEnd);
-  const prevChemConsumption = chemConsumptionForMonth(prevMonthStart, prevMonthEnd);
+  function chemPeriods(): { cur: ChemPeriod[]; prev: ChemPeriod[] } {
+    const byName = new Map<string, { unit: string; list: { at: Date; consumption: number }[] }>();
+    for (const r of readings) {
+      const at = r.recorded_at as Date;
+      if (at >= curMonthEnd) continue;
+      const name = r.name as string;
+      if (!byName.has(name)) byName.set(name, { unit: r.unit as string, list: [] });
+      byName.get(name)!.list.push({ at, consumption: r.consumption as number });
+    }
+    const cur: ChemPeriod[] = [];
+    const prev: ChemPeriod[] = [];
+    for (const [name, { unit, list }] of byName) {
+      const n = list.length - 1;
+      if (n >= 1) cur.push({ name, unit, amount: Math.max(0, list[n].consumption), wagens: wagensBetween(list[n - 1].at, list[n].at) });
+      if (n >= 2) prev.push({ name, unit, amount: Math.max(0, list[n - 1].consumption), wagens: wagensBetween(list[n - 2].at, list[n - 1].at) });
+    }
+    return { cur, prev };
+  }
+  const { cur: curChemPeriods, prev: prevChemPeriods } = chemPeriods();
 
   // ── Per-wagen cost helper ─────────────────────────────────────
   type CostRow = { label: string; euroPerWagen: number; rawPerWagen?: number; unit?: string; isChemical?: boolean };
-  function chemistryCostRows(consumption: ChemConsumption[], monthWagens: number): CostRow[] {
-    if (monthWagens === 0) return [];
+  function chemistryCostRows(periods: ChemPeriod[]): CostRow[] {
     const p = priceConfigs[0] ?? null;
     const r2 = (v: number) => Math.round(v * 100) / 100;
     const r3 = (v: number) => Math.round(v * 1000) / 1000;
-    return consumption.map((c) => {
+    return periods.filter((c) => c.wagens > 0).map((c) => {
       const chemPrice = (p?.chemicals as { name: string; price_per_unit: number }[] | undefined)?.find((x) => x.name === c.name);
       return {
         label: translateContent(contentTranslations, 'product', c.name),
-        euroPerWagen: r2(c.amount * (chemPrice?.price_per_unit ?? 0) / monthWagens),
-        rawPerWagen: r3(c.amount / monthWagens),
+        euroPerWagen: r2(c.amount * (chemPrice?.price_per_unit ?? 0) / c.wagens),
+        rawPerWagen: r3(c.amount / c.wagens),
         unit: c.unit,
         isChemical: true,
       };
     });
   }
-  const curChemistryRows = chemistryCostRows(curChemConsumption, curMonthWagens);
-  const prevChemistryRows = chemistryCostRows(prevChemConsumption, prevMonthWagens);
+  const curChemistryRows = chemistryCostRows(curChemPeriods);
+  const prevChemistryRows = chemistryCostRows(prevChemPeriods);
 
   function costPerWagen(entry: typeof latestEntry, energyBill: number, chemRows: CostRow[]): CostRow[] {
     if (!entry) return [];
@@ -337,25 +346,6 @@ export async function CarwashPage({
   // ── Wagens is already calculated above ───────────────────────
 
   // ── ProgrammaCard: programOptions ────────────────────────────────
-  // Chemistry is always derived from monthly stock readings (regardless of
-  // the week/month toggle above), so it uses its own month-based divisor.
-  const chemDivisor = usage === 'wagen' && curMonthWagens > 0 ? curMonthWagens : 1;
-  const chemPrevDivisor = usage === 'wagen' && prevMonthWagens > 0 ? prevMonthWagens : 1;
-  const chemieRows: ChemieRow[] = curChemConsumption.map((c) => {
-    const priceEntry = price?.chemicals?.find(
-      (p: { name?: string; price_per_unit: number }) => p.name === c.name,
-    );
-    const rate = priceEntry?.price_per_unit ?? 0;
-    const rawAmount = c.amount / chemDivisor;
-    const val = view === 'prijs' ? Math.round(rawAmount * rate * 100) / 100 : Math.round(rawAmount * 1000) / 1000;
-    const prevC = prevChemConsumption.find((p) => p.name === c.name);
-    const prevRawAmount = prevC ? prevC.amount / chemPrevDivisor : 0;
-    const prevVal = prevC
-      ? (view === 'prijs' ? Math.round(prevRawAmount * rate * 100) / 100 : Math.round(prevRawAmount * 1000) / 1000)
-      : 0;
-    return { id: c.name, label: translateContent(contentTranslations, 'product', c.name), value: val, delta: calcDelta(val, prevVal), rawAmount: Math.round(rawAmount * 1000) / 1000, unit: c.unit };
-  });
-
   const programOptions: ProgramOption[] = programs.map((p) => {
     const pid = (p._id as Types.ObjectId).toString();
     const curr = (latestEntry?.program_counts ?? []).find(
