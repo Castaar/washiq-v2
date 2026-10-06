@@ -44,14 +44,6 @@ function dateToDateString(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
-// Monday (00:00 UTC) of the ISO week containing the given YYYY-MM-DD date string
-function dateStringToMonday(dateStr: string): Date {
-  const d = new Date(`${dateStr}T00:00:00Z`);
-  const dayOfWeek = d.getUTCDay() || 7;
-  d.setUTCDate(d.getUTCDate() - (dayOfWeek - 1));
-  return d;
-}
-
 function formatDate(iso: string): string {
   const d = new Date(iso);
   return `${d.getUTCDate().toString().padStart(2, '0')}/${(d.getUTCMonth() + 1).toString().padStart(2, '0')}/${d.getUTCFullYear()}`;
@@ -160,7 +152,7 @@ function EntryRow({
 
     setSaving(true);
     try {
-      const monday = dateStringToMonday(weekDate);
+      const monday = new Date(`${weekDate}T00:00:00Z`);
       const body = {
         week_start: monday.toISOString(),
         tellerstand: newTellerstandNum,
@@ -264,7 +256,7 @@ function EntryRow({
                 <p className={styles.editSectionTitle}>Datum</p>
                 <div className={styles.fieldsRow}>
                   <div className={styles.fieldGroup}>
-                    <label className={styles.fieldLabel}>Week van</label>
+                    <label className={styles.fieldLabel}>Datum ingave</label>
                     <input
                       className={styles.input}
                       type="date"

@@ -47,12 +47,9 @@ export interface WeeklyEntryFormProps {
   contentTranslations?: Record<string, string>;
 }
 
-// Monday (00:00 UTC) of the ISO week containing the given YYYY-MM-DD date string
-function dateStringToMonday(dateStr: string): Date {
-  const d = new Date(`${dateStr}T00:00:00Z`);
-  const dayOfWeek = d.getUTCDay() || 7; // Sunday -> 7
-  d.setUTCDate(d.getUTCDate() - (dayOfWeek - 1));
-  return d;
+// The ingave is stored on the exact date that was picked (00:00 UTC), not snapped to a week.
+function dateStringToDay(dateStr: string): Date {
+  return new Date(`${dateStr}T00:00:00Z`);
 }
 
 function dateToDateString(date: Date): string {
@@ -206,7 +203,7 @@ export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesT
 
     setSaving(true);
 
-    const monday = dateStringToMonday(pickedDate);
+    const monday = dateStringToDay(pickedDate);
 
     const body = {
       site_id: siteId,
@@ -268,8 +265,6 @@ export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesT
   }
 
   const today = dateToDateString(new Date());
-  const pickedMonday = dateStringToMonday(pickedDate);
-  const pickedSunday = new Date(pickedMonday); pickedSunday.setUTCDate(pickedSunday.getUTCDate() + 6);
 
   return (
     <form className={styles.form} onSubmit={handleSubmit} noValidate>
@@ -286,7 +281,7 @@ export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesT
           onChange={(e) => setPickedDate(e.target.value)}
         />
         <span className={styles.weekPickerHint}>
-          Week van {fmtDayMonth(pickedMonday)} t/m {fmtDayMonth(pickedSunday)}
+          Ingave van {fmtDayMonth(dateStringToDay(pickedDate))}
         </span>
       </div>
 

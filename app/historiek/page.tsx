@@ -155,6 +155,33 @@ export default async function HistoriekPage({
     return [...byMonth.values()];
   })();
 
+  // ── Chemieverbruik per wagen: verbruik tussen twee tellingen ÷ wagens in die periode ──
+  const brusselsDay = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Brussels' }).format(d);
+  const entryWagens = entryDocs.map((e) => ({
+    day: (e.week_start as Date).toISOString().slice(0, 10),
+    wagens: ((e.program_counts ?? []) as { count?: number }[]).reduce((sum, pc) => sum + (pc.count ?? 0), 0),
+  }));
+  const chemiePerWagenData: ChemieDataPoint[] = (() => {
+    const byLabel = new Map<string, ChemieDataPoint>();
+    const prevByProduct = new Map<string, Date>();
+    for (const r of readingDocs) {
+      const name = r.name as string;
+      const at = r.recorded_at as Date;
+      const prev = prevByProduct.get(name);
+      prevByProduct.set(name, at);
+      if (!prev) continue;
+      const from = brusselsDay(prev);
+      const to = brusselsDay(at);
+      const wagens = entryWagens.filter((e) => e.day > from && e.day <= to).reduce((sum, e) => sum + e.wagens, 0);
+      if (wagens <= 0) continue;
+      const label = new Date(at).toLocaleDateString('nl-BE', { day: '2-digit', month: '2-digit', timeZone: 'Europe/Brussels' });
+      if (!byLabel.has(label)) byLabel.set(label, { week: label });
+      byLabel.get(label)![name] = Math.round((Math.max(0, r.consumption as number) / wagens) * 1000) / 1000;
+    }
+    return [...byLabel.values()];
+  })();
+  const chemiePerWagenProducts = chemieProducts.map((p) => ({ name: p.name, unit: `${p.unit}/wagen` }));
+
   // ── Historiek van pannes/schade/bestellingen/onderhouden ────────
   const defectHistory: DefectHistoryItem[] = defectDocs.map((d) => ({
     id: (d._id as Types.ObjectId).toString(),
@@ -338,9 +365,20 @@ export default async function HistoriekPage({
           <div className={styles.card}>
             <div className={styles.header}>
               <h2 className={styles.title}>Chemieverbruik per maand — {siteName}</h2>
-              <p className={styles.subtitle}>Berekend uit voorraadtellingen bij Instellingen (vorige telling + leveringen − nieuwe telling)</p>
+              <p className={styles.subtitle}>Berekend uit de voorraadtellingen: vorige telling + leveringen ± verplaatsingen − nieuwe telling</p>
             </div>
             <ChemieChart data={chemieChartData} products={chemieProducts} />
+          </div>
+        )}
+
+        {/* ── Chemieverbruik per wagen ───────────────────────────── */}
+        {!isSelfcarwash && (
+          <div className={styles.card}>
+            <div className={styles.header}>
+              <h2 className={styles.title}>Chemieverbruik per wagen — {siteName}</h2>
+              <p className={styles.subtitle}>Verbruik tussen twee tellingen gedeeld door het aantal wagens in die periode. Verschijnt vanaf de tweede telling.</p>
+            </div>
+            <ChemieChart data={chemiePerWagenData} products={chemiePerWagenProducts} />
           </div>
         )}
 

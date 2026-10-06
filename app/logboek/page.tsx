@@ -36,7 +36,7 @@ export default async function LogboekPage({
   const isOwner = userRole === 'owner' || userRole === 'developer';
 
   const employeeDocs = isOwner
-    ? await User.find({ site_ids: siteId, role: 'employee', is_active: true }).select('_id name').lean()
+    ? await User.find({ site_ids: siteId, role: { $in: ['employee', 'technician'] }, is_active: true }).select('_id name').sort({ name: 1 }).lean()
     : [];
   const employees = employeeDocs.map((u) => ({ id: (u._id as Types.ObjectId).toString(), name: u.name as string }));
 
