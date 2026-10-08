@@ -3,6 +3,8 @@ import { NavBar } from '@/components/layout/NavBar/NavBar';
 import { HistoryList } from '@/components/forms/HistoryList/HistoryList';
 import type { HistoryEntry, HistoryProgram } from '@/components/forms/HistoryList/HistoryList';
 import { ChemieChart } from '@/components/historiek/ChemieChart/ChemieChart';
+import { VerbruikTable } from '@/components/historiek/VerbruikTable/VerbruikTable';
+import type { VerbruikProduct } from '@/components/historiek/VerbruikTable/VerbruikTable';
 import type { ChemieDataPoint } from '@/components/historiek/ChemieChart/ChemieChart';
 import { EventHistoryPanel } from '@/components/historiek/EventHistoryPanel/EventHistoryPanel';
 import type { DefectHistoryItem, SchadeHistoryItem, OrderHistoryItem, MaintenanceHistoryItem, StockLedgerItem } from '@/components/historiek/EventHistoryPanel/EventHistoryPanel';
@@ -182,6 +184,56 @@ export default async function HistoriekPage({
     return [...byLabel.values()];
   })();
   const chemiePerWagenProducts = chemieProducts.map((p) => ({ name: p.name, unit: `${p.unit}/wagen` }));
+
+  // ── Verbruik in liters per periode tussen twee tellingen ──────
+  const [ledgerDeliveries, ledgerTransfers, ledgerAdjustments] = siteId
+    ? await Promise.all([
+        StockDelivery.find({ site_id: siteId, chemical_id: { $ne: null } }).select('chemical_id quantity delivered_at').lean(),
+        StockTransfer.find({ $or: [{ from_site_id: siteId }, { to_site_id: siteId }] }).select('from_chemical_id to_chemical_id quantity transferred_at').lean(),
+        StockAdjustment.find({ site_id: siteId }).select('chemical_id quantity adjusted_at').lean(),
+      ])
+    : [[], [], []];
+  const fmtShort = (d: Date) => d.toLocaleDateString('nl-BE', { day: '2-digit', month: '2-digit', year: '2-digit', timeZone: 'Europe/Brussels' });
+  const idStr = (v: unknown) => (v as { toString(): string } | null | undefined)?.toString() ?? '';
+  const sumIn = <T,>(rows: T[], pick: (r: T) => { id: string; at: Date; q: number }, cid: string, from: Date, to: Date) =>
+    rows.map(pick).filter((r) => r.id === cid && r.at > from && r.at <= to).reduce((sum, r) => sum + r.q, 0);
+  const verbruikProducts: VerbruikProduct[] = (() => {
+    const byChem = new Map<string, { name: string; unit: string; list: typeof readingDocs }>();
+    for (const r of readingDocs) {
+      const cid = idStr(r.chemical_id);
+      if (!byChem.has(cid)) byChem.set(cid, { name: r.name as string, unit: (r.unit as string) ?? '', list: [] });
+      byChem.get(cid)!.list.push(r);
+    }
+    const out: VerbruikProduct[] = [];
+    for (const [cid, { name, unit, list }] of byChem) {
+      const periods = [];
+      for (let i = 1; i < list.length; i++) {
+        const prev = list[i - 1];
+        const cur = list[i];
+        const from = prev.recorded_at as Date;
+        const to = cur.recorded_at as Date;
+        const delivered = sumIn(ledgerDeliveries, (d) => ({ id: idStr(d.chemical_id), at: d.delivered_at as Date, q: (d.quantity as number) ?? 0 }), cid, from, to);
+        const tIn = sumIn(ledgerTransfers, (t) => ({ id: idStr(t.to_chemical_id), at: t.transferred_at as Date, q: (t.quantity as number) ?? 0 }), cid, from, to);
+        const tOut = sumIn(ledgerTransfers, (t) => ({ id: idStr(t.from_chemical_id), at: t.transferred_at as Date, q: (t.quantity as number) ?? 0 }), cid, from, to);
+        const adjusted = sumIn(ledgerAdjustments, (a) => ({ id: idStr(a.chemical_id), at: a.adjusted_at as Date, q: (a.quantity as number) ?? 0 }), cid, from, to);
+        const f = brusselsDay(from);
+        const t = brusselsDay(to);
+        periods.push({
+          from: fmtShort(from),
+          to: fmtShort(to),
+          start: (prev.quantity as number) ?? 0,
+          delivered,
+          transferred: tIn - tOut,
+          adjusted,
+          end: (cur.quantity as number) ?? 0,
+          consumption: (cur.consumption as number) ?? 0,
+          wagens: entryWagens.filter((e) => e.day > f && e.day <= t).reduce((sum, e) => sum + e.wagens, 0),
+        });
+      }
+      out.push({ name, unit, periods: periods.reverse() });
+    }
+    return out.sort((a, b) => a.name.localeCompare(b.name));
+  })();
 
   // ── Historiek van pannes/schade/bestellingen/onderhouden ────────
   const defectHistory: DefectHistoryItem[] = defectDocs.map((d) => ({
@@ -383,6 +435,15 @@ export default async function HistoriekPage({
             <ChemieChart data={chemieChartData} products={chemieProducts} />
           </div>
         )}
+
+        {/* ── Verbruik in liters tussen tellingen ─────────────────── */}
+        <div className={styles.card}>
+          <div className={styles.header}>
+            <h2 className={styles.title}>Verbruik tussen tellingen — {siteName}</h2>
+            <p className={styles.subtitle}>Per product het verbruik tussen de laatste twee tellingen; tik op een product voor alle periodes. Een rood gemarkeerde rij wijst op een fout in een telling of levering — corrigeer die bij Voorraad hieronder.</p>
+          </div>
+          <VerbruikTable products={verbruikProducts} />
+        </div>
 
         {/* ── Chemieverbruik per wagen ───────────────────────────── */}
         {!isSelfcarwash && (

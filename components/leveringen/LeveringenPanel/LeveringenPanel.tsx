@@ -127,7 +127,8 @@ export function LeveringenPanel({
         showToast(t('verplaatstBevestiging', { qty, unit, name, target: data.toSiteName || otherSites.find((x) => x.id === transfer.toSiteId)?.name || '' }));
       } else {
         const err = (await res.json().catch(() => null)) as { error?: string } | null;
-        setTransferError((prev) => ({ ...prev, [stockId]: err?.error ?? t('verplaatsenMislukt') }));
+        const msg = res.status === 401 || res.status === 403 ? t('verplaatsenMislukt') : (err?.error ?? t('verplaatsenMislukt'));
+        setTransferError((prev) => ({ ...prev, [stockId]: msg }));
       }
     } finally {
       setSavingTransfer(null);

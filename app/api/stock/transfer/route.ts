@@ -7,11 +7,10 @@ import { getSessionFromRequest } from '@/lib/session';
 // POST /api/stock/transfer — move stock of one product from one site to another.
 // Writes a StockTransfer record so the move is part of the ledger: it counts as
 // outflow at the source and inflow at the target when consumption is derived.
+// Anyone logged in may move stock (same as logging a delivery); undoing is manager-only.
 export async function POST(req: NextRequest) {
   const session = await getSessionFromRequest(req);
-  if (!session || (session.role !== 'owner' && session.role !== 'developer')) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+  if (!session) return NextResponse.json({ error: 'Niet ingelogd' }, { status: 401 });
 
   const body = await req.json() as {
     fromSiteId?: string;
