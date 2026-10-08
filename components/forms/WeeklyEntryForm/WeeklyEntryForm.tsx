@@ -3,6 +3,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { countInstantForDay } from '@/lib/dates';
 import styles from './WeeklyEntryForm.module.scss';
 
 export interface Chemical {
@@ -233,13 +234,16 @@ export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesT
       // Each filled-in product count is a physical stock reading — post it
       // to the same endpoint Instellingen uses, so consumption is derived
       // automatically instead of typed in directly.
+      // The count belongs to the ingave's date (end of that day), not to the moment
+      // it was typed in — so periods run from ingave to ingave.
+      const countAt = countInstantForDay(pickedDate).toISOString();
       const readings = uniqueChemicals
-        .filter((c) => stockCounts[c.id]?.trim() !== '')
+        .filter((c) => (stockCounts[c.id] ?? '').trim() !== '')
         .map((c) =>
           fetch('/api/stock/reading', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chemicalId: c.id, quantity: parseFloat(stockCounts[c.id]) || 0 }),
+            body: JSON.stringify({ chemicalId: c.id, quantity: parseFloat(stockCounts[c.id].replace(',', '.')) || 0, recordedAt: countAt }),
           }),
         );
       if (readings.length > 0) await Promise.allSettled(readings);

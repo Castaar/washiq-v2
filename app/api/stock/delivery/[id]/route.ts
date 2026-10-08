@@ -42,11 +42,23 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   await dbConnect();
   const { id } = await params;
-  const body = await req.json() as { quantity?: number; note?: string };
+  const body = await req.json() as { quantity?: number; note?: string; deliveredAt?: string };
 
   const delivery = await StockDelivery.findById(id);
   if (!delivery) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   if (!canModify(session, delivery.logged_by)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
+  // Date correction (e.g. a delivery that was logged days after it arrived)
+  if (body.deliveredAt !== undefined) {
+    const at = new Date(body.deliveredAt);
+    if (Number.isNaN(at.getTime()) || at.getTime() > Date.now()) {
+      return NextResponse.json({ error: 'Ongeldige datum (niet in de toekomst)' }, { status: 400 });
+    }
+    delivery.delivered_at = at;
+    await delivery.save();
+    if (delivery.chemical_id) await recomputeChemical(delivery.chemical_id.toString());
+    if (body.quantity === undefined && body.note === undefined) return NextResponse.json({ success: true });
+  }
 
   if (!delivery.chemical_id) {
     if (typeof body.note === 'string' && body.note.trim()) {

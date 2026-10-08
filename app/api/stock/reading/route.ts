@@ -35,7 +35,8 @@ export async function POST(req: NextRequest) {
     const parsed = new Date(body.recordedAt);
     if (!Number.isNaN(parsed.getTime()) && parsed.getTime() < now.getTime()) recordedAt = parsed;
   }
-  const isBackdated = recordedAt !== now;
+  // Only counts from an earlier day skip the low-stock push; today's count still alerts.
+  const isBackdated = now.getTime() - recordedAt.getTime() > 12 * 36e5;
 
   const reading = await StockReading.create({
     site_id: stock.site_id,

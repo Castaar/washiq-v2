@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { countInstantForDay } from '@/lib/dates';
 import styles from './HistoryList.module.scss';
 
 export interface HistoryChemical {
@@ -91,7 +92,9 @@ function EntryRow({
 
   // Chemie: stock counts belong to the date of this ingave. A missing count is filled in
   // for that date (not "today") and consumption is re-derived in date order.
-  const refIso = entry.createdAt ?? entry.weekStart;
+  const entryDay = entry.weekStart.slice(0, 10);
+  const refIso = countInstantForDay(entryDay).toISOString();
+  const createdDay = entry.createdAt ? new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Brussels' }).format(new Date(entry.createdAt)) : null;
   const [stockProducts, setStockProducts] = useState<{ id: string; name: string; unit: string }[] | null>(null);
   const [stockInputs, setStockInputs] = useState<Record<string, string>>({});
   const [existingReadings, setExistingReadings] = useState<Record<string, { id: string; quantity: number }>>({});
@@ -108,13 +111,15 @@ function EntryRow({
       const readings = rRes.ok ? ((await rRes.json()) as { id: string; chemicalId: string; quantity: number; recordedAt: string }[]) : [];
       const existing: Record<string, { id: string; quantity: number }> = {};
       for (const r of readings) {
-        if (dayKey(r.recordedAt) === dayKey(refIso) && !existing[r.chemicalId]) existing[r.chemicalId] = { id: r.id, quantity: r.quantity };
+        // Counts of this ingave: dated on the ingave day, or (older entries) on the day it was typed in
+        const rd = dayKey(r.recordedAt);
+        if ((rd === entryDay || rd === createdDay) && !existing[r.chemicalId]) existing[r.chemicalId] = { id: r.id, quantity: r.quantity };
       }
       setExistingReadings(existing);
       setStockInputs(Object.fromEntries(products.filter((pr) => existing[pr.id]).map((pr) => [pr.id, String(existing[pr.id].quantity)])));
       setStockProducts(products);
     })().catch(() => setStockProducts([]));
-  }, [editing, stockProducts, siteId, refIso]);
+  }, [editing, stockProducts, siteId, entryDay, createdDay]);
 
   const newTellerstandNum = newTellerstand.trim() === '' ? null : parseFloat(newTellerstand);
   const programCountSum = programs.reduce((sum, p) => sum + (parseFloat(programCounts[p.id] ?? '') || 0), 0);
@@ -125,7 +130,7 @@ function EntryRow({
   const waterUsage = newWaterTellerstandNum !== null ? newWaterTellerstandNum - previousWaterTellerstand : 0;
 
   async function handleDelete() {
-    if (!confirm(`Ingave van ${formatDate(entry.createdAt ?? entry.weekStart)} definitief verwijderen? De tellerstand valt terug op de vorige ingave.`)) return;
+    if (!confirm(`Ingave van ${formatDate(entry.weekStart)} definitief verwijderen? De tellerstand valt terug op de vorige ingave.`)) return;
     setSaving(true);
     setError('');
     try {
@@ -223,7 +228,7 @@ function EntryRow({
     <div className={styles.entryCard}>
       {/* ── Row header ── */}
       <div className={styles.entryHeader} onClick={() => !editing && setExpanded((v) => !v)}>
-        <span className={styles.weekLabel}>{formatDate(entry.createdAt ?? entry.weekStart)}</span>
+        <span className={styles.weekLabel}>{formatDate(entry.weekStart)}</span>
         <div className={styles.entrySummary}>
           <span className={styles.summaryItem}><span className={styles.summaryLabel}>Wagens</span>{totalWagens}</span>
           <span className={styles.summaryItem}><span className={styles.summaryLabel}>Water</span>{entry.waterLiters} m³</span>
@@ -355,7 +360,7 @@ function EntryRow({
               </div>
 
               <div className={styles.editSection}>
-                <p className={styles.editSectionTitle}>Chemie — voorraad op {formatDate(refIso)}</p>
+                <p className={styles.editSectionTitle}>Chemie — voorraad op {formatDate(entry.weekStart)}</p>
                 {stockProducts === null ? (
                   <p className={styles.fieldLabel}>Laden...</p>
                 ) : stockProducts.length === 0 ? (

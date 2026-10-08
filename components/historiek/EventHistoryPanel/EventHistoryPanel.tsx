@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
+import { brusselsInstant, parseDayInput } from '@/lib/dates';
 import type { IncidentSchadePayload, IncidentEhboPayload, DefectPayload } from '@/lib/types/dashboard';
 import { IncidentModal } from '@/components/dashboard/IncidentModal/IncidentModal';
 import styles from './EventHistoryPanel.module.scss';
@@ -142,12 +143,32 @@ export function EventHistoryPanel({ defects, schades, orders, maintenance, stock
   }
 
   function handleEditLedger(item: StockLedgerItem) {
-    const input = prompt('Juiste hoeveelheid:', String(item.quantity ?? ''));
+    const question = item.kind === 'reading'
+      ? `${item.title}\n\nJuiste GETELDE hoeveelheid op ${fmtDate(item.at)}.\nLet op: dit wijzigt de telling zelf. Wil je enkel de huidige voorraad rechtzetten, doe dat dan bij Instellingen.`
+      : `${item.title}\n\nJuiste geleverde hoeveelheid:`;
+    const input = prompt(question, String(item.quantity ?? ''));
     if (input === null) return;
     const qty = parseFloat(input.replace(',', '.'));
     if (!Number.isFinite(qty) || qty < 0) return;
     void ledgerRequest(item, 'PATCH', { quantity: qty });
   }
+
+  function handleEditLedgerDate(item: StockLedgerItem) {
+    const cur = new Date(item.at).toLocaleDateString('nl-BE', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Europe/Brussels' });
+    const input = prompt(`${item.title}\n\nJuiste datum (dd/mm/jjjj):`, cur);
+    if (input === null) return;
+    const day = parseDayInput(input);
+    if (!day) {
+      showToast('Ongeldige datum — gebruik dd/mm/jjjj');
+      return;
+    }
+    // A count belongs to the end of its day; a delivery to midday, so a delivery and
+    // a count on the same day always end up in the right order.
+    const at = brusselsInstant(day, item.kind === 'reading' ? '23:59:00' : '12:00:00');
+    const at2 = at.getTime() > Date.now() ? new Date() : at;
+    void ledgerRequest(item, 'PATCH', item.kind === 'reading' ? { recordedAt: at2.toISOString() } : { deliveredAt: at2.toISOString() });
+  }
+
 
   const [openSchade, setOpenSchade] = useState<SchadeHistoryItem | null>(null);
   const [openDefect, setOpenDefect] = useState<DefectHistoryItem | null>(null);
@@ -244,9 +265,14 @@ export function EventHistoryPanel({ defects, schades, orders, maintenance, stock
                 {d.detail && <span className={styles.rowSub}>{d.detail}</span>}
                 <span className={styles.rowMeta}>{d.byName ? `${d.byName} · ` : ''}{fmtDate(d.at)}</span>
               </div>
-              <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+              <div style={{ display: 'flex', gap: 6, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                 {d.quantity !== undefined && (
-                  <button type="button" className={styles.tab} disabled={busyId === d.id} onClick={() => handleEditLedger(d)}>Corrigeer</button>
+                  <button type="button" className={styles.tab} disabled={busyId === d.id} onClick={() => handleEditLedger(d)}>
+                    {d.kind === 'reading' ? 'Telling wijzigen' : 'Corrigeer'}
+                  </button>
+                )}
+                {(d.kind === 'reading' || d.kind === 'delivery') && (
+                  <button type="button" className={styles.tab} disabled={busyId === d.id} onClick={() => handleEditLedgerDate(d)}>Datum</button>
                 )}
                 <button type="button" className={styles.tab} disabled={busyId === d.id} onClick={() => handleDeleteLedger(d)}>Verwijder</button>
               </div>
