@@ -3,8 +3,14 @@ import { dbConnect } from '@/lib/db/mongoose';
 import { WeeklyEntry, ChemicalStock, MaintenanceTask, PriceConfig } from '@/lib/models';
 import { priceAt } from '@/lib/prices';
 import { computeTotalCost } from '@/lib/weeklyEntryCost';
+import { getSessionFromRequest } from '@/lib/session';
 
 export async function POST(req: NextRequest) {
+  const session = await getSessionFromRequest(req);
+  if (!session || session.role === 'employee') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   await dbConnect();
 
   const body = await req.json();

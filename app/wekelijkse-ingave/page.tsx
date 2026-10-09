@@ -2,7 +2,6 @@ import { cookies } from 'next/headers';
 import { getLocale } from 'next-intl/server';
 import { NavBar } from '@/components/layout/NavBar/NavBar';
 import { WeeklyEntryForm } from '@/components/forms/WeeklyEntryForm/WeeklyEntryForm';
-import { SelfcarwashStockForm } from '@/components/forms/SelfcarwashStockForm/SelfcarwashStockForm';
 import { dbConnect } from '@/lib/db/mongoose';
 import { Site, WashProgram, WeeklyEntry, User, ChemicalStock, MaintenanceTask } from '@/lib/models';
 import { getSession } from '@/lib/session';
@@ -79,18 +78,6 @@ export default async function WekelijkseIngavePage({
     })),
   }));
 
-  // Selfcarwash: no wagen counts — the ingave is a dated stock count per product.
-  if (siteDoc?.site_type === 'selfcarwash') {
-    return (
-      <div className={styles.root}>
-        <NavBar sites={allowedSites} activeSiteId={siteId ?? ''} backHref="/" />
-        <main className={styles.main}>
-          <SelfcarwashStockForm key={siteId} siteId={siteId ?? ''} products={products} />
-        </main>
-      </div>
-    );
-  }
-
   const last = lastEntries[0] ?? null;
 
   const lastEntryData = last
@@ -138,6 +125,7 @@ export default async function WekelijkseIngavePage({
           startCarCount={startCarCount}
           startWaterCount={startWaterCount}
           contentTranslations={contentTranslations}
+          isSelfcarwash={siteDoc?.site_type === 'selfcarwash'}
         />
       </main>
     </div>

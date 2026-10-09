@@ -426,15 +426,13 @@ export default async function HistoriekPage({
         )}
 
         {/* ── Chemieverbruik uit voorraadtellingen ───────────────── */}
-        {!isSelfcarwash && (
-          <div className={styles.card}>
-            <div className={styles.header}>
-              <h2 className={styles.title}>Chemieverbruik per maand — {siteName}</h2>
-              <p className={styles.subtitle}>Berekend uit de voorraadtellingen: vorige telling + leveringen ± verplaatsingen ± correcties − nieuwe telling</p>
-            </div>
-            <ChemieChart data={chemieChartData} products={chemieProducts} />
+        <div className={styles.card}>
+          <div className={styles.header}>
+            <h2 className={styles.title}>Chemieverbruik per maand — {siteName}</h2>
+            <p className={styles.subtitle}>Berekend uit de voorraadtellingen: vorige telling + leveringen ± verplaatsingen ± correcties − nieuwe telling</p>
           </div>
-        )}
+          <ChemieChart data={chemieChartData} products={chemieProducts} />
+        </div>
 
         {/* ── Verbruik in liters tussen tellingen ─────────────────── */}
         <div className={styles.card}>
@@ -472,14 +470,12 @@ export default async function HistoriekPage({
         </div>
 
         {/* ── Maandelijkse ingaves lijst ─────────────────────────── */}
-        {!isSelfcarwash && (
-          <div className={styles.card}>
-            <div className={styles.header}>
-              <h1 className={styles.title}>Maandelijkse Ingaves — {siteName}</h1>
-            </div>
-            <HistoryList entries={entries} programs={programs} startCarCount={startCarCount} startWaterCount={startWaterCount} siteId={siteId ?? ''} energyBillsByMonth={energyBillsByMonth} />
+        <div className={styles.card}>
+          <div className={styles.header}>
+            <h1 className={styles.title}>Maandelijkse Ingaves — {siteName}</h1>
           </div>
-        )}
+          <HistoryList entries={entries} programs={programs} startCarCount={startCarCount} startWaterCount={startWaterCount} siteId={siteId ?? ''} energyBillsByMonth={energyBillsByMonth} isSelfcarwash={isSelfcarwash} />
+        </div>
       </main>
     </div>
   );

@@ -39,6 +39,7 @@ interface HistoryListProps {
   startWaterCount?: number;
   siteId: string;
   energyBillsByMonth: Record<string, number>;
+  isSelfcarwash?: boolean;
 }
 
 function dateToDateString(date: Date): string {
@@ -58,6 +59,7 @@ function EntryRow({
   previousWaterTellerstand,
   siteId,
   initialElectricityAmount,
+  isSelfcarwash = false,
 }: {
   entry: HistoryEntry;
   programs: HistoryProgram[];
@@ -65,6 +67,7 @@ function EntryRow({
   previousWaterTellerstand: number;
   siteId: string;
   initialElectricityAmount: number | undefined;
+  isSelfcarwash?: boolean;
 }) {
   const router = useRouter();
   const [expanded, setExpanded] = useState(false);
@@ -144,11 +147,11 @@ function EntryRow({
 
   async function handleSave() {
     setError('');
-    if (newTellerstandNum === null) {
+    if (!isSelfcarwash && newTellerstandNum === null) {
       setError('Vul de nieuwe tellerstand in.');
       return;
     }
-    if (tellerstandMismatch) {
+    if (!isSelfcarwash && tellerstandMismatch) {
       setError(
         `Som van de tellerstanden per programma (${programCountSum.toLocaleString('nl-BE')}) komt niet overeen met het verschil tussen nieuwe en vorige tellerstand (${(expectedDiff ?? 0).toLocaleString('nl-BE')}).`,
       );
@@ -160,11 +163,11 @@ function EntryRow({
       const monday = new Date(`${weekDate}T00:00:00Z`);
       const body = {
         week_start: monday.toISOString(),
-        tellerstand: newTellerstandNum,
+        tellerstand: isSelfcarwash ? entry.tellerstand : newTellerstandNum,
         water_liters: waterUsage,
         water_tellerstand: newWaterTellerstandNum ?? previousWaterTellerstand,
         energy_kw: parseFloat(energyKw) || 0,
-        program_counts: programs.map((p) => ({
+        program_counts: isSelfcarwash ? [] : programs.map((p) => ({
           program_id: p.id,
           name: p.name,
           count: parseFloat(programCounts[p.id]) || 0,
@@ -230,7 +233,7 @@ function EntryRow({
       <div className={styles.entryHeader} onClick={() => !editing && setExpanded((v) => !v)}>
         <span className={styles.weekLabel}>{formatDate(entry.weekStart)}</span>
         <div className={styles.entrySummary}>
-          <span className={styles.summaryItem}><span className={styles.summaryLabel}>Wagens</span>{totalWagens}</span>
+          {!isSelfcarwash && <span className={styles.summaryItem}><span className={styles.summaryLabel}>Wagens</span>{totalWagens}</span>}
           <span className={styles.summaryItem}><span className={styles.summaryLabel}>Water</span>{entry.waterLiters} m³</span>
           <span className={styles.summaryItem}><span className={styles.summaryLabel}>Energie</span>{entry.energyKw} kWh</span>
           {entry.totalCost > 0 && (
@@ -272,6 +275,7 @@ function EntryRow({
                 </div>
               </div>
 
+              {!isSelfcarwash && (<>
               <div className={styles.editSection}>
                 <p className={styles.editSectionTitle}>Tellerstand</p>
                 <p className={styles.lastValueHint}>Vorige tellerstand totaal: {previousTellerstand.toLocaleString('nl-BE')}</p>
@@ -310,6 +314,8 @@ function EntryRow({
                   </p>
                 )}
               </div>
+
+              </>)}
 
               <div className={styles.editSection}>
                 <p className={styles.editSectionTitle}>Elektriciteitsfactuur</p>
@@ -401,7 +407,7 @@ function EntryRow({
             </>
           ) : (
             <>
-              <div className={styles.detailSection}>
+              {!isSelfcarwash && <div className={styles.detailSection}>
                 <p className={styles.detailSectionTitle}>Tellerstand</p>
                 <div className={styles.detailGrid}>
                   {entry.programCounts.map((pc) => (
@@ -411,7 +417,7 @@ function EntryRow({
                     </span>
                   ))}
                 </div>
-              </div>
+              </div>}
               <div className={styles.detailSection}>
                 <p className={styles.detailSectionTitle}>Verbruik</p>
                 <div className={styles.detailGrid}>
@@ -447,7 +453,7 @@ function EntryRow({
 }
 
 // ── Main list ─────────────────────────────────────────────────
-export function HistoryList({ entries, programs, startCarCount = 0, startWaterCount = 0, siteId, energyBillsByMonth }: HistoryListProps) {
+export function HistoryList({ entries, programs, startCarCount = 0, startWaterCount = 0, siteId, energyBillsByMonth, isSelfcarwash = false }: HistoryListProps) {
   if (entries.length === 0) {
     return <p className={styles.empty}>Nog geen ingaves gevonden voor deze carwash.</p>;
   }
@@ -468,6 +474,7 @@ export function HistoryList({ entries, programs, startCarCount = 0, startWaterCo
             previousWaterTellerstand={previousWaterTellerstand}
             siteId={siteId}
             initialElectricityAmount={energyBillsByMonth[billKey]}
+            isSelfcarwash={isSelfcarwash}
           />
         );
       })}

@@ -46,6 +46,8 @@ export interface WeeklyEntryFormProps {
   startCarCount?: number;
   startWaterCount?: number;
   contentTranslations?: Record<string, string>;
+  // Selfcarwash: same ingave, but wagens can't be tracked — no tellerstand / programma's
+  isSelfcarwash?: boolean;
 }
 
 // The ingave is stored on the exact date that was picked (00:00 UTC), not snapped to a week.
@@ -121,7 +123,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 }
 
 // ─── Main form ────────────────────────────────────────────────
-export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesTasks = [], startCarCount = 0, startWaterCount = 0, contentTranslations = {} }: WeeklyEntryFormProps) {
+export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesTasks = [], startCarCount = 0, startWaterCount = 0, contentTranslations = {}, isSelfcarwash = false }: WeeklyEntryFormProps) {
   const router = useRouter();
   const tProduct = (name: string) => contentTranslations[`product.${name}`] || name;
   const tProgram = (name: string) => contentTranslations[`program.${name}`] || name;
@@ -191,11 +193,11 @@ export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesT
     e.preventDefault();
     setSubmitError('');
 
-    if (newTellerstandNum === null) {
+    if (!isSelfcarwash && newTellerstandNum === null) {
       setSubmitError('Vul de nieuwe tellerstand in.');
       return;
     }
-    if (tellerstandMismatch) {
+    if (!isSelfcarwash && tellerstandMismatch) {
       setSubmitError(
         `Som van de tellerstanden per programma (${programCountSum.toLocaleString('nl-BE')}) komt niet overeen met het verschil tussen nieuwe en vorige tellerstand (${(expectedDiff ?? 0).toLocaleString('nl-BE')}).`,
       );
@@ -209,11 +211,11 @@ export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesT
     const body = {
       site_id: siteId,
       week_start: monday.toISOString(),
-      tellerstand: newTellerstandNum,
+      tellerstand: isSelfcarwash ? previousTellerstand : newTellerstandNum,
       water_liters: waterUsage,
       water_tellerstand: newWaterTellerstandNum ?? previousWaterTellerstand,
       energy_kw: parseFloat(energyKw) || 0,
-      program_counts: programs.map((p) => ({
+      program_counts: isSelfcarwash ? [] : programs.map((p) => ({
         program_id: p.id,
         name: p.name,
         count: parseFloat(programCounts[p.id]) || 0,
@@ -290,6 +292,7 @@ export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesT
       </div>
 
       {/* ── Section 0: Tellerstand (manueel ingegeven) ──────── */}
+      {!isSelfcarwash && (<>
       <section className={styles.section}>
         <SectionTitle>Tellerstand</SectionTitle>
         <div className={styles.tellerstandDisplay}>
@@ -341,6 +344,7 @@ export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesT
           </p>
         )}
       </section>
+      </>)}
 
       {/* ── Section 1b: Elektriciteitsfactuur ───────────────── */}
       <section className={styles.section}>
