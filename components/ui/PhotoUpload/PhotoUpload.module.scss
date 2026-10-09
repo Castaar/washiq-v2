@@ -70,3 +70,9 @@
 .hidden {
   display: none;
 }
+
+.error {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--color-accent-red, #ef4444);
+}

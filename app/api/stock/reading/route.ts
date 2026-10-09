@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
 import { ChemicalStock, StockReading, User } from '@/lib/models';
 import { recomputeChemical } from '@/lib/stock-ledger';
+import { brusselsInstant } from '@/lib/dates';
 import { getSessionFromRequest } from '@/lib/session';
 import { sendPushToUser, afterResponse } from '@/lib/push';
 import mongoose from 'mongoose';
@@ -38,7 +39,20 @@ export async function POST(req: NextRequest) {
   // Only counts from an earlier day skip the low-stock push; today's count still alerts.
   const isBackdated = now.getTime() - recordedAt.getTime() > 12 * 36e5;
 
-  const reading = await StockReading.create({
+  // One count per product per day: a second count on the same (Brussels) day replaces
+  // the first instead of creating a zero-length period with bogus consumption.
+  const dayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Brussels' }).format(recordedAt);
+  const sameDay = await StockReading.findOne({
+    chemical_id: stock._id,
+    recorded_at: { $gte: brusselsInstant(dayStr, '00:00:00'), $lte: brusselsInstant(dayStr, '23:59:59') },
+  });
+  if (sameDay) {
+    sameDay.quantity = quantity;
+    if (session.userId) sameDay.recorded_by = new mongoose.Types.ObjectId(session.userId);
+    await sameDay.save();
+  }
+
+  const reading = sameDay ?? await StockReading.create({
     site_id: stock.site_id,
     chemical_id: stock._id,
     name: stock.name,

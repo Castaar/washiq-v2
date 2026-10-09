@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
 import { DailyChecklist, MaintenanceTask, MaintenanceLog, User } from '@/lib/models';
 import { getSession } from '@/lib/session';
-import { sendPushToUser, afterResponse } from '@/lib/push';
+import { sendPushToUser, afterResponse, notifySiteManagersNow } from '@/lib/push';
 import type { Types } from 'mongoose';
 
 export async function POST(req: NextRequest) {
@@ -51,6 +51,19 @@ export async function POST(req: NextRequest) {
         ]),
       ),
     );
+  }
+
+  if (body.maintenanceChecks?.length) {
+    const ids = body.maintenanceChecks.map((c) => c.taskId);
+    afterResponse(MaintenanceTask.find({ _id: { $in: ids } }).select('description').lean().then((tasks) => {
+      const names = tasks.map((t) => t.description as string).filter(Boolean);
+      if (names.length === 0) return;
+      return notifySiteManagersNow(body.siteId, {
+        title: names.length === 1 ? 'Onderhoud uitgevoerd' : `${names.length} onderhoudstaken uitgevoerd`,
+        body: `${session.name}: ${names.join(', ')}`,
+        url: `/onderhouden?site=${body.siteId}`,
+      }, session.userId);
+    }));
   }
 
   const hasIssues =

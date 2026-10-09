@@ -50,10 +50,11 @@ export function BottomNav({ role, siteType = 'wasstraat' }: BottomNavProps) {
     );
   }
 
-  // Selfcarwash owners/developers have no wagen-based weekly ingave — the
-  // slot becomes a shortcut to voorraad (Leveringen) instead.
-  const ingaveHref = role === 'employee' ? '/dagfiche' : siteType === 'selfcarwash' ? '/leveringen' : '/wekelijkse-ingave';
-  const ingaveLabelKey = role !== 'employee' && siteType === 'selfcarwash' ? 'leveringen' : 'ingave';
+  // One Ingave route for every site type: the page itself shows the wagen ingave
+  // or, for a selfcarwash, the dated stock count. (The nav's siteType comes from the
+  // root layout and can be stale after switching carwash, so it must not decide the link.)
+  const ingaveHref = role === 'employee' ? '/dagfiche' : '/wekelijkse-ingave';
+  const ingaveLabelKey = 'ingave';
 
   return (
     <>

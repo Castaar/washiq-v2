@@ -48,9 +48,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const locale = await getLocale();
   const messages = await getMessages();
 
-  // Resolve the active site's type (wasstraat/selfcarwash) so the nav can
-  // hide wagens-only links (Ingave/Historiek) — nav display only, actual
-  // route access is enforced per-page via redirectIfSelfCarwash.
+  // Active site's type for nav display only (can be stale after a client-side
+  // site switch, since the root layout doesn't re-render) — pages decide behaviour.
   let siteType: 'wasstraat' | 'selfcarwash' = 'wasstraat';
   if (session) {
     const cookieStore = await cookies();

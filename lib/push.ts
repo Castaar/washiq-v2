@@ -1,7 +1,7 @@
 import { after } from 'next/server';
 import webpush from 'web-push';
 import { dbConnect } from './db/mongoose';
-import { PushSubscription } from './models';
+import { PushSubscription, User } from './models';
 
 webpush.setVapidDetails(
   process.env.VAPID_SUBJECT!,
@@ -121,4 +121,35 @@ export async function sendPushToSite(
   });
 
   await sendToSubscriptions(subscriptions, data);
+}
+
+/**
+ * Notify the people who follow up on a site: its owners, all developers, plus any
+ * extra users (e.g. whoever reported the issue) — never the person who did it.
+ * Runs after the response (afterResponse) so it can't be dropped.
+ */
+export async function notifySiteManagersNow(
+  siteId: string,
+  payload: PushPayload,
+  excludeUserId?: string,
+  extraUserIds: (string | undefined | null)[] = [],
+): Promise<void> {
+  await dbConnect();
+  const users = await User.find({
+    is_active: true,
+    $or: [{ role: 'developer' }, { role: 'owner', site_ids: siteId }],
+  }).select('_id').lean();
+  const ids = new Set<string>(users.map((u) => String(u._id)));
+  for (const x of extraUserIds) if (x) ids.add(String(x));
+  if (excludeUserId) ids.delete(String(excludeUserId));
+  await Promise.allSettled([...ids].map((id) => sendPushToUser(id, payload)));
+}
+
+export function notifySiteManagers(
+  siteId: string,
+  payload: PushPayload,
+  excludeUserId?: string,
+  extraUserIds: (string | undefined | null)[] = [],
+): void {
+  afterResponse(notifySiteManagersNow(siteId, payload, excludeUserId, extraUserIds));
 }

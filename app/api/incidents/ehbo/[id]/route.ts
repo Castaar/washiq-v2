@@ -3,6 +3,7 @@ import { dbConnect } from '@/lib/db/mongoose';
 import { IncidentEhbo, ActivityLog } from '@/lib/models';
 import { canModify } from '@/lib/permissions';
 import { getSessionFromRequest } from '@/lib/session';
+import { notifySiteManagers } from '@/lib/push';
 
 const EDITABLE = ['naam_slachtoffer', 'afdeling_locatie', 'verwonding', 'ehbo_handeling', 'ehbo_verlener', 'beschrijving', 'uur', 'dokter_nodig'] as const;
 
@@ -37,6 +38,16 @@ export async function PUT(
 
   const doc = await IncidentEhbo.findByIdAndUpdate(id, update, { new: true });
   if (!doc) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
+  // Let the owners (and whoever reported it) know it was handled
+  if (body.is_resolved === true) {
+    const siteId = String(doc.site_id);
+    notifySiteManagers(siteId, {
+      title: 'EHBO afgehandeld',
+      body: `${session.name}: ${String(doc.naam_slachtoffer ?? '').slice(0, 80) || 'ehbo'}`,
+      url: `/incidenten?site=${siteId}&item=${id}`,
+    }, session.userId, [doc.reported_by ? String(doc.reported_by) : null]);
+  }
 
   return NextResponse.json({ ok: true });
 }

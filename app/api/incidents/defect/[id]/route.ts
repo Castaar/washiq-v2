@@ -3,6 +3,7 @@ import { dbConnect } from '@/lib/db/mongoose';
 import { Defect, ActivityLog } from '@/lib/models';
 import { canModify } from '@/lib/permissions';
 import { getSessionFromRequest } from '@/lib/session';
+import { notifySiteManagers } from '@/lib/push';
 
 // PUT /api/incidents/defect/[id] — toggle resolved status
 export async function PUT(
@@ -36,6 +37,16 @@ export async function PUT(
 
   const doc = await Defect.findByIdAndUpdate(id, update, { new: true });
   if (!doc) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
+  // Let the owners (and whoever reported it) know it was handled
+  if (body.is_resolved === true) {
+    const siteId = String(doc.site_id);
+    notifySiteManagers(siteId, {
+      title: 'Panne opgelost',
+      body: `${session.name}: ${String(doc.omschrijving ?? '').slice(0, 80) || 'defect'}`,
+      url: `/incidenten?site=${siteId}&item=${id}`,
+    }, session.userId, [doc.reported_by ? String(doc.reported_by) : null]);
+  }
 
   return NextResponse.json({ ok: true });
 }

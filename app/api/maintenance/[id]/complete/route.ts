@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
 import { MaintenanceTask, MaintenanceLog, WeeklyEntry, Site } from '@/lib/models';
 import { getSessionFromRequest } from '@/lib/session';
+import { notifySiteManagers } from '@/lib/push';
 
 // POST /api/maintenance/[id]/complete — any logged-in user (e.g. technician) checks off
 // a maintenance task as done, with an optional note. Logs to MaintenanceLog.
@@ -48,6 +49,13 @@ export async function POST(
       notes: body.notes?.trim() ?? '',
     }),
   ]);
+
+  const siteId = String(task.site_id);
+  notifySiteManagers(siteId, {
+    title: 'Onderhoud uitgevoerd',
+    body: `${session.name}: ${task.description}${body.notes?.trim() ? ` — ${body.notes.trim()}` : ''}`,
+    url: `/onderhouden?site=${siteId}`,
+  }, session.userId);
 
   return NextResponse.json({ ok: true });
 }

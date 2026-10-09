@@ -75,11 +75,9 @@ export default async function DashboardPage({
     ? '/developer'
     : userRole === 'employee'
     ? '/dagfiche'
-    : activeSiteType === 'selfcarwash'
-    ? '/leveringen'
     : '/wekelijkse-ingave';
   const addHref = userRole === 'developer' ? '/developer' : (activeSiteId ? `${addBase}?site=${activeSiteId}` : addBase);
-  const addLabel = userRole === 'developer' ? 'Developer' : userRole === 'employee' ? 'Dagfiche' : activeSiteType === 'selfcarwash' ? 'Voorraad' : 'Maandelijkse Ingave';
+  const addLabel = userRole === 'developer' ? 'Developer' : userRole === 'employee' ? 'Dagfiche' : activeSiteType === 'selfcarwash' ? 'Voorraad ingeven' : 'Maandelijkse Ingave';
 
   // Started now (exec() fires the query) so it runs alongside the attendance query below.
   const announcementPromise = Announcement.find({

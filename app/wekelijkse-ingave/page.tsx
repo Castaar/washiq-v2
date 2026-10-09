@@ -2,11 +2,12 @@ import { cookies } from 'next/headers';
 import { getLocale } from 'next-intl/server';
 import { NavBar } from '@/components/layout/NavBar/NavBar';
 import { WeeklyEntryForm } from '@/components/forms/WeeklyEntryForm/WeeklyEntryForm';
+import { SelfcarwashStockForm } from '@/components/forms/SelfcarwashStockForm/SelfcarwashStockForm';
 import { dbConnect } from '@/lib/db/mongoose';
 import { Site, WashProgram, WeeklyEntry, User, ChemicalStock, MaintenanceTask } from '@/lib/models';
 import { getSession } from '@/lib/session';
 import type { Types } from 'mongoose';
-import { filterSitesForUser, resolveActiveSite, redirectIfSetupNeeded, redirectIfSelfCarwash, redirectWithSiteParam } from '@/lib/getUserSites';
+import { filterSitesForUser, resolveActiveSite, redirectIfSetupNeeded, redirectWithSiteParam } from '@/lib/getUserSites';
 import { getTranslationMap } from '@/lib/contentTranslations';
 import styles from './page.module.scss';
 
@@ -35,7 +36,6 @@ export default async function WekelijkseIngavePage({
   const allowedSites = filterSitesForUser(siteDocs as Parameters<typeof filterSitesForUser>[0], userSiteIds, userRole);
   const siteId = resolveActiveSite(allowedSites, site ?? cookieSite) || null;
   await redirectIfSetupNeeded(siteId ?? '', userRole);
-  await redirectIfSelfCarwash(siteId ?? '');
   redirectWithSiteParam('/wekelijkse-ingave', { site }, siteId ?? '');
   const siteName = allowedSites.find((s) => s.id === siteId)?.name ?? '';
   const siteDoc = siteDocs.find((s) => (s._id as Types.ObjectId).toString() === siteId);
@@ -78,6 +78,18 @@ export default async function WekelijkseIngavePage({
       current_stock: stockByName[name]?.current_stock ?? null,
     })),
   }));
+
+  // Selfcarwash: no wagen counts — the ingave is a dated stock count per product.
+  if (siteDoc?.site_type === 'selfcarwash') {
+    return (
+      <div className={styles.root}>
+        <NavBar sites={allowedSites} activeSiteId={siteId ?? ''} backHref="/" />
+        <main className={styles.main}>
+          <SelfcarwashStockForm key={siteId} siteId={siteId ?? ''} products={products} />
+        </main>
+      </div>
+    );
+  }
 
   const last = lastEntries[0] ?? null;
 

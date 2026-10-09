@@ -161,7 +161,8 @@ export async function GET(req: NextRequest) {
     }
     days.sort((a, b) => a.date.localeCompare(b.date));
 
-    const totalHours = Math.round(days.reduce((sum, d) => sum + d.hours, 0) * 10) / 10;
+    // Sum unrounded session hours (same as the all-sites total) so both totals match.
+    const totalHours = Math.round(sessions.filter((x) => x.startSite === siteId).reduce((sum, x) => sum + x.hours, 0) * 10) / 10;
     const totalHoursAllSites = Math.round(sessions.reduce((sum, x) => sum + x.hours, 0) * 10) / 10;
     const daysWorked = days.filter((d) => d.hours > 0).length;
 
