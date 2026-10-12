@@ -48,6 +48,7 @@ export async function POST(req: NextRequest) {
   });
   if (sameDay) {
     sameDay.quantity = quantity;
+    sameDay.is_invalid = false;
     if (session.userId) sameDay.recorded_by = new mongoose.Types.ObjectId(session.userId);
     await sameDay.save();
   }
@@ -67,7 +68,7 @@ export async function POST(req: NextRequest) {
 
   const saved = await StockReading.findById(reading._id).select('consumption').lean();
   const consumption = (saved?.consumption as number) ?? 0;
-  const isFirstReading = (await StockReading.countDocuments({ chemical_id: chemicalId, recorded_at: { $lt: recordedAt } })) === 0;
+  const isFirstReading = (await StockReading.countDocuments({ chemical_id: chemicalId, is_invalid: { $ne: true }, recorded_at: { $lt: recordedAt } })) === 0;
   const current = await ChemicalStock.findById(chemicalId).select('current_stock').lean();
   const currentStock = (current?.current_stock as number) ?? quantity;
 
@@ -128,6 +129,7 @@ export async function GET(req: NextRequest) {
       quantity: r.quantity,
       consumption: r.consumption,
       recordedAt: (r.recorded_at as Date).toISOString(),
+      isInvalid: Boolean(r.is_invalid),
     })),
   );
 }

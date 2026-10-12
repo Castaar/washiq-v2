@@ -40,7 +40,15 @@ export async function consumptionBetween(
 // raw ledger (readings + deliveries + transfers + corrections). Call after any edit or delete of
 // one of those records so the numbers always fall back to what the data implies.
 export async function recomputeChemical(chemicalId: Oid): Promise<void> {
-  const readings = await StockReading.find({ chemical_id: chemicalId }).sort({ recorded_at: 1 });
+  const all = await StockReading.find({ chemical_id: chemicalId }).sort({ recorded_at: 1 });
+  // Counts marked invalid don't take part: their neighbours form one period.
+  for (const r of all) {
+    if (r.is_invalid && r.consumption !== 0) {
+      r.consumption = 0;
+      await r.save();
+    }
+  }
+  const readings = all.filter((r) => !r.is_invalid);
   if (readings.length === 0) return;
 
   for (let i = 0; i < readings.length; i++) {

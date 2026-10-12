@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import type { IncidentPayload } from '@/lib/types/dashboard';
 import { ActivitySection } from '@/components/dashboard/ActivitySection/ActivitySection';
 import { BottomSheet } from '@/components/ui/BottomSheet/BottomSheet';
+import { PhotoUpload } from '@/components/ui/PhotoUpload/PhotoUpload';
 import styles from './IncidentModal.module.scss';
 
 interface IncidentModalProps {
@@ -52,7 +53,38 @@ export function IncidentModal({ payload, refId, refType, siteId, onClose }: Inci
   const [isResolved, setIsResolved] = useState(canResolve ? Boolean(payload.isResolved) : false);
   const [resolving, setResolving] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
-  const photos = payload.photos ?? [];
+  const [photos, setPhotos] = useState<string[]>(payload.photos ?? []);
+  const [photoError, setPhotoError] = useState('');
+  const [addingPhotos, setAddingPhotos] = useState(false);
+
+  async function handleAddPhotos(newPhotos: string[]) {
+    if (newPhotos.length === 0) return;
+    setPhotoError('');
+    setAddingPhotos(true);
+    try {
+      const endpoint = payload.type === 'defect'
+        ? `/api/incidents/defect/${refId}`
+        : payload.type === 'ehbo'
+          ? `/api/incidents/ehbo/${refId}`
+          : `/api/incidents/schade/${refId}`;
+      const res = await fetch(endpoint, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ add_photos: newPhotos }),
+      });
+      if (res.ok) {
+        setPhotos((prev) => [...prev, ...newPhotos]);
+        router.refresh();
+      } else {
+        const err = (await res.json().catch(() => null)) as { error?: string } | null;
+        setPhotoError(err?.error ?? 'Foto toevoegen mislukt, probeer opnieuw.');
+      }
+    } catch {
+      setPhotoError('Geen verbinding — foto niet toegevoegd.');
+    } finally {
+      setAddingPhotos(false);
+    }
+  }
 
   // Schade reports can be edited in place — e.g. to correct a report that
   // was originally logged at the wrong site or with the wrong details.
@@ -378,6 +410,18 @@ export function IncidentModal({ payload, refId, refType, siteId, onClose }: Inci
                 />
               ))}
             </div>
+          </div>
+        )}
+
+        {photos.length < 10 && (
+          <div className={styles.section}>
+            <p className={styles.sectionTitle}>{photos.length > 0 ? 'Extra foto toevoegen' : 'Foto toevoegen'}</p>
+            {addingPhotos ? (
+              <p className={styles.textBlock}>Foto opslaan…</p>
+            ) : (
+              <PhotoUpload photos={[]} onChange={handleAddPhotos} maxPhotos={10 - photos.length} />
+            )}
+            {photoError && <p className={styles.textBlock}>{photoError}</p>}
           </div>
         )}
 

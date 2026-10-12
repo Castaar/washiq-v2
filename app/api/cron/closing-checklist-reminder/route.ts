@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
-import { Site, Planning, DailyChecklist, ClosingReminderSent } from '@/lib/models';
-import { sendPushToSite } from '@/lib/push';
+import { Site, Planning, DailyChecklist, ClosingReminderSent, User } from '@/lib/models';
+import { sendPushToUser } from '@/lib/push';
 
 // GET /api/cron/closing-checklist-reminder — called once daily by Vercel
 // Cron (see vercel.json — Hobby plan only allows daily cron frequency, so
@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
 
   const [sites, todaysShifts] = await Promise.all([
     Site.find({}).select('_id name').lean(),
-    Planning.find({ date: { $gte: dayStart, $lt: dayEnd } }).select('site_id end_time').lean(),
+    Planning.find({ date: { $gte: dayStart, $lt: dayEnd } }).select('site_id end_time user_id').lean(),
   ]);
 
   // Latest shift end time per site, today
@@ -68,11 +68,22 @@ export async function GET(req: NextRequest) {
       continue;
     }
 
-    await sendPushToSite(siteId, {
+    // Only the employees who fill in the dagfiche — not owners/technicians.
+    // Prefer whoever was scheduled at this site today; else all its employees.
+    const plannedIds = todaysShifts
+      .filter((sh) => String(sh.site_id) === siteId && sh.user_id)
+      .map((sh) => String(sh.user_id));
+    const employees = await User.find({
+      is_active: true,
+      role: 'employee',
+      site_ids: siteId,
+      ...(plannedIds.length > 0 ? { _id: { $in: plannedIds } } : {}),
+    }).select('_id').lean();
+    await Promise.allSettled(employees.map((u) => sendPushToUser(String(u._id), {
       title: 'Dagfiche nog niet ingevuld',
       body: `${siteName}: de shift is afgelopen — vergeet de afsluit-checklist niet in te vullen.`,
       url: `/dagfiche?site=${siteId}`,
-    }).catch(() => {});
+    })));
 
     results.push({ site: siteName, sent: true, reason: 'reminder sent' });
   }

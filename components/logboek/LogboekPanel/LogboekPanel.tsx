@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { brusselsInstant } from '@/lib/dates';
 import styles from './LogboekPanel.module.scss';
 
 export interface LogEntry {
@@ -95,7 +96,11 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
   // of uit te checken. Tijdstip is aanpasbaar zodat het achteraf op het
   // juiste (werkelijke) moment kan ingevuld worden i.p.v. altijd "nu".
   const [onBehalfUserId, setOnBehalfUserId] = useState('');
-  const [onBehalfTime, setOnBehalfTime] = useState('');
+  // Date + 24h hour/minute pickers (a datetime-local field shows AM/PM on some phones,
+  // which led to 06:30 being saved where 18:30 was meant).
+  const [onBehalfDate, setOnBehalfDate] = useState('');
+  const [onBehalfHour, setOnBehalfHour] = useState('');
+  const [onBehalfMinute, setOnBehalfMinute] = useState('00');
   const [onBehalfSaving, setOnBehalfSaving] = useState(false);
   const [onBehalfLastAction, setOnBehalfLastAction] = useState<'opening' | 'sluiting' | null>(null);
   const [onBehalfError, setOnBehalfError] = useState('');
@@ -184,16 +189,20 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
         siteId, type,
         onBehalfOfUserId: onBehalfUserId,
         onBehalfOfUserName: emp?.name ?? '',
-        timestamp: onBehalfTime ? new Date(onBehalfTime).toISOString() : undefined,
+        timestamp: onBehalfHour !== ''
+          ? brusselsInstant(onBehalfDate || new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Brussels' }).format(new Date()), `${onBehalfHour}:${onBehalfMinute}:00`).toISOString()
+          : undefined,
       }),
     });
     if (res.ok) {
       const entry = (await res.json()) as LogEntry;
       setLogs((prev) => [entry, ...prev]);
       setOnBehalfLastAction(type);
-      setOnBehalfTime('');
+      setOnBehalfHour('');
+      setOnBehalfDate('');
     } else {
-      setOnBehalfError('Registreren mislukt, probeer opnieuw');
+      const err = (await res.json().catch(() => null)) as { error?: string } | null;
+      setOnBehalfError(err?.error && res.status === 400 ? err.error : 'Registreren mislukt, probeer opnieuw');
     }
     setOnBehalfSaving(false);
   }
@@ -390,13 +399,43 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
             ))}
           </select>
 
-          <input
-            className={styles.noteInput}
-            type="datetime-local"
-            value={onBehalfTime}
-            onChange={(e) => setOnBehalfTime(e.target.value)}
-            title="Laat leeg voor het huidige tijdstip"
-          />
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <input
+              className={styles.noteInput}
+              style={{ flex: '1 1 140px' }}
+              type="date"
+              value={onBehalfDate}
+              onChange={(e) => setOnBehalfDate(e.target.value)}
+              aria-label="Datum (leeg = vandaag)"
+            />
+            <select
+              className={styles.noteInput}
+              style={{ flex: '0 0 90px' }}
+              value={onBehalfHour}
+              onChange={(e) => setOnBehalfHour(e.target.value)}
+              aria-label="Uur (24u)"
+            >
+              <option value="">Nu</option>
+              {Array.from({ length: 24 }, (_, h) => String(h).padStart(2, '0')).map((h) => (
+                <option key={h} value={h}>{h} u</option>
+              ))}
+            </select>
+            <select
+              className={styles.noteInput}
+              style={{ flex: '0 0 80px' }}
+              value={onBehalfMinute}
+              onChange={(e) => setOnBehalfMinute(e.target.value)}
+              disabled={onBehalfHour === ''}
+              aria-label="Minuten"
+            >
+              {Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, '0')).map((mm) => (
+                <option key={mm} value={mm}>{mm}</option>
+              ))}
+            </select>
+          </div>
+          <p className={styles.registerSub} style={{ margin: 0 }}>
+            Uur in 24u-formaat (bv. 18 u = 6 uur &apos;s avonds). Laat &quot;Nu&quot; staan voor het huidige tijdstip.
+          </p>
 
           {onBehalfError && <p className={styles.error}>{onBehalfError}</p>}
 

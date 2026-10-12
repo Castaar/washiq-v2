@@ -55,7 +55,7 @@ export default async function HistoriekPage({
     WeeklyEntry.find(filter).sort({ week_start: 1 }).lean(),
     ChemicalStock.find(filter).select('name unit').sort({ name: 1 }).lean(),
     EnergyBill.find(filter).select('year month amount_euro').lean(),
-    StockReading.find(filter).select('name unit quantity consumption recorded_at recorded_by chemical_id').sort({ recorded_at: 1 }).lean(),
+    StockReading.find(filter).select('name unit quantity consumption recorded_at recorded_by chemical_id is_invalid').sort({ recorded_at: 1 }).lean(),
     Defect.find(filter).sort({ created_at: -1 }).limit(200).lean(),
     IncidentSchade.find(filter).sort({ created_at: -1 }).limit(200).lean(),
     IncidentEhbo.find(filter).sort({ created_at: -1 }).limit(200).lean(),
@@ -131,43 +131,74 @@ export default async function HistoriekPage({
   for (const p of allProducts) beginRow[p.name] = 0;
   const chartData: ChemieDataPoint[] = entryDocs.length > 0 ? [beginRow, ...entryChartData] : [];
 
+  // Counts marked "ongeldig" are skipped in every calculation (their neighbours merge).
+  const validReadings = readingDocs.filter((r) => !r.is_invalid);
+
   // ── Build monthly chart data: chemie-verbruik per product, uit voorraadtellingen ──
-  const productReadingNames = [...new Set(readingDocs.map((r) => r.name as string))];
+  const productReadingNames = [...new Set(validReadings.map((r) => r.name as string))];
   const chemieProducts = productReadingNames.length > 0
     ? productReadingNames.map((name) => ({
         name,
-        unit: (readingDocs.find((r) => r.name === name)?.unit as string) ?? 'L',
+        unit: (validReadings.find((r) => r.name === name)?.unit as string) ?? 'L',
       }))
     : stockDocs.map((s) => ({ name: s.name as string, unit: (s.unit as string) ?? 'L' }));
 
-  function monthLabel(date: Date): string {
-    return date.toLocaleDateString('nl-BE', { month: 'short', year: '2-digit', timeZone: 'Europe/Brussels' });
-  }
-
-  const chemieChartData: ChemieDataPoint[] = (() => {
-    const byMonth = new Map<string, ChemieDataPoint>();
-    // Skip each product's very first reading — it's a baseline, not a period's consumption
-    const seenFirst = new Set<string>();
-    for (const r of readingDocs) {
-      const name = r.name as string;
-      if (!seenFirst.has(name)) { seenFirst.add(name); continue; }
-      const label = monthLabel(new Date(r.recorded_at as Date));
-      if (!byMonth.has(label)) byMonth.set(label, { week: label });
-      byMonth.get(label)![name] = Math.max(0, r.consumption as number);
-    }
-    return [...byMonth.values()];
-  })();
-
-  // ── Chemieverbruik per wagen: verbruik tussen twee tellingen ÷ wagens in die periode ──
   const brusselsDay = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Brussels' }).format(d);
   const entryWagens = entryDocs.map((e) => ({
     day: (e.week_start as Date).toISOString().slice(0, 10),
     wagens: ((e.program_counts ?? []) as { count?: number }[]).reduce((sum, pc) => sum + (pc.count ?? 0), 0),
   }));
+
+  // A count period rarely matches a calendar month (a September count is often typed
+  // in early October). Spread each period's consumption over the months it covers:
+  // by wagens per month, or by days when there are no wagen counts (selfcarwash).
+  // Months that received a share of a multi-month period are marked "*" (geschat).
+  const chemieChartData: ChemieDataPoint[] = (() => {
+    const byMonth = new Map<string, Record<string, number>>();
+    const estimated = new Set<string>();
+    const addDay = (day: string) => {
+      const d = new Date(`${day}T00:00:00Z`);
+      d.setUTCDate(d.getUTCDate() + 1);
+      return d.toISOString().slice(0, 10);
+    };
+    const prevByProduct = new Map<string, Date>();
+    for (const r of validReadings) {
+      const name = r.name as string;
+      const at = r.recorded_at as Date;
+      const prev = prevByProduct.get(name);
+      prevByProduct.set(name, at);
+      if (!prev) continue;
+      const consumption = Math.max(0, r.consumption as number);
+      const from = brusselsDay(prev);
+      const to = brusselsDay(at);
+      const weights = new Map<string, number>();
+      const periodEntries = entryWagens.filter((e) => e.day > from && e.day <= to && e.wagens > 0);
+      if (periodEntries.length > 0) {
+        for (const e of periodEntries) weights.set(e.day.slice(0, 7), (weights.get(e.day.slice(0, 7)) ?? 0) + e.wagens);
+      } else {
+        for (let d = addDay(from); d <= to; d = addDay(d)) weights.set(d.slice(0, 7), (weights.get(d.slice(0, 7)) ?? 0) + 1);
+        if (weights.size === 0) weights.set(to.slice(0, 7), 1);
+      }
+      const total = [...weights.values()].reduce((a, b) => a + b, 0);
+      for (const [month, w] of weights) {
+        if (!byMonth.has(month)) byMonth.set(month, {});
+        const row = byMonth.get(month)!;
+        row[name] = Math.round(((row[name] ?? 0) + consumption * (w / total)) * 100) / 100;
+        if (weights.size > 1) estimated.add(month);
+      }
+    }
+    return [...byMonth.keys()].sort().map((month) => {
+      const label = new Date(`${month}-15T12:00:00Z`).toLocaleDateString('nl-BE', { month: 'short', year: '2-digit', timeZone: 'Europe/Brussels' });
+      return { week: estimated.has(month) ? `${label} *` : label, ...byMonth.get(month)! } as ChemieDataPoint;
+    });
+  })();
+  const chemieEstimated = chemieChartData.some((row) => String(row.week).endsWith('*'));
+
+  // ── Chemieverbruik per wagen: verbruik tussen twee tellingen ÷ wagens in die periode ──
   const chemiePerWagenData: ChemieDataPoint[] = (() => {
     const byLabel = new Map<string, ChemieDataPoint>();
     const prevByProduct = new Map<string, Date>();
-    for (const r of readingDocs) {
+    for (const r of validReadings) {
       const name = r.name as string;
       const at = r.recorded_at as Date;
       const prev = prevByProduct.get(name);
@@ -199,7 +230,7 @@ export default async function HistoriekPage({
     rows.map(pick).filter((r) => r.id === cid && r.at > from && r.at <= to).reduce((sum, r) => sum + r.q, 0);
   const verbruikProducts: VerbruikProduct[] = (() => {
     const byChem = new Map<string, { name: string; unit: string; list: typeof readingDocs }>();
-    for (const r of readingDocs) {
+    for (const r of validReadings) {
       const cid = idStr(r.chemical_id);
       if (!byChem.has(cid)) byChem.set(cid, { name: r.name as string, unit: (r.unit as string) ?? '', list: [] });
       byChem.get(cid)!.list.push(r);
@@ -228,6 +259,9 @@ export default async function HistoriekPage({
           end: (cur.quantity as number) ?? 0,
           consumption: (cur.consumption as number) ?? 0,
           wagens: entryWagens.filter((e) => e.day > f && e.day <= t).reduce((sum, e) => sum + e.wagens, 0),
+          skipped: readingDocs
+            .filter((x) => x.is_invalid && idStr(x.chemical_id) === cid && (x.recorded_at as Date) > from && (x.recorded_at as Date) < to)
+            .map((x) => fmtShort(x.recorded_at as Date)),
         });
       }
       out.push({ name, unit, periods: periods.reverse() });
@@ -345,7 +379,7 @@ export default async function HistoriekPage({
   // The earliest count per product is a baseline (no consumption derivable).
   const firstReadingIds = new Set<string>();
   const seenChem = new Set<string>();
-  for (const r of readingDocs) {
+  for (const r of validReadings) {
     const cid = (r.chemical_id as Types.ObjectId | undefined)?.toString() ?? (r.name as string);
     if (!seenChem.has(cid)) { seenChem.add(cid); firstReadingIds.add((r._id as Types.ObjectId).toString()); }
   }
@@ -396,11 +430,14 @@ export default async function HistoriekPage({
       return {
         id: (r._id as Types.ObjectId).toString(),
         kind: 'reading',
-        title: `Telling: ${r.name}`,
-        detail: isFirst
+        title: `Telling: ${r.name}${r.is_invalid ? ' — ONGELDIG' : ''}`,
+        detail: r.is_invalid
+          ? `Voorraad ${q} ${r.unit ?? ''} · telt niet mee in de berekening`
+          : isFirst
           ? `Voorraad ${q} ${r.unit ?? ''} (beginstand)`
           : `Voorraad ${q} ${r.unit ?? ''} · verbruik ${c.toLocaleString('nl-BE')} ${r.unit ?? ''}`,
         quantity: (r.quantity as number) ?? 0,
+        invalid: Boolean(r.is_invalid),
         byName: readerName.get((r.recorded_by as Types.ObjectId | undefined)?.toString() ?? '') ?? '',
         at: (r.recorded_at as Date).toISOString(),
       };
@@ -429,7 +466,7 @@ export default async function HistoriekPage({
         <div className={styles.card}>
           <div className={styles.header}>
             <h2 className={styles.title}>Chemieverbruik per maand — {siteName}</h2>
-            <p className={styles.subtitle}>Berekend uit de voorraadtellingen: vorige telling + leveringen ± verplaatsingen ± correcties − nieuwe telling</p>
+            <p className={styles.subtitle}>Berekend uit de voorraadtellingen: vorige telling + leveringen ± verplaatsingen ± correcties − nieuwe telling.{chemieEstimated ? ' * = geschat: een telperiode over meerdere maanden is verdeeld volgens het aantal wagens (selfcarwash: dagen).' : ''}</p>
           </div>
           <ChemieChart data={chemieChartData} products={chemieProducts} />
         </div>

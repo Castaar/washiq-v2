@@ -57,6 +57,7 @@ export interface StockLedgerItem {
   detail: string;
   // Set when the quantity can be corrected (tracked delivery or stock count)
   quantity?: number;
+  invalid?: boolean;
   byName: string;
   at: string;
 }
@@ -151,6 +152,14 @@ export function EventHistoryPanel({ defects, schades, orders, maintenance, stock
     const qty = parseFloat(input.replace(',', '.'));
     if (!Number.isFinite(qty) || qty < 0) return;
     void ledgerRequest(item, 'PATCH', { quantity: qty });
+  }
+
+  function handleToggleInvalid(item: StockLedgerItem) {
+    const msg = item.invalid
+      ? `${item.title}\n\nDeze telling weer laten meetellen?`
+      : `${item.title}\n\nDeze telling ongeldig verklaren?\nZe blijft zichtbaar, maar telt niet meer mee: de periodes ervoor en erna worden één periode met het juiste verbruik.`;
+    if (!confirm(msg)) return;
+    void ledgerRequest(item, 'PATCH', { invalid: !item.invalid });
   }
 
   function handleEditLedgerDate(item: StockLedgerItem) {
@@ -273,6 +282,11 @@ export function EventHistoryPanel({ defects, schades, orders, maintenance, stock
                 )}
                 {(d.kind === 'reading' || d.kind === 'delivery') && (
                   <button type="button" className={styles.tab} disabled={busyId === d.id} onClick={() => handleEditLedgerDate(d)}>Datum</button>
+                )}
+                {d.kind === 'reading' && (
+                  <button type="button" className={styles.tab} disabled={busyId === d.id} onClick={() => handleToggleInvalid(d)}>
+                    {d.invalid ? 'Weer geldig' : 'Ongeldig'}
+                  </button>
                 )}
                 <button type="button" className={styles.tab} disabled={busyId === d.id} onClick={() => handleDeleteLedger(d)}>Verwijder</button>
               </div>

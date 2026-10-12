@@ -139,7 +139,7 @@ export async function CarwashPage({
     siteId ? EnergyBill.findOne({ site_id: siteId, year: curYear,  month: curMonth  }).lean() : null,
     siteId ? EnergyBill.findOne({ site_id: siteId, year: prevYear, month: prevMonth }).lean() : null,
     // All stock readings for this site, oldest first — used to derive monthly chemistry consumption
-    StockReading.find(filter).select('name unit consumption recorded_at').sort({ recorded_at: 1 }).lean(),
+    StockReading.find({ ...filter, is_invalid: { $ne: true } }).select('name unit consumption recorded_at').sort({ recorded_at: 1 }).lean(),
     // Pending orders — stay visible until marked handled, regardless of the day/period toggle
     siteId ? OrderRequest.find({ site_id: siteId, is_handled: false }).sort({ requested_at: -1 }).lean() : [],
     // Every ingave's date + wagens — chemistry per wagen divides a count period's consumption by the wagens in that period

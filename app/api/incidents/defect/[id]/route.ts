@@ -35,6 +35,19 @@ export async function PUT(
     if (body.ernst !== undefined && ['laag', 'medium', 'hoog'].includes(body.ernst)) update.ernst = body.ernst;
   }
 
+  // Extra photos on an existing report — anyone logged in may add (max 10 in total)
+  const addPhotos = (body as { add_photos?: unknown }).add_photos;
+  if (Array.isArray(addPhotos) && addPhotos.length > 0) {
+    const valid = addPhotos.filter((x): x is string => typeof x === 'string' && x.startsWith('data:image/'));
+    const existing = await Defect.findById(id).select('photos').lean();
+    if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    const current = ((existing as { photos?: string[] }).photos ?? []).length;
+    if (current + valid.length > 10) {
+      return NextResponse.json({ error: `Maximaal 10 foto's per melding (nu ${current}).` }, { status: 400 });
+    }
+    (update as Record<string, unknown>).$push = { photos: { $each: valid } };
+  }
+
   const doc = await Defect.findByIdAndUpdate(id, update, { new: true });
   if (!doc) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 

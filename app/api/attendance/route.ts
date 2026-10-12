@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
 import { AttendanceLog, User } from '@/lib/models';
 import { getSessionFromRequest } from '@/lib/session';
+import { brusselsInstant } from '@/lib/dates';
 import { sendPushToUser, afterResponse } from '@/lib/push';
 import type { Types } from 'mongoose';
 
@@ -85,6 +86,28 @@ export async function POST(req: NextRequest) {
   // actually happened (e.g. filling it in after the fact at end of day) —
   // everyone else always logs at "now".
   const timestamp = isOnBehalf && body.timestamp ? new Date(body.timestamp) : new Date();
+
+  // A backdated departure that falls before that person's arrival the same day is
+  // almost always a 12h/24h slip (06:30 meant as 18:30) — refuse it with a hint.
+  if (isOnBehalf && body.type === 'sluiting' && body.timestamp) {
+    const day = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Brussels' }).format(timestamp);
+    const arrival = await AttendanceLog.findOne({
+      user_id: body.onBehalfOfUserId,
+      type: 'opening',
+      timestamp: { $gte: brusselsInstant(day, '00:00:00'), $lte: timestamp },
+    }).sort({ timestamp: 1 }).lean();
+    const laterArrival = arrival ? null : await AttendanceLog.findOne({
+      user_id: body.onBehalfOfUserId,
+      type: 'opening',
+      timestamp: { $gt: timestamp, $lte: brusselsInstant(day, '23:59:59') },
+    }).lean();
+    if (laterArrival) {
+      const t = (d: Date) => d.toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Brussels' });
+      return NextResponse.json({
+        error: `Vertrek (${t(timestamp)}) ligt vóór de aankomst van die dag (${t(new Date(laterArrival.timestamp as Date))}). Kies het uur in 24u-formaat, bv. 18 u voor 6 uur 's avonds.`,
+      }, { status: 400 });
+    }
+  }
 
   const log = await AttendanceLog.create({
     site_id: body.siteId,

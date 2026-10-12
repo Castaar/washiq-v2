@@ -10,6 +10,7 @@ export interface VerbruikPeriod {
   end: number;
   consumption: number;
   wagens: number;
+  skipped?: string[]; // dates of counts marked invalid inside this period
 }
 
 export interface VerbruikProduct {
@@ -31,7 +32,10 @@ function Row({ p, unit }: { p: VerbruikPeriod; unit: string }) {
   const suspicious = p.consumption < 0;
   return (
     <tr className={suspicious ? styles.warnRow : undefined}>
-      <td>{p.from} → {p.to}</td>
+      <td>
+        {p.from} → {p.to}
+        {p.skipped && p.skipped.length > 0 && <span className={styles.skipped}> (telling {p.skipped.join(', ')} ongeldig)</span>}
+      </td>
       <td>{n(p.start)}</td>
       <td>{signed(p.delivered)}</td>
       <td>{signed(p.transferred)}</td>

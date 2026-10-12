@@ -210,6 +210,9 @@ export interface IStockReading extends Document {
   consumption: number;
   recorded_at: Date;
   recorded_by: Types.ObjectId;
+  // A count marked as wrong: kept for reference but skipped in every calculation,
+  // so the periods around it merge into one.
+  is_invalid: boolean;
 }
 const StockReadingSchema = new Schema<IStockReading>({
   site_id: { type: Schema.Types.ObjectId, ref: 'Site' },
@@ -220,6 +223,7 @@ const StockReadingSchema = new Schema<IStockReading>({
   consumption: { type: Number, default: 0 },
   recorded_at: { type: Date, default: Date.now },
   recorded_by: { type: Schema.Types.ObjectId, ref: 'User' },
+  is_invalid: { type: Boolean, default: false },
 });
 StockReadingSchema.index({ site_id: 1, chemical_id: 1, recorded_at: -1 });
 export const StockReading = models.StockReading || model<IStockReading>('StockReading', StockReadingSchema);

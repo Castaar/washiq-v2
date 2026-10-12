@@ -28,13 +28,13 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   return NextResponse.json({ success: true });
 }
 
-// PATCH /api/stock/reading/[id] — correct the counted quantity and/or the date of the count
+// PATCH /api/stock/reading/[id] — correct the counted quantity, the date, or mark the count (in)valid
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   if (!(await guard(req))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   await dbConnect();
   const { id } = await params;
-  const body = await req.json() as { quantity?: number; recordedAt?: string };
+  const body = await req.json() as { quantity?: number; recordedAt?: string; invalid?: boolean };
 
   const reading = await StockReading.findById(id);
   if (!reading) return NextResponse.json({ error: 'Not found' }, { status: 404 });
@@ -53,6 +53,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
     reading.recorded_at = at;
   }
+
+  if (typeof body.invalid === 'boolean') reading.is_invalid = body.invalid;
 
   await reading.save();
   await recomputeChemical(reading.chemical_id.toString());
