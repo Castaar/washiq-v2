@@ -301,7 +301,7 @@ export function HandleidingContent({ role, siteParam, fromLogin }: Props) {
           <div className={styles.subSection}>
             <span className={styles.subTitle}>Installeren als app</span>
             <p className={styles.text}>
-              WashIQ werkt als een Progressive Web App (PWA). Op Android verschijnt er een
+              Glosiv werkt als een Progressive Web App (PWA). Op Android verschijnt er een
               installatieknop op de inlogpagina. Op iOS (Safari): tik op het deelknopje en kies
               &ldquo;Zet op beginscherm&rdquo;. Eenmaal geïnstalleerd opent de app in volledig scherm
               zonder browserbalk.
@@ -324,7 +324,7 @@ export function HandleidingContent({ role, siteParam, fromLogin }: Props) {
   return (
     <div className={styles.wrap}>
       <div className={styles.introBanner}>
-        <h1 className={styles.introTitle}>Welkom bij WashIQ</h1>
+        <h1 className={styles.introTitle}>Welkom bij Glosiv</h1>
         <p className={styles.introSubtitle}>
           Deze handleiding legt uit hoe de app werkt en wat alle knoppen betekenen.
           Klik op een onderdeel om de uitleg te tonen. Je kunt deze pagina altijd

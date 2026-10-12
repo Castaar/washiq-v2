@@ -82,7 +82,7 @@ export async function GET(req: NextRequest) {
   };
 
   const json = JSON.stringify(payload, null, 2);
-  const filename = `washiq-backup-${(owner.name as string || 'owner').toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${new Date().toISOString().slice(0, 10)}.json`;
+  const filename = `glosiv-backup-${(owner.name as string || 'owner').toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${new Date().toISOString().slice(0, 10)}.json`;
 
   return new NextResponse(json, {
     status: 200,

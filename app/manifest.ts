@@ -2,8 +2,8 @@ import type { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'WashIQ — Inventory Suite',
-    short_name: 'WashIQ',
+    name: 'Glosiv',
+    short_name: 'Glosiv',
     description: 'Carwash dashboard voor stock en verbruiksbeheer.',
     start_url: '/',
     display: 'standalone',

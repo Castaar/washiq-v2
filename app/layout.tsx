@@ -21,14 +21,15 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'WashIQ — Inventory Suite',
+  title: 'Glosiv',
   description: 'Carwash dashboard voor stock en verbruiksbeheer.',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'WashIQ',
+    title: 'Glosiv',
   },
   icons: {
+    icon: [{ url: '/icons/favicon-64.png', sizes: '64x64', type: 'image/png' }, { url: '/icons/icon.svg', type: 'image/svg+xml' }],
     apple: '/icons/apple-touch-icon.png',
   },
   robots: {

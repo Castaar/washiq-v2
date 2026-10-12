@@ -164,7 +164,7 @@ export function SetupWizard({ siteId, siteName, sites, initialPrices, initialTas
       {step === 0 && (
         <div className={styles.body}>
           <p className={styles.lead}>
-            Welkom bij WashIQ. Deze wizard helpt je de site <strong>{siteName}</strong> in enkele
+            Welkom bij Glosiv. Deze wizard helpt je de site <strong>{siteName}</strong> in enkele
             minuten klaar te zetten. Je kan dit altijd later aanpassen via de instellingen.
           </p>
 

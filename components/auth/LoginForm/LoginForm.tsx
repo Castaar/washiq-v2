@@ -100,7 +100,8 @@ export function LoginForm({ sites }: LoginFormProps) {
   return (
     <form className={styles.card} onSubmit={handleSubmit} noValidate>
       <div className={styles.logoArea}>
-        <span className={styles.logoText}>WashIQ</span>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/brand/glosiv-logo.svg" alt="Glosiv" className={styles.logoImg} />
       </div>
 
       {sites.length > 1 && (

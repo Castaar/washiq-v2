@@ -560,7 +560,7 @@ export function DeveloperPanel({ users: initialUsers, sites: initialSites, progr
       const blob = await res.blob();
       const disposition = res.headers.get('Content-Disposition') ?? '';
       const match = disposition.match(/filename="(.+)"/);
-      const filename = match?.[1] ?? 'washiq-backup.json';
+      const filename = match?.[1] ?? 'glosiv-backup.json';
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -647,7 +647,7 @@ export function DeveloperPanel({ users: initialUsers, sites: initialSites, progr
       const blob = await res.blob();
       const disposition = res.headers.get('Content-Disposition') ?? '';
       const match = disposition.match(/filename="(.+)"/);
-      const filename = match?.[1] ?? 'washiq-vertalingen.csv';
+      const filename = match?.[1] ?? 'glosiv-vertalingen.csv';
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;

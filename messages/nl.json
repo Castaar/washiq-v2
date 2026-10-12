@@ -156,10 +156,10 @@
     "geenMeldingenNu": "Je krijgt nu geen meldingen (nieuwe incidenten, defecten, ...).",
     "inschakelen": "🔔 Meldingen inschakelen",
     "geblokkeerdIntro": "Meldingen staan geblokkeerd voor deze app. Dit kan de app niet zelf herstellen — je moet dit aanzetten via je toestel:",
-    "stapIos": "<b>iOS/iPadOS:</b> Instellingen → scroll naar \"WashIQ\" → Meldingen → aanzetten.",
-    "stapAndroid": "<b>Android:</b> lang drukken op het WashIQ-icoon → App-info → Meldingen → aanzetten.",
-    "stapMacos": "<b>macOS:</b> Systeeminstellingen → Meldingen → WashIQ → aanzetten.",
-    "stapWindows": "<b>Windows:</b> Instellingen → Systeem → Meldingen → WashIQ → aanzetten.",
+    "stapIos": "<b>iOS/iPadOS:</b> Instellingen → scroll naar \"Glosiv\" → Meldingen → aanzetten.",
+    "stapAndroid": "<b>Android:</b> lang drukken op het Glosiv-icoon → App-info → Meldingen → aanzetten.",
+    "stapMacos": "<b>macOS:</b> Systeeminstellingen → Meldingen → Glosiv → aanzetten.",
+    "stapWindows": "<b>Windows:</b> Instellingen → Systeem → Meldingen → Glosiv → aanzetten.",
     "stapBrowser": "<b>In een browsertab (niet-geïnstalleerd):</b> klik het slotje naast de adresbalk → Site-instellingen → Meldingen → Toestaan."
   },
   "announcement": {

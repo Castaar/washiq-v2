@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
     status: 200,
     headers: {
       'Content-Type': 'text/csv',
-      'Content-Disposition': `attachment; filename="washiq-vertalingen-${new Date().toISOString().slice(0, 10)}.csv"`,
+      'Content-Disposition': `attachment; filename="glosiv-vertalingen-${new Date().toISOString().slice(0, 10)}.csv"`,
     },
   });
 }

@@ -27,15 +27,10 @@
 }
 
 .brandMark {
-  @include flex-center;
+  display: block;
   width: 30px;
   height: 30px;
-  border-radius: var(--radius-sm);
-  background: var(--gradient-blue);
-  color: var(--color-text-inverse);
-  font-size: 0.8125rem;
-  font-weight: 700;
-  box-shadow: var(--glow-blue);
+  object-fit: contain;
 }
 
 .backBtn {

@@ -34,7 +34,8 @@ export async function NavBar({ centerTitle, sites, activeSiteId, addHref, addLab
           </Link>
         ) : (
           <Link href="/" className={styles.brand}>
-            <span className={styles.brandMark}>W</span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/glosiv-mark.svg" alt="Glosiv" className={styles.brandMark} />
           </Link>
         )}
         <div className={styles.titleGroup}>
@@ -42,7 +43,7 @@ export async function NavBar({ centerTitle, sites, activeSiteId, addHref, addLab
             <span className={styles.pageTitle}>{centerTitle}</span>
           ) : (
             <>
-              <span className={styles.brandText}>WashIQ</span>
+              <span className={styles.brandText}>Glosiv</span>
               {sites && sites.length > 0 && activeSiteId ? (
                 <Suspense fallback={<span className={styles.siteFallback}>{siteLabel(sites.find((s) => s.id === activeSiteId))}</span>}>
                   <SiteSelector sites={sites} activeSiteId={activeSiteId} />
