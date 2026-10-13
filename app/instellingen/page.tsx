@@ -62,8 +62,13 @@ export default async function InstellingenPage({
         salt_per_kg: priceConfigDoc.salt_per_kg ?? 0,
         flock_per_kg: priceConfigDoc.flock_per_kg ?? 0,
         cloth_per_unit: (priceConfigDoc.cloth_per_unit as number) ?? 0,
-        chemicals: ((priceConfigDoc.chemicals as { name: string; price_per_unit: number }[]) ?? []).map(
-          (c) => ({ name: c.name as string, price_per_unit: (c.price_per_unit as number) ?? 0 }),
+        chemicals: ((priceConfigDoc.chemicals as { name: string; price_per_unit: number; price_unit?: string; liters_per_1000kg?: number }[]) ?? []).map(
+          (c) => ({
+            name: c.name as string,
+            price_per_unit: (c.price_per_unit as number) ?? 0,
+            price_unit: (c.price_unit === 'kg' ? 'kg' : 'stock') as 'kg' | 'stock',
+            liters_per_1000kg: (c.liters_per_1000kg as number) ?? 0,
+          }),
         ),
       }
     : null;

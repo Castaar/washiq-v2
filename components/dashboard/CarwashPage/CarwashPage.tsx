@@ -30,7 +30,7 @@ import { LogboekPanel } from '@/components/logboek/LogboekPanel/LogboekPanel';
 import type { LogEntry } from '@/components/logboek/LogboekPanel/LogboekPanel';
 import type { AlertItem, AlertsPanelData, VoorraadItem, ConsumptionData, DagfichePayload, IncidentSchadePayload, IncidentEhboPayload, DefectPayload, MaintenanceTaskPayload } from '@/lib/types/dashboard';
 import { computeIsOverdue, computeIsApproaching, washesRemaining } from '@/lib/maintenance';
-import { priceAt } from '@/lib/prices';
+import { priceAt, pricePerStockUnit } from '@/lib/prices';
 import styles from './CarwashPage.module.scss';
 import type { Types } from 'mongoose';
 
@@ -201,10 +201,10 @@ export async function CarwashPage({
     return periods.filter((c) => c.wagens > 0).map((c) => {
       // Priced with the version that was valid at the end of this count period
       const p = priceAt(priceConfigs, c.at);
-      const chemPrice = (p?.chemicals as { name: string; price_per_unit: number }[] | undefined)?.find((x) => x.name === c.name);
+      const chemPrice = (p?.chemicals as { name: string; price_per_unit: number; price_unit?: string; liters_per_1000kg?: number }[] | undefined)?.find((x) => x.name === c.name);
       return {
         label: translateContent(contentTranslations, 'product', c.name),
-        euroPerWagen: r2(c.amount * (chemPrice?.price_per_unit ?? 0) / c.wagens),
+        euroPerWagen: r2(c.amount * pricePerStockUnit(chemPrice) / c.wagens),
         rawPerWagen: r3(c.amount / c.wagens),
         unit: c.unit,
         isChemical: true,

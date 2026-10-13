@@ -70,7 +70,9 @@ export interface IPriceConfig extends Document {
   salt_per_kg: number;
   flock_per_kg: number;
   cloth_per_unit: number;
-  chemicals: { name: string; price_per_unit: number }[];
+  // price_unit 'kg': price is per kg while stock is counted in liters;
+  // liters_per_1000kg converts (e.g. 1000 kg = 930 L).
+  chemicals: { name: string; price_per_unit: number; price_unit?: 'stock' | 'kg'; liters_per_1000kg?: number }[];
   valid_from: Date;
 }
 const PriceConfigSchema = new Schema<IPriceConfig>({
@@ -80,7 +82,7 @@ const PriceConfigSchema = new Schema<IPriceConfig>({
   salt_per_kg: Number,
   flock_per_kg: Number,
   cloth_per_unit: { type: Number, default: 0 },
-  chemicals: [{ name: String, price_per_unit: Number }],
+  chemicals: [{ name: String, price_per_unit: Number, price_unit: { type: String, default: 'stock' }, liters_per_1000kg: { type: Number, default: 0 } }],
   valid_from: Date,
 });
 PriceConfigSchema.index({ site_id: 1, valid_from: -1 });

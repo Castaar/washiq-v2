@@ -45,7 +45,7 @@ interface PriceConfigData {
   salt_per_kg: number;
   flock_per_kg: number;
   cloth_per_unit: number;
-  chemicals: { name: string; price_per_unit: number }[];
+  chemicals: { name: string; price_per_unit: number; price_unit?: 'stock' | 'kg'; liters_per_1000kg?: number }[];
 }
 
 interface EnergyBillData {
@@ -112,9 +112,9 @@ function StepBadge({ num, done }: { num: number; done: boolean }) {
 }
 
 function PriceField({
-  label, unit, value, onChange,
+  label, unit, value, onChange, children,
 }: {
-  label: string; unit: string; value: string; onChange: (v: string) => void;
+  label: string; unit: string; value: string; onChange: (v: string) => void; children?: React.ReactNode;
 }) {
   return (
     <div className={styles.priceField}>
@@ -131,6 +131,7 @@ function PriceField({
         />
         <span className={styles.priceUnit}>{unit}</span>
       </div>
+      {children}
     </div>
   );
 }
@@ -153,6 +154,16 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
         return [s.name, existing?.price_per_unit ? String(existing.price_per_unit) : ''];
       }),
     ),
+  );
+  // Products bought per kg but counted in liters: price per kg + "1000 kg = X L"
+  const [chemPriceUnit, setChemPriceUnit] = useState<Record<string, 'stock' | 'kg'>>(() =>
+    Object.fromEntries(stocks.map((s) => [s.name, priceConfig?.chemicals.find((c) => c.name === s.name)?.price_unit === 'kg' ? 'kg' : 'stock'])),
+  );
+  const [chemLiters, setChemLiters] = useState<Record<string, string>>(() =>
+    Object.fromEntries(stocks.map((s) => {
+      const l = priceConfig?.chemicals.find((c) => c.name === s.name)?.liters_per_1000kg ?? 0;
+      return [s.name, l > 0 ? String(l) : ''];
+    })),
   );
   const [savingPrices, setSavingPrices] = useState(false);
   const [pricesSaved, setPricesSaved] = useState(false);
@@ -479,6 +490,8 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
         chemicals: productList.map((s) => ({
           name: s.name,
           price_per_unit: parseFloat(chemPrices[s.name] ?? '') || 0,
+          price_unit: chemPriceUnit[s.name] === 'kg' ? 'kg' : 'stock',
+          liters_per_1000kg: chemPriceUnit[s.name] === 'kg' ? parseFloat((chemLiters[s.name] ?? '').replace(',', '.')) || 0 : 0,
         })),
       }),
     });
@@ -592,15 +605,53 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
 
         <div className={styles.priceGrid}>
           <PriceField label="Water" unit="€ / m³" value={waterPrice} onChange={setWaterPrice} />
-          {productList.map((s) => (
-            <PriceField
-              key={s.name}
-              label={s.name}
-              unit={`€ / ${s.unit}`}
-              value={chemPrices[s.name] ?? ''}
-              onChange={(v) => setChemPrices((prev) => ({ ...prev, [s.name]: v }))}
-            />
-          ))}
+          {productList.map((s) => {
+            const perKg = chemPriceUnit[s.name] === 'kg';
+            const canUseKg = s.unit.toLowerCase() === 'l';
+            return (
+              <PriceField
+                key={s.name}
+                label={s.name}
+                unit={perKg ? '€ / kg' : `€ / ${s.unit}`}
+                value={chemPrices[s.name] ?? ''}
+                onChange={(v) => setChemPrices((prev) => ({ ...prev, [s.name]: v }))}
+              >
+                {canUseKg && (
+                  <label className={styles.priceKgToggle}>
+                    <input
+                      type="checkbox"
+                      checked={perKg}
+                      onChange={(e) => setChemPriceUnit((prev) => ({ ...prev, [s.name]: e.target.checked ? 'kg' : 'stock' }))}
+                    />
+                    Prijs per kg
+                  </label>
+                )}
+                {canUseKg && perKg && (
+                  <div className={styles.priceKgRow}>
+                    <span>1000 kg =</span>
+                    <input
+                      className={styles.priceKgInput}
+                      type="number"
+                      step="any"
+                      min="0"
+                      placeholder="930"
+                      value={chemLiters[s.name] ?? ''}
+                      onChange={(e) => setChemLiters((prev) => ({ ...prev, [s.name]: e.target.value }))}
+                    />
+                    <span>L</span>
+                  </div>
+                )}
+                {canUseKg && perKg && !(parseFloat(chemLiters[s.name] ?? '') > 0) && (
+                  <span className={styles.priceKgHint}>Vul in hoeveel liter 1000 kg is.</span>
+                )}
+                {canUseKg && perKg && parseFloat(chemLiters[s.name] ?? '') > 0 && parseFloat(chemPrices[s.name] ?? '') > 0 && (
+                  <span className={styles.priceKgHint}>
+                    = € {(parseFloat(chemPrices[s.name]) * 1000 / parseFloat(chemLiters[s.name])).toFixed(4).replace('.', ',')} / L
+                  </span>
+                )}
+              </PriceField>
+            );
+          })}
         </div>
 
         {hasPriceConfig && (

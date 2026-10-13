@@ -18,9 +18,11 @@ export async function GET(req: NextRequest) {
     salt_per_kg: config.salt_per_kg ?? 0,
     flock_per_kg: config.flock_per_kg ?? 0,
     cloth_per_unit: (config.cloth_per_unit as number) ?? 0,
-    chemicals: ((config.chemicals as { name: string; price_per_unit: number }[]) ?? []).map((c) => ({
+    chemicals: ((config.chemicals as { name: string; price_per_unit: number; price_unit?: string; liters_per_1000kg?: number }[]) ?? []).map((c) => ({
       name: c.name,
       price_per_unit: c.price_per_unit,
+      price_unit: c.price_unit === 'kg' ? 'kg' : 'stock',
+      liters_per_1000kg: c.liters_per_1000kg ?? 0,
     })),
   });
 }
@@ -43,9 +45,11 @@ export async function POST(req: NextRequest) {
     salt_per_kg: Number(salt_per_kg) || 0,
     flock_per_kg: Number(flock_per_kg) || 0,
     cloth_per_unit: Number(cloth_per_unit) || 0,
-    chemicals: (chemicals ?? []).map((c: { name: string; price_per_unit: string | number }) => ({
+    chemicals: (chemicals ?? []).map((c: { name: string; price_per_unit: string | number; price_unit?: string; liters_per_1000kg?: string | number }) => ({
       name: c.name,
       price_per_unit: Number(c.price_per_unit) || 0,
+      price_unit: c.price_unit === 'kg' && Number(c.liters_per_1000kg) > 0 ? 'kg' : 'stock',
+      liters_per_1000kg: c.price_unit === 'kg' ? Number(c.liters_per_1000kg) || 0 : 0,
     })),
   };
 
