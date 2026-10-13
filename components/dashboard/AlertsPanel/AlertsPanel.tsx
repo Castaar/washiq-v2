@@ -11,7 +11,7 @@ import { IncidentModal } from '@/components/dashboard/IncidentModal/IncidentModa
 import { MaintenanceModal } from '@/components/dashboard/MaintenanceModal/MaintenanceModal';
 import styles from './AlertsPanel.module.scss';
 
-type AlertTab = 'alerts' | 'onderhoud' | 'incident' | 'bestellingen';
+export type AlertTab = 'alerts' | 'onderhoud' | 'incident' | 'bestellingen';
 
 const tabLabelKeys: Record<AlertTab, string> = {
   alerts:       'meldingen',
@@ -297,14 +297,16 @@ interface DayLog {
 interface AlertsPanelProps {
   data: AlertsPanelData;
   dayLog?: DayLog;
+  // Restrict which tabs are shown (e.g. employees: only onderhoud + incidenten)
+  visibleTabs?: AlertTab[];
 }
 
-export function AlertsPanel({ data, dayLog }: AlertsPanelProps) {
+export function AlertsPanel({ data, dayLog, visibleTabs = tabs }: AlertsPanelProps) {
   const t = useTranslations('alerts');
   const tCommon = useTranslations('common');
   const router = useRouter();
   const dateInputRef = useRef<HTMLInputElement>(null);
-  const [active, setActive]               = useState<AlertTab>('alerts');
+  const [active, setActive]               = useState<AlertTab>(visibleTabs[0] ?? 'alerts');
   const [archiveOpen, setArchiveOpen]     = useState(false);
   const [dagficheOpen, setDagficheOpen]   = useState<DagficheModalState | null>(null);
   const [incidentOpen, setIncidentOpen]   = useState<IncidentModalState | null>(null);
@@ -417,7 +419,7 @@ export function AlertsPanel({ data, dayLog }: AlertsPanelProps) {
 
         {/* ── Tabs ────────────────────────────────────────── */}
         <div className={styles.tabs} role="tablist">
-          {tabs.map(tab => (
+          {visibleTabs.map(tab => (
             <button
               key={tab}
               role="tab"

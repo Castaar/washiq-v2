@@ -999,6 +999,11 @@ export async function CarwashPage({
             currentUserId={userId}
             recentLogs={recentLogs}
           />
+          {/* Open maintenance and unresolved pannes/incidents, so employees see at a glance what's pending */}
+          <AlertsPanel
+            data={{ alerts: [], onderhoud: [...alertItems, ...approachingItems], incident: incidentItems, bestellingen: [] }}
+            visibleTabs={['onderhoud', 'incident']}
+          />
           <div className={styles.heroImageWrap}>
             <Image
               src="/carwash-illustration.webp"
