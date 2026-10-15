@@ -1,4 +1,8 @@
-const CACHE = 'dodane-v5';
+const CACHE = 'dodane-v6';
+// Holds the target of the last notification click, so the app can still
+// navigate there when iOS resumes it without delivering our postMessage.
+const NAV_CACHE = 'glosiv-pending-nav';
+const NAV_KEY = '/__pending-nav';
 
 const PRECACHE = [
   '/',
@@ -19,7 +23,7 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))),
+      Promise.all(keys.filter((k) => k !== CACHE && k !== NAV_CACHE).map((k) => caches.delete(k))),
     ),
   );
   self.clients.claim();
@@ -101,7 +105,11 @@ self.addEventListener('notificationclick', (event) => {
   const targetUrl = event.notification.data?.url ?? '/';
 
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async (windowClients) => {
+    caches.open(NAV_CACHE)
+      .then((cache) => cache.put(NAV_KEY, new Response(JSON.stringify({ url: targetUrl, at: Date.now() }), { headers: { 'Content-Type': 'application/json' } })))
+      .catch(() => {})
+      .then(() => clients.matchAll({ type: 'window', includeUncontrolled: true }))
+      .then(async (windowClients) => {
       // postMessage every open window first (fire-and-forget) so the page's
       // own JS can force an in-app route change as a belt-and-braces fallback.
       for (const client of windowClients) {

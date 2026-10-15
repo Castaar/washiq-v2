@@ -40,7 +40,36 @@ export function PwaRegister() {
     }
     navigator.serviceWorker.addEventListener('message', handleMessage);
 
+    // iOS often resumes the frozen app on its previous screen and drops the
+    // postMessage above. The service worker also stores the clicked target in
+    // Cache Storage — pick it up whenever the app becomes visible again.
+    async function consumePendingNavigation() {
+      if (!('caches' in window)) return;
+      try {
+        const cache = await caches.open('glosiv-pending-nav');
+        const res = await cache.match('/__pending-nav');
+        if (!res) return;
+        await cache.delete('/__pending-nav');
+        const { url, at } = (await res.json()) as { url?: string; at?: number };
+        if (typeof url !== 'string' || !url.startsWith('/')) return;
+        if (!at || Date.now() - at > 5 * 60 * 1000) return;
+        if (window.location.pathname + window.location.search !== url) window.location.href = url;
+      } catch {
+        // storage unavailable — nothing to do
+      }
+    }
+    void consumePendingNavigation();
+    function handleVisible() {
+      if (document.visibilityState === 'visible') void consumePendingNavigation();
+    }
+    document.addEventListener('visibilitychange', handleVisible);
+    window.addEventListener('focus', handleVisible);
+    window.addEventListener('pageshow', handleVisible);
+
     return () => {
+      document.removeEventListener('visibilitychange', handleVisible);
+      window.removeEventListener('focus', handleVisible);
+      window.removeEventListener('pageshow', handleVisible);
       navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
       navigator.serviceWorker.removeEventListener('message', handleMessage);
     };

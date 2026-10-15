@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import { cookies } from 'next/headers';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
+import { PullToRefresh } from '@/components/layout/PullToRefresh/PullToRefresh';
 import { PwaRegister } from '@/components/layout/PwaRegister';
 import PushSetup from '@/components/layout/PushSetup/PushSetup';
 import { ToastProvider } from '@/components/ui/Toast/ToastProvider';
@@ -68,6 +69,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <NextIntlClientProvider locale={locale} messages={messages}>
           <ToastProvider>
             <PwaRegister />
+            {session && <PullToRefresh />}
             <PushSetup />
             {children}
             {session && <SyncActiveSiteCookie />}

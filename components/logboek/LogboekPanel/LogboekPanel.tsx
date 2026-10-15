@@ -180,6 +180,11 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
       setOnBehalfError('Kies een medewerker');
       return;
     }
+    // A chosen (earlier) date needs an hour, otherwise it would silently be logged as "now"
+    if (onBehalfDate && onBehalfHour === '') {
+      setOnBehalfError('Kies ook het uur voor die datum.');
+      return;
+    }
     const emp = employees.find((e) => e.id === onBehalfUserId);
     setOnBehalfSaving(true);
     const res = await fetch('/api/attendance', {
