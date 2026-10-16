@@ -824,7 +824,7 @@ export const OrderRequest = models.OrderRequest || model<IOrderRequest>('OrderRe
 // - washes_at_last_replacement (computed at read time, not stored).
 export interface IBrush extends Document {
   site_id: Types.ObjectId;
-  category: 'verticaal_links' | 'verticaal_rechts' | 'horizontaal';
+  category: string; // see lib/brushes.ts BRUSH_CATEGORIES
   label: string;
   order: number;
   washes_at_last_replacement: number;
@@ -833,7 +833,7 @@ export interface IBrush extends Document {
 }
 const BrushSchema = new Schema<IBrush>({
   site_id: { type: Schema.Types.ObjectId, ref: 'Site', required: true },
-  category: { type: String, enum: ['verticaal_links', 'verticaal_rechts', 'horizontaal'], required: true },
+  category: { type: String, required: true },
   label: { type: String, required: true },
   order: { type: Number, default: 0 },
   washes_at_last_replacement: { type: Number, default: 0 },

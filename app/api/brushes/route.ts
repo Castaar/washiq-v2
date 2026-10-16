@@ -3,6 +3,7 @@ import { dbConnect } from '@/lib/db/mongoose';
 import { Brush } from '@/lib/models';
 import { getSessionFromRequest } from '@/lib/session';
 import type { Types } from 'mongoose';
+import { brushCategoryInfo } from '@/lib/brushes';
 
 // GET /api/brushes?siteId=xxx — list all brushes for a site, all roles
 export async function GET(req: NextRequest) {
@@ -36,7 +37,7 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json() as {
     siteId: string;
-    category: 'verticaal_links' | 'verticaal_rechts' | 'horizontaal';
+    category: string;
     label: string;
     currentTellerstand?: number;
     alreadyUsed?: number;
@@ -45,9 +46,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'siteId, category and label required' }, { status: 400 });
   }
 
+  const info = brushCategoryInfo(body.category);
+  if (!info) return NextResponse.json({ error: 'Onbekende borstelsoort' }, { status: 400 });
+
   await dbConnect();
 
   const count = await Brush.countDocuments({ site_id: body.siteId, category: body.category });
+  if (count >= info.max) {
+    return NextResponse.json({ error: `Maximaal ${info.max} × ${info.label}` }, { status: 400 });
+  }
 
   // A brand-new brush starts its wear count from today's tellerstand (0
   // washes done yet). If it's an already-used brush being registered for

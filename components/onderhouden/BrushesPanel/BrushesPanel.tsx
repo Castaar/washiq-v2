@@ -3,9 +3,10 @@
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Badge } from '@/components/ui/Badge/Badge';
+import { BRUSH_CATEGORIES, BRUSH_CATEGORY_KEYS, brushCategoryInfo, type BrushCategory } from '@/lib/brushes';
 import styles from './BrushesPanel.module.scss';
 
-export type BrushCategory = 'verticaal_links' | 'verticaal_rechts' | 'horizontaal';
+export type { BrushCategory };
 
 export interface BrushItem {
   id: string;
@@ -16,7 +17,7 @@ export interface BrushItem {
   lastReplacedAt: string | null;
 }
 
-const CATEGORIES: BrushCategory[] = ['verticaal_links', 'verticaal_rechts', 'horizontaal'];
+const CATEGORIES = BRUSH_CATEGORY_KEYS;
 
 // Slijtage-drempel: vanaf dit aantal wasbeurten sinds vervanging waarschuwen we.
 const WEAR_WARNING_THRESHOLD = 20000;
@@ -39,11 +40,7 @@ export function BrushesPanel({
   const t = useTranslations('brushes');
   const tAlerts = useTranslations('alerts');
   const tCommon = useTranslations('common');
-  const CATEGORY_LABEL: Record<BrushCategory, string> = {
-    verticaal_links: t('verticaalLinks'),
-    verticaal_rechts: t('verticaalRechts'),
-    horizontaal: t('horizontaal'),
-  };
+  const CATEGORY_LABEL = Object.fromEntries(BRUSH_CATEGORIES.map((c) => [c.key, c.label])) as Record<BrushCategory, string>;
   const [brushes, setBrushes] = useState(initialBrushes);
   const [replacingId, setReplacingId] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
@@ -52,19 +49,21 @@ export function BrushesPanel({
   const [editLabel, setEditLabel] = useState('');
 
   const [formOpen, setFormOpen] = useState(false);
-  const [newCategory, setNewCategory] = useState<BrushCategory>('verticaal_links');
+  const [newCategory, setNewCategory] = useState<BrushCategory>('dak');
+  const [addError, setAddError] = useState('');
   const [newLabel, setNewLabel] = useState('');
   const [newAlreadyUsed, setNewAlreadyUsed] = useState('');
   const [saving, setSaving] = useState(false);
 
   function suggestLabel(category: BrushCategory) {
     const n = brushes.filter((b) => b.category === category).length + 1;
-    return `${CATEGORY_LABEL[category]} #${n}`;
+    return (brushCategoryInfo(category)?.max ?? 1) > 1 ? `${CATEGORY_LABEL[category]} ${n}` : CATEGORY_LABEL[category];
   }
 
   async function handleAdd() {
     const label = newLabel.trim() || suggestLabel(newCategory);
     const alreadyUsed = Math.max(0, Number(newAlreadyUsed) || 0);
+    setAddError('');
     setSaving(true);
     try {
       const res = await fetch('/api/brushes', {
@@ -88,6 +87,9 @@ export function BrushesPanel({
         setNewLabel('');
         setNewAlreadyUsed('');
         setFormOpen(false);
+      } else {
+        const err = (await res.json().catch(() => null)) as { error?: string } | null;
+        setAddError(err?.error ?? 'Toevoegen mislukt');
       }
     } finally {
       setSaving(false);
@@ -133,10 +135,14 @@ export function BrushesPanel({
     }
   }
 
-  const grouped = CATEGORIES.map((cat) => ({
-    category: cat,
+  // Only positions this carwash actually has (plus any legacy category on old data)
+  const knownCats = new Set<string>(CATEGORIES);
+  const legacy = [...new Set(brushes.map((b) => b.category).filter((c) => !knownCats.has(c)))];
+  const grouped = [...CATEGORIES, ...legacy].map((cat) => ({
+    category: cat as BrushCategory,
     items: brushes.filter((b) => b.category === cat).sort((a, b) => a.order - b.order),
-  })).filter((g) => g.items.length > 0 || isOwner);
+  })).filter((g) => g.items.length > 0);
+  const availableCats = CATEGORIES.filter((c) => brushes.filter((b) => b.category === c).length < (brushCategoryInfo(c)?.max ?? 1));
 
   return (
     <div className={styles.wrap}>
@@ -146,8 +152,7 @@ export function BrushesPanel({
 
       {grouped.map(({ category, items }) => (
         <div key={category} className={styles.section}>
-          <h2 className={styles.sectionTitle}>{CATEGORY_LABEL[category]}</h2>
-          {items.length === 0 && <p className={styles.empty}>{t('nogGeenBorstelsCategorie')}</p>}
+          <h2 className={styles.sectionTitle}>{CATEGORY_LABEL[category] ?? category}</h2>
           {items.map((b) => {
             const washesSince = currentTellerstand > 0 ? Math.max(0, currentTellerstand - b.washesAtLastReplacement) : null;
             const worn = washesSince != null && washesSince >= WEAR_WARNING_THRESHOLD;
@@ -218,7 +223,7 @@ export function BrushesPanel({
           <div className={styles.addForm}>
             <div className={styles.addFormRow}>
               <select className={styles.select} value={newCategory} onChange={(e) => setNewCategory(e.target.value as BrushCategory)}>
-                {CATEGORIES.map((c) => (
+                {availableCats.map((c) => (
                   <option key={c} value={c}>{CATEGORY_LABEL[c]}</option>
                 ))}
               </select>
@@ -240,6 +245,7 @@ export function BrushesPanel({
               />
             </div>
             <p className={styles.addFormHint}>{t('reedsGebruiktHint')}</p>
+            {addError && <p className={styles.addFormHint}>{addError}</p>}
             <div className={styles.addFormActions}>
               <button type="button" className={styles.cancelBtn} onClick={() => { setFormOpen(false); setNewLabel(''); }}>{tCommon('annuleren')}</button>
               <button type="button" className={styles.saveBtn} onClick={handleAdd} disabled={saving}>
@@ -248,7 +254,7 @@ export function BrushesPanel({
             </div>
           </div>
         ) : (
-          <button type="button" className={styles.openFormBtn} onClick={() => { setNewLabel(''); setFormOpen(true); }}>
+          <button type="button" className={styles.openFormBtn} onClick={() => { setNewLabel(''); setAddError(''); if (availableCats[0] && !availableCats.includes(newCategory)) setNewCategory(availableCats[0]); setFormOpen(true); }} disabled={availableCats.length === 0}>
             {t('openBorstelToevoegen')}
           </button>
         )
