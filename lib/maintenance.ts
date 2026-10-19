@@ -27,18 +27,31 @@ export function computeIsOverdue(task: TaskLike, now: Date = new Date(), current
       );
       if (now < triggerThisYear) return false;
       if (!task.last_done_at) return true;
-      return new Date(task.last_done_at) < triggerThisYear;
+      // Done up to 2 months before the date counts for this year's occurrence
+      // (maintenance is often done a little early).
+      const earlyWindowStart = new Date(triggerThisYear);
+      earlyWindowStart.setMonth(earlyWindowStart.getMonth() - 2);
+      return new Date(task.last_done_at) < earlyWindowStart;
     }
 
     case 'fixed_months': {
+      const months = [...new Set(task.trigger_month_list ?? [])].filter((m) => m >= 1 && m <= 12).sort((a, b) => a - b);
       const currentMonth = now.getMonth() + 1;
-      if (!(task.trigger_month_list ?? []).includes(currentMonth)) return false;
+      if (!months.includes(currentMonth)) return false;
       if (!task.last_done_at) return true;
-      const lastDone = new Date(task.last_done_at);
-      return !(
-        lastDone.getMonth() + 1 === currentMonth &&
-        lastDone.getFullYear() === now.getFullYear()
-      );
+      const monthStart = new Date(now.getFullYear(), currentMonth - 1, 1);
+      // Done up to a month early counts — but never a completion that already
+      // belonged to the previous scheduled month.
+      const oneMonthBefore = new Date(monthStart);
+      oneMonthBefore.setMonth(oneMonthBefore.getMonth() - 1);
+      const prevMonths = months.filter((m) => m < currentMonth);
+      const prevScheduled = prevMonths.length > 0
+        ? new Date(now.getFullYear(), prevMonths[prevMonths.length - 1] - 1, 1)
+        : new Date(now.getFullYear() - 1, months[months.length - 1] - 1, 1);
+      const prevScheduledEnd = new Date(prevScheduled);
+      prevScheduledEnd.setMonth(prevScheduledEnd.getMonth() + 1);
+      const windowStart = prevScheduledEnd > oneMonthBefore ? prevScheduledEnd : oneMonthBefore;
+      return new Date(task.last_done_at) < windowStart;
     }
 
     case 'months': {

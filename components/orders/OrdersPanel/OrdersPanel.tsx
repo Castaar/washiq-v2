@@ -184,6 +184,10 @@ export function OrdersPanel({
       if (res.ok) {
         setOrderedIds((prev) => [...prev, item.id]);
         setDetailsDraft((prev) => { const n = { ...prev }; delete n[item.id]; return n; });
+        if (canManage) {
+          const list = await fetch(`/api/orders/requests?siteId=${siteId}`);
+          if (list.ok) setRequests((await list.json()) as OrderRequestData[]);
+        }
       }
     } finally {
       setOrderingId(null);
@@ -270,17 +274,25 @@ export function OrdersPanel({
                       <div className={styles.itemBody}>
                         <span className={styles.itemName}>{item.name}</span>
                         {item.description && <span className={styles.itemDesc}>{item.description}</span>}
-                        {!canManage && (
-                          <input
-                            className={styles.detailsInput}
-                            placeholder="Details (soort, hoeveelheid, ...)"
-                            value={detailsDraft[item.id] ?? ''}
-                            onClick={(e) => e.stopPropagation()}
-                            onChange={(e) => setDetailsDraft((prev) => ({ ...prev, [item.id]: e.target.value }))}
-                          />
-                        )}
+                        <input
+                          className={styles.detailsInput}
+                          placeholder="Details (soort, hoeveelheid, ...)"
+                          value={detailsDraft[item.id] ?? ''}
+                          onClick={(e) => e.stopPropagation()}
+                          onKeyDown={(e) => e.stopPropagation()}
+                          onChange={(e) => setDetailsDraft((prev) => ({ ...prev, [item.id]: e.target.value }))}
+                        />
                       </div>
-                      {canManage ? (
+                      {/* Everyone can order — owners too (e.g. a selfcarwash has no employees) */}
+                      <button
+                        type="button"
+                        className={styles.orderBtn}
+                        onClick={(e) => { e.stopPropagation(); handleOrder(item); }}
+                        disabled={orderingId === item.id || orderedIds.includes(item.id)}
+                      >
+                        {orderedIds.includes(item.id) ? 'Besteld ✓' : orderingId === item.id ? 'Bezig...' : 'Bestellen'}
+                      </button>
+                      {canManage && (
                         <button
                           type="button"
                           className={styles.deleteBtn}
@@ -288,15 +300,6 @@ export function OrdersPanel({
                           aria-label="Verwijderen"
                         >
                           ✕
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          className={styles.orderBtn}
-                          onClick={() => handleOrder(item)}
-                          disabled={orderingId === item.id || orderedIds.includes(item.id)}
-                        >
-                          {orderedIds.includes(item.id) ? 'Besteld ✓' : orderingId === item.id ? 'Bezig...' : 'Bestellen'}
                         </button>
                       )}
                     </div>
