@@ -77,7 +77,7 @@ export default async function TechniekerPage() {
       siteId: (o.site_id as Types.ObjectId).toString(),
       siteName: siteNameById[(o.site_id as Types.ObjectId).toString()] ?? '',
       title: (o.item_name as string) || 'Bestelling',
-      subtitle: (o.details as string) || '',
+      subtitle: [(o.details as string) || '', (o.requested_by_name as string) ? `Besteld door ${o.requested_by_name as string}` : ''].filter(Boolean).join(' · '),
       severity: 'low' as const,
       date: fmtDate(new Date(o.requested_at as Date)),
     })),
