@@ -1,4 +1,5 @@
 import { cookies } from 'next/headers';
+import { m } from '@/lib/demo';
 import type { Types } from 'mongoose';
 import { NavBar } from '@/components/layout/NavBar/NavBar';
 import { DagficheForm } from '@/components/forms/DagficheForm/DagficheForm';
@@ -22,6 +23,7 @@ export default async function DagfichePage({
   searchParams: Promise<{ site?: string }>;
 }) {
   const session = await getSession();
+  const isDemo = session?.demo === true;
   const { site } = await searchParams;
 
   await dbConnect();
@@ -84,13 +86,13 @@ export default async function DagfichePage({
     })),
     ...incSchadesToday.map((s) => ({
       kind: 'incident' as const,
-      label: `Schade: ${(s.merk_model as string) || (s.naam_eigenaar as string) || 'Voertuig'}`,
+      label: `Schade: ${(s.merk_model as string) || m(isDemo, (s.naam_eigenaar as string)) || 'Voertuig'}`,
       time: fmtTime(new Date(s.created_at as Date)),
       detail: [(s.omschrijving as string) || '', (s.reported_by_name as string) ? `Door: ${s.reported_by_name as string}` : ''].filter(Boolean).join(' · ') || undefined,
     })),
     ...incEhbosToday.map((e) => ({
       kind: 'incident' as const,
-      label: `EHBO: ${(e.naam_slachtoffer as string) || 'Slachtoffer'}`,
+      label: `EHBO: ${m(isDemo, (e.naam_slachtoffer as string)) || 'Slachtoffer'}`,
       time: fmtTime(new Date(e.created_at as Date)),
       detail: [(e.verwonding as string) || '', (e.reported_by_name as string) ? `Door: ${e.reported_by_name as string}` : ''].filter(Boolean).join(' · ') || undefined,
     })),

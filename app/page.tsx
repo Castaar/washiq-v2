@@ -136,7 +136,7 @@ export default async function DashboardPage({
             />
           </div>
         ) : null}
-        <CarwashPage siteId={activeSiteId} siteType={activeSiteType} period={period} view={view} usage={usage} refDate={refDate} sites={sites} addHref={addHref} addLabel={addLabel} userRole={userRole} recentLogs={recentLogs} userName={session?.name ?? ''} userId={session?.userId ?? ''} />
+        <CarwashPage siteId={activeSiteId} siteType={activeSiteType} period={period} view={view} usage={usage} refDate={refDate} sites={sites} addHref={addHref} addLabel={addLabel} userRole={userRole} recentLogs={recentLogs} userName={session?.name ?? ''} userId={session?.userId ?? ''} isDemo={session?.demo === true} />
       </div>
     </div>
   );

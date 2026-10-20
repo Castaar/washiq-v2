@@ -31,6 +31,19 @@ export async function proxy(req: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  // Demo sessions are strictly read-only: refuse every write, every export and the
+  // developer API. Only logging out and switching demo role are allowed.
+  if (session.demo) {
+    const isWrite = !['GET', 'HEAD', 'OPTIONS'].includes(req.method);
+    const allowedWrite = pathname === '/api/auth/logout' || pathname === '/api/demo/switch';
+    if (pathname.startsWith('/api/') && ((isWrite && !allowedWrite) || pathname.startsWith('/api/developer'))) {
+      return NextResponse.json({ error: 'Demo — niet beschikbaar in de demo-omgeving' }, { status: 403 });
+    }
+    if (!pathname.startsWith('/api/') && isWrite) {
+      return NextResponse.json({ error: 'Demo — niet beschikbaar in de demo-omgeving' }, { status: 403 });
+    }
+  }
+
   // Already logged in: never show the login page again (e.g. after pressing
   // the browser back button right after signing in) — bounce to the dashboard.
   if (pathname === '/login') {

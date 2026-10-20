@@ -38,6 +38,7 @@ export async function POST(req: NextRequest) {
     email: user.email as string,
     role: user.role as 'developer' | 'owner' | 'employee' | 'technician',
     siteIds,
+    ...(user.is_demo ? { demo: true } : {}),
   });
 
   const res = NextResponse.json({

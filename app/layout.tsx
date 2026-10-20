@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import { cookies } from 'next/headers';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
+import { DemoBar } from '@/components/layout/DemoBar/DemoBar';
 import { PullToRefresh } from '@/components/layout/PullToRefresh/PullToRefresh';
 import { PwaRegister } from '@/components/layout/PwaRegister';
 import PushSetup from '@/components/layout/PushSetup/PushSetup';
@@ -70,7 +71,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <ToastProvider>
             <PwaRegister />
             {session && <PullToRefresh />}
-            <PushSetup />
+            {session?.demo && <DemoBar role={session.role} />}
+            {!session?.demo && <PushSetup />}
             {children}
             {session && <SyncActiveSiteCookie />}
             {session && <BottomNav role={session.role} siteType={siteType} />}

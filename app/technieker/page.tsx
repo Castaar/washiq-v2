@@ -1,4 +1,5 @@
 import type { Types } from 'mongoose';
+import { m } from '@/lib/demo';
 import { NavBar } from '@/components/layout/NavBar/NavBar';
 import { TechniekerPanel } from '@/components/technieker/TechniekerPanel/TechniekerPanel';
 import type { TechniekerItem } from '@/components/technieker/TechniekerPanel/TechniekerPanel';
@@ -17,6 +18,7 @@ function fmtDate(d: Date) {
 
 export default async function TechniekerPage() {
   const session = await getSession();
+  const isDemo = session?.demo === true;
   await dbConnect();
 
   const [siteDocs, userDoc] = await Promise.all([
@@ -48,7 +50,7 @@ export default async function TechniekerPage() {
     Promise.all(
       siteIds.map((sId) => WeeklyEntry.findOne({ site_id: sId }).sort({ week_start: -1 }).select('tellerstand').lean()),
     ),
-    User.find({ site_ids: { $in: siteIds }, role: { $in: ['employee', 'technician'] } }).select('_id name').lean(),
+    User.find({ site_ids: { $in: siteIds }, role: { $in: ['employee', 'technician'] }, is_demo: { $ne: true } }).select('_id name').lean(),
     OrderRequest.find({ site_id: { $in: siteIds }, is_handled: false }).sort({ requested_at: -1 }).lean(),
   ]);
 
@@ -86,7 +88,7 @@ export default async function TechniekerPage() {
       kind: 'schade' as const,
       siteId: (s.site_id as Types.ObjectId).toString(),
       siteName: siteNameById[(s.site_id as Types.ObjectId).toString()] ?? '',
-      title: (s.merk_model as string) || (s.naam_eigenaar as string) || 'Schade',
+      title: (s.merk_model as string) || m(isDemo, (s.naam_eigenaar as string)) || 'Schade',
       subtitle: ((s.schade_locaties as string[]) ?? []).join(', '),
       severity: 'high' as const,
       date: fmtDate(new Date(s.created_at as Date)),

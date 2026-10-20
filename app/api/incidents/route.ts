@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { m } from '@/lib/demo';
 import { dbConnect } from '@/lib/db/mongoose';
 import { IncidentSchade, IncidentEhbo, Defect, WeeklyEntry } from '@/lib/models';
 import { getSessionFromRequest } from '@/lib/session';
@@ -12,6 +13,7 @@ function fmtDate(d: Date) {
 
 export async function GET(req: NextRequest) {
   const session = await getSessionFromRequest(req);
+  const isDemo = session?.demo === true;
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const siteId = req.nextUrl.searchParams.get('siteId');
@@ -36,7 +38,7 @@ export async function GET(req: NextRequest) {
     ...schades.map((s) => ({
       id: (s._id as Types.ObjectId).toString(),
       type: 'schade' as const,
-      title: s.merk_model || s.naam_eigenaar || 'Schade',
+      title: s.merk_model || m(isDemo, s.naam_eigenaar) || 'Schade',
       subtitle: [[s.omschrijving, (s.schade_locaties ?? []).join(', ')].filter(Boolean).join(' — '), s.reported_by_name ? `Gemeld door ${s.reported_by_name}` : ''].filter(Boolean).join(' · '),
       date: fmtDate(new Date(s.created_at)),
       is_resolved: s.is_resolved ?? false,
@@ -48,10 +50,10 @@ export async function GET(req: NextRequest) {
         date: fmtDate(new Date(s.created_at)),
         typeVoertuig: s.type_voertuig || '',
         merkModel: s.merk_model || '',
-        nummerplaat: s.nummerplaat || '',
-        naamEigenaar: s.naam_eigenaar || '',
-        telGsm: s.tel_gsm || '',
-        email: s.email || '',
+        nummerplaat: m(isDemo, s.nummerplaat) || '',
+        naamEigenaar: m(isDemo, s.naam_eigenaar) || '',
+        telGsm: m(isDemo, s.tel_gsm) || '',
+        email: m(isDemo, s.email) || '',
         omschrijving: s.omschrijving || '',
         onbetwist: Boolean(s.onbetwist),
         installatiefout: Boolean(s.installatiefout),
@@ -62,7 +64,7 @@ export async function GET(req: NextRequest) {
     ...ehbos.map((e) => ({
       id: (e._id as Types.ObjectId).toString(),
       type: 'ehbo' as const,
-      title: e.naam_slachtoffer || 'EHBO',
+      title: m(isDemo, e.naam_slachtoffer) || 'EHBO',
       subtitle: [e.verwonding || '', e.reported_by_name ? `Gemeld door ${e.reported_by_name}` : ''].filter(Boolean).join(' · '),
       date: fmtDate(new Date(e.created_at)),
       is_resolved: false,
@@ -73,7 +75,7 @@ export async function GET(req: NextRequest) {
         reportedBy: e.reported_by_name || '',
         date: fmtDate(new Date(e.created_at)),
         uur: e.uur || '',
-        naamSlachtoffer: e.naam_slachtoffer || '',
+        naamSlachtoffer: m(isDemo, e.naam_slachtoffer) || '',
         afdelingLocatie: e.afdeling_locatie || '',
         verwonding: e.verwonding || '',
         ehboHandeling: e.ehbo_handeling || '',

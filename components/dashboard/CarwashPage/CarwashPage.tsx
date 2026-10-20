@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { m } from '@/lib/demo';
 import Image from 'next/image';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { dbConnect } from '@/lib/db/mongoose';
@@ -54,6 +55,7 @@ export async function CarwashPage({
   addLabel,
   userRole = 'employee',
   recentLogs = [],
+  isDemo = false,
   userName = '',
   userId = '',
 }: {
@@ -68,6 +70,7 @@ export async function CarwashPage({
   addLabel?: string;
   userRole?: string;
   recentLogs?: LogEntry[];
+  isDemo?: boolean;
   userId?: string;
   userName?: string;
 }) {
@@ -580,16 +583,16 @@ export async function CarwashPage({
         date: fmtDate(new Date(s.created_at as Date)),
         typeVoertuig: (s.type_voertuig as string) || '',
         merkModel: (s.merk_model as string) || '',
-        nummerplaat: (s.nummerplaat as string) || '',
-        naamEigenaar: (s.naam_eigenaar as string) || '',
-        telGsm: (s.tel_gsm as string) || '',
-        email: (s.email as string) || '',
+        nummerplaat: m(isDemo, (s.nummerplaat as string)) || '',
+        naamEigenaar: m(isDemo, (s.naam_eigenaar as string)) || '',
+        telGsm: m(isDemo, (s.tel_gsm as string)) || '',
+        email: m(isDemo, (s.email as string)) || '',
         omschrijving: (s.omschrijving as string) || '',
         onbetwist: Boolean(s.onbetwist),
         installatiefout: Boolean(s.installatiefout),
         klantVerantwoordelijk: Boolean(s.klant_verantwoordelijk),
         verzekeringsdocumenten: Boolean(s.verzekeringsdocumenten),
-        photos: (s.photos as string[]) ?? [],
+        photos: isDemo ? [] : ((s.photos as string[]) ?? []),
       };
       return {
         id, refId: id, refType: 'incident_schade' as const, siteId: siteId ?? '',
@@ -782,16 +785,16 @@ export async function CarwashPage({
       date: fmtDate(ts),
       typeVoertuig: (s.type_voertuig as string) || '',
       merkModel: (s.merk_model as string) || '',
-      nummerplaat: (s.nummerplaat as string) || '',
-      naamEigenaar: (s.naam_eigenaar as string) || '',
-      telGsm: (s.tel_gsm as string) || '',
-      email: (s.email as string) || '',
+      nummerplaat: m(isDemo, (s.nummerplaat as string)) || '',
+      naamEigenaar: m(isDemo, (s.naam_eigenaar as string)) || '',
+      telGsm: m(isDemo, (s.tel_gsm as string)) || '',
+      email: m(isDemo, (s.email as string)) || '',
       omschrijving: (s.omschrijving as string) || '',
       onbetwist: Boolean(s.onbetwist),
       installatiefout: Boolean(s.installatiefout),
       klantVerantwoordelijk: Boolean(s.klant_verantwoordelijk),
       verzekeringsdocumenten: Boolean(s.verzekeringsdocumenten),
-      photos: (s.photos as string[]) ?? [],
+      photos: isDemo ? [] : ((s.photos as string[]) ?? []),
     };
     dayLogEntries.push({
       ts: ts.getTime(),
@@ -816,7 +819,7 @@ export async function CarwashPage({
       reportedBy: (e.reported_by_name as string) || '',
       date: fmtDate(ts),
       uur: (e.uur as string) || '',
-      naamSlachtoffer: (e.naam_slachtoffer as string) || '',
+      naamSlachtoffer: m(isDemo, (e.naam_slachtoffer as string)) || '',
       afdelingLocatie: (e.afdeling_locatie as string) || '',
       verwonding: (e.verwonding as string) || '',
       ehboHandeling: (e.ehbo_handeling as string) || '',
@@ -830,7 +833,7 @@ export async function CarwashPage({
       item: {
         id: (e._id as Types.ObjectId).toString(),
         refType: 'incident_ehbo' as const, siteId: siteId ?? '',
-        title: (e.naam_slachtoffer as string) || 'EHBO',
+        title: m(isDemo, (e.naam_slachtoffer as string)) || 'EHBO',
         subtitle: [(e.verwonding as string) || '', (e.reported_by_name as string) ? `Gemeld door ${e.reported_by_name as string}` : ''].filter(Boolean).join(' · '),
         date: fmtTime(ts),
         severity: 'medium' as const,

@@ -39,6 +39,7 @@ export interface IUser extends Document {
   whatsapp: string;
   birthday: string;
   is_active: boolean;
+  is_demo?: boolean;
   created_at: Date;
   pending_deletion_at: Date | null;
 }
@@ -52,6 +53,8 @@ const UserSchema = new Schema<IUser>({
   whatsapp: { type: String, default: '' },
   birthday: { type: String, default: '' }, // MM-DD, no year needed
   is_active: { type: Boolean, default: true },
+  // Demo accounts: read-only presentation logins (enforced in proxy.ts)
+  is_demo: { type: Boolean, default: false },
   created_at: { type: Date, default: Date.now },
   // Set when this user's last site access is revoked (site_ids becomes
   // empty) — 30 days later a cron job permanently deletes the account.

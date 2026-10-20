@@ -13,6 +13,8 @@ export interface SessionPayload {
   email: string;
   role: 'developer' | 'owner' | 'employee' | 'technician';
   siteIds: string[];
+  // Read-only demo session: every write request is refused by proxy.ts
+  demo?: boolean;
 }
 
 // ── Sign ─────────────────────────────────────────────────────

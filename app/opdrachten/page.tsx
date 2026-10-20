@@ -57,7 +57,7 @@ export default async function OpdrachtenPage({
       } : {}),
     }).sort({ date: 1, created_at: 1 }).lean(),
     isOwner
-      ? User.find({ site_ids: siteId, role: { $in: ['employee', 'technician'] } }).select('_id name role').lean()
+      ? User.find({ site_ids: siteId, role: { $in: ['employee', 'technician'] }, is_demo: { $ne: true } }).select('_id name role').lean()
       : Promise.resolve([]),
   ]);
 

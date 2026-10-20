@@ -1,4 +1,5 @@
 import { cookies } from 'next/headers';
+import { m } from '@/lib/demo';
 import type { Types } from 'mongoose';
 import { NavBar } from '@/components/layout/NavBar/NavBar';
 import { IncidentenPanel } from '@/components/incidenten/IncidentenPanel/IncidentenPanel';
@@ -24,6 +25,7 @@ export default async function IncidentenPage({
 }) {
   const { site } = await searchParams;
   const session = await getSession();
+  const isDemo = session?.demo === true;
 
   await dbConnect();
 
@@ -78,21 +80,21 @@ export default async function IncidentenPage({
         date: fmtDate(new Date(s.created_at as Date)),
         typeVoertuig: (s.type_voertuig as string) || '',
         merkModel: (s.merk_model as string) || '',
-        nummerplaat: (s.nummerplaat as string) || '',
-        naamEigenaar: (s.naam_eigenaar as string) || '',
-        telGsm: (s.tel_gsm as string) || '',
-        email: (s.email as string) || '',
+        nummerplaat: m(isDemo, (s.nummerplaat as string)) || '',
+        naamEigenaar: m(isDemo, (s.naam_eigenaar as string)) || '',
+        telGsm: m(isDemo, (s.tel_gsm as string)) || '',
+        email: m(isDemo, (s.email as string)) || '',
         omschrijving: (s.omschrijving as string) || '',
         onbetwist: Boolean(s.onbetwist),
         installatiefout: Boolean(s.installatiefout),
         klantVerantwoordelijk: Boolean(s.klant_verantwoordelijk),
         verzekeringsdocumenten: Boolean(s.verzekeringsdocumenten),
-        photos: (s.photos as string[]) ?? [],
+        photos: isDemo ? [] : ((s.photos as string[]) ?? []),
       };
       return {
         id: (s._id as Types.ObjectId).toString(),
         type: 'schade' as const,
-        title: (s.merk_model as string) || (s.naam_eigenaar as string) || 'Schade',
+        title: (s.merk_model as string) || m(isDemo, (s.naam_eigenaar as string)) || 'Schade',
         subtitle: [[(s.omschrijving as string) || '', ((s.schade_locaties as string[]) ?? []).join(', ')].filter(Boolean).join(' — '), (s.reported_by_name as string) ? `Gemeld door ${s.reported_by_name as string}` : ''].filter(Boolean).join(' · '),
         date: fmtDate(new Date(s.created_at as Date)),
         is_resolved: (s.is_resolved as boolean) ?? false,
@@ -109,7 +111,7 @@ export default async function IncidentenPage({
         reportedBy: (e.reported_by_name as string) || '',
         date: fmtDate(new Date(e.created_at as Date)),
         uur: (e.uur as string) || '',
-        naamSlachtoffer: (e.naam_slachtoffer as string) || '',
+        naamSlachtoffer: m(isDemo, (e.naam_slachtoffer as string)) || '',
         afdelingLocatie: (e.afdeling_locatie as string) || '',
         verwonding: (e.verwonding as string) || '',
         ehboHandeling: (e.ehbo_handeling as string) || '',
@@ -121,7 +123,7 @@ export default async function IncidentenPage({
       return {
         id: (e._id as Types.ObjectId).toString(),
         type: 'ehbo' as const,
-        title: (e.naam_slachtoffer as string) || 'EHBO',
+        title: m(isDemo, (e.naam_slachtoffer as string)) || 'EHBO',
         subtitle: [(e.verwonding as string) || '', (e.reported_by_name as string) ? `Gemeld door ${e.reported_by_name as string}` : ''].filter(Boolean).join(' · '),
         date: fmtDate(new Date(e.created_at as Date)),
         is_resolved: Boolean(e.is_resolved),

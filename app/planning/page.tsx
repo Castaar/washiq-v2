@@ -56,7 +56,7 @@ export default async function PlanningPage({
     // Any employee account can be scheduled at any carwash, not just the
     // sites they're currently assigned to — so fetch every employee.
     isOwner
-      ? User.find({ role: 'employee' }).select('_id name site_ids').lean()
+      ? User.find({ role: 'employee', is_demo: { $ne: true } }).select('_id name site_ids').lean()
       : Promise.resolve([]),
     // Day-notes (VIP-behandeling, groepsboeking, ...) — visible to everyone,
     // not tied to a specific employee's shift.

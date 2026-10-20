@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
   const assignedIds = body.assignedToIds ?? [];
   const notifyIds = assignedIds.length > 0
     ? assignedIds
-    : (await User.find({ site_ids: body.siteId, role: { $in: ['employee', 'technician'] }, is_active: true }).select('_id').lean())
+    : (await User.find({ site_ids: body.siteId, role: { $in: ['employee', 'technician'] }, is_active: true, is_demo: { $ne: true } }).select('_id').lean())
         .map((u) => (u._id as Types.ObjectId).toString());
 
   if (notifyIds.length > 0) {
