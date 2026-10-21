@@ -188,9 +188,15 @@ export async function CarwashPage({
     const cur: ChemPeriod[] = [];
     const prev: ChemPeriod[] = [];
     for (const [name, { unit, list }] of byName) {
-      const n = list.length - 1;
-      if (n >= 1) cur.push({ name, unit, amount: Math.max(0, list[n].consumption), wagens: wagensBetween(list[n - 1].at, list[n].at), at: list[n].at });
-      if (n >= 2) prev.push({ name, unit, amount: Math.max(0, list[n - 1].consumption), wagens: wagensBetween(list[n - 2].at, list[n - 1].at), at: list[n - 1].at });
+      // All count periods of this product that contain wagens (a count without an
+      // ingave in its period can't give a cost per wagen — skip it, don't blank the card)
+      const periods: ChemPeriod[] = [];
+      for (let i = 1; i < list.length; i++) {
+        const wagens = wagensBetween(list[i - 1].at, list[i].at);
+        if (wagens > 0) periods.push({ name, unit, amount: Math.max(0, list[i].consumption), wagens, at: list[i].at });
+      }
+      if (periods.length >= 1) cur.push(periods[periods.length - 1]);
+      if (periods.length >= 2) prev.push(periods[periods.length - 2]);
     }
     return { cur, prev };
   }
