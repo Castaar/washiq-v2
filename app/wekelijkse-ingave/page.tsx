@@ -26,7 +26,7 @@ export default async function WekelijkseIngavePage({
   const cookieSite = cookieStore.get('dodane_active_site')?.value;
 
   const [siteDocs, userDoc] = await Promise.all([
-    Site.find({}).select('_id name location start_car_count start_water_count site_type').lean(),
+    Site.find({}).select('_id name location start_car_count start_water_count site_type counter_resets').lean(),
     session ? User.findById(session.userId).select('site_ids role').lean() : null,
   ]);
 
@@ -82,6 +82,7 @@ export default async function WekelijkseIngavePage({
 
   const lastEntryData = last
     ? {
+        weekStart: (last.week_start as Date).toISOString(),
         tellerstand: (last as Record<string, unknown>).tellerstand as number ?? 0,
         waterLiters: last.water_liters,
         waterTellerstand: (last as Record<string, unknown>).water_tellerstand as number ?? 0,
@@ -126,6 +127,7 @@ export default async function WekelijkseIngavePage({
           startWaterCount={startWaterCount}
           contentTranslations={contentTranslations}
           isSelfcarwash={siteDoc?.site_type === 'selfcarwash'}
+          counterResets={((siteDoc?.counter_resets as { date: string; end_value: number }[] | undefined) ?? []).map((r) => ({ date: r.date, end_value: r.end_value }))}
         />
       </main>
     </div>

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { SiteProgramManager } from '@/components/shared/WashProgramManager/WashProgramManager';
 import type { WashProgramItem } from '@/components/shared/WashProgramManager/WashProgramManager';
+import type { CounterReset } from '@/lib/counter';
 import styles from './InstellingenForm.module.scss';
 
 // ─── Types ───────────────────────────────────────────────────
@@ -64,6 +65,7 @@ interface InstellingenFormProps {
   energyBills: EnergyBillData[];
   startCarCount: number;
   startWaterCount: number;
+  counterResets?: CounterReset[];
   existingProductNames?: { name: string; unit: string }[];
   maintenanceTasks: MaintenanceTaskItem[];
   currentTotalWashes: number;
@@ -138,7 +140,7 @@ function PriceField({
 
 // ─── Main component ───────────────────────────────────────────
 
-export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stocks, energyBills, startCarCount, startWaterCount, existingProductNames = [], maintenanceTasks: initialTasks, currentTotalWashes, programs: initialPrograms }: InstellingenFormProps) {
+export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stocks, energyBills, startCarCount, startWaterCount, counterResets: initialResets = [], existingProductNames = [], maintenanceTasks: initialTasks, currentTotalWashes, programs: initialPrograms }: InstellingenFormProps) {
   const isFirstTime = !priceConfig;
 
   // ── Wasprogramma's state ──────────────────────────────────
@@ -310,6 +312,41 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
     });
     setSavingCarCount(false);
     setCarCountSaved(true);
+  }
+
+  // ── Counter reset state ──────────────────────────────────
+  const [resets, setResets] = useState<CounterReset[]>(initialResets);
+  const [resetDate, setResetDate] = useState('');
+  const [resetEnd, setResetEnd] = useState('');
+  const [savingReset, setSavingReset] = useState(false);
+  const [resetError, setResetError] = useState('');
+
+  async function saveResets(body: Record<string, unknown>) {
+    setSavingReset(true);
+    setResetError('');
+    try {
+      const res = await fetch(`/api/sites/${siteId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = (await res.json().catch(() => null)) as { counter_resets?: CounterReset[]; error?: string } | null;
+      if (!res.ok) { setResetError(data?.error ?? 'Opslaan mislukt'); return false; }
+      setResets(data?.counter_resets ?? []);
+      return true;
+    } finally {
+      setSavingReset(false);
+    }
+  }
+
+  async function handleAddReset(e: React.FormEvent) {
+    e.preventDefault();
+    const endValue = parseInt(resetEnd);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(resetDate) || !(endValue > 0)) { setResetError('Vul een datum en de eindstand in.'); return; }
+    if (await saveResets({ add_counter_reset: { date: resetDate, end_value: endValue } })) {
+      setResetDate('');
+      setResetEnd('');
+    }
   }
 
   // ── Water count state ────────────────────────────────────
@@ -1121,13 +1158,83 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
         </form>
       )}
 
+      {/* ── Teller op 0 gezet (niet voor selfcarwash) ── */}
+      {siteType !== 'selfcarwash' && (
+        <form className={styles.section} onSubmit={handleAddReset} noValidate>
+          <div className={styles.sectionHead}>
+            <h2 className={styles.sectionTitle}>Teller op 0 gezet</h2>
+          </div>
+          <p className={styles.sectionHint}>
+            Wordt de tellerstand van de machine op 0 gezet? Geef de datum en de eindstand vóór de reset in. Daarna geeft u bij de ingave gewoon de stand in die op de machine staat; de app telt de eindstand erbij zodat onderhoud, borstels en verbruik blijven kloppen. Tellerstanden bij onderhoudstaken zijn altijd de doorlopende stand (inclusief eindstand).
+          </p>
+
+          {resets.length > 0 && (
+            <div className={styles.taskList}>
+              {resets.map((r) => (
+                <div key={r.date} className={styles.taskRow}>
+                  <div className={styles.taskInfo}>
+                    <span className={styles.taskDesc}>Teller op 0 gezet op {r.date.split('-').reverse().join('/')}</span>
+                    <span className={styles.taskTrigger}>Eindstand {r.end_value.toLocaleString('nl-BE')} wagens</span>
+                  </div>
+                  <button
+                    type="button"
+                    className={styles.deleteProductBtn}
+                    disabled={savingReset}
+                    onClick={() => { if (confirm('Deze reset verwijderen?')) saveResets({ remove_counter_reset: r.date }); }}
+                    aria-label="Reset verwijderen"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className={styles.priceGrid}>
+            <div className={styles.priceField}>
+              <label className={styles.priceLabel}>Datum reset</label>
+              <div className={styles.priceInputWrap}>
+                <input
+                  className={styles.priceInput}
+                  type="date"
+                  value={resetDate}
+                  onChange={(e) => setResetDate(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className={styles.priceField}>
+              <label className={styles.priceLabel}>Eindstand vóór reset</label>
+              <div className={styles.priceInputWrap}>
+                <input
+                  className={styles.priceInput}
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={resetEnd}
+                  onChange={(e) => setResetEnd(e.target.value)}
+                  placeholder="0"
+                />
+                <span className={styles.priceUnit}>wagens</span>
+              </div>
+            </div>
+          </div>
+
+          <div className={styles.sectionFooter}>
+            {resetError && <span className={styles.savedMsg}>{resetError}</span>}
+            <button type="submit" className={styles.saveBtn} disabled={savingReset}>
+              {savingReset ? 'Opslaan...' : 'Reset toevoegen'}
+            </button>
+          </div>
+        </form>
+      )}
+
       {/* ── Sectie 5: Onderhoudstaken ────────────────────────── */}
       <div className={styles.section}>
         <div className={styles.sectionHead}>
           <h2 className={styles.sectionTitle}>Onderhoudstaken</h2>
         </div>
         <p className={styles.sectionHint}>
-          Beheer de terugkerende onderhoudstaken voor deze site. Huidig tellerstand: <strong>{currentTotalWashes.toLocaleString('nl-BE')} wasbeurten</strong>.
+          Beheer de terugkerende onderhoudstaken voor deze site. Huidige tellerstand (doorlopend): <strong>{currentTotalWashes.toLocaleString('nl-BE')} wasbeurten</strong>.
         </p>
 
         {/* Task list */}

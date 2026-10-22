@@ -4,6 +4,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { countInstantForDay } from '@/lib/dates';
+import { counterOffset, toMachineReading, resetsBetween, type CounterReset } from '@/lib/counter';
 import styles from './WeeklyEntryForm.module.scss';
 
 export interface Chemical {
@@ -27,6 +28,7 @@ export interface WashesTask {
 }
 
 export interface LastEntryData {
+  weekStart?: string;
   tellerstand: number;
   waterLiters: number;
   waterTellerstand: number;
@@ -48,6 +50,8 @@ export interface WeeklyEntryFormProps {
   contentTranslations?: Record<string, string>;
   // Selfcarwash: same ingave, but wagens can't be tracked — no tellerstand / programma's
   isSelfcarwash?: boolean;
+  // Wash counter resets for this site (machine counter set to 0)
+  counterResets?: CounterReset[];
 }
 
 // The ingave is stored on the exact date that was picked (00:00 UTC), not snapped to a week.
@@ -123,7 +127,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 }
 
 // ─── Main form ────────────────────────────────────────────────
-export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesTasks = [], startCarCount = 0, startWaterCount = 0, contentTranslations = {}, isSelfcarwash = false }: WeeklyEntryFormProps) {
+export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesTasks = [], startCarCount = 0, startWaterCount = 0, contentTranslations = {}, isSelfcarwash = false, counterResets = [] }: WeeklyEntryFormProps) {
   const router = useRouter();
   const tProduct = (name: string) => contentTranslations[`product.${name}`] || name;
   const tProgram = (name: string) => contentTranslations[`program.${name}`] || name;
@@ -154,10 +158,15 @@ export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesT
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState('');
 
+  // Internally one continuous counter; the user types what the machine shows.
   const previousTellerstand = lastEntry?.tellerstand ?? startCarCount;
+  const lastDay = lastEntry?.weekStart?.slice(0, 10) ?? '0000-00-00';
+  const previousMachine = toMachineReading(counterResets, lastDay, previousTellerstand);
+  const resetsSinceLast = resetsBetween(counterResets, lastDay, pickedDate);
   const newTellerstandNum = newTellerstand.trim() === '' ? null : parseFloat(newTellerstand);
+  const newContinuous = newTellerstandNum !== null ? newTellerstandNum + counterOffset(counterResets, pickedDate) : null;
   const programCountSum = programs.reduce((sum, p) => sum + (parseFloat(programCounts[p.id] ?? '') || 0), 0);
-  const expectedDiff = newTellerstandNum !== null ? newTellerstandNum - previousTellerstand : null;
+  const expectedDiff = newContinuous !== null ? newContinuous - previousTellerstand : null;
   const tellerstandMismatch = expectedDiff !== null && programCountSum !== expectedDiff;
 
   const previousWaterTellerstand = lastEntry?.waterTellerstand ?? startWaterCount;
@@ -166,7 +175,7 @@ export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesT
 
   const maintenanceWarnings = washesTasks
     .map((t) => {
-      const effectiveTellerstand = newTellerstandNum ?? previousTellerstand;
+      const effectiveTellerstand = newContinuous ?? previousTellerstand;
       const due = t.washesAtLastDone + t.triggerValue;
       const remaining = due - effectiveTellerstand;
       const threshold = Math.max(500, Math.round(t.triggerValue * 0.1));
@@ -211,7 +220,7 @@ export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesT
     const body = {
       site_id: siteId,
       week_start: monday.toISOString(),
-      tellerstand: isSelfcarwash ? previousTellerstand : newTellerstandNum,
+      tellerstand: isSelfcarwash ? previousTellerstand : newContinuous,
       water_liters: waterUsage,
       water_tellerstand: newWaterTellerstandNum ?? previousWaterTellerstand,
       energy_kw: parseFloat(energyKw) || 0,
@@ -296,7 +305,13 @@ export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesT
       <section className={styles.section}>
         <SectionTitle>Tellerstand</SectionTitle>
         <div className={styles.tellerstandDisplay}>
-          <span className={styles.lastValue}>Vorige tellerstand totaal: {previousTellerstand.toLocaleString('nl-BE')}</span>
+          <span className={styles.lastValue}>Vorige tellerstand totaal: {previousMachine.toLocaleString('nl-BE')}</span>
+          {resetsSinceLast.map((r) => (
+            <span key={r.date} className={styles.lastValue}>
+              Teller op 0 gezet op {r.date.split('-').reverse().join('/')} (eindstand {r.end_value.toLocaleString('nl-BE')}).
+              Geef de tellerstand in die nu op de machine staat — wagens sinds de vorige ingave = ({r.end_value.toLocaleString('nl-BE')} − {previousMachine.toLocaleString('nl-BE')}) + nieuwe tellerstand.
+            </span>
+          ))}
         </div>
         <div className={styles.fieldsRow}>
           <EntryField

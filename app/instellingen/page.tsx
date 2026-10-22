@@ -22,7 +22,7 @@ export default async function InstellingenPage({
   const cookieSite = cookieStore.get('dodane_active_site')?.value;
 
   const [siteDocs, userDoc] = await Promise.all([
-    Site.find({}).select('_id name location start_car_count start_water_count site_type').lean(),
+    Site.find({}).select('_id name location start_car_count start_water_count site_type counter_resets').lean(),
     session ? User.findById(session.userId).select('site_ids role').lean() : null,
   ]);
 
@@ -38,14 +38,15 @@ export default async function InstellingenPage({
   const siteType = ((siteDoc?.site_type as string) ?? 'wasstraat') as 'wasstraat' | 'selfcarwash';
   const startCarCount = (siteDoc?.start_car_count as number) ?? 0;
   const startWaterCount = (siteDoc?.start_water_count as number) ?? 0;
+  const counterResets = ((siteDoc?.counter_resets as { date: string; end_value: number }[]) ?? []).map((r) => ({ date: r.date, end_value: r.end_value }));
   const filter = siteId ? { site_id: siteId } : {};
 
-  const [priceConfigDoc, stockDocs, energyBillDocs, taskDocs, weeklyEntries, programDocs, allStockDocs] = await Promise.all([
+  const [priceConfigDoc, stockDocs, energyBillDocs, taskDocs, latestEntry, programDocs, allStockDocs] = await Promise.all([
     PriceConfig.findOne(filter).sort({ valid_from: -1 }).lean(),
     ChemicalStock.find(filter).sort({ name: 1 }).lean(),
     EnergyBill.find(filter).sort({ year: -1, month: -1 }).limit(12).lean(),
     MaintenanceTask.find(filter).sort({ description: 1 }).lean(),
-    WeeklyEntry.find(filter).select('program_counts').lean(),
+    WeeklyEntry.findOne(filter).sort({ week_start: -1 }).select('tellerstand').lean(),
     WashProgram.find(filter).sort({ tier: 1 }).lean(),
     ChemicalStock.find({}).select('name unit').sort({ name: 1 }).lean(),
   ]);
@@ -100,10 +101,8 @@ export default async function InstellingenPage({
     washes_at_last_done: (t.washes_at_last_done as number) ?? 0,
   }));
 
-  const currentTotalWashes = (weeklyEntries as { program_counts?: { count: number }[] }[]).reduce(
-    (sum, e) => sum + (e.program_counts ?? []).reduce((s, p) => s + (p.count ?? 0), 0),
-    0,
-  );
+  // Same continuous counter the onderhouden page uses: latest ingave, else the start count.
+  const currentTotalWashes = ((latestEntry as { tellerstand?: number } | null)?.tellerstand as number) || startCarCount;
 
   const programs = programDocs.map((p) => ({
     id: (p._id as Types.ObjectId).toString(),
@@ -127,6 +126,7 @@ export default async function InstellingenPage({
           energyBills={energyBills}
           startCarCount={startCarCount}
           startWaterCount={startWaterCount}
+          counterResets={counterResets}
           existingProductNames={existingProductNames}
           maintenanceTasks={maintenanceTasks}
           currentTotalWashes={currentTotalWashes}

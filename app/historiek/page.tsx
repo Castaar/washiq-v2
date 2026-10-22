@@ -31,7 +31,7 @@ export default async function HistoriekPage({
   const cookieSite = cookieStore.get('dodane_active_site')?.value;
 
   const [siteDocs, userDoc] = await Promise.all([
-    Site.find({}).select('_id name location start_car_count start_water_count site_type').lean(),
+    Site.find({}).select('_id name location start_car_count start_water_count site_type counter_resets').lean(),
     session ? User.findById(session.userId).select('site_ids role').lean() : null,
   ]);
 
@@ -513,7 +513,7 @@ export default async function HistoriekPage({
           <div className={styles.header}>
             <h1 className={styles.title}>Maandelijkse Ingaves — {siteName}</h1>
           </div>
-          <HistoryList entries={entries} programs={programs} startCarCount={startCarCount} startWaterCount={startWaterCount} siteId={siteId ?? ''} energyBillsByMonth={energyBillsByMonth} isSelfcarwash={isSelfcarwash} />
+          <HistoryList entries={entries} programs={programs} startCarCount={startCarCount} startWaterCount={startWaterCount} siteId={siteId ?? ''} energyBillsByMonth={energyBillsByMonth} isSelfcarwash={isSelfcarwash} counterResets={((siteDoc?.counter_resets as { date: string; end_value: number }[] | undefined) ?? []).map((r) => ({ date: r.date, end_value: r.end_value }))} />
         </div>
       </main>
     </div>

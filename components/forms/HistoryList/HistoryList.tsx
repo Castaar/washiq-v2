@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { countInstantForDay } from '@/lib/dates';
+import { counterOffset, toMachineReading, resetsBetween, type CounterReset } from '@/lib/counter';
 import styles from './HistoryList.module.scss';
 
 export interface HistoryChemical {
@@ -40,6 +41,7 @@ interface HistoryListProps {
   siteId: string;
   energyBillsByMonth: Record<string, number>;
   isSelfcarwash?: boolean;
+  counterResets?: CounterReset[];
 }
 
 function dateToDateString(date: Date): string {
@@ -56,14 +58,18 @@ function EntryRow({
   entry,
   programs,
   previousTellerstand,
+  previousDay,
   previousWaterTellerstand,
   siteId,
   initialElectricityAmount,
   isSelfcarwash = false,
+  counterResets = [],
 }: {
   entry: HistoryEntry;
   programs: HistoryProgram[];
   previousTellerstand: number;
+  previousDay: string;
+  counterResets?: CounterReset[];
   previousWaterTellerstand: number;
   siteId: string;
   initialElectricityAmount: number | undefined;
@@ -77,7 +83,8 @@ function EntryRow({
 
   // form state
   const [weekDate, setWeekDate] = useState(dateToDateString(new Date(entry.weekStart)));
-  const [newTellerstand, setNewTellerstand] = useState(String(entry.tellerstand ?? 0));
+  // Stored value is the continuous counter; the user sees/edits the machine reading
+  const [newTellerstand, setNewTellerstand] = useState(String(toMachineReading(counterResets, entry.weekStart.slice(0, 10), entry.tellerstand ?? 0)));
   const [electricityAmount, setElectricityAmount] = useState(
     initialElectricityAmount != null ? String(initialElectricityAmount) : '',
   );
@@ -126,7 +133,10 @@ function EntryRow({
 
   const newTellerstandNum = newTellerstand.trim() === '' ? null : parseFloat(newTellerstand);
   const programCountSum = programs.reduce((sum, p) => sum + (parseFloat(programCounts[p.id] ?? '') || 0), 0);
-  const expectedDiff = newTellerstandNum !== null ? newTellerstandNum - previousTellerstand : null;
+  const newContinuous = newTellerstandNum !== null ? newTellerstandNum + counterOffset(counterResets, weekDate) : null;
+  const expectedDiff = newContinuous !== null ? newContinuous - previousTellerstand : null;
+  const previousMachine = toMachineReading(counterResets, previousDay, previousTellerstand);
+  const resetsInPeriod = resetsBetween(counterResets, previousDay, weekDate);
   const tellerstandMismatch = expectedDiff !== null && programCountSum !== expectedDiff;
 
   const newWaterTellerstandNum = newWaterTellerstand.trim() === '' ? null : parseFloat(newWaterTellerstand);
@@ -163,7 +173,7 @@ function EntryRow({
       const monday = new Date(`${weekDate}T00:00:00Z`);
       const body = {
         week_start: monday.toISOString(),
-        tellerstand: isSelfcarwash ? entry.tellerstand : newTellerstandNum,
+        tellerstand: isSelfcarwash ? entry.tellerstand : newContinuous,
         water_liters: waterUsage,
         water_tellerstand: newWaterTellerstandNum ?? previousWaterTellerstand,
         energy_kw: parseFloat(energyKw) || 0,
@@ -278,7 +288,12 @@ function EntryRow({
               {!isSelfcarwash && (<>
               <div className={styles.editSection}>
                 <p className={styles.editSectionTitle}>Tellerstand</p>
-                <p className={styles.lastValueHint}>Vorige tellerstand totaal: {previousTellerstand.toLocaleString('nl-BE')}</p>
+                <p className={styles.lastValueHint}>Vorige tellerstand totaal: {previousMachine.toLocaleString('nl-BE')}</p>
+                {resetsInPeriod.map((r) => (
+                  <p key={r.date} className={styles.lastValueHint}>
+                    Teller op 0 gezet op {r.date.split('-').reverse().join('/')} (eindstand {r.end_value.toLocaleString('nl-BE')}) — geef de tellerstand van de machine in.
+                  </p>
+                ))}
                 <div className={styles.fieldsRow}>
                   <div className={styles.fieldGroup}>
                     <label className={styles.fieldLabel}>Nieuwe tellerstand</label>
@@ -453,7 +468,7 @@ function EntryRow({
 }
 
 // ── Main list ─────────────────────────────────────────────────
-export function HistoryList({ entries, programs, startCarCount = 0, startWaterCount = 0, siteId, energyBillsByMonth, isSelfcarwash = false }: HistoryListProps) {
+export function HistoryList({ entries, programs, startCarCount = 0, startWaterCount = 0, siteId, energyBillsByMonth, isSelfcarwash = false, counterResets = [] }: HistoryListProps) {
   if (entries.length === 0) {
     return <p className={styles.empty}>Nog geen ingaves gevonden voor deze carwash.</p>;
   }
@@ -462,6 +477,7 @@ export function HistoryList({ entries, programs, startCarCount = 0, startWaterCo
     <div className={styles.list}>
       {entries.map((e, i) => {
         const previousTellerstand = i < entries.length - 1 ? entries[i + 1].tellerstand : startCarCount;
+        const previousDay = i < entries.length - 1 ? entries[i + 1].weekStart.slice(0, 10) : '0000-00-00';
         const previousWaterTellerstand = i < entries.length - 1 ? entries[i + 1].waterTellerstand : startWaterCount;
         const weekDate = new Date(e.weekStart);
         const billKey = `${weekDate.getUTCFullYear()}-${weekDate.getUTCMonth() + 1}`;
@@ -471,6 +487,8 @@ export function HistoryList({ entries, programs, startCarCount = 0, startWaterCo
             entry={e}
             programs={programs}
             previousTellerstand={previousTellerstand}
+            previousDay={previousDay}
+            counterResets={counterResets}
             previousWaterTellerstand={previousWaterTellerstand}
             siteId={siteId}
             initialElectricityAmount={energyBillsByMonth[billKey]}
