@@ -979,7 +979,8 @@
     "wgn": "{count} wgn.",
     "nogGeenTaken": "Nog geen onderhoudstaken geconfigureerd.",
     "taakToevoegen": "Taak toevoegen",
-    "onderhoudstaakToevoegen": "+ Onderhoudstaak toevoegen"
+    "onderhoudstaakToevoegen": "+ Onderhoudstaak toevoegen",
+    "productHernoemen": "{name} hernoemen"
   },
   "setup": {
     "stapWelkom": "Welkom",

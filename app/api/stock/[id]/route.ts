@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
 import { ChemicalStock, StockAdjustment, StockDelivery, StockReading } from '@/lib/models';
 import { recomputeChemical } from '@/lib/stock-ledger';
+import { renameProductReferences } from '@/lib/renameProduct';
 import { getSession } from '@/lib/session';
 import mongoose from 'mongoose';
 
@@ -26,6 +27,17 @@ export async function PATCH(
   const stock = await ChemicalStock.findById(id);
   if (!stock) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+
+  // A new name must stay unique within the site (checked before anything changes)
+  const newName = typeof body.name === 'string' && body.name.trim() && body.name.trim() !== stock.name ? body.name.trim() as string : null;
+  if (newName) {
+    const clash = await ChemicalStock.exists({
+      site_id: stock.site_id,
+      _id: { $ne: stock._id },
+      name: { $regex: `^${newName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' },
+    });
+    if (clash) return NextResponse.json({ error: 'Er bestaat al een product met deze naam' }, { status: 409 });
   }
 
   // Stock override. Before the first count it seeds the baseline count; after that
@@ -89,17 +101,20 @@ export async function PATCH(
   }
 
   // Allow updating metadata fields
+  let renamedFrom: string | null = null;
   if (typeof body.min_stock_alert === 'number') {
     stock.min_stock_alert = body.min_stock_alert;
   }
-  if (typeof body.name === 'string' && body.name.trim()) {
-    stock.name = body.name.trim();
+  if (newName) {
+    renamedFrom = stock.name as string;
+    stock.name = newName;
   }
   if (typeof body.unit === 'string' && body.unit.trim()) {
     stock.unit = body.unit.trim();
   }
 
   await stock.save();
+  if (renamedFrom) await renameProductReferences(stock.site_id, stock._id, renamedFrom, stock.name as string);
   if (needsRecompute) {
     await recomputeChemical(stock._id);
     const fresh = await ChemicalStock.findById(stock._id).select('current_stock last_updated').lean();

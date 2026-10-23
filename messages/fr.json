@@ -576,7 +576,8 @@
     "wgn": "{count} voit.",
     "nogGeenTaken": "Aucune tâche d’entretien configurée.",
     "taakToevoegen": "Ajouter la tâche",
-    "onderhoudstaakToevoegen": "+ Ajouter une tâche d’entretien"
+    "onderhoudstaakToevoegen": "+ Ajouter une tâche d’entretien",
+    "productHernoemen": "Renommer {name}"
   },
   "setup": {
     "stapWelkom": "Bienvenue",

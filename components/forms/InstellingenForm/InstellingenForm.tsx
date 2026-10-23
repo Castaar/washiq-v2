@@ -240,6 +240,52 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
     }
   }
 
+  // Rename a product: the API updates prices, programs and counts that refer to the
+  // name; here the name-keyed form state follows along.
+  const [editingProductId, setEditingProductId] = useState<string | null>(null);
+  const [editProductName, setEditProductName] = useState('');
+  const [renamingProduct, setRenamingProduct] = useState(false);
+  const [renameError, setRenameError] = useState('');
+
+  async function handleRenameProduct(id: string) {
+    const product = productList.find((p) => p.id === id);
+    const name = editProductName.trim();
+    if (!product || !name) return;
+    if (name === product.name) { setEditingProductId(null); return; }
+    if (productList.some((p) => p.id !== id && p.name.toLowerCase() === name.toLowerCase())) {
+      setRenameError(tr('productBestaatAl'));
+      return;
+    }
+    setRenamingProduct(true);
+    setRenameError('');
+    try {
+      const res = await fetch(`/api/stock/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      });
+      if (!res.ok) {
+        setRenameError(res.status === 409 ? tr('productBestaatAl') : tr('opslaanMislukt'));
+        return;
+      }
+      const oldName = product.name;
+      const moveKey = <T,>(prev: Record<string, T>) => {
+        if (!(oldName in prev)) return prev;
+        const n = { ...prev, [name]: prev[oldName] };
+        delete n[oldName];
+        return n;
+      };
+      setProductList((prev) => prev.map((p) => (p.id === id ? { ...p, name } : p)));
+      setChemPrices(moveKey);
+      setChemPriceUnit(moveKey);
+      setChemLiters(moveKey);
+      setPrograms((prev) => prev.map((pr) => ({ ...pr, chemicals: pr.chemicals.map((c) => (c === oldName ? name : c)) })));
+      setEditingProductId(null);
+    } finally {
+      setRenamingProduct(false);
+    }
+  }
+
   // ── Stock state ───────────────────────────────────────────
   const [stockValues, setStockValues] = useState<Record<string, string>>(() =>
     Object.fromEntries(stocks.map((s) => [s.id, s.current_stock > 0 ? String(s.current_stock) : ''])),
@@ -750,19 +796,62 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
             <p className={styles.emptyHint}>{tr('nogGeenProducten')}</p>
           )}
           {productList.map((p) => (
-            <div key={p.id} className={styles.productRow}>
-              <span className={styles.productName}>{p.name}</span>
-              <span className={styles.productUnit}>{p.unit}</span>
-              <button
-                type="button"
-                className={styles.deleteProductBtn}
-                onClick={() => handleDeleteProduct(p.id)}
-                aria-label={tr('itemVerwijderen', { name: p.name })}
-              >
-                ✕
-              </button>
-            </div>
+            editingProductId === p.id ? (
+              <div key={p.id} className={styles.productRow}>
+                <input
+                  className={styles.productInput}
+                  type="text"
+                  value={editProductName}
+                  onChange={(e) => { setEditProductName(e.target.value); setRenameError(''); }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') { e.preventDefault(); handleRenameProduct(p.id); }
+                    if (e.key === 'Escape') setEditingProductId(null);
+                  }}
+                  aria-label={tr('productHernoemen', { name: p.name })}
+                  autoFocus
+                />
+                <span className={styles.productUnit}>{p.unit}</span>
+                <button
+                  type="button"
+                  className={styles.renameSaveBtn}
+                  onClick={() => handleRenameProduct(p.id)}
+                  disabled={renamingProduct || !editProductName.trim()}
+                >
+                  {renamingProduct ? `${tCommon('opslaan')}...` : tCommon('opslaan')}
+                </button>
+                <button
+                  type="button"
+                  className={styles.deleteProductBtn}
+                  onClick={() => setEditingProductId(null)}
+                  aria-label={tCommon('annuleren')}
+                >
+                  ✕
+                </button>
+              </div>
+            ) : (
+              <div key={p.id} className={styles.productRow}>
+                <span className={styles.productName}>{p.name}</span>
+                <span className={styles.productUnit}>{p.unit}</span>
+                <button
+                  type="button"
+                  className={styles.deleteProductBtn}
+                  onClick={() => { setEditingProductId(p.id); setEditProductName(p.name); setRenameError(''); }}
+                  aria-label={tr('productHernoemen', { name: p.name })}
+                >
+                  ✏
+                </button>
+                <button
+                  type="button"
+                  className={styles.deleteProductBtn}
+                  onClick={() => handleDeleteProduct(p.id)}
+                  aria-label={tr('itemVerwijderen', { name: p.name })}
+                >
+                  ✕
+                </button>
+              </div>
+            )
           ))}
+          {renameError && <p className={styles.errorMsg}>{renameError}</p>}
         </div>
 
         <form className={styles.addProductForm} onSubmit={handleAddProduct} noValidate>
