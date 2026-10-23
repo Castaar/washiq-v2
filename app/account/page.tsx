@@ -47,7 +47,10 @@ export default async function AccountPage({
     session ? User.findById(session.userId).select('_id name email birthday').lean() : Promise.resolve(null),
     MaintenanceTask.find({ site_id: siteId }).sort({ description: 1 }).lean(),
     WeeklyEntry.find({ site_id: siteId }).select('program_counts').lean(),
-    EnergyBill.find({ site_id: siteId }).sort({ year: -1, month: -1 }).lean(),
+    // Cost data: only sent to roles that see the energiefacturen section
+    sessionRole === 'owner' || sessionRole === 'developer'
+      ? EnergyBill.find({ site_id: siteId }).sort({ year: -1, month: -1 }).lean()
+      : Promise.resolve([]),
   ]);
 
   // Total wash count for this site (sum of all program_counts across all weekly entries)

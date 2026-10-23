@@ -184,10 +184,8 @@ export function OrdersPanel({
       if (res.ok) {
         setOrderedIds((prev) => [...prev, item.id]);
         setDetailsDraft((prev) => { const n = { ...prev }; delete n[item.id]; return n; });
-        if (canManage) {
-          const list = await fetch(`/api/orders/requests?siteId=${siteId}`);
-          if (list.ok) setRequests((await list.json()) as OrderRequestData[]);
-        }
+        const list = await fetch(`/api/orders/requests?siteId=${siteId}`);
+        if (list.ok) setRequests((await list.json()) as OrderRequestData[]);
       }
     } finally {
       setOrderingId(null);
@@ -344,7 +342,7 @@ export function OrdersPanel({
         );
       })}
 
-      {canManage && (
+      {(canManage || requests.length > 0) && (
         <section className={styles.section}>
           <div className={styles.listHeader}>
             <h2 className={styles.sectionTitle}>
@@ -384,14 +382,20 @@ export function OrdersPanel({
                       {req.requested_by_name} · {fmtDateTime(req.requested_at)}
                     </span>
                   </div>
-                  <button
-                    type="button"
-                    className={[styles.resolveBtn, req.is_handled ? styles.resolveBtnDone : ''].filter(Boolean).join(' ')}
-                    onClick={() => handleToggleHandled(req)}
-                    disabled={handlingId === req.id}
-                  >
-                    {req.is_handled ? '✓ Besteld' : 'Markeer besteld'}
-                  </button>
+                  {canManage ? (
+                    <button
+                      type="button"
+                      className={[styles.resolveBtn, req.is_handled ? styles.resolveBtnDone : ''].filter(Boolean).join(' ')}
+                      onClick={() => handleToggleHandled(req)}
+                      disabled={handlingId === req.id}
+                    >
+                      {req.is_handled ? '✓ Besteld' : 'Markeer besteld'}
+                    </button>
+                  ) : (
+                    <span className={[styles.resolveBtn, styles.statusTag, req.is_handled ? styles.resolveBtnDone : ''].filter(Boolean).join(' ')}>
+                      {req.is_handled ? '✓ Besteld' : 'Aangevraagd'}
+                    </span>
+                  )}
                 </div>
               ))}
             </div>

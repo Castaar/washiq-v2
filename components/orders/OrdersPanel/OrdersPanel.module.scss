@@ -262,6 +262,13 @@
   &:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 
+// Read-only status pill for employees (same look as the button, not clickable)
+.statusTag {
+  display: inline-flex;
+  align-items: center;
+  cursor: default;
+}
+
 .resolveBtnDone {
   border-color: var(--color-accent-teal);
   color: var(--color-accent-teal);

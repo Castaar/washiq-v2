@@ -41,9 +41,8 @@ export default async function OrdersPage({
 
   const [itemDocs, requestDocs] = await Promise.all([
     OrderItem.find({ site_id: siteId, is_active: true }).sort({ name: 1 }).lean(),
-    canManage
-      ? OrderRequest.find({ site_id: siteId }).sort({ requested_at: -1 }).limit(50).lean()
-      : Promise.resolve([]),
+    // Everyone on the site sees the requests, so colleagues know what's already ordered
+    OrderRequest.find({ site_id: siteId }).sort({ requested_at: -1 }).limit(50).lean(),
   ]);
 
   // Owner/developer see the canonical Dutch name (they edit it — the edit form

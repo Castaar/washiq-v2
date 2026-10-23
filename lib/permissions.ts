@@ -13,3 +13,13 @@ export function canModify(session: SessionLike | null | undefined, ownerId: unkn
   if (isManager(session)) return true;
   return Boolean(ownerId && session.userId && String(ownerId) === String(session.userId));
 }
+
+// Site-scoped manager access: developers everywhere, owners only on their own sites.
+export function canManageSite(
+  session: (SessionLike & { siteIds?: string[] }) | null | undefined,
+  siteId: string,
+): boolean {
+  if (!session) return false;
+  if (session.role === 'developer') return true;
+  return session.role === 'owner' && (session.siteIds ?? []).includes(siteId);
+}

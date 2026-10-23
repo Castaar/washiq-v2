@@ -5,15 +5,17 @@ import { getSessionFromRequest } from '@/lib/session';
 import { sendPushToUser } from '@/lib/push';
 import type { Types } from 'mongoose';
 
-// GET /api/orders/requests?siteId=xxx — open + recent requests, owner/developer only
+// GET /api/orders/requests?siteId=xxx — open + recent requests, for everyone
+// working on that site (colleagues need to see what's already been ordered).
 export async function GET(req: NextRequest) {
   const session = await getSessionFromRequest(req);
-  if (!session || (session.role !== 'owner' && session.role !== 'developer')) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const siteId = req.nextUrl.searchParams.get('siteId');
   if (!siteId) return NextResponse.json({ error: 'siteId required' }, { status: 400 });
+  if (session.role !== 'developer' && session.role !== 'technician' && !session.siteIds.includes(siteId)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
 
   await dbConnect();
   const docs = await OrderRequest.find({ site_id: siteId }).sort({ requested_at: -1 }).limit(50).lean();
