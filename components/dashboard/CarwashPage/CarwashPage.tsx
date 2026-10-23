@@ -34,6 +34,7 @@ import { computeIsOverdue, computeIsApproaching, washesRemaining } from '@/lib/m
 import { priceAt, pricePerStockUnit } from '@/lib/prices';
 import { isBeforeStatsFrom, statsFromInstant, billBeforeStatsFrom } from '@/lib/statsFrom';
 import { counterOffset } from '@/lib/counter';
+import { buildSessions } from '@/lib/attendance-hours';
 import styles from './CarwashPage.module.scss';
 import type { Types } from 'mongoose';
 
@@ -702,14 +703,25 @@ export async function CarwashPage({
     const isDeparture = l.type === 'sluiting';
     let workedHours: string | undefined;
     if (isDeparture) {
-      const arrival = dayAttendance.find(
-        (a) => a.type === 'opening' && (a.user_name as string) === (l.user_name as string) && new Date(a.timestamp as Date).getTime() < ts.getTime(),
-      );
-      if (arrival) {
-        const ms = ts.getTime() - new Date(arrival.timestamp as Date).getTime();
-        workedHours = `${fmtTime(new Date(arrival.timestamp as Date))} → ${fmtTime(ts)} · ${tp('gewerkt', { duur: fmtDuration(ms) })}`;
+      // The shift this departure closes, breaks excluded
+      const shift = buildSessions(dayAttendance.filter(
+        (a) => (a.user_name as string) === (l.user_name as string) && new Date(a.timestamp as Date).getTime() <= ts.getTime(),
+      )).find((x) => x.end?.getTime() === ts.getTime());
+      if (shift) {
+        workedHours = [
+          `${fmtTime(shift.start)} → ${fmtTime(ts)}`,
+          tp('gewerkt', { duur: fmtDuration(shift.hours * 36e5) }),
+          shift.pauseHours > 0 ? tp('pauzeDuur', { duur: fmtDuration(shift.pauseHours * 36e5) }) : undefined,
+        ].filter(Boolean).join(' · ');
       }
     }
+    const attendanceName = (l.user_name as string | undefined) ?? tCommon('onbekend');
+    const attendanceTitle = {
+      opening: tp('isAangekomen', { name: attendanceName }),
+      sluiting: tp('isVertrokken', { name: attendanceName }),
+      pauze_start: tp('neemtPauze', { name: attendanceName }),
+      pauze_einde: tp('terugVanPauze', { name: attendanceName }),
+    }[l.type as string] ?? tp('isAangekomen', { name: attendanceName });
     const subtitleParts = [
       isExtern ? tp('externeTechnieker') : undefined,
       !isDeparture ? fmtTime(ts) : undefined,
@@ -721,7 +733,7 @@ export async function CarwashPage({
       item: {
         id: `attendance-${(l._id as Types.ObjectId).toString()}`,
         siteId: siteId ?? '',
-        title: isDeparture ? tp('isVertrokken', { name: (l.user_name as string | undefined) ?? tCommon('onbekend') }) : tp('isAangekomen', { name: (l.user_name as string | undefined) ?? tCommon('onbekend') }),
+        title: attendanceTitle,
         subtitle: subtitleParts.length > 0 ? subtitleParts.join(' · ') : undefined,
         date: fmtTime(ts),
         severity: 'low' as const,

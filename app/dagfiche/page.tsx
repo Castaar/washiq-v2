@@ -12,6 +12,7 @@ import { computeIsOverdue } from '@/lib/maintenance';
 import { filterSitesForUser, resolveActiveSite, redirectIfSetupNeeded, redirectWithSiteParam } from '@/lib/getUserSites';
 import styles from './page.module.scss';
 import { isBeforeStatsFrom } from '@/lib/statsFrom';
+import type { AttendanceType } from '@/lib/attendance-hours';
 
 // Runs server-side (Vercel = UTC) — pin the timezone so times aren't off by
 // 1-2 hours vs. Belgian local time.
@@ -89,10 +90,8 @@ export default async function DagfichePage({
   // Build today's events
   const todayEvents: TodayEvent[] = [
     ...attendanceToday.map((l) => ({
-      kind: (l.type === 'sluiting' ? 'uitlog' : 'inlog') as TodayEvent['kind'],
-      label: l.type === 'sluiting'
-        ? t('event.vertrokken', { name: l.user_name ?? tCommon('onbekend') })
-        : t('event.aangemeld', { name: l.user_name ?? tCommon('onbekend') }),
+      kind: (l.type === 'sluiting' || l.type === 'pauze_start' ? 'uitlog' : 'inlog') as TodayEvent['kind'],
+      label: t(({ opening: 'event.aangemeld', sluiting: 'event.vertrokken', pauze_start: 'event.pauzeStart', pauze_einde: 'event.pauzeEinde' } as const)[l.type as AttendanceType] ?? 'event.aangemeld', { name: l.user_name ?? tCommon('onbekend') }),
       time: fmtTime(dateLocale, new Date(l.timestamp as Date)),
       detail: (l.person_type as string) === 'technician_extern' ? t('event.externeTechnieker') : undefined,
     })),

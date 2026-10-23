@@ -1,4 +1,5 @@
 import { cookies } from 'next/headers';
+import type { AttendanceType } from '@/lib/attendance-hours';
 import { NavBar } from '@/components/layout/NavBar/NavBar';
 import { LogboekPanel } from '@/components/logboek/LogboekPanel/LogboekPanel';
 import type { LogEntry } from '@/components/logboek/LogboekPanel/LogboekPanel';
@@ -54,7 +55,7 @@ export default async function LogboekPage({
     id: (l._id as Types.ObjectId).toString(),
     userId: (l.user_id as Types.ObjectId).toString(),
     userName: (l.user_name as string) ?? '',
-    type: l.type as 'opening' | 'sluiting',
+    type: l.type as AttendanceType,
     personType: (l.person_type as 'employee' | 'technician_extern' | 'jobstudent') ?? 'employee',
     registeredByName: (l.registered_by_name as string) ?? '',
     timestamp: (l.timestamp as Date).toISOString(),

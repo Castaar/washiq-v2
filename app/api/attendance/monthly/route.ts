@@ -44,7 +44,8 @@ export interface DayRecord {
   date: string;       // YYYY-MM-DD
   checkIn: string;    // HH:MM
   checkOut: string;   // HH:MM or ''
-  hours: number;
+  hours: number;      // breaks excluded
+  pauseMinutes: number;
   otherSite?: boolean; // check-in or check-out happened at another carwash
 }
 
@@ -160,6 +161,7 @@ export async function GET(req: NextRequest) {
         checkIn: brusselsTimeStr(new Date(Math.min(...starts))),
         checkOut: ends.length > 0 ? brusselsTimeStr(new Date(Math.max(...ends))) : '',
         hours: Math.round(hours * 10) / 10,
+        pauseMinutes: Math.round(daySessions.filter((x) => x.startSite === siteId).reduce((sum, x) => sum + x.pauseHours, 0) * 60),
         otherSite: daySessions.some((x) => x.startSite !== siteId || (x.endSite !== null && x.endSite !== siteId)) || undefined,
       });
     }

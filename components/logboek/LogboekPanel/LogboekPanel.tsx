@@ -4,13 +4,14 @@ import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { brusselsInstant } from '@/lib/dates';
+import type { AttendanceType } from '@/lib/attendance-hours';
 import styles from './LogboekPanel.module.scss';
 
 export interface LogEntry {
   id: string;
   userId: string;
   userName: string;
-  type: 'opening' | 'sluiting';
+  type: AttendanceType;
   personType: 'employee' | 'technician_extern' | 'jobstudent';
   registeredByName: string;
   timestamp: string;
@@ -24,6 +25,7 @@ interface DayRecord {
   checkIn: string;
   checkOut: string;
   hours: number;
+  pauseMinutes?: number;
 }
 
 interface EmployeeSummary {
@@ -64,6 +66,10 @@ function groupByDate(logs: LogEntry[], dateLocale: string) {
   return map;
 }
 
+// Message keys per registration type: badge in the log, confirmation after registering
+const TYPE_LABEL = { opening: 'aankomst', sluiting: 'vertrek', pauze_start: 'pauze', pauze_einde: 'terugVanPauze' } as const;
+const TYPE_CONFIRM = { opening: 'aankomstGeregistreerd', sluiting: 'vertrekGeregistreerd', pauze_start: 'pauzeGeregistreerd', pauze_einde: 'pauzeEindeGeregistreerd' } as const;
+
 // Message-key suffixes for logboek.maanden.* (January..December)
 const MONTH_KEYS = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'] as const;
 
@@ -80,7 +86,7 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
   const [logs, setLogs] = useState<LogEntry[]>(recentLogs);
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
-  const [lastAction, setLastAction] = useState<'opening' | 'sluiting' | null>(null);
+  const [lastAction, setLastAction] = useState<AttendanceType | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Externe persoon (technieker of jobstudent) — door de werknemer/eigenaar
@@ -89,7 +95,7 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
   const [techName, setTechName] = useState('');
   const [techNote, setTechNote] = useState('');
   const [techSaving, setTechSaving] = useState(false);
-  const [techLastAction, setTechLastAction] = useState<'opening' | 'sluiting' | null>(null);
+  const [techLastAction, setTechLastAction] = useState<AttendanceType | null>(null);
   const [techError, setTechError] = useState('');
 
   // Owner/developer: registreren namens een medewerker die vergat zelf in-
@@ -102,7 +108,7 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
   const [onBehalfHour, setOnBehalfHour] = useState('');
   const [onBehalfMinute, setOnBehalfMinute] = useState('00');
   const [onBehalfSaving, setOnBehalfSaving] = useState(false);
-  const [onBehalfLastAction, setOnBehalfLastAction] = useState<'opening' | 'sluiting' | null>(null);
+  const [onBehalfLastAction, setOnBehalfLastAction] = useState<AttendanceType | null>(null);
   const [onBehalfError, setOnBehalfError] = useState('');
 
   const isOwner = userRole === 'owner' || userRole === 'developer';
@@ -135,7 +141,7 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
 
-  async function register(type: 'opening' | 'sluiting') {
+  async function register(type: AttendanceType) {
     setSaving(true);
     const res = await fetch('/api/attendance', {
       method: 'POST',
@@ -151,7 +157,7 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
     setSaving(false);
   }
 
-  async function registerTechnician(type: 'opening' | 'sluiting') {
+  async function registerTechnician(type: AttendanceType) {
     setTechError('');
     if (!techName.trim()) {
       setTechError(techKind === 'jobstudent' ? t('vulNaamJobstudent') : t('vulNaamTechnieker'));
@@ -174,7 +180,7 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
     setTechSaving(false);
   }
 
-  async function registerOnBehalf(type: 'opening' | 'sluiting') {
+  async function registerOnBehalf(type: AttendanceType) {
     setOnBehalfError('');
     if (!onBehalfUserId) {
       setOnBehalfError(t('kiesEenMedewerker'));
@@ -252,7 +258,7 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
 
   function exportCsv() {
     if (!summary || summary.length === 0) return;
-    const rows = [[t('csv.medewerker'), t('csv.datum'), t('csv.aankomst'), t('csv.vertrek'), t('csv.uren')]];
+    const rows = [[t('csv.medewerker'), t('csv.datum'), t('csv.aankomst'), t('csv.vertrek'), t('csv.pauze'), t('csv.uren')]];
     for (const emp of summary) {
       for (const day of emp.days) {
         rows.push([
@@ -260,11 +266,12 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
           day.date,
           day.checkIn || '',
           day.checkOut || '',
+          (day.pauseMinutes ?? 0) > 0 ? String(day.pauseMinutes) : '',
           day.hours > 0 ? day.hours.toFixed(2) : '',
         ]);
       }
-      rows.push([emp.userName, t('csv.totaalDezeSite'), '', '', emp.totalHours.toFixed(2)]);
-      rows.push([emp.userName, t('csv.totaalAlleSites'), '', '', emp.totalHoursAllSites.toFixed(2)]);
+      rows.push([emp.userName, t('csv.totaalDezeSite'), '', '', '', emp.totalHours.toFixed(2)]);
+      rows.push([emp.userName, t('csv.totaalAlleSites'), '', '', '', emp.totalHoursAllSites.toFixed(2)]);
     }
     const csv = rows.map((r) => r.map((v) => `"${v.replace(/"/g, '""')}"`).join(';')).join('\n');
     const blob = new Blob([`﻿${csv}`], { type: 'text/csv;charset=utf-8;' });
@@ -310,10 +317,26 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
             {t('ikVertrek')}
           </button>
         </div>
+        <div className={styles.btnRow}>
+          <button
+            className={[styles.btn, styles.pauseBtn].join(' ')}
+            onClick={() => register('pauze_start')}
+            disabled={saving}
+          >
+            {t('startPauze')}
+          </button>
+          <button
+            className={[styles.btn, styles.pauseBtn].join(' ')}
+            onClick={() => register('pauze_einde')}
+            disabled={saving}
+          >
+            {t('eindePauze')}
+          </button>
+        </div>
 
         {lastAction && (
           <p className={styles.confirm}>
-            {lastAction === 'opening' ? t('aankomstGeregistreerd') : t('vertrekGeregistreerd')}
+            {t(TYPE_CONFIRM[lastAction])}
           </p>
         )}
       </div>
@@ -380,7 +403,7 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
 
         {techLastAction && (
           <p className={styles.confirm}>
-            {techLastAction === 'opening' ? t('aankomstGeregistreerd') : t('vertrekGeregistreerd')}
+            {t(TYPE_CONFIRM[techLastAction])}
           </p>
         )}
       </div>
@@ -460,10 +483,26 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
               {t('vertrekt')}
             </button>
           </div>
+          <div className={styles.btnRow}>
+            <button
+              className={[styles.btn, styles.pauseBtn].join(' ')}
+              onClick={() => registerOnBehalf('pauze_start')}
+              disabled={onBehalfSaving}
+            >
+              {t('startPauze')}
+            </button>
+            <button
+              className={[styles.btn, styles.pauseBtn].join(' ')}
+              onClick={() => registerOnBehalf('pauze_einde')}
+              disabled={onBehalfSaving}
+            >
+              {t('eindePauze')}
+            </button>
+          </div>
 
           {onBehalfLastAction && (
             <p className={styles.confirm}>
-              {onBehalfLastAction === 'opening' ? t('aankomstGeregistreerd') : t('vertrekGeregistreerd')}
+              {t(TYPE_CONFIRM[onBehalfLastAction])}
             </p>
           )}
         </div>
@@ -600,6 +639,7 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
                           <span className={styles.dayDetailDate}>{fmtDayNL(day.date, dateLocale)}</span>
                           <span className={styles.dayDetailTime}>
                             {day.checkIn || '—'} → {day.checkOut || '?'}
+                            {(day.pauseMinutes ?? 0) > 0 && <> · {t('pauzeMinuten', { min: day.pauseMinutes ?? 0 })}</>}
                           </span>
                           <span className={[styles.dayDetailHours, !day.checkOut ? styles.dayDetailOpen : ''].filter(Boolean).join(' ')}>
                             {day.hours > 0 ? t('urenKort', { uren: day.hours.toFixed(1).replace('.0', '') }) : day.checkIn ? t('nietUitgestempeld') : '—'}
@@ -637,10 +677,10 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
                 <div
                   key={l.id}
                   ref={(el) => { rowRefs.current[l.id] = el; }}
-                  className={[styles.logRow, l.type === 'opening' ? styles.opening : styles.sluiting, highlightId === l.id ? styles.logRowHighlight : ''].filter(Boolean).join(' ')}
+                  className={[styles.logRow, l.type === 'opening' || l.type === 'pauze_einde' ? styles.opening : styles.sluiting, highlightId === l.id ? styles.logRowHighlight : ''].filter(Boolean).join(' ')}
                 >
                   <span className={styles.typeBadge}>
-                    {l.type === 'opening' ? t('aankomst') : t('vertrek')}
+                    {t(TYPE_LABEL[l.type] ?? 'aankomst')}
                   </span>
                   <span className={styles.logName}>
                     {l.userName}

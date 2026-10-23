@@ -521,7 +521,9 @@
       "levering": "Levering: {name}",
       "product": "Product",
       "onderhoud": "Onderhoud: {name}",
-      "uitgevoerd": "Uitgevoerd"
+      "uitgevoerd": "Uitgevoerd",
+      "pauzeStart": "{name} neemt pauze",
+      "pauzeEinde": "{name} terug van pauze"
     }
   },
   "diversen": {
@@ -586,7 +588,8 @@
       "uren": "Uren",
       "totaalDezeSite": "Totaal (deze site)",
       "totaalAlleSites": "Totaal (alle sites)",
-      "bestandsnaam": "uren-{month}-{year}"
+      "bestandsnaam": "uren-{month}-{year}",
+      "pauze": "Pauze (min)"
     },
     "registreerAanwezigheid": "Registreer aanwezigheid",
     "aangemeldAls": "Aangemeld als <strong>{name}</strong>",
@@ -637,7 +640,14 @@
     "vertrek": "Vertrek",
     "door": "door {name}",
     "registratieVerwijderen": "Registratie verwijderen",
-    "verwijderen": "Verwijderen"
+    "verwijderen": "Verwijderen",
+    "startPauze": "Start pauze",
+    "eindePauze": "Einde pauze",
+    "pauze": "Pauze",
+    "terugVanPauze": "Terug van pauze",
+    "pauzeGeregistreerd": "Pauze geregistreerd",
+    "pauzeEindeGeregistreerd": "Einde pauze geregistreerd",
+    "pauzeMinuten": "pauze {min} min"
   },
   "onderhoudPagina": {
     "titel": "Onderhoud — {site}",
@@ -871,7 +881,10 @@
     ],
     "prijzenNietIngesteld": "Prijzen nog niet ingesteld — stel uw instellingen in om kosten te berekenen",
     "bekijkWerklijst": "Bekijk je volledige werklijst",
-    "geenIngavePeriode": "Geen ingave voor deze periode — meest recente ingave getoond"
+    "geenIngavePeriode": "Geen ingave voor deze periode — meest recente ingave getoond",
+    "neemtPauze": "{name} neemt pauze",
+    "terugVanPauze": "{name} is terug van pauze",
+    "pauzeDuur": "{duur} pauze"
   },
   "washPrograms": {
     "confirmVerwijderen": "Programma \"{name}\" verwijderen?",

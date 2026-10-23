@@ -83,6 +83,15 @@
   &:hover:not(:disabled) { background: var(--color-surface-hover); }
 }
 
+.pauseBtn {
+  height: 40px;
+  background: transparent;
+  border: 1px dashed var(--color-border);
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  &:hover:not(:disabled) { background: var(--color-surface-hover); }
+}
+
 .confirm {
   font-size: 0.875rem;
   color: var(--color-accent-teal);

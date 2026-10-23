@@ -62,7 +62,9 @@
       "levering": "Livraison : {name}",
       "product": "Produit",
       "onderhoud": "Entretien : {name}",
-      "uitgevoerd": "Effectué"
+      "uitgevoerd": "Effectué",
+      "pauzeStart": "{name} en pause",
+      "pauzeEinde": "{name} de retour de pause"
     }
   },
   "diversen": {
@@ -127,7 +129,8 @@
       "uren": "Heures",
       "totaalDezeSite": "Total (ce site)",
       "totaalAlleSites": "Total (tous les sites)",
-      "bestandsnaam": "heures-{month}-{year}"
+      "bestandsnaam": "heures-{month}-{year}",
+      "pauze": "Pause (min)"
     },
     "registreerAanwezigheid": "Enregistrer la présence",
     "aangemeldAls": "Connecté en tant que <strong>{name}</strong>",
@@ -178,7 +181,14 @@
     "vertrek": "Départ",
     "door": "par {name}",
     "registratieVerwijderen": "Supprimer l’enregistrement",
-    "verwijderen": "Supprimer"
+    "verwijderen": "Supprimer",
+    "startPauze": "Début pause",
+    "eindePauze": "Fin pause",
+    "pauze": "Pause",
+    "terugVanPauze": "Retour de pause",
+    "pauzeGeregistreerd": "Pause enregistrée",
+    "pauzeEindeGeregistreerd": "Fin de pause enregistrée",
+    "pauzeMinuten": "pause {min} min"
   },
   "onderhoudPagina": {
     "titel": "Entretien — {site}",
@@ -443,7 +453,10 @@
     ],
     "prijzenNietIngesteld": "Prix pas encore configurés — complétez vos paramètres pour calculer les coûts",
     "bekijkWerklijst": "Voir votre liste de travail complète",
-    "geenIngavePeriode": "Aucune saisie pour cette période — dernière saisie affichée"
+    "geenIngavePeriode": "Aucune saisie pour cette période — dernière saisie affichée",
+    "neemtPauze": "{name} prend sa pause",
+    "terugVanPauze": "{name} est de retour de pause",
+    "pauzeDuur": "{duur} de pause"
   },
   "incidenten": {
     "ehboRapport": "Rapport premiers secours",

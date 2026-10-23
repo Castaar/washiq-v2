@@ -587,7 +587,8 @@ export interface IAttendanceLog extends Document {
   site_id: Types.ObjectId;
   user_id: Types.ObjectId;
   user_name: string;
-  type: 'opening' | 'sluiting';
+  // opening/sluiting = arrival/departure, pauze_start/pauze_einde = break
+  type: 'opening' | 'sluiting' | 'pauze_start' | 'pauze_einde';
   person_type: 'employee' | 'technician_extern' | 'jobstudent';
   registered_by_name: string;
   timestamp: Date;
@@ -597,7 +598,7 @@ const AttendanceLogSchema = new Schema<IAttendanceLog>({
   site_id: { type: Schema.Types.ObjectId, ref: 'Site', required: true },
   user_id: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   user_name: String,
-  type: { type: String, enum: ['opening', 'sluiting'], required: true },
+  type: { type: String, enum: ['opening', 'sluiting', 'pauze_start', 'pauze_einde'], required: true },
   person_type: { type: String, enum: ['employee', 'technician_extern', 'jobstudent'], default: 'employee' },
   registered_by_name: { type: String, default: '' },
   timestamp: { type: Date, default: Date.now },

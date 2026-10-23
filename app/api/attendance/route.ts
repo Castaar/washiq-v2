@@ -3,6 +3,7 @@ import { dbConnect } from '@/lib/db/mongoose';
 import { AttendanceLog, User } from '@/lib/models';
 import { getSessionFromRequest } from '@/lib/session';
 import { brusselsInstant } from '@/lib/dates';
+import type { AttendanceType } from '@/lib/attendance-hours';
 import { sendPushToUser, afterResponse } from '@/lib/push';
 import type { Types } from 'mongoose';
 
@@ -55,7 +56,7 @@ export async function POST(req: NextRequest) {
 
   const body = (await req.json()) as {
     siteId: string;
-    type: 'opening' | 'sluiting';
+    type: AttendanceType;
     note?: string;
     personType?: 'employee' | 'technician_extern' | 'jobstudent';
     personName?: string;
@@ -63,7 +64,7 @@ export async function POST(req: NextRequest) {
     onBehalfOfUserName?: string;
     timestamp?: string;
   };
-  if (!body.siteId || !body.type) {
+  if (!body.siteId || !['opening', 'sluiting', 'pauze_start', 'pauze_einde'].includes(body.type)) {
     return NextResponse.json({ error: 'siteId and type required' }, { status: 400 });
   }
 
@@ -120,7 +121,7 @@ export async function POST(req: NextRequest) {
     note: body.note?.trim() ?? '',
   });
 
-  const actionLabel = body.type === 'opening' ? 'aangekomen' : 'vertrokken';
+  const actionLabel = { opening: 'is aangekomen', sluiting: 'is vertrokken', pauze_start: 'neemt pauze', pauze_einde: 'is terug van pauze' }[body.type];
   // Developers see every site regardless of their assigned site_ids (same
   // as the site picker elsewhere) — owners stay scoped to their own sites.
   afterResponse(User.find({ is_active: true, $or: [{ role: 'developer' }, { site_ids: body.siteId, role: { $in: ['owner', 'technician', 'employee'] } }] })
@@ -132,7 +133,7 @@ export async function POST(req: NextRequest) {
           .filter((u) => (u._id as Types.ObjectId).toString() !== session.userId)
           .map((u) =>
             sendPushToUser((u._id as Types.ObjectId).toString(), {
-              title: `${log.user_name} is ${actionLabel}`,
+              title: `${log.user_name} ${actionLabel}`,
               body: timestamp.toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Brussels' }),
               url: `/logboek?site=${body.siteId}&item=${(log._id as Types.ObjectId).toString()}`,
             }),

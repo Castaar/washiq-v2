@@ -1,4 +1,5 @@
 import type { Types } from 'mongoose';
+import type { AttendanceType } from '@/lib/attendance-hours';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
@@ -92,7 +93,7 @@ export default async function DashboardPage({
     .exec();
 
   // Fetch recent attendance logs for employees (shown on dashboard instead of alerts panel)
-  let recentLogs: { id: string; userId: string; userName: string; type: 'opening' | 'sluiting'; personType: 'employee' | 'technician_extern'; registeredByName: string; timestamp: string; note: string }[] = [];
+  let recentLogs: { id: string; userId: string; userName: string; type: AttendanceType; personType: 'employee' | 'technician_extern'; registeredByName: string; timestamp: string; note: string }[] = [];
   if ((userRole === 'employee') && activeSiteId && session?.userId) {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -105,7 +106,7 @@ export default async function DashboardPage({
       id: (l._id as Types.ObjectId).toString(),
       userId: (l.user_id as Types.ObjectId).toString(),
       userName: (l.user_name as string) ?? '',
-      type: l.type as 'opening' | 'sluiting',
+      type: l.type as AttendanceType,
       personType: ((l.person_type as string) ?? 'employee') as 'employee' | 'technician_extern',
       registeredByName: (l.registered_by_name as string) ?? '',
       timestamp: (l.timestamp as Date).toISOString(),
