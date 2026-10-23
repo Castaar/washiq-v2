@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { RankingModal } from '@/components/dashboard/RankingModal/RankingModal';
 import styles from './RankingWidget.module.scss';
 
@@ -12,6 +13,7 @@ interface RankingWidgetProps {
 }
 
 export function RankingWidget({ rank, total, isOwner, siteId }: RankingWidgetProps) {
+  const t = useTranslations('ranking');
   const [open, setOpen] = useState(false);
   const canClick = isOwner && total > 1;
 
@@ -23,16 +25,16 @@ export function RankingWidget({ rank, total, isOwner, siteId }: RankingWidgetPro
         role={canClick ? 'button' : undefined}
         tabIndex={canClick ? 0 : undefined}
         onKeyDown={canClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') setOpen(true); } : undefined}
-        aria-label={canClick ? 'Bekijk ranking vergelijking' : undefined}
+        aria-label={canClick ? t('bekijkVergelijking') : undefined}
       >
-        <span className={styles.label}>Ranking</span>
+        <span className={styles.label}>{t('titel')}</span>
         <div className={styles.body}>
-          <span className={styles.position}>Nr.&nbsp;{rank}</span>
+          <span className={styles.position}>{t('nr', { rank })}</span>
           {isOwner && total > 1 && (
-            <span className={styles.total}>van {total}</span>
+            <span className={styles.total}>{t('vanTotal', { total })}</span>
           )}
         </div>
-        {canClick && <span className={styles.hint}>Meer info</span>}
+        {canClick && <span className={styles.hint}>{t('meerInfo')}</span>}
       </div>
       {open && <RankingModal siteId={siteId} onClose={() => setOpen(false)} />}
     </>

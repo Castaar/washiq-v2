@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { Badge } from '@/components/ui/Badge/Badge';
 import { BRUSH_CATEGORIES, BRUSH_CATEGORY_KEYS, brushCategoryInfo, type BrushCategory } from '@/lib/brushes';
 import styles from './BrushesPanel.module.scss';
@@ -22,8 +22,8 @@ const CATEGORIES = BRUSH_CATEGORY_KEYS;
 // Slijtage-drempel: vanaf dit aantal wasbeurten sinds vervanging waarschuwen we.
 const WEAR_WARNING_THRESHOLD = 20000;
 
-function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString('nl-BE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+function fmtDate(iso: string, dateLocale: string) {
+  return new Date(iso).toLocaleDateString(dateLocale, { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
 export function BrushesPanel({
@@ -40,7 +40,13 @@ export function BrushesPanel({
   const t = useTranslations('brushes');
   const tAlerts = useTranslations('alerts');
   const tCommon = useTranslations('common');
+  const tPagina = useTranslations('onderhoudPagina');
+  const locale = useLocale();
+  const dateLocale = locale === 'fr' ? 'fr-BE' : 'nl-BE';
+  // Canonical Dutch labels — used for the default brush label that gets saved to the DB.
   const CATEGORY_LABEL = Object.fromEntries(BRUSH_CATEGORIES.map((c) => [c.key, c.label])) as Record<BrushCategory, string>;
+  // Translated labels — display only.
+  const categoryDisplay = (c: string) => (brushCategoryInfo(c) ? tPagina(`borstelCategorie.${c}`) : c);
   const [brushes, setBrushes] = useState(initialBrushes);
   const [replacingId, setReplacingId] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
@@ -89,7 +95,7 @@ export function BrushesPanel({
         setFormOpen(false);
       } else {
         const err = (await res.json().catch(() => null)) as { error?: string } | null;
-        setAddError(err?.error ?? 'Toevoegen mislukt');
+        setAddError(err?.error ?? tPagina('toevoegenMislukt'));
       }
     } finally {
       setSaving(false);
@@ -152,7 +158,7 @@ export function BrushesPanel({
 
       {grouped.map(({ category, items }) => (
         <div key={category} className={styles.section}>
-          <h2 className={styles.sectionTitle}>{CATEGORY_LABEL[category] ?? category}</h2>
+          <h2 className={styles.sectionTitle}>{categoryDisplay(category)}</h2>
           {items.map((b) => {
             const washesSince = currentTellerstand > 0 ? Math.max(0, currentTellerstand - b.washesAtLastReplacement) : null;
             const worn = washesSince != null && washesSince >= WEAR_WARNING_THRESHOLD;
@@ -181,9 +187,9 @@ export function BrushesPanel({
                   </div>
                   <div className={styles.brushMeta}>
                     {washesSince != null && (
-                      <span>{t('wasbeurtenSindsVervanging', { count: washesSince.toLocaleString('nl-BE') })}</span>
+                      <span>{t('wasbeurtenSindsVervanging', { count: washesSince.toLocaleString(dateLocale) })}</span>
                     )}
-                    {b.lastReplacedAt && <span>{t('laatsteTextiel', { date: fmtDate(b.lastReplacedAt) })}</span>}
+                    {b.lastReplacedAt && <span>{t('laatsteTextiel', { date: fmtDate(b.lastReplacedAt, dateLocale) })}</span>}
                   </div>
                 </div>
                 <div className={styles.brushActions}>
@@ -224,7 +230,7 @@ export function BrushesPanel({
             <div className={styles.addFormRow}>
               <select className={styles.select} value={newCategory} onChange={(e) => setNewCategory(e.target.value as BrushCategory)}>
                 {availableCats.map((c) => (
-                  <option key={c} value={c}>{CATEGORY_LABEL[c]}</option>
+                  <option key={c} value={c}>{categoryDisplay(c)}</option>
                 ))}
               </select>
               <input

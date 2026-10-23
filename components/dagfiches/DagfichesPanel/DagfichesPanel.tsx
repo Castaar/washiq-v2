@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { DagficheModal } from '@/components/dashboard/DagficheModal/DagficheModal';
 import type { DagfichePayload } from '@/lib/types/dashboard';
 import styles from './DagfichesPanel.module.scss';
@@ -17,6 +18,7 @@ export interface DagficheOverviewItem {
 }
 
 export function DagfichesPanel({ items, siteId }: { items: DagficheOverviewItem[]; siteId: string }) {
+  const t = useTranslations('dagfiches');
   const [open, setOpen] = useState<DagficheOverviewItem | null>(null);
 
   // Deep-link from a push notification: /dagfiches?item=<id> opens that
@@ -31,7 +33,7 @@ export function DagfichesPanel({ items, siteId }: { items: DagficheOverviewItem[
   }, [searchParams]);
 
   if (items.length === 0) {
-    return <p className={styles.empty}>Geen dagfiches gevonden voor de afgelopen 30 dagen.</p>;
+    return <p className={styles.empty}>{t('geenDagfiches')}</p>;
   }
 
   const grouped = new Map<string, DagficheOverviewItem[]>();
@@ -65,12 +67,12 @@ export function DagfichesPanel({ items, siteId }: { items: DagficheOverviewItem[
               <span className={styles.rowTime}>{item.submittedAt.split(' ').pop()}</span>
               {item.uncheckedCount > 0 ? (
                 <span className={[styles.badge, styles.badgeWarn].join(' ')}>
-                  ⚠ {item.uncheckedCount} niet afgevinkt
+                  {t('nietAfgevinkt', { count: item.uncheckedCount })}
                 </span>
               ) : (
-                <span className={[styles.badge, styles.badgeOk].join(' ')}>✓ Volledig</span>
+                <span className={[styles.badge, styles.badgeOk].join(' ')}>{t('volledig')}</span>
               )}
-              {item.hasDefectNote && <span className={styles.defectDot} title="Dagrapport ingevuld" />}
+              {item.hasDefectNote && <span className={styles.defectDot} title={t('dagrapportIngevuld')} />}
             </button>
           ))}
         </div>

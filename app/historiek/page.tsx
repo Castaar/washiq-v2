@@ -1,4 +1,5 @@
 import { cookies } from 'next/headers';
+import { getLocale, getTranslations } from 'next-intl/server';
 import { m } from '@/lib/demo';
 import { NavBar } from '@/components/layout/NavBar/NavBar';
 import { HistoryList } from '@/components/forms/HistoryList/HistoryList';
@@ -25,6 +26,8 @@ export default async function HistoriekPage({
   await dbConnect();
 
   const session = await getSession();
+  const th = await getTranslations('historiek');
+  const loc = (await getLocale()) === 'fr' ? 'fr-BE' : 'nl-BE';
   const isDemo = session?.demo === true;
 
   const cookieStore = await cookies();
@@ -108,7 +111,10 @@ export default async function HistoriekPage({
   }));
 
   // ── Build weekly chart data: water + elektriciteit per wassing ──
-  const allProducts = [{ name: 'Water', unit: 'm³/wassing' }, { name: 'Elektriciteit', unit: '€/wassing' }];
+  // Series names double as chart data keys (display only, never stored)
+  const waterName = th('chart.water');
+  const elektriciteitName = th('chart.elektriciteit');
+  const allProducts = [{ name: waterName, unit: th('chart.unitWater') }, { name: elektriciteitName, unit: th('chart.unitElektriciteit') }];
 
   function weekLabel(date: Date): string {
     const d = new Date(date);
@@ -122,14 +128,14 @@ export default async function HistoriekPage({
       const weekStart = new Date(e.week_start as Date);
       const billKey = `${weekStart.getUTCFullYear()}-${weekStart.getUTCMonth() + 1}`;
       const billAmount = energyBillsByMonth[billKey] ?? 0;
-      row['Water'] = Math.round(((e.water_liters ?? 0) / totalWagens) * 1000) / 1000;
-      row['Elektriciteit'] = Math.round((billAmount / totalWagens) * 100) / 100;
+      row[waterName] = Math.round(((e.water_liters ?? 0) / totalWagens) * 1000) / 1000;
+      row[elektriciteitName] = Math.round((billAmount / totalWagens) * 100) / 100;
     }
     return row;
   });
 
   // Prepend a "Begin" baseline point with 0 for all products
-  const beginRow: ChemieDataPoint = { week: 'Begin' };
+  const beginRow: ChemieDataPoint = { week: th('chart.begin') };
   for (const p of allProducts) beginRow[p.name] = 0;
   const chartData: ChemieDataPoint[] = entryDocs.length > 0 ? [beginRow, ...entryChartData] : [];
 
@@ -190,7 +196,7 @@ export default async function HistoriekPage({
       }
     }
     return [...byMonth.keys()].sort().map((month) => {
-      const label = new Date(`${month}-15T12:00:00Z`).toLocaleDateString('nl-BE', { month: 'short', year: '2-digit', timeZone: 'Europe/Brussels' });
+      const label = new Date(`${month}-15T12:00:00Z`).toLocaleDateString(loc, { month: 'short', year: '2-digit', timeZone: 'Europe/Brussels' });
       return { week: estimated.has(month) ? `${label} *` : label, ...byMonth.get(month)! } as ChemieDataPoint;
     });
   })();
@@ -210,13 +216,13 @@ export default async function HistoriekPage({
       const to = brusselsDay(at);
       const wagens = entryWagens.filter((e) => e.day > from && e.day <= to).reduce((sum, e) => sum + e.wagens, 0);
       if (wagens <= 0) continue;
-      const label = new Date(at).toLocaleDateString('nl-BE', { day: '2-digit', month: '2-digit', timeZone: 'Europe/Brussels' });
+      const label = new Date(at).toLocaleDateString(loc, { day: '2-digit', month: '2-digit', timeZone: 'Europe/Brussels' });
       if (!byLabel.has(label)) byLabel.set(label, { week: label });
       byLabel.get(label)![name] = Math.round((Math.max(0, r.consumption as number) / wagens) * 1000) / 1000;
     }
     return [...byLabel.values()];
   })();
-  const chemiePerWagenProducts = chemieProducts.map((p) => ({ name: p.name, unit: `${p.unit}/wagen` }));
+  const chemiePerWagenProducts = chemieProducts.map((p) => ({ name: p.name, unit: th('chart.perWagenUnit', { unit: p.unit }) }));
 
   // ── Verbruik in liters per periode tussen twee tellingen ──────
   const [ledgerDeliveries, ledgerTransfers, ledgerAdjustments] = siteId
@@ -226,7 +232,7 @@ export default async function HistoriekPage({
         StockAdjustment.find({ site_id: siteId }).select('chemical_id quantity adjusted_at').lean(),
       ])
     : [[], [], []];
-  const fmtShort = (d: Date) => d.toLocaleDateString('nl-BE', { day: '2-digit', month: '2-digit', year: '2-digit', timeZone: 'Europe/Brussels' });
+  const fmtShort = (d: Date) => d.toLocaleDateString(loc, { day: '2-digit', month: '2-digit', year: '2-digit', timeZone: 'Europe/Brussels' });
   const idStr = (v: unknown) => (v as { toString(): string } | null | undefined)?.toString() ?? '';
   const sumIn = <T,>(rows: T[], pick: (r: T) => { id: string; at: Date; q: number }, cid: string, from: Date, to: Date) =>
     rows.map(pick).filter((r) => r.id === cid && r.at > from && r.at <= to).reduce((sum, r) => sum + r.q, 0);
@@ -286,7 +292,7 @@ export default async function HistoriekPage({
       isResolved: Boolean(d.is_resolved),
       resolvedByName: (d.resolved_by_name as string) || '',
       reportedBy: (d.reported_by_name as string) || '',
-      date: new Date(d.created_at as Date).toLocaleDateString('nl-BE', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+      date: new Date(d.created_at as Date).toLocaleDateString(loc, { day: '2-digit', month: '2-digit', year: 'numeric' }),
       omschrijving: (d.omschrijving as string) || '',
       ernst: (d.ernst as string) || 'medium',
       photos: (d.photos as string[]) ?? [],
@@ -297,7 +303,7 @@ export default async function HistoriekPage({
     ...schadeDocs.map((s) => ({
       id: (s._id as Types.ObjectId).toString(),
       kind: 'schade' as const,
-      title: (s.merk_model as string) || 'Schade',
+      title: (s.merk_model as string) || th('fallback.schade'),
       subtitle: (s.omschrijving as string) || '',
       reportedByName: (s.reported_by_name as string) || '',
       createdAt: (s.created_at as Date).toISOString(),
@@ -307,7 +313,7 @@ export default async function HistoriekPage({
         isResolved: Boolean(s.is_resolved),
         resolvedByName: (s.resolved_by_name as string) || '',
         reportedBy: (s.reported_by_name as string) || '',
-        date: new Date(s.created_at as Date).toLocaleDateString('nl-BE', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+        date: new Date(s.created_at as Date).toLocaleDateString(loc, { day: '2-digit', month: '2-digit', year: 'numeric' }),
         typeVoertuig: (s.type_voertuig as string) || '',
         merkModel: (s.merk_model as string) || '',
         nummerplaat: m(isDemo, (s.nummerplaat as string)) || '',
@@ -325,7 +331,7 @@ export default async function HistoriekPage({
     ...ehboDocs.map((e) => ({
       id: (e._id as Types.ObjectId).toString(),
       kind: 'ehbo' as const,
-      title: m(isDemo, (e.naam_slachtoffer as string)) || 'EHBO',
+      title: m(isDemo, (e.naam_slachtoffer as string)) || th('fallback.ehbo'),
       subtitle: (e.verwonding as string) || '',
       reportedByName: (e.reported_by_name as string) || '',
       createdAt: (e.created_at as Date).toISOString(),
@@ -335,7 +341,7 @@ export default async function HistoriekPage({
         isResolved: Boolean(e.is_resolved),
         resolvedByName: (e.resolved_by_name as string) || '',
         reportedBy: (e.reported_by_name as string) || '',
-        date: new Date(e.created_at as Date).toLocaleDateString('nl-BE', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+        date: new Date(e.created_at as Date).toLocaleDateString(loc, { day: '2-digit', month: '2-digit', year: 'numeric' }),
         uur: (e.uur as string) || '',
         naamSlachtoffer: m(isDemo, (e.naam_slachtoffer as string)) || '',
         afdelingLocatie: (e.afdeling_locatie as string) || '',
@@ -392,8 +398,8 @@ export default async function HistoriekPage({
       return {
         id: (d._id as Types.ObjectId).toString(),
         kind: 'delivery',
-        title: chem?.name ? `Levering: ${chem.name}` : `Levering: ${(d.note as string) || 'diverse'}`,
-        detail: chem?.name ? `+${((d.quantity as number) ?? 0).toLocaleString('nl-BE')} ${chem.unit ?? ''}${d.note ? ` — ${d.note}` : ''}` : '',
+        title: th('ledger.levering', { name: chem?.name ? chem.name : ((d.note as string) || th('fallback.diverse')) }),
+        detail: chem?.name ? `+${((d.quantity as number) ?? 0).toLocaleString(loc)} ${chem.unit ?? ''}${d.note ? ` — ${d.note}` : ''}` : '',
         quantity: chem?.name ? ((d.quantity as number) ?? 0) : undefined,
         byName: (d.logged_by_name as string) || '',
         at: (d.delivered_at as Date).toISOString(),
@@ -403,11 +409,11 @@ export default async function HistoriekPage({
       const from = (t.from_site_id as unknown as { _id?: Types.ObjectId; name?: string } | null);
       const to = (t.to_site_id as unknown as { _id?: Types.ObjectId; name?: string } | null);
       const outgoing = from?._id?.toString() === siteId;
-      const qty = ((t.quantity as number) ?? 0).toLocaleString('nl-BE');
+      const qty = ((t.quantity as number) ?? 0).toLocaleString(loc);
       return {
         id: (t._id as Types.ObjectId).toString(),
         kind: outgoing ? 'transfer-out' : 'transfer-in',
-        title: outgoing ? `Verplaatst naar ${to?.name ?? '?'}: ${t.name}` : `Ontvangen van ${from?.name ?? '?'}: ${t.name}`,
+        title: outgoing ? th('ledger.verplaatstNaar', { site: to?.name ?? '?', name: String(t.name) }) : th('ledger.ontvangenVan', { site: from?.name ?? '?', name: String(t.name) }),
         detail: `${outgoing ? '−' : '+'}${qty} ${t.unit ?? ''}`,
         byName: (t.logged_by_name as string) || '',
         at: (t.transferred_at as Date).toISOString(),
@@ -419,25 +425,25 @@ export default async function HistoriekPage({
       return {
         id: (a._id as Types.ObjectId).toString(),
         kind: 'adjustment',
-        title: `Correctie: ${chem?.name ?? 'product'}`,
-        detail: `${((a.from_value as number) ?? 0).toLocaleString('nl-BE')} → ${((a.to_value as number) ?? 0).toLocaleString('nl-BE')} ${chem?.unit ?? ''} (${q >= 0 ? '+' : '−'}${Math.abs(q).toLocaleString('nl-BE')}) · telt niet als verbruik`,
+        title: th('ledger.correctie', { name: chem?.name ?? th('fallback.product') }),
+        detail: th('ledger.correctieDetail', { from: ((a.from_value as number) ?? 0).toLocaleString(loc), to: ((a.to_value as number) ?? 0).toLocaleString(loc), unit: chem?.unit ?? '', delta: `${q >= 0 ? '+' : '−'}${Math.abs(q).toLocaleString(loc)}` }),
         byName: (a.logged_by_name as string) || '',
         at: (a.adjusted_at as Date).toISOString(),
       };
     }),
     ...readingDocs.map((r): StockLedgerItem => {
       const isFirst = firstReadingIds.has((r._id as Types.ObjectId).toString());
-      const q = ((r.quantity as number) ?? 0).toLocaleString('nl-BE');
+      const q = ((r.quantity as number) ?? 0).toLocaleString(loc);
       const c = Math.round(((r.consumption as number) ?? 0) * 100) / 100;
       return {
         id: (r._id as Types.ObjectId).toString(),
         kind: 'reading',
-        title: `Telling: ${r.name}${r.is_invalid ? ' — ONGELDIG' : ''}`,
+        title: th(r.is_invalid ? 'ledger.tellingOngeldig' : 'ledger.telling', { name: String(r.name) }),
         detail: r.is_invalid
-          ? `Voorraad ${q} ${r.unit ?? ''} · telt niet mee in de berekening`
+          ? th('ledger.voorraadOngeldig', { qty: q, unit: String(r.unit ?? '') })
           : isFirst
-          ? `Voorraad ${q} ${r.unit ?? ''} (beginstand)`
-          : `Voorraad ${q} ${r.unit ?? ''} · verbruik ${c.toLocaleString('nl-BE')} ${r.unit ?? ''}`,
+          ? th('ledger.voorraadBegin', { qty: q, unit: String(r.unit ?? '') })
+          : th('ledger.voorraadVerbruik', { qty: q, unit: String(r.unit ?? ''), consumption: c.toLocaleString(loc) }),
         quantity: (r.quantity as number) ?? 0,
         invalid: Boolean(r.is_invalid),
         byName: readerName.get((r.recorded_by as Types.ObjectId | undefined)?.toString() ?? '') ?? '',
@@ -457,8 +463,8 @@ export default async function HistoriekPage({
         {!isSelfcarwash && allProducts.length > 0 && (
           <div className={styles.card}>
             <div className={styles.header}>
-              <h2 className={styles.title}>Verbruik per wassing — {siteName}</h2>
-              <p className={styles.subtitle}>Wekelijks, water en elektriciteit per wassing</p>
+              <h2 className={styles.title}>{th('verbruikPerWassingTitle', { site: siteName })}</h2>
+              <p className={styles.subtitle}>{th('verbruikPerWassingSub')}</p>
             </div>
             <ChemieChart data={chartData} products={allProducts} />
           </div>
@@ -467,8 +473,8 @@ export default async function HistoriekPage({
         {/* ── Chemieverbruik uit voorraadtellingen ───────────────── */}
         <div className={styles.card}>
           <div className={styles.header}>
-            <h2 className={styles.title}>Chemieverbruik per maand — {siteName}</h2>
-            <p className={styles.subtitle}>Berekend uit de voorraadtellingen: vorige telling + leveringen ± verplaatsingen ± correcties − nieuwe telling.{chemieEstimated ? ' * = geschat: een telperiode over meerdere maanden is verdeeld volgens het aantal wagens (selfcarwash: dagen).' : ''}</p>
+            <h2 className={styles.title}>{th('chemieMaandTitle', { site: siteName })}</h2>
+            <p className={styles.subtitle}>{th('chemieMaandSub')}{chemieEstimated ? ` ${th('chemieMaandGeschat')}` : ''}</p>
           </div>
           <ChemieChart data={chemieChartData} products={chemieProducts} />
         </div>
@@ -476,8 +482,8 @@ export default async function HistoriekPage({
         {/* ── Verbruik in liters tussen tellingen ─────────────────── */}
         <div className={styles.card}>
           <div className={styles.header}>
-            <h2 className={styles.title}>Verbruik tussen tellingen — {siteName}</h2>
-            <p className={styles.subtitle}>Per product het verbruik tussen de laatste twee tellingen; tik op een product voor alle periodes. Een rood gemarkeerde rij wijst op een fout in een telling of levering — corrigeer die bij Voorraad hieronder.</p>
+            <h2 className={styles.title}>{th('tussenTellingenTitle', { site: siteName })}</h2>
+            <p className={styles.subtitle}>{th('tussenTellingenSub')}</p>
           </div>
           <VerbruikTable products={verbruikProducts} />
         </div>
@@ -486,8 +492,8 @@ export default async function HistoriekPage({
         {!isSelfcarwash && (
           <div className={styles.card}>
             <div className={styles.header}>
-              <h2 className={styles.title}>Chemieverbruik per wagen — {siteName}</h2>
-              <p className={styles.subtitle}>Verbruik tussen twee tellingen gedeeld door het aantal wagens in die periode. Verschijnt vanaf de tweede telling.</p>
+              <h2 className={styles.title}>{th('chemiePerWagenTitle', { site: siteName })}</h2>
+              <p className={styles.subtitle}>{th('chemiePerWagenSub')}</p>
             </div>
             <ChemieChart data={chemiePerWagenData} products={chemiePerWagenProducts} />
           </div>
@@ -496,8 +502,8 @@ export default async function HistoriekPage({
         {/* ── Historiek pannes/schade/bestellingen/onderhouden ────── */}
         <div className={styles.card}>
           <div className={styles.header}>
-            <h2 className={styles.title}>Historiek — {siteName}</h2>
-            <p className={styles.subtitle}>Pannes, schadegevallen/EHBO, bestellingen en onderhouden</p>
+            <h2 className={styles.title}>{th('historiekTitle', { site: siteName })}</h2>
+            <p className={styles.subtitle}>{th('historiekSub')}</p>
           </div>
           <EventHistoryPanel
             defects={defectHistory}
@@ -511,7 +517,7 @@ export default async function HistoriekPage({
         {/* ── Maandelijkse ingaves lijst ─────────────────────────── */}
         <div className={styles.card}>
           <div className={styles.header}>
-            <h1 className={styles.title}>Maandelijkse Ingaves — {siteName}</h1>
+            <h1 className={styles.title}>{th('ingavesTitle', { site: siteName })}</h1>
           </div>
           <HistoryList entries={entries} programs={programs} startCarCount={startCarCount} startWaterCount={startWaterCount} siteId={siteId ?? ''} energyBillsByMonth={energyBillsByMonth} isSelfcarwash={isSelfcarwash} counterResets={((siteDoc?.counter_resets as { date: string; end_value: number }[] | undefined) ?? []).map((r) => ({ date: r.date, end_value: r.end_value }))} />
         </div>

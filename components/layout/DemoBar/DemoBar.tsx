@@ -1,15 +1,17 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import styles from './DemoBar.module.scss';
 
 const ROLES = [
-  { key: 'owner', label: 'Eigenaar' },
-  { key: 'technician', label: 'Technieker' },
-  { key: 'employee', label: 'Werknemer' },
+  { key: 'owner', labelKey: 'demoEigenaar' },
+  { key: 'technician', labelKey: 'demoTechnieker' },
+  { key: 'employee', labelKey: 'demoWerknemer' },
 ] as const;
 
 export function DemoBar({ role }: { role: string }) {
+  const t = useTranslations('layout');
   const [busy, setBusy] = useState<string | null>(null);
   const [open, setOpen] = useState(true);
 
@@ -30,15 +32,15 @@ export function DemoBar({ role }: { role: string }) {
 
   if (!open) {
     return (
-      <button type="button" className={styles.collapsed} onClick={() => setOpen(true)} aria-label="Toon demo-balk">
+      <button type="button" className={styles.collapsed} onClick={() => setOpen(true)} aria-label={t('toonDemoBalk')}>
         DEMO
       </button>
     );
   }
 
   return (
-    <div className={styles.bar} role="region" aria-label="Demo-omgeving">
-      <span className={styles.tag}>DEMO<span className={styles.tagLong}> · alleen lezen</span></span>
+    <div className={styles.bar} role="region" aria-label={t('demoOmgeving')}>
+      <span className={styles.tag}>DEMO<span className={styles.tagLong}>{` · ${t('alleenLezen')}`}</span></span>
       <div className={styles.roles}>
         {ROLES.map((r) => (
           <button
@@ -48,11 +50,11 @@ export function DemoBar({ role }: { role: string }) {
             onClick={() => switchTo(r.key)}
             disabled={busy !== null}
           >
-            {busy === r.key ? '…' : r.label}
+            {busy === r.key ? '…' : t(r.labelKey)}
           </button>
         ))}
       </div>
-      <button type="button" className={styles.close} onClick={() => setOpen(false)} aria-label="Verberg demo-balk">×</button>
+      <button type="button" className={styles.close} onClick={() => setOpen(false)} aria-label={t('verbergDemoBalk')}>×</button>
     </div>
   );
 }

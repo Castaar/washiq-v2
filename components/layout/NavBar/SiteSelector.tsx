@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { siteLabel } from '@/lib/siteLabel';
 import styles from './SiteSelector.module.scss';
 
@@ -17,6 +18,7 @@ interface SiteSelectorProps {
 }
 
 export function SiteSelector({ sites, activeSiteId }: SiteSelectorProps) {
+  const t = useTranslations('layout');
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -41,7 +43,7 @@ export function SiteSelector({ sites, activeSiteId }: SiteSelectorProps) {
         className={styles.select}
         value={activeSiteId}
         onChange={handleChange}
-        aria-label="Selecteer carwash"
+        aria-label={t('selecteerCarwash')}
       >
         {sites.map((s) => (
           <option key={s.id} value={s.id}>

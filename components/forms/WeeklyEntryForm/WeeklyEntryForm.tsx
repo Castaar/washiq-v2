@@ -3,6 +3,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useLocale, useTranslations } from 'next-intl';
 import { countInstantForDay } from '@/lib/dates';
 import { counterOffset, toMachineReading, resetsBetween, type CounterReset } from '@/lib/counter';
 import styles from './WeeklyEntryForm.module.scss';
@@ -91,6 +92,7 @@ function EntryField({
   lastValue?: number | null;
   stockLabel?: string;
 }) {
+  const t = useTranslations('ingave');
   const sign = delta !== null && delta >= 0 ? '+' : '';
   const deltaClass = delta !== null && delta < 0 ? styles.negative : styles.positive;
 
@@ -112,7 +114,7 @@ function EntryField({
         )}
       </div>
       {lastValue != null && (
-        <span className={styles.lastValue}>Vorige: {lastValue}</span>
+        <span className={styles.lastValue}>{t('vorige', { value: String(lastValue) })}</span>
       )}
       {stockLabel && (
         <span className={styles.stockHint}>{stockLabel}</span>
@@ -129,6 +131,9 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 // ─── Main form ────────────────────────────────────────────────
 export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesTasks = [], startCarCount = 0, startWaterCount = 0, contentTranslations = {}, isSelfcarwash = false, counterResets = [] }: WeeklyEntryFormProps) {
   const router = useRouter();
+  const t = useTranslations('ingave');
+  const tCommon = useTranslations('common');
+  const loc = useLocale() === 'fr' ? 'fr-BE' : 'nl-BE';
   const tProduct = (name: string) => contentTranslations[`product.${name}`] || name;
   const tProgram = (name: string) => contentTranslations[`program.${name}`] || name;
 
@@ -203,12 +208,12 @@ export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesT
     setSubmitError('');
 
     if (!isSelfcarwash && newTellerstandNum === null) {
-      setSubmitError('Vul de nieuwe tellerstand in.');
+      setSubmitError(t('vulTellerstandIn'));
       return;
     }
     if (!isSelfcarwash && tellerstandMismatch) {
       setSubmitError(
-        `Som van de tellerstanden per programma (${programCountSum.toLocaleString('nl-BE')}) komt niet overeen met het verschil tussen nieuwe en vorige tellerstand (${(expectedDiff ?? 0).toLocaleString('nl-BE')}).`,
+        t('mismatchError', { sum: programCountSum.toLocaleString(loc), diff: (expectedDiff ?? 0).toLocaleString(loc) }),
       );
       return;
     }
@@ -238,7 +243,7 @@ export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesT
         body: JSON.stringify(body),
       });
       if (!res.ok) {
-        setSubmitError('Opslaan mislukt — probeer opnieuw.');
+        setSubmitError(t('opslaanMislukt'));
         return;
       }
 
@@ -286,7 +291,7 @@ export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesT
 
       {/* ── Week selector ────────────────────────────────────── */}
       <div className={styles.weekPickerRow}>
-        <label className={styles.weekPickerLabel} htmlFor="weekPicker">Kies een datum in de week die u wilt invullen</label>
+        <label className={styles.weekPickerLabel} htmlFor="weekPicker">{t('kiesDatum')}</label>
         <input
           id="weekPicker"
           className={styles.weekInput}
@@ -296,26 +301,25 @@ export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesT
           onChange={(e) => setPickedDate(e.target.value)}
         />
         <span className={styles.weekPickerHint}>
-          Ingave van {fmtDayMonth(dateStringToDay(pickedDate))}
+          {t('ingaveVan', { date: fmtDayMonth(dateStringToDay(pickedDate)) })}
         </span>
       </div>
 
       {/* ── Section 0: Tellerstand (manueel ingegeven) ──────── */}
       {!isSelfcarwash && (<>
       <section className={styles.section}>
-        <SectionTitle>Tellerstand</SectionTitle>
+        <SectionTitle>{t('tellerstand')}</SectionTitle>
         <div className={styles.tellerstandDisplay}>
-          <span className={styles.lastValue}>Vorige tellerstand totaal: {previousMachine.toLocaleString('nl-BE')}</span>
+          <span className={styles.lastValue}>{t('vorigeTotaal', { value: previousMachine.toLocaleString(loc) })}</span>
           {resetsSinceLast.map((r) => (
             <span key={r.date} className={styles.lastValue}>
-              Teller op 0 gezet op {r.date.split('-').reverse().join('/')} (eindstand {r.end_value.toLocaleString('nl-BE')}).
-              Geef de tellerstand in die nu op de machine staat — wagens sinds de vorige ingave = ({r.end_value.toLocaleString('nl-BE')} − {previousMachine.toLocaleString('nl-BE')}) + nieuwe tellerstand.
+              {t('resetHint', { date: r.date.split('-').reverse().join('/'), end: r.end_value.toLocaleString(loc), previous: previousMachine.toLocaleString(loc) })}
             </span>
           ))}
         </div>
         <div className={styles.fieldsRow}>
           <EntryField
-            label="Nieuwe tellerstand"
+            label={t('nieuweTellerstand')}
             value={newTellerstand}
             onChange={setNewTellerstand}
             delta={null}
@@ -327,8 +331,8 @@ export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesT
               <div key={task.id} className={type === 'overdue' ? styles.warnOverdue : styles.warnApproaching}>
                 <strong>{contentTranslations[`task.${task.description}`] || task.description}</strong>
                 {type === 'overdue'
-                  ? ' — vervallen! Onderhoud is al voorbij.'
-                  : ` — nog ${remaining.toLocaleString('nl-BE')} wagens tot onderhoud.`}
+                  ? ` — ${t('onderhoudVervallen')}`
+                  : ` — ${t('onderhoudNog', { count: remaining.toLocaleString(loc) })}`}
               </div>
             ))}
           </div>
@@ -337,7 +341,7 @@ export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesT
 
       {/* ── Section 1: Tellerstand per programma ─────────── */}
       <section className={styles.section}>
-        <SectionTitle>Aantal wassingen per programma</SectionTitle>
+        <SectionTitle>{t('wassingenPerProgramma')}</SectionTitle>
         <div className={styles.fieldsRow}>
           {programs.length > 0 ? programs.map((p) => (
             <EntryField
@@ -349,13 +353,13 @@ export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesT
               lastValue={lastCountMap[p.id] ?? null}
             />
           )) : (
-            <p className={styles.emptyHint}>Geen programma&apos;s gevonden. Voeg eerst programma&apos;s toe in de database.</p>
+            <p className={styles.emptyHint}>{t('geenProgrammas')}</p>
           )}
         </div>
         {newTellerstandNum !== null && (
           <p className={tellerstandMismatch ? styles.tellerstandError : styles.tellerstandOk}>
-            Som per programma: {programCountSum.toLocaleString('nl-BE')} — verwacht verschil: {(expectedDiff ?? 0).toLocaleString('nl-BE')}
-            {tellerstandMismatch ? ' — komt niet overeen!' : ' ✓'}
+            {t('somPerProgramma', { sum: programCountSum.toLocaleString(loc), diff: (expectedDiff ?? 0).toLocaleString(loc) })}
+            {tellerstandMismatch ? ` — ${t('komtNietOvereen')}` : ' ✓'}
           </p>
         )}
       </section>
@@ -363,10 +367,10 @@ export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesT
 
       {/* ── Section 1b: Elektriciteitsfactuur ───────────────── */}
       <section className={styles.section}>
-        <SectionTitle>Elektriciteitsfactuur</SectionTitle>
+        <SectionTitle>{t('elektriciteitsfactuur')}</SectionTitle>
         <div className={styles.fieldsRow}>
           <EntryField
-            label="Bedrag (€)"
+            label={t('bedrag')}
             value={electricityAmount}
             onChange={setElectricityAmount}
             delta={null}
@@ -376,33 +380,33 @@ export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesT
 
       {/* ── Section 1c: Tellerstand water ────────────────────── */}
       <section className={styles.section}>
-        <SectionTitle>Tellerstand water</SectionTitle>
+        <SectionTitle>{t('tellerstandWater')}</SectionTitle>
         <div className={styles.tellerstandDisplay}>
-          <span className={styles.lastValue}>Vorige tellerstand water: {previousWaterTellerstand.toLocaleString('nl-BE')} m³</span>
+          <span className={styles.lastValue}>{t('vorigeWater', { value: previousWaterTellerstand.toLocaleString(loc) })}</span>
         </div>
         <div className={styles.fieldsRow}>
           <EntryField
-            label="Nieuwe tellerstand water (m³)"
+            label={t('nieuweWater')}
             value={newWaterTellerstand}
             onChange={setNewWaterTellerstand}
             delta={null}
           />
         </div>
         {newWaterTellerstandNum !== null && (
-          <p className={styles.tellerstandOk}>Verbruik deze periode: {waterUsage.toLocaleString('nl-BE')} m³</p>
+          <p className={styles.tellerstandOk}>{t('verbruikPeriode', { value: waterUsage.toLocaleString(loc) })}</p>
         )}
       </section>
 
       {/* ── Section 3: Voorraad per product ─────────────────── */}
       {uniqueChemicals.length > 0 && (
         <section className={styles.section}>
-          <SectionTitle>Voorraad per product</SectionTitle>
-          <p className={styles.sectionHint}>Geef de nieuwe voorraad in — het verbruik wordt automatisch berekend.</p>
+          <SectionTitle>{t('voorraadPerProduct')}</SectionTitle>
+          <p className={styles.sectionHint}>{t('voorraadHint')}</p>
           <div className={styles.fieldsRow}>
             {uniqueChemicals.map((c) => (
               <EntryField
                 key={c.id}
-                label={`${tProduct(c.name)} — nieuwe voorraad (${c.unit})`}
+                label={t('nieuweVoorraad', { product: tProduct(c.name), unit: c.unit })}
                 value={stockCounts[c.id] ?? ''}
                 onChange={(v) => setStockCount(c.id, v)}
                 delta={getDelta(stockCounts[c.id] ?? '', c.current_stock ?? null)}
@@ -417,10 +421,10 @@ export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesT
       {submitError && <p className={styles.tellerstandError}>{submitError}</p>}
       <div className={styles.footer}>
         <Link href={`/historiek${siteId ? `?site=${siteId}` : ''}`} className={styles.historyLink}>
-          Historiek bekijken
+          {t('historiekBekijken')}
         </Link>
         <button type="submit" className={styles.saveBtn} disabled={saving}>
-          {saving ? 'Opslaan...' : 'Opslaan'}
+          {saving ? t('opslaanBezig') : tCommon('opslaan')}
         </button>
       </div>
     </form>

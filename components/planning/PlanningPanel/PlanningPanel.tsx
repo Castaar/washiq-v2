@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useLocale, useTranslations } from 'next-intl';
 import styles from './PlanningPanel.module.scss';
 
 export interface Shift {
@@ -55,8 +56,8 @@ interface PlanningPanelProps {
   allowedSites?: AllowedSite[];
 }
 
-const DAY_NAMES = ['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za', 'Zo'];
-const DAY_NAMES_LONG = ['Maandag', 'Dinsdag', 'Woensdag', 'Donderdag', 'Vrijdag', 'Zaterdag', 'Zondag'];
+// Message-key suffixes for planning.dagKort.* / planning.dagLang.* (Mon..Sun)
+const DAY_KEYS = ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo'] as const;
 
 // All date-only strings are treated as UTC calendar dates throughout —
 // parsing/formatting via local-time Date methods (getDay/setDate/
@@ -76,9 +77,9 @@ function getMondayOf(dateStr: string): string {
   return d.toISOString().slice(0, 10);
 }
 
-function fmtDayLabel(dateStr: string): string {
+function fmtDayLabel(dateStr: string, locale: string): string {
   const d = new Date(`${dateStr}T00:00:00Z`);
-  return d.toLocaleDateString('nl-BE', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+  return d.toLocaleDateString(locale === 'fr' ? 'fr-BE' : 'nl-BE', { day: 'numeric', month: 'short', timeZone: 'UTC' });
 }
 
 function shiftHours(startTime: string, endTime: string): number {
@@ -87,11 +88,9 @@ function shiftHours(startTime: string, endTime: string): number {
   return Math.max(0, (eh * 60 + em - sh * 60 - sm) / 60);
 }
 
-const MONTH_NAMES_LONG = ['januari', 'februari', 'maart', 'april', 'mei', 'juni', 'juli', 'augustus', 'september', 'oktober', 'november', 'december'];
-
-function monthLabel(dateStr: string): string {
+function monthLabel(dateStr: string, locale: string): string {
   const d = new Date(`${dateStr}T00:00:00Z`);
-  return `${MONTH_NAMES_LONG[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+  return d.toLocaleDateString(locale === 'fr' ? 'fr-BE' : 'nl-BE', { month: 'long', year: 'numeric', timeZone: 'UTC' });
 }
 
 function isWeekend(dateStr: string): boolean {
@@ -111,6 +110,10 @@ function weekendsInWindow(shifts: Shift[], userId: string, windowWeeks: number, 
 }
 
 export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initialShifts, employees, agendaEvents: initialAgendaEvents, verlofItems: initialVerlofItems, weekStart: initialWeekStart, allowedSites = [] }: PlanningPanelProps) {
+  const t = useTranslations('planning');
+  const tCommon = useTranslations('common');
+  const locale = useLocale();
+  const fmtDay = (dateStr: string) => fmtDayLabel(dateStr, locale);
   const [shifts, setShifts] = useState<Shift[]>(initialShifts);
   const [agendaEvents, setAgendaEvents] = useState<AgendaEventItem[]>(initialAgendaEvents);
   const [verlofItems, setVerlofItems] = useState<VerlofItem[]>(initialVerlofItems);
@@ -200,7 +203,7 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
     setShiftError('');
     const emp = employees.find((em) => em.id === newUserId);
     if (isOnVerlof(newUserId, newDate)) {
-      setShiftError(`${emp?.name ?? 'Deze medewerker'} heeft verlof op ${newDate}.`);
+      setShiftError(t('heeftVerlof', { name: emp?.name ?? t('dezeMedewerker'), date: newDate }));
       return;
     }
     setSaving(true);
@@ -228,7 +231,7 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
       setNewNote('');
     } else {
       const err = (await res.json().catch(() => null)) as { error?: string } | null;
-      setShiftError(err?.error ?? 'Opslaan mislukt.');
+      setShiftError(err?.error ?? t('opslaanMislukt'));
     }
     setSaving(false);
   }
@@ -290,7 +293,7 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
         body: JSON.stringify({ siteId, date, time: agendaTime, text: agendaText }),
       });
       if (!res.ok) {
-        setAgendaError('Opslaan mislukt, probeer opnieuw');
+        setAgendaError(t('opslaanMisluktOpnieuw'));
         return false;
       }
       const event = (await res.json()) as AgendaEventItem;
@@ -300,7 +303,7 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
       setAgendaFormDate(null);
       return true;
     } catch {
-      setAgendaError('Geen verbinding, probeer opnieuw');
+      setAgendaError(t('geenVerbinding'));
       return false;
     } finally {
       setSavingAgenda(false);
@@ -320,19 +323,19 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
     return (
       <div className={styles.wrapper}>
         <div className={styles.myShiftsCard}>
-          <h2 className={styles.cardTitle}>Agenda</h2>
+          <h2 className={styles.cardTitle}>{t('agenda')}</h2>
           {upcomingAgenda.length > 0 && (
             <div className={styles.myList}>
               {upcomingAgenda.map((a) => (
                 <div key={a.id} className={styles.myAgendaRow}>
-                  <span>{fmtDayLabel(a.date)}{a.time ? ` · ${a.time}` : ''}</span>
+                  <span>{fmtDay(a.date)}{a.time ? ` · ${a.time}` : ''}</span>
                   <span>{a.text}</span>
                   {a.createdBy === currentUserId && (
                     <button
                       type="button"
                       className={styles.chipDelete}
                       onClick={() => handleDeleteAgenda(a.id)}
-                      aria-label="Verwijderen"
+                      aria-label={tCommon('verwijderen')}
                     >✕</button>
                   )}
                 </div>
@@ -359,7 +362,7 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
               <input
                 type="text"
                 className={styles.agendaTextInput}
-                placeholder="Bv. Interieur-afspraak 14u"
+                placeholder={t('agendaPlaceholderMedewerker')}
                 value={agendaText}
                 onChange={(e) => setAgendaText(e.target.value)}
                 autoFocus
@@ -379,19 +382,19 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
               >
                 {savingAgenda ? '...' : 'OK'}
               </button>
-              <button type="button" className={styles.chipDelete} onClick={() => { setEmpAgendaOpen(false); setAgendaError(''); }} aria-label="Annuleren">✕</button>
+              <button type="button" className={styles.chipDelete} onClick={() => { setEmpAgendaOpen(false); setAgendaError(''); }} aria-label={tCommon('annuleren')}>✕</button>
               {agendaError && <p className={styles.agendaError}>{agendaError}</p>}
             </div>
           ) : (
             <button type="button" className={styles.navBtn} onClick={() => { setEmpAgendaOpen(true); setEmpAgendaDate(today); }}>
-              + Agenda-item toevoegen
+              {t('agendaItemToevoegen')}
             </button>
           )}
         </div>
         <div className={styles.myShiftsCard}>
-          <h2 className={styles.cardTitle}>Mijn werkschema</h2>
+          <h2 className={styles.cardTitle}>{t('mijnWerkschema')}</h2>
           {myShifts.length === 0 ? (
-            <p className={styles.empty}>Geen geplande shiften voor de komende 2 weken.</p>
+            <p className={styles.empty}>{t('geenShiftenKomend')}</p>
           ) : (
             <div className={styles.myList}>
               {myShifts.map((s) => {
@@ -404,9 +407,9 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
                     className={[styles.myShift, isPast ? styles.past : '', isToday ? styles.isToday : '', highlightId === s.id ? styles.shiftHighlight : ''].filter(Boolean).join(' ')}
                   >
                     <div className={styles.myShiftDate}>
-                      <span className={styles.myShiftDay}>{DAY_NAMES_LONG[(new Date(`${s.date}T00:00:00Z`).getUTCDay() + 6) % 7]}</span>
-                      <span className={styles.myShiftDateStr}>{fmtDayLabel(s.date)}</span>
-                      {isToday && <span className={styles.todayBadge}>Vandaag</span>}
+                      <span className={styles.myShiftDay}>{t(`dagLang.${DAY_KEYS[(new Date(`${s.date}T00:00:00Z`).getUTCDay() + 6) % 7]}`)}</span>
+                      <span className={styles.myShiftDateStr}>{fmtDay(s.date)}</span>
+                      {isToday && <span className={styles.todayBadge}>{tCommon('vandaag')}</span>}
                     </div>
                     <div className={styles.myShiftTime}>
                       <span>{s.startTime} – {s.endTime}</span>
@@ -427,11 +430,11 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
     <div className={styles.wrapper}>
       {/* Week navigation */}
       <div className={styles.weekNav}>
-        <button className={styles.navBtn} onClick={prevWeek}>← Vorige week</button>
+        <button className={styles.navBtn} onClick={prevWeek}>{t('vorigeWeek')}</button>
         <span className={styles.weekLabel}>
-          {fmtDayLabel(weekStart)} — {fmtDayLabel(addDays(weekStart, 6))}
+          {fmtDay(weekStart)} — {fmtDay(addDays(weekStart, 6))}
         </span>
-        <button className={styles.navBtn} onClick={nextWeek}>Volgende week →</button>
+        <button className={styles.navBtn} onClick={nextWeek}>{t('volgendeWeek')}</button>
       </div>
 
       {/* Week day list (single column — agenda style) */}
@@ -444,21 +447,21 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
           return (
             <div key={date} className={[styles.dayRow, isToday ? styles.todayCol : ''].join(' ')}>
               <div className={styles.dayHeader}>
-                <span className={styles.dayName}>{DAY_NAMES[i]}</span>
-                <span className={styles.dayDate}>{fmtDayLabel(date)}</span>
-                {isToday && <span className={styles.todayBadge}>Vandaag</span>}
+                <span className={styles.dayName}>{t(`dagKort.${DAY_KEYS[i]}`)}</span>
+                <span className={styles.dayDate}>{fmtDay(date)}</span>
+                {isToday && <span className={styles.todayBadge}>{tCommon('vandaag')}</span>}
               </div>
 
               {dayVerlof.length > 0 && (
                 <div className={styles.verlofBand}>
                   {dayVerlof.map((v) => (
                     <span key={v.id} className={styles.verlofChip}>
-                      Verlof: {v.userName}
+                      {t('verlofVan', { name: v.userName })}
                       <button
                         type="button"
                         className={styles.verlofDelete}
                         onClick={() => handleDeleteVerlof(v.id)}
-                        aria-label="Verlof verwijderen"
+                        aria-label={t('verlofVerwijderen')}
                       >✕</button>
                     </span>
                   ))}
@@ -472,7 +475,7 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
                     value={verlofUserId}
                     onChange={(e) => setVerlofUserId(e.target.value)}
                   >
-                    <option value="">Medewerker...</option>
+                    <option value="">{t('medewerkerKiezen')}</option>
                     {employees.map((em) => (
                       <option key={em.id} value={em.id}>{em.name}</option>
                     ))}
@@ -501,7 +504,7 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
                     type="button"
                     className={styles.chipDelete}
                     onClick={() => { setVerlofFormDate(null); setVerlofUserId(''); setVerlofStart(''); setVerlofEnd(''); }}
-                    aria-label="Annuleren"
+                    aria-label={tCommon('annuleren')}
                   >✕</button>
                 </div>
               ) : (
@@ -510,7 +513,7 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
                   className={styles.navBtn}
                   onClick={() => { setVerlofFormDate(date); setVerlofStart(date); setVerlofEnd(date); }}
                 >
-                  + Verlof
+                  {t('plusVerlof')}
                 </button>
               )}
 
@@ -523,7 +526,7 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
                       <button
                         className={styles.chipDelete}
                         onClick={() => handleDeleteAgenda(a.id)}
-                        aria-label="Agenda-item verwijderen"
+                        aria-label={t('agendaItemVerwijderen')}
                       >✕</button>
                     </div>
                   ))}
@@ -541,7 +544,7 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
                   <input
                     type="text"
                     className={styles.agendaTextInput}
-                    placeholder="bv. VIP-behandeling"
+                    placeholder={t('agendaPlaceholder')}
                     value={agendaText}
                     onChange={(e) => setAgendaText(e.target.value)}
                     autoFocus
@@ -558,7 +561,7 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
                     type="button"
                     className={styles.chipDelete}
                     onClick={() => { setAgendaFormDate(null); setAgendaText(''); setAgendaTime(''); setAgendaError(''); }}
-                    aria-label="Annuleren"
+                    aria-label={tCommon('annuleren')}
                   >✕</button>
                   {agendaError && <p className={styles.agendaError}>{agendaError}</p>}
                 </div>
@@ -568,13 +571,13 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
                   className={styles.navBtn}
                   onClick={() => setAgendaFormDate(date)}
                 >
-                  + Agenda-item
+                  {t('plusAgendaItem')}
                 </button>
               )}
 
               <div className={styles.dayShifts}>
                 {dayShifts.length === 0 && (
-                  <span className={styles.emptyDay}>Geen shiften gepland</span>
+                  <span className={styles.emptyDay}>{t('geenShiftenGepland')}</span>
                 )}
                 {dayShifts.map((s) => (
                   <div key={s.id} className={styles.shiftChip}>
@@ -584,7 +587,7 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
                     <button
                       className={styles.chipDelete}
                       onClick={() => handleDelete(s.id)}
-                      aria-label="Shift verwijderen"
+                      aria-label={t('shiftVerwijderen')}
                     >✕</button>
                   </div>
                 ))}
@@ -599,7 +602,7 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
         <div className={styles.hoursTable}>
           <div className={styles.hoursHeader}>
             <h3 className={styles.hoursTitle}>
-              {hoursView === 'week' ? 'Overzicht deze week' : `Overzicht ${monthLabel(weekStart)}`}
+              {hoursView === 'week' ? t('overzichtWeek') : t('overzichtMaand', { month: monthLabel(weekStart, locale) })}
             </h3>
             <div className={styles.hoursToggle}>
               <button
@@ -607,14 +610,14 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
                 className={[styles.hoursToggleBtn, hoursView === 'week' ? styles.hoursToggleActive : ''].filter(Boolean).join(' ')}
                 onClick={() => setHoursView('week')}
               >
-                Week
+                {t('week')}
               </button>
               <button
                 type="button"
                 className={[styles.hoursToggleBtn, hoursView === 'month' ? styles.hoursToggleActive : ''].filter(Boolean).join(' ')}
                 onClick={() => setHoursView('month')}
               >
-                Maand
+                {t('maand')}
               </button>
             </div>
           </div>
@@ -628,10 +631,10 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
                 <div key={emp.id} className={styles.hoursRow}>
                   <span className={styles.hoursName}>{emp.name}</span>
                   <span className={styles.hoursVal}>
-                    {totalHours > 0 ? `${totalHours.toFixed(1).replace('.0', '')}u` : '—'}
+                    {totalHours > 0 ? t('uren', { uren: totalHours.toFixed(1).replace('.0', '') }) : '—'}
                   </span>
                   <span className={[styles.weekendBadge, weekendWarn ? styles.weekendWarn : ''].filter(Boolean).join(' ')}>
-                    {weekendDays4w} weekend{weekendDays4w !== 1 ? 'dagen' : 'dag'} / 4w
+                    {t('weekendDagen', { count: weekendDays4w })}
                     {weekendWarn && ' ⚠'}
                   </span>
                 </div>
@@ -643,11 +646,11 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
 
       {/* Add shift form */}
       <form className={styles.addForm} onSubmit={handleAddShift} noValidate>
-        <h3 className={styles.formTitle}>Shift toevoegen</h3>
+        <h3 className={styles.formTitle}>{t('shiftToevoegen')}</h3>
         <div className={styles.formFields}>
           {allowedSites.length > 1 && (
             <div className={styles.formField}>
-              <label className={styles.label}>Carwash</label>
+              <label className={styles.label}>{t('carwash')}</label>
               <select
                 className={styles.select}
                 value={newSiteId}
@@ -660,7 +663,7 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
             </div>
           )}
           <div className={styles.formField}>
-            <label className={styles.label}>Medewerker</label>
+            <label className={styles.label}>{t('medewerker')}</label>
             <select
               className={styles.select}
               value={newUserId}
@@ -668,13 +671,13 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
             >
               {siteEmployees.map((em) => (
                 <option key={em.id} value={em.id} disabled={isOnVerlof(em.id, newDate)}>
-                  {em.name}{isOnVerlof(em.id, newDate) ? ' (verlof)' : ''}
+                  {em.name}{isOnVerlof(em.id, newDate) ? ` ${t('verlofSuffix')}` : ''}
                 </option>
               ))}
             </select>
           </div>
           <div className={styles.formField}>
-            <label className={styles.label}>Datum</label>
+            <label className={styles.label}>{t('datum')}</label>
             <input
               type="date"
               className={styles.input}
@@ -683,7 +686,7 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
             />
           </div>
           <div className={styles.formField}>
-            <label className={styles.label}>Van</label>
+            <label className={styles.label}>{t('van')}</label>
             <input
               type="time"
               className={styles.input}
@@ -692,7 +695,7 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
             />
           </div>
           <div className={styles.formField}>
-            <label className={styles.label}>Tot</label>
+            <label className={styles.label}>{t('tot')}</label>
             <input
               type="time"
               className={styles.input}
@@ -701,13 +704,13 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
             />
           </div>
           <div className={[styles.formField, styles.noteField].join(' ')}>
-            <label className={styles.label}>Opmerking</label>
+            <label className={styles.label}>{t('opmerking')}</label>
             <input
               type="text"
               className={styles.input}
               value={newNote}
               onChange={(e) => setNewNote(e.target.value)}
-              placeholder="Optioneel"
+              placeholder={t('optioneel')}
             />
           </div>
         </div>
@@ -717,7 +720,7 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
           className={styles.submitBtn}
           disabled={saving || !newUserId || !newDate || isOnVerlof(newUserId, newDate)}
         >
-          {saving ? 'Opslaan...' : 'Shift toevoegen'}
+          {saving ? t('opslaanBezig') : t('shiftToevoegen')}
         </button>
       </form>
     </div>

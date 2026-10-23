@@ -1,6 +1,7 @@
 import type { Types } from 'mongoose';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { getTranslations } from 'next-intl/server';
 import { dbConnect } from '@/lib/db/mongoose';
 import { Site, User, Announcement, PriceConfig, AttendanceLog } from '@/lib/models';
 import { NavBar } from '@/components/layout/NavBar/NavBar';
@@ -77,7 +78,9 @@ export default async function DashboardPage({
     ? '/dagfiche'
     : '/wekelijkse-ingave';
   const addHref = userRole === 'developer' ? '/developer' : (activeSiteId ? `${addBase}?site=${activeSiteId}` : addBase);
-  const addLabel = userRole === 'developer' ? 'Developer' : userRole === 'employee' ? 'Dagfiche' : activeSiteType === 'selfcarwash' ? 'Voorraad ingeven' : 'Maandelijkse Ingave';
+  const tLayout = await getTranslations('layout');
+  const tDagfiche = await getTranslations('dagfiche');
+  const addLabel = userRole === 'developer' ? tLayout('addDeveloper') : userRole === 'employee' ? tDagfiche('titel') : activeSiteType === 'selfcarwash' ? tLayout('addVoorraadIngeven') : tLayout('addMaandelijkseIngave');
 
   // Started now (exec() fires the query) so it runs alongside the attendance query below.
   const announcementPromise = Announcement.find({

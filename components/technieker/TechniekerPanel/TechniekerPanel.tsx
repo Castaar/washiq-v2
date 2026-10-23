@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useLocale, useTranslations } from 'next-intl';
 import styles from './TechniekerPanel.module.scss';
 
 export interface TechniekerItem {
@@ -15,19 +16,15 @@ export interface TechniekerItem {
   assignedToName?: string;
 }
 
-const KIND_LABEL: Record<TechniekerItem['kind'], string> = {
-  defect: 'Defect',
-  schade: 'Schade',
-  maintenance: 'Onderhoud',
-  bestelling: 'Bestelling',
-};
-
 const UNDO_TIMEOUT_MS = 6000;
 
 interface AllowedSite { id: string; name: string; }
 interface AvailableUser { id: string; name: string; }
 
 export function TechniekerPanel({ items: initial, userRole = 'technician', allowedSites = [], availableUsers = [] }: { items: TechniekerItem[]; userRole?: string; allowedSites?: AllowedSite[]; availableUsers?: AvailableUser[] }) {
+  const t = useTranslations('technieker');
+  const tCommon = useTranslations('common');
+  const locale = useLocale();
   const [items, setItems] = useState(initial);
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [resolvingId, setResolvingId] = useState<string | null>(null);
@@ -58,7 +55,7 @@ export function TechniekerPanel({ items: initial, userRole = 'technician', allow
       setItems((prev) => [{
         id: data.id, kind: 'defect', siteId: addSiteId, siteName,
         title: addDesc.trim(), subtitle: '', severity: addErnst === 'hoog' ? 'high' : addErnst === 'laag' ? 'low' : 'medium',
-        date: new Date().toLocaleDateString('nl-BE', { day: '2-digit', month: '2-digit' }),
+        date: new Date().toLocaleDateString(locale === 'fr' ? 'fr-BE' : 'nl-BE', { day: '2-digit', month: '2-digit' }),
       }, ...prev]);
       setAddDesc('');
       setAddErnst('medium');
@@ -157,7 +154,7 @@ export function TechniekerPanel({ items: initial, userRole = 'technician', allow
         <div className={styles.addBlock}>
           {!showAdd ? (
             <button type="button" className={styles.addBtn} onClick={() => setShowAdd(true)}>
-              + Taak toevoegen
+              {t('taakToevoegen')}
             </button>
           ) : (
             <form className={styles.addForm} onSubmit={handleAddTask}>
@@ -169,26 +166,26 @@ export function TechniekerPanel({ items: initial, userRole = 'technician', allow
               <input
                 className={styles.addInput}
                 type="text"
-                placeholder="Omschrijving taak..."
+                placeholder={t('omschrijvingTaak')}
                 value={addDesc}
                 onChange={(e) => setAddDesc(e.target.value)}
                 autoFocus
               />
               <select className={styles.addSelect} value={addErnst} onChange={(e) => setAddErnst(e.target.value as 'laag' | 'medium' | 'hoog')}>
-                <option value="laag">Laag</option>
-                <option value="medium">Medium</option>
-                <option value="hoog">Hoog</option>
+                <option value="laag">{t('ernst.laag')}</option>
+                <option value="medium">{t('ernst.medium')}</option>
+                <option value="hoog">{t('ernst.hoog')}</option>
               </select>
               {availableUsers.length > 0 && (
                 <select className={styles.addSelect} value={addAssignedTo} onChange={(e) => setAddAssignedTo(e.target.value)}>
-                  <option value="">Toewijzen aan... (optioneel)</option>
+                  <option value="">{t('toewijzenAan')}</option>
                   {availableUsers.map((u) => <option key={u.id} value={u.name}>{u.name}</option>)}
                 </select>
               )}
               <div className={styles.addActions}>
-                <button type="button" className={styles.cancelBtn} onClick={() => setShowAdd(false)}>Annuleren</button>
+                <button type="button" className={styles.cancelBtn} onClick={() => setShowAdd(false)}>{tCommon('annuleren')}</button>
                 <button type="submit" className={styles.submitBtn} disabled={addSaving || !addDesc.trim()}>
-                  {addSaving ? '...' : 'Toevoegen'}
+                  {addSaving ? '...' : tCommon('toevoegen')}
                 </button>
               </div>
             </form>
@@ -202,14 +199,14 @@ export function TechniekerPanel({ items: initial, userRole = 'technician', allow
           {undoQueue.map((entry) => (
             <div key={entry.item.id} className={styles.undoToast}>
               <span className={styles.undoText}>
-                &ldquo;{entry.item.title}&rdquo; gemarkeerd als opgelost
+                {t('gemarkeerdOpgelost', { title: entry.item.title })}
               </span>
               <button
                 type="button"
                 className={styles.undoBtn}
                 onClick={() => handleUndo(entry)}
               >
-                Ongedaan maken
+                {t('ongedaanMaken')}
               </button>
             </div>
           ))}
@@ -218,7 +215,7 @@ export function TechniekerPanel({ items: initial, userRole = 'technician', allow
 
       <div className={styles.wrap}>
         {items.length === 0 && undoQueue.length === 0 && (
-          <p className={styles.empty}>Geen openstaande problemen of onderhoud — alles is in orde.</p>
+          <p className={styles.empty}>{t('geenOpenstaande')}</p>
         )}
         {sites.map((siteName) => (
           <div key={siteName} className={styles.siteGroup}>
@@ -229,18 +226,18 @@ export function TechniekerPanel({ items: initial, userRole = 'technician', allow
                   <div className={styles.itemBody}>
                     <div className={styles.itemTop}>
                       <span className={[styles.kindBadge, styles[`kind_${item.kind}`]].join(' ')}>
-                        {KIND_LABEL[item.kind]}
+                        {t(`soort.${item.kind}`)}
                       </span>
                       {item.date && <span className={styles.itemDate}>{item.date}</span>}
                     </div>
                     <p className={styles.itemTitle}>{item.title}</p>
                     {item.subtitle && <p className={styles.itemSubtitle}>{item.subtitle}</p>}
-                    {item.assignedToName && <p className={styles.itemSubtitle}>Toegewezen: {item.assignedToName}</p>}
+                    {item.assignedToName && <p className={styles.itemSubtitle}>{t('toegewezen', { name: item.assignedToName })}</p>}
                     {(item.kind === 'maintenance' || item.kind === 'defect') && (
                       <input
                         className={styles.noteInput}
                         type="text"
-                        placeholder="Opmerking bij oplossen (optioneel)"
+                        placeholder={t('opmerkingOplossen')}
                         value={noteDrafts[item.id] ?? ''}
                         onChange={(e) => setNoteDrafts((prev) => ({ ...prev, [item.id]: e.target.value }))}
                       />
@@ -249,21 +246,21 @@ export function TechniekerPanel({ items: initial, userRole = 'technician', allow
 
                   {confirmId === item.id ? (
                     <div className={styles.confirmRow}>
-                      <span className={styles.confirmText}>Zeker?</span>
+                      <span className={styles.confirmText}>{t('zeker')}</span>
                       <button
                         type="button"
                         className={styles.confirmYes}
                         onClick={() => handleResolve(item)}
                         disabled={resolvingId === item.id}
                       >
-                        {resolvingId === item.id ? '...' : 'Ja'}
+                        {resolvingId === item.id ? '...' : tCommon('ja')}
                       </button>
                       <button
                         type="button"
                         className={styles.confirmNo}
                         onClick={cancelConfirm}
                       >
-                        Nee
+                        {tCommon('nee')}
                       </button>
                     </div>
                   ) : (
@@ -273,7 +270,7 @@ export function TechniekerPanel({ items: initial, userRole = 'technician', allow
                       onClick={() => requestConfirm(item.id)}
                       disabled={resolvingId === item.id}
                     >
-                      Oplossen
+                      {t('oplossen')}
                     </button>
                   )}
                 </div>

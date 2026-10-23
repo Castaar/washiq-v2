@@ -79,6 +79,11 @@ export async function CarwashPage({
   const locale = await getLocale();
   const contentTranslations = await getTranslationMap(locale);
   const t = await getTranslations('dashboard');
+  const tp = await getTranslations('carwashPage');
+  const tm = await getTranslations('modals');
+  const ti = await getTranslations('incidenten');
+  const tCommon = await getTranslations('common');
+  const dateLocale = locale === 'fr' ? 'fr-BE' : 'nl-BE';
 
   // ── Resolve site ─────────────────────────────────────────────
   const resolvedSite = propSiteId
@@ -231,8 +236,8 @@ export async function CarwashPage({
     const r3 = (v: number) => Math.round(v * 1000) / 1000;
     const r2 = (v: number) => Math.round(v * 100) / 100;
     const rows: CostRow[] = [
-      { label: 'Water',   euroPerWagen: r2((entry.water_liters ?? 0) * (p?.water_per_liter ?? 0) / wagens), rawPerWagen: r3((entry.water_liters ?? 0) / wagens), unit: 'm³' },
-      { label: 'Energie', euroPerWagen: r2(energyBill / wagens) },
+      { label: tp('kostWater'), euroPerWagen: r2((entry.water_liters ?? 0) * (p?.water_per_liter ?? 0) / wagens), rawPerWagen: r3((entry.water_liters ?? 0) / wagens), unit: 'm³' },
+      { label: tp('kostEnergie'), euroPerWagen: r2(energyBill / wagens) },
     ];
     return [...rows, ...chemRows];
   }
@@ -391,7 +396,7 @@ export async function CarwashPage({
     const totalMin = Math.round(ms / 60000);
     const h = Math.floor(totalMin / 60);
     const m = totalMin % 60;
-    return h > 0 ? `${h}u${m > 0 ? ` ${m}min` : ''}` : `${m}min`;
+    return h > 0 ? (m > 0 ? tp('duurUurMin', { h, m }) : tp('duurUur', { h })) : tp('duurMin', { m });
   }
 
   // Current tellerstand from the latest weekly entry, or fall back to start_car_count
@@ -480,7 +485,7 @@ export async function CarwashPage({
             refType:  'maintenance_task' as const,
             siteId:   siteId ?? '',
             title:    t.description,
-            subtitle: remaining !== null ? `Nog ${remaining.toLocaleString('nl-BE')} wagens` : undefined,
+            subtitle: remaining !== null ? tp('nogWagens', { count: remaining.toLocaleString(dateLocale) }) : undefined,
             severity: 'medium' as const,
             iconName: 'wrench',
             payload,
@@ -510,8 +515,8 @@ export async function CarwashPage({
           siteId:  siteId ?? '',
           title: it.label,
           subtitle: [
-            hasOpmerking ? String(it.opmerking).trim() : 'Niet afgevinkt',
-            userNameMap[cl.user_id?.toString() ?? ''] ? `Gemeld door ${userNameMap[cl.user_id?.toString() ?? '']}` : '',
+            hasOpmerking ? String(it.opmerking).trim() : tp('nietAfgevinkt'),
+            userNameMap[cl.user_id?.toString() ?? ''] ? tp('gemeldDoor', { name: userNameMap[cl.user_id?.toString() ?? ''] }) : '',
           ].filter(Boolean).join(' · '),
           date: clDate,
           severity: (!it.checked ? 'high' : 'medium') as 'high' | 'medium',
@@ -527,8 +532,8 @@ export async function CarwashPage({
       const taskDesc = task?.description ?? '';
       const doneByName = (l.done_by_name as string) || '';
       const title = taskDesc
-        ? `Onderhoud: ${taskDesc}${l.notes ? ` — ${l.notes}` : ''}${doneByName ? ` (${doneByName})` : ''}`
-        : l.notes ? `Onderhoud: ${l.notes}` : 'Onderhoud uitgevoerd';
+        ? `${tp('onderhoudPrefix')} ${taskDesc}${l.notes ? ` — ${l.notes}` : ''}${doneByName ? ` (${doneByName})` : ''}`
+        : l.notes ? `${tp('onderhoudPrefix')} ${l.notes}` : tp('onderhoudUitgevoerd');
       const payload: MaintenanceTaskPayload | undefined = task ? {
         type: 'maintenance_task',
         description: taskDesc,
@@ -572,7 +577,7 @@ export async function CarwashPage({
       };
       return {
         id, refId: id, refType: 'defect' as const, siteId: siteId ?? '',
-        title: (d.omschrijving as string)?.slice(0, 40) || 'Defect',
+        title: (d.omschrijving as string)?.slice(0, 40) || tm('defect'),
         date: fmtDate(new Date(d.created_at as Date)),
         severity: (d.ernst === 'hoog' ? 'high' : d.ernst === 'laag' ? 'low' : 'medium') as 'high' | 'medium' | 'low',
         iconName: 'warning',
@@ -602,8 +607,8 @@ export async function CarwashPage({
       };
       return {
         id, refId: id, refType: 'incident_schade' as const, siteId: siteId ?? '',
-        title: (s.merk_model as string) || 'Schade',
-        subtitle: [(s.omschrijving as string) || '', (s.reported_by_name as string) ? `Gemeld door ${s.reported_by_name as string}` : ''].filter(Boolean).join(' · '),
+        title: (s.merk_model as string) || ti('typeSchade'),
+        subtitle: [(s.omschrijving as string) || '', (s.reported_by_name as string) ? tp('gemeldDoor', { name: s.reported_by_name as string }) : ''].filter(Boolean).join(' · '),
         date: fmtDate(new Date(s.created_at as Date)),
         severity: 'high' as const,
         iconName: 'warning',
@@ -634,8 +639,8 @@ export async function CarwashPage({
   if (waterPct !== null && waterPct >= ANOMALY_THRESHOLD_PCT) {
     consumptionAlertItems.push({
       id: 'consumption-water', siteId: siteId ?? '',
-      title: `Waterverbruik per wagen +${Math.round(waterPct)}%`,
-      subtitle: 'Sterke stijging t.o.v. vorige periode — controleer op lekken vóór de waterfactuur binnenkomt.',
+      title: tp('waterAnomalieTitel', { pct: Math.round(waterPct) }),
+      subtitle: tp('waterAnomalieUitleg'),
       severity: 'high', iconName: 'warning',
     });
   }
@@ -644,8 +649,8 @@ export async function CarwashPage({
   if (energyPct !== null && energyPct >= ANOMALY_THRESHOLD_PCT) {
     consumptionAlertItems.push({
       id: 'consumption-energy', siteId: siteId ?? '',
-      title: `Energieverbruik per wagen +${Math.round(energyPct)}%`,
-      subtitle: 'Kan wijzen op slijtage van de motor — best snel laten nakijken.',
+      title: tp('energieAnomalieTitel', { pct: Math.round(energyPct) }),
+      subtitle: tp('energieAnomalieUitleg'),
       severity: 'high', iconName: 'warning',
     });
   }
@@ -654,10 +659,18 @@ export async function CarwashPage({
   if (flockPct !== null && flockPct <= -ANOMALY_THRESHOLD_PCT) {
     consumptionAlertItems.push({
       id: 'consumption-flock', siteId: siteId ?? '',
-      title: `Wax/chemie verbruik per wagen ${Math.round(flockPct)}%`,
-      subtitle: 'Sterke daling — wagens kunnen te nat uit de tunnel komen.',
+      title: tp('waxAnomalieTitel', { pct: Math.round(flockPct) }),
+      subtitle: tp('waxAnomalieUitleg'),
       severity: 'medium', iconName: 'warning',
     });
+  }
+
+  // Defect severity is stored as 'laag'/'medium'/'hoog' — show it in the UI language
+  function ernstLabel(ernst: string | undefined): string | undefined {
+    if (ernst === 'laag') return tp('ernstLaag');
+    if (ernst === 'medium') return tp('ernstMedium');
+    if (ernst === 'hoog') return tp('ernstHoog');
+    return ernst;
   }
 
   // ── Day log (owner/developer "Meldingen" tab): only the selected day's
@@ -675,11 +688,11 @@ export async function CarwashPage({
       );
       if (arrival) {
         const ms = ts.getTime() - new Date(arrival.timestamp as Date).getTime();
-        workedHours = `${fmtTime(new Date(arrival.timestamp as Date))} → ${fmtTime(ts)} · ${fmtDuration(ms)} gewerkt`;
+        workedHours = `${fmtTime(new Date(arrival.timestamp as Date))} → ${fmtTime(ts)} · ${tp('gewerkt', { duur: fmtDuration(ms) })}`;
       }
     }
     const subtitleParts = [
-      isExtern ? 'Externe technieker' : undefined,
+      isExtern ? tp('externeTechnieker') : undefined,
       !isDeparture ? fmtTime(ts) : undefined,
       isDeparture && workedHours ? workedHours : undefined,
     ].filter(Boolean);
@@ -689,7 +702,7 @@ export async function CarwashPage({
       item: {
         id: `attendance-${(l._id as Types.ObjectId).toString()}`,
         siteId: siteId ?? '',
-        title: `${l.user_name ?? 'Onbekend'} is ${isDeparture ? 'vertrokken' : 'aangekomen'}`,
+        title: isDeparture ? tp('isVertrokken', { name: (l.user_name as string | undefined) ?? tCommon('onbekend') }) : tp('isAangekomen', { name: (l.user_name as string | undefined) ?? tCommon('onbekend') }),
         subtitle: subtitleParts.length > 0 ? subtitleParts.join(' · ') : undefined,
         date: fmtTime(ts),
         severity: 'low' as const,
@@ -709,8 +722,8 @@ export async function CarwashPage({
       item: {
         id: `delivery-${(d._id as Types.ObjectId).toString()}`,
         siteId: siteId ?? '',
-        title: `Levering: ${chemName || note || 'Product'}`,
-        subtitle: [chemName ? `${d.quantity ?? 0}` : undefined, loggedByName ? `door ${loggedByName}` : undefined].filter(Boolean).join(' · '),
+        title: tp('leveringTitel', { name: chemName || note || tp('product') }),
+        subtitle: [chemName ? `${d.quantity ?? 0}` : undefined, loggedByName ? tp('door', { name: loggedByName }) : undefined].filter(Boolean).join(' · '),
         date: fmtTime(ts),
         severity: 'low' as const,
         iconName: 'package',
@@ -724,8 +737,8 @@ export async function CarwashPage({
     const uncheckedCount = clItems.filter((it) => !it.checked).length;
     const payload: DagfichePayload = {
       type: 'dagfiche',
-      submittedBy: userNameMap[cl.user_id?.toString() ?? ''] ?? 'Onbekend',
-      submittedAt: ts.toLocaleDateString('nl-BE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+      submittedBy: userNameMap[cl.user_id?.toString() ?? ''] ?? tCommon('onbekend'),
+      submittedAt: ts.toLocaleDateString(dateLocale, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
       items: clItems.map(({ label, checked, opmerking }) => ({ label, checked, opmerking })),
       defectNote: cl.defect_note ? String(cl.defect_note) : undefined,
     };
@@ -735,7 +748,7 @@ export async function CarwashPage({
         id: (cl._id as Types.ObjectId).toString(),
         refType: 'daily_checklist' as const,
         siteId: siteId ?? '',
-        title: 'Dagfiche ingediend',
+        title: tp('dagficheIngediend'),
         subtitle: userNameMap[cl.user_id?.toString() ?? ''] ?? undefined,
         date: fmtTime(ts),
         severity: (uncheckedCount > 0 ? 'medium' : 'low') as 'medium' | 'low',
@@ -751,8 +764,8 @@ export async function CarwashPage({
     const taskDesc = task?.description ?? '';
     const doneByName = (l.done_by_name as string) || '';
     const title = taskDesc
-      ? `Onderhoud: ${taskDesc}${l.notes ? ` — ${l.notes}` : ''}${doneByName ? ` (${doneByName})` : ''}`
-      : l.notes ? `Onderhoud: ${l.notes}` : 'Onderhoud uitgevoerd';
+      ? `${tp('onderhoudPrefix')} ${taskDesc}${l.notes ? ` — ${l.notes}` : ''}${doneByName ? ` (${doneByName})` : ''}`
+      : l.notes ? `${tp('onderhoudPrefix')} ${l.notes}` : tp('onderhoudUitgevoerd');
     const payload: MaintenanceTaskPayload | undefined = task ? {
       type: 'maintenance_task',
       description: taskDesc,
@@ -806,8 +819,8 @@ export async function CarwashPage({
       ts: ts.getTime(),
       item: {
         id, refId: id, refType: 'incident_schade' as const, siteId: siteId ?? '',
-        title: (s.merk_model as string) || 'Schade',
-        subtitle: [(s.omschrijving as string) || '', (s.reported_by_name as string) ? `Gemeld door ${s.reported_by_name as string}` : ''].filter(Boolean).join(' · '),
+        title: (s.merk_model as string) || ti('typeSchade'),
+        subtitle: [(s.omschrijving as string) || '', (s.reported_by_name as string) ? tp('gemeldDoor', { name: s.reported_by_name as string }) : ''].filter(Boolean).join(' · '),
         date: fmtTime(ts),
         severity: 'high' as const,
         iconName: 'warning',
@@ -839,8 +852,8 @@ export async function CarwashPage({
       item: {
         id: (e._id as Types.ObjectId).toString(),
         refType: 'incident_ehbo' as const, siteId: siteId ?? '',
-        title: m(isDemo, (e.naam_slachtoffer as string)) || 'EHBO',
-        subtitle: [(e.verwonding as string) || '', (e.reported_by_name as string) ? `Gemeld door ${e.reported_by_name as string}` : ''].filter(Boolean).join(' · '),
+        title: m(isDemo, (e.naam_slachtoffer as string)) || ti('typeEhbo'),
+        subtitle: [(e.verwonding as string) || '', (e.reported_by_name as string) ? tp('gemeldDoor', { name: e.reported_by_name as string }) : ''].filter(Boolean).join(' · '),
         date: fmtTime(ts),
         severity: 'medium' as const,
         iconName: 'warning',
@@ -866,8 +879,8 @@ export async function CarwashPage({
       ts: ts.getTime(),
       item: {
         id, refId: id, refType: 'defect' as const, siteId: siteId ?? '',
-        title: (d.omschrijving as string)?.slice(0, 40) || 'Defect',
-        subtitle: [d.ernst as string, (d.reported_by_name as string) ? `Gemeld door ${d.reported_by_name as string}` : ''].filter(Boolean).join(' · '),
+        title: (d.omschrijving as string)?.slice(0, 40) || tm('defect'),
+        subtitle: [ernstLabel(d.ernst as string), (d.reported_by_name as string) ? tp('gemeldDoor', { name: d.reported_by_name as string }) : ''].filter(Boolean).join(' · '),
         date: fmtTime(ts),
         severity: d.ernst === 'hoog' ? 'high' as const : 'medium' as const,
         iconName: 'wrench',
@@ -884,8 +897,8 @@ export async function CarwashPage({
     const taskDesc = task?.description ?? '';
     const doneByName = (l.done_by_name as string) || '';
     const title = taskDesc
-      ? `Onderhoud: ${taskDesc}${l.notes ? ` — ${l.notes}` : ''}${doneByName ? ` (${doneByName})` : ''}`
-      : l.notes ? `Onderhoud: ${l.notes}` : 'Onderhoud uitgevoerd';
+      ? `${tp('onderhoudPrefix')} ${taskDesc}${l.notes ? ` — ${l.notes}` : ''}${doneByName ? ` (${doneByName})` : ''}`
+      : l.notes ? `${tp('onderhoudPrefix')} ${l.notes}` : tp('onderhoudUitgevoerd');
     const payload: MaintenanceTaskPayload | undefined = task ? {
       type: 'maintenance_task',
       description: taskDesc,
@@ -911,9 +924,9 @@ export async function CarwashPage({
   });
 
 
-  const WEEKDAYS_NL = ['zondag', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag'];
-  const MONTHS_NL_SHORT = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
-  const dayLogLabel = `${WEEKDAYS_NL[viewedDate.getUTCDay()]} ${viewedDate.getUTCDate()} ${MONTHS_NL_SHORT[viewedDate.getUTCMonth()]}`;
+  const weekdayNames = tp.raw('weekdagen') as string[];
+  const monthNamesShort = tm.raw('maandenKort') as string[];
+  const dayLogLabel = `${weekdayNames[viewedDate.getUTCDay()]} ${viewedDate.getUTCDate()} ${monthNamesShort[viewedDate.getUTCMonth()]}`;
   const dayLogIsToday = logDateStr === todayStr;
   const dayLogSiteQuery = siteId ? `&site=${siteId}` : '';
   const dayLogPrevHref = `/?date=${prevDayStr}${dayLogSiteQuery}`;
@@ -932,7 +945,7 @@ export async function CarwashPage({
     title: translateContent(contentTranslations, 'order', r.item_name as string),
     severity: 'medium',
     iconName: 'shopping-cart',
-    date: new Date(r.requested_at as Date).toLocaleDateString('nl-BE', { day: 'numeric', month: 'short' }),
+    date: new Date(r.requested_at as Date).toLocaleDateString(dateLocale, { day: 'numeric', month: 'short' }),
     subtitle: [r.details as string, r.requested_by_name as string].filter(Boolean).join(' · '),
     href: `/orders?site=${siteId}&request=${r._id.toString()}`,
   }));
@@ -989,7 +1002,7 @@ export async function CarwashPage({
           href={siteId ? `/instellingen?site=${siteId}` : '/instellingen'}
           className={styles.setupBanner}
         >
-          <span>Prijzen nog niet ingesteld — stel uw instellingen in om kosten te berekenen</span>
+          <span>{tp('prijzenNietIngesteld')}</span>
           <span className={styles.setupArrow}>→</span>
         </Link>
       )}
@@ -1042,7 +1055,7 @@ export async function CarwashPage({
 
             {isTechnician && (
               <Link href="/technieker" className={styles.techWorklistLink}>
-                <span>Bekijk je volledige werklijst</span>
+                <span>{tp('bekijkWerklijst')}</span>
                 <span className={styles.setupArrow}>→</span>
               </Link>
             )}
@@ -1067,7 +1080,7 @@ export async function CarwashPage({
 
             {noCurrentData && latestEntry && (
               <div className={styles.fallbackNote}>
-                Geen ingave voor deze periode — meest recente ingave getoond
+                {tp('geenIngavePeriode')}
               </div>
             )}
           </div>

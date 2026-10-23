@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { useLocale, useTranslations } from 'next-intl';
 import { BottomSheet } from '@/components/ui/BottomSheet/BottomSheet';
 import styles from './RankingModal.module.scss';
 
@@ -57,12 +58,12 @@ type Metric = 'water' | 'energy' | 'salt' | 'flock' | 'wagens';
 type Period = 'week' | 'month';
 type View = 'prijs' | 'liter';
 
-const METRICS: { key: Metric; label: string; unit: string; costKey: keyof SiteWeek | '' }[] = [
-  { key: 'wagens',  label: 'Wagens',       unit: 'wgn', costKey: '' },
-  { key: 'water',   label: 'Water',        unit: 'L',   costKey: 'waterCost' },
-  { key: 'energy',  label: 'Energie',      unit: 'kWh', costKey: 'energyCost' },
-  { key: 'salt',    label: 'Zout',         unit: 'kg',  costKey: 'saltCost' },
-  { key: 'flock',   label: 'Flockmiddel',  unit: 'kg',  costKey: 'flockCost' },
+const METRICS: { key: Metric; labelKey: string; unit: string; costKey: keyof SiteWeek | '' }[] = [
+  { key: 'wagens',  labelKey: 'metricWagens',      unit: 'wgn', costKey: '' },
+  { key: 'water',   labelKey: 'metricWater',       unit: 'L',   costKey: 'waterCost' },
+  { key: 'energy',  labelKey: 'metricEnergie',     unit: 'kWh', costKey: 'energyCost' },
+  { key: 'salt',    labelKey: 'metricZout',        unit: 'kg',  costKey: 'saltCost' },
+  { key: 'flock',   labelKey: 'metricFlockmiddel', unit: 'kg',  costKey: 'flockCost' },
 ];
 
 // ─── Chart dimensions ────────────────────────────────────────
@@ -78,9 +79,8 @@ function fmtDateLabel(iso: string): string {
   return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}`;
 }
 
-const MONTH_LABELS = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
-function fmtMonthLabel(iso: string): string {
-  return MONTH_LABELS[new Date(iso).getMonth()];
+function fmtMonthLabel(iso: string, monthLabels: string[]): string {
+  return monthLabels[new Date(iso).getMonth()];
 }
 
 interface ChartPoint {
@@ -93,6 +93,7 @@ function buildChartData(
   metric: Metric,
   view: View,
   period: Period,
+  monthLabels: string[],
 ): ChartPoint[] {
   if (history.length === 0) return [];
 
@@ -126,7 +127,7 @@ function buildChartData(
   for (const ws of allWeeks) {
     const key = ws.slice(0, 7); // "YYYY-MM"
     if (!monthMap.has(key)) {
-      monthMap.set(key, { label: fmtMonthLabel(ws), weekStarts: [] });
+      monthMap.set(key, { label: fmtMonthLabel(ws, monthLabels), weekStarts: [] });
     }
     monthMap.get(key)!.weekStarts.push(ws);
   }
@@ -147,7 +148,7 @@ function buildChartData(
 }
 
 // ─── SVG Line Chart ──────────────────────────────────────────
-function SvgChart({ points, colors }: { points: ChartPoint[]; colors: string[] }) {
+function SvgChart({ points, colors, emptyLabel }: { points: ChartPoint[]; colors: string[]; emptyLabel: string }) {
   const numSites = points[0]?.values.length ?? 0;
 
   if (points.length === 0 || numSites === 0) {
@@ -160,7 +161,7 @@ function SvgChart({ points, colors }: { points: ChartPoint[]; colors: string[] }
           fill="rgba(27,29,34,0.35)"
           fontSize="13"
         >
-          Geen data beschikbaar
+          {emptyLabel}
         </text>
       </svg>
     );
@@ -274,6 +275,9 @@ function SvgChart({ points, colors }: { points: ChartPoint[]; colors: string[] }
 
 // ─── Modal ───────────────────────────────────────────────────
 export function RankingModal({ siteId, onClose }: { siteId: string; onClose: () => void }) {
+  const t = useTranslations('ranking');
+  const monthLabels = useTranslations('modals').raw('maandenKort') as string[];
+  const numLocale = useLocale() === 'fr' ? 'fr-BE' : 'nl-BE';
   const [data, setData] = useState<RankingData | null>(null);
   const [loading, setLoading] = useState(true);
   const [metric, setMetric] = useState<Metric>('wagens');
@@ -302,30 +306,30 @@ export function RankingModal({ siteId, onClose }: { siteId: string; onClose: () 
     return () => document.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  const chartPoints = data ? buildChartData(data.history, metric, view, period) : [];
+  const chartPoints = data ? buildChartData(data.history, metric, view, period, monthLabels) : [];
   const currentMetric = METRICS.find((m) => m.key === metric)!;
   const showCost = view === 'prijs' && metric !== 'wagens';
 
   function getDisplayVal(siteMetrics: SiteStat['metrics']): string {
     if (!siteMetrics) return '—';
-    if (metric === 'wagens') return siteMetrics.wagens.toLocaleString('nl-BE');
+    if (metric === 'wagens') return siteMetrics.wagens.toLocaleString(numLocale);
     if (showCost) {
       const key = `${metric}Cost` as keyof typeof siteMetrics;
       return `€\u202f${(siteMetrics[key] as number).toFixed(2)}`;
     }
     const raw = siteMetrics[metric as keyof typeof siteMetrics] as number;
-    return `${raw.toLocaleString('nl-BE', { maximumFractionDigits: 1 })} ${currentMetric.unit}`;
+    return `${raw.toLocaleString(numLocale, { maximumFractionDigits: 1 })} ${currentMetric.unit}`;
   }
 
   return (
-    <BottomSheet open onClose={onClose} title="Rangschikking">
+    <BottomSheet open onClose={onClose} title={t('rangschikking')}>
         {loading ? (
-          <div className={styles.stateBox}>Laden…</div>
+          <div className={styles.stateBox}>{t('laden')}</div>
         ) : !data || data.singleSite ? (
           <div className={styles.stateBox}>
             {data?.singleSite
-              ? 'Dit is de enige vestiging onder dit eigenaarschap.'
-              : 'Geen data beschikbaar.'}
+              ? t('enigeVestiging')
+              : t('geenDataPunt')}
           </div>
         ) : (
           <>
@@ -337,14 +341,14 @@ export function RankingModal({ siteId, onClose }: { siteId: string; onClose: () 
                   onClick={() => setPeriod('week')}
                   type="button"
                 >
-                  Week
+                  {t('week')}
                 </button>
                 <button
                   className={[styles.toggle, period === 'month' ? styles.active : ''].join(' ')}
                   onClick={() => setPeriod('month')}
                   type="button"
                 >
-                  Maand
+                  {t('maand')}
                 </button>
               </div>
 
@@ -355,14 +359,14 @@ export function RankingModal({ siteId, onClose }: { siteId: string; onClose: () 
                     onClick={() => setView('liter')}
                     type="button"
                   >
-                    Eenheid
+                    {t('eenheid')}
                   </button>
                   <button
                     className={[styles.toggle, view === 'prijs' ? styles.active : ''].join(' ')}
                     onClick={() => setView('prijs')}
                     type="button"
                   >
-                    Prijs
+                    {t('prijs')}
                   </button>
                 </div>
               )}
@@ -377,14 +381,14 @@ export function RankingModal({ siteId, onClose }: { siteId: string; onClose: () 
                   onClick={() => setMetric(m.key)}
                   type="button"
                 >
-                  {m.label}
+                  {t(m.labelKey)}
                 </button>
               ))}
             </div>
 
             {/* Chart */}
             <div className={styles.chartWrap}>
-              <SvgChart points={chartPoints} colors={SITE_COLORS} />
+              <SvgChart points={chartPoints} colors={SITE_COLORS} emptyLabel={t('geenData')} />
             </div>
 
             {/* Legend & rankings */}
@@ -404,7 +408,7 @@ export function RankingModal({ siteId, onClose }: { siteId: string; onClose: () 
                         className={styles.legendDot}
                         style={{ background: SITE_COLORS[colorIdx % SITE_COLORS.length] }}
                       />
-                      <span className={styles.legendRank}>Nr.&nbsp;{site.rank}</span>
+                      <span className={styles.legendRank}>{t('nr', { rank: site.rank })}</span>
                       <span className={styles.legendName}>{site.name}</span>
                       <span className={styles.legendVal}>{getDisplayVal(site.metrics)}</span>
                     </div>

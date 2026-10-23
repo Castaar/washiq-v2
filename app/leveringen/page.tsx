@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import type { Types } from 'mongoose';
+import { getLocale, getTranslations } from 'next-intl/server';
 import { NavBar } from '@/components/layout/NavBar/NavBar';
 import { LeveringenPanel } from '@/components/leveringen/LeveringenPanel/LeveringenPanel';
 import type { StockItem } from '@/components/leveringen/LeveringenPanel/LeveringenPanel';
@@ -21,6 +22,9 @@ export default async function LeveringenPage({
   await dbConnect();
 
   const session = await getSession();
+  const tr = await getTranslations('leveringenPagina');
+  const locale = await getLocale();
+  const numLocale = locale === 'fr' ? 'fr-BE' : 'nl-BE';
   const cookieStore = await cookies();
   const cookieSite = cookieStore.get('glosiv_active_site')?.value;
 
@@ -59,15 +63,15 @@ export default async function LeveringenPage({
     : [[], [], []];
 
   const canSeeHistoriek = userRole === 'owner' || userRole === 'developer';
-  const fmtWhen = (d: Date) => d.toLocaleString('nl-BE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Brussels' });
+  const fmtWhen = (d: Date) => d.toLocaleString(numLocale, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Brussels' });
   const history = [
     ...deliveryDocs.map((d) => {
       const chem = d.chemical_id as unknown as { name?: string; unit?: string } | null;
       return {
         key: `d-${(d._id as Types.ObjectId).toString()}`,
         at: d.delivered_at as Date,
-        title: chem?.name ? `Levering: ${chem.name}` : `Levering: ${(d.note as string) || 'diverse'}`,
-        detail: chem?.name ? `+${((d.quantity as number) ?? 0).toLocaleString('nl-BE')} ${chem.unit ?? ''}` : '',
+        title: tr('leveringTitel', { name: chem?.name ? chem.name : ((d.note as string) || tr('diverse')) }),
+        detail: chem?.name ? `+${((d.quantity as number) ?? 0).toLocaleString(numLocale)} ${chem.unit ?? ''}` : '',
         by: (d.logged_by_name as string) || '',
         deleteUrl: canModify(session, d.logged_by) ? `/api/stock/delivery/${(d._id as Types.ObjectId).toString()}` : '',
       };
@@ -79,8 +83,8 @@ export default async function LeveringenPage({
       return {
         key: `t-${(t._id as Types.ObjectId).toString()}`,
         at: t.transferred_at as Date,
-        title: outgoing ? `Verplaatst naar ${to?.name ?? '?'}: ${t.name}` : `Ontvangen van ${from?.name ?? '?'}: ${t.name}`,
-        detail: `${outgoing ? '−' : '+'}${((t.quantity as number) ?? 0).toLocaleString('nl-BE')} ${t.unit ?? ''}`,
+        title: outgoing ? tr('verplaatstNaar', { site: to?.name ?? '?', name: t.name as string }) : tr('ontvangenVan', { site: from?.name ?? '?', name: t.name as string }),
+        detail: `${outgoing ? '−' : '+'}${((t.quantity as number) ?? 0).toLocaleString(numLocale)} ${t.unit ?? ''}`,
         by: (t.logged_by_name as string) || '',
         deleteUrl: canSeeHistoriek ? `/api/stock/transfer/${(t._id as Types.ObjectId).toString()}` : '',
       };
@@ -91,8 +95,8 @@ export default async function LeveringenPage({
       return {
         key: `a-${(a._id as Types.ObjectId).toString()}`,
         at: a.adjusted_at as Date,
-        title: `Correctie: ${chem?.name ?? 'product'}`,
-        detail: `${q >= 0 ? '+' : '−'}${Math.abs(q).toLocaleString('nl-BE')} ${chem?.unit ?? ''} (telt niet als verbruik)`,
+        title: tr('correctieTitel', { name: chem?.name ?? tr('product') }),
+        detail: `${q >= 0 ? '+' : '−'}${Math.abs(q).toLocaleString(numLocale)} ${chem?.unit ?? ''} ${tr('teltNietAlsVerbruik')}`,
         by: (a.logged_by_name as string) || '',
         deleteUrl: canSeeHistoriek ? `/api/stock/adjustment/${(a._id as Types.ObjectId).toString()}` : '',
       };
@@ -107,24 +111,24 @@ export default async function LeveringenPage({
       <main className={styles.main}>
         <div className={styles.card}>
           <div className={styles.header}>
-            <h1 className={styles.title}>Leveringen — {siteName}</h1>
-            <p className={styles.subtitle}>Registreer een levering om de voorraad bij te werken.</p>
+            <h1 className={styles.title}>{tr('titel', { site: siteName })}</h1>
+            <p className={styles.subtitle}>{tr('subtitel')}</p>
           </div>
           <LeveringenPanel key={siteId ?? ''} stocks={stocks} siteId={siteId ?? ''} otherSites={otherSites} />
         </div>
 
         <div className={styles.card}>
           <div className={styles.header}>
-            <h2 className={styles.title}>Historiek leveringen — {siteName}</h2>
+            <h2 className={styles.title}>{tr('historiekTitel', { site: siteName })}</h2>
             <p className={styles.subtitle}>
-              Alle leveringen (ook diverse zoals een motor) en verplaatsingen.
+              {tr('historiekUitleg')}
               {canSeeHistoriek && siteId && (
-                <> Corrigeren of verwijderen kan via <Link href={`/historiek?site=${siteId}`}>Historiek → Voorraad</Link>.</>
+                <> {tr.rich('corrigerenVia', { link: (chunks) => <Link href={`/historiek?site=${siteId}`}>{chunks}</Link> })}</>
               )}
             </p>
           </div>
           {history.length === 0 ? (
-            <p className={styles.subtitle}>Nog geen leveringen geregistreerd.</p>
+            <p className={styles.subtitle}>{tr('nogGeenLeveringen')}</p>
           ) : (
             <div className={styles.histList}>
               {history.map((h) => (

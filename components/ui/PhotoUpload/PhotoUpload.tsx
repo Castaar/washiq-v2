@@ -73,8 +73,8 @@ export function PhotoUpload({ photos, onChange, maxPhotos = 5 }: PhotoUploadProp
       if (ok.length > 0) onChange([...photos, ...ok]);
       if (failed > 0) {
         setError(failed === 1
-          ? 'Eén foto kon niet verwerkt worden. Probeer een andere foto of maak een nieuwe.'
-          : `${failed} foto's konden niet verwerkt worden. Probeer andere foto's of maak nieuwe.`);
+          ? t('fotoFoutEen')
+          : t('fotoFoutMeerdere', { count: failed }));
       }
     } finally {
       setBusy(false);
@@ -107,7 +107,7 @@ export function PhotoUpload({ photos, onChange, maxPhotos = 5 }: PhotoUploadProp
             onClick={() => inputRef.current?.click()}
             disabled={busy}
           >
-            {busy ? 'Foto verwerken…' : `${t('fotoToevoegen')} (${photos.length}/${maxPhotos})`}
+            {busy ? t('fotoVerwerken') : `${t('fotoToevoegen')} (${photos.length}/${maxPhotos})`}
           </button>
           <input
             ref={inputRef}

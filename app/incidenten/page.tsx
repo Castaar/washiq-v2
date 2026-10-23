@@ -1,4 +1,5 @@
 import { cookies } from 'next/headers';
+import { getTranslations } from 'next-intl/server';
 import { m } from '@/lib/demo';
 import type { Types } from 'mongoose';
 import { NavBar } from '@/components/layout/NavBar/NavBar';
@@ -24,6 +25,11 @@ export default async function IncidentenPage({
   searchParams: Promise<{ site?: string }>;
 }) {
   const { site } = await searchParams;
+  const t = await getTranslations('incidenten');
+  const tp = await getTranslations('carwashPage');
+  const tLayout = await getTranslations('layout');
+  const tDagfiche = await getTranslations('dagfiche');
+  const ernstLabel = (ernst: string) => ernst === 'laag' ? tp('ernstLaag') : ernst === 'medium' ? tp('ernstMedium') : ernst === 'hoog' ? tp('ernstHoog') : ernst;
   const session = await getSession();
   const isDemo = session?.demo === true;
 
@@ -94,8 +100,8 @@ export default async function IncidentenPage({
       return {
         id: (s._id as Types.ObjectId).toString(),
         type: 'schade' as const,
-        title: (s.merk_model as string) || m(isDemo, (s.naam_eigenaar as string)) || 'Schade',
-        subtitle: [[(s.omschrijving as string) || '', ((s.schade_locaties as string[]) ?? []).join(', ')].filter(Boolean).join(' — '), (s.reported_by_name as string) ? `Gemeld door ${s.reported_by_name as string}` : ''].filter(Boolean).join(' · '),
+        title: (s.merk_model as string) || m(isDemo, (s.naam_eigenaar as string)) || t('typeSchade'),
+        subtitle: [[(s.omschrijving as string) || '', ((s.schade_locaties as string[]) ?? []).join(', ')].filter(Boolean).join(' — '), (s.reported_by_name as string) ? tp('gemeldDoor', { name: s.reported_by_name as string }) : ''].filter(Boolean).join(' · '),
         date: fmtDate(new Date(s.created_at as Date)),
         is_resolved: (s.is_resolved as boolean) ?? false,
         resolved_by_name: (s.resolved_by_name as string) ?? '',
@@ -123,8 +129,8 @@ export default async function IncidentenPage({
       return {
         id: (e._id as Types.ObjectId).toString(),
         type: 'ehbo' as const,
-        title: m(isDemo, (e.naam_slachtoffer as string)) || 'EHBO',
-        subtitle: [(e.verwonding as string) || '', (e.reported_by_name as string) ? `Gemeld door ${e.reported_by_name as string}` : ''].filter(Boolean).join(' · '),
+        title: m(isDemo, (e.naam_slachtoffer as string)) || t('typeEhbo'),
+        subtitle: [(e.verwonding as string) || '', (e.reported_by_name as string) ? tp('gemeldDoor', { name: e.reported_by_name as string }) : ''].filter(Boolean).join(' · '),
         date: fmtDate(new Date(e.created_at as Date)),
         is_resolved: Boolean(e.is_resolved),
         resolved_by_name: (e.resolved_by_name as string) ?? '',
@@ -146,8 +152,8 @@ export default async function IncidentenPage({
       return {
         id: (d._id as Types.ObjectId).toString(),
         type: 'defect' as const,
-        title: ((d.omschrijving as string) ?? '').slice(0, 40) || 'Defect',
-        subtitle: [(d.ernst as string) || '', (d.reported_by_name as string) ? `Gemeld door ${d.reported_by_name as string}` : ''].filter(Boolean).join(' · '),
+        title: ((d.omschrijving as string) ?? '').slice(0, 40) || t('typeDefect'),
+        subtitle: [ernstLabel((d.ernst as string) || ''), (d.reported_by_name as string) ? tp('gemeldDoor', { name: d.reported_by_name as string }) : ''].filter(Boolean).join(' · '),
         date: fmtDate(new Date(d.created_at as Date)),
         is_resolved: (d.is_resolved as boolean) ?? false,
         resolved_by_name: (d.resolved_by_name as string) ?? '',
@@ -158,7 +164,7 @@ export default async function IncidentenPage({
   ].sort((a, b) => b.date.localeCompare(a.date));
 
   const addHref = session?.role === 'employee' ? `/dagfiche?site=${siteId}` : `/wekelijkse-ingave?site=${siteId}`;
-  const addLabel = session?.role === 'employee' ? 'Dagfiche' : 'Maandelijkse Ingave';
+  const addLabel = session?.role === 'employee' ? tDagfiche('titel') : tLayout('addMaandelijkseIngave');
 
   return (
     <div className={styles.root}>

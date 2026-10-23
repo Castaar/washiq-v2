@@ -1,4 +1,5 @@
 import type { Types } from 'mongoose';
+import { getLocale, getTranslations } from 'next-intl/server';
 import { m } from '@/lib/demo';
 import { NavBar } from '@/components/layout/NavBar/NavBar';
 import { TechniekerPanel } from '@/components/technieker/TechniekerPanel/TechniekerPanel';
@@ -19,6 +20,8 @@ function fmtDate(d: Date) {
 export default async function TechniekerPage() {
   const session = await getSession();
   const isDemo = session?.demo === true;
+  const tr = await getTranslations('technieker');
+  const locale = await getLocale();
   await dbConnect();
 
   const [siteDocs, userDoc] = await Promise.all([
@@ -67,7 +70,7 @@ export default async function TechniekerPage() {
       kind: 'defect' as const,
       siteId: (d.site_id as Types.ObjectId).toString(),
       siteName: siteNameById[(d.site_id as Types.ObjectId).toString()] ?? '',
-      title: (d.omschrijving as string) || 'Defect',
+      title: (d.omschrijving as string) || tr('soort.defect'),
       subtitle: '',
       severity: ((d.ernst as string) === 'hoog' ? 'high' : (d.ernst as string) === 'laag' ? 'low' : 'medium') as 'low' | 'medium' | 'high',
       date: fmtDate(new Date(d.created_at as Date)),
@@ -78,8 +81,8 @@ export default async function TechniekerPage() {
       kind: 'bestelling' as const,
       siteId: (o.site_id as Types.ObjectId).toString(),
       siteName: siteNameById[(o.site_id as Types.ObjectId).toString()] ?? '',
-      title: (o.item_name as string) || 'Bestelling',
-      subtitle: [(o.details as string) || '', (o.requested_by_name as string) ? `Besteld door ${o.requested_by_name as string}` : ''].filter(Boolean).join(' · '),
+      title: (o.item_name as string) || tr('soort.bestelling'),
+      subtitle: [(o.details as string) || '', (o.requested_by_name as string) ? tr('bestelddoor', { name: o.requested_by_name as string }) : ''].filter(Boolean).join(' · '),
       severity: 'low' as const,
       date: fmtDate(new Date(o.requested_at as Date)),
     })),
@@ -88,7 +91,7 @@ export default async function TechniekerPage() {
       kind: 'schade' as const,
       siteId: (s.site_id as Types.ObjectId).toString(),
       siteName: siteNameById[(s.site_id as Types.ObjectId).toString()] ?? '',
-      title: (s.merk_model as string) || m(isDemo, (s.naam_eigenaar as string)) || 'Schade',
+      title: (s.merk_model as string) || m(isDemo, (s.naam_eigenaar as string)) || tr('soort.schade'),
       subtitle: ((s.schade_locaties as string[]) ?? []).join(', '),
       severity: 'high' as const,
       date: fmtDate(new Date(s.created_at as Date)),
@@ -121,7 +124,7 @@ export default async function TechniekerPage() {
           siteId: (t.site_id as Types.ObjectId).toString(),
           siteName: siteNameById[(t.site_id as Types.ObjectId).toString()] ?? '',
           title: t.description as string,
-          subtitle: remaining !== null ? `Binnenkort — nog ${remaining.toLocaleString('nl-BE')} wasbeurten` : 'Binnenkort',
+          subtitle: remaining !== null ? tr('binnenkortNog', { count: remaining.toLocaleString(locale === 'fr' ? 'fr-BE' : 'nl-BE') }) : tr('binnenkort'),
           severity: 'low' as const,
           date: '',
         };
@@ -130,7 +133,7 @@ export default async function TechniekerPage() {
 
   return (
     <div className={styles.root}>
-      <NavBar centerTitle="Technieker" />
+      <NavBar centerTitle={tr('paginaTitel')} />
       <main className={styles.main}>
         <div className={styles.content}>
           <TechniekerPanel

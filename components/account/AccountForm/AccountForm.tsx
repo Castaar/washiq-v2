@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import styles from './AccountForm.module.scss';
 import { IconEye, IconEyeOff } from '@/components/ui/icons';
 import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher/LanguageSwitcher';
@@ -53,6 +53,8 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
   const tLogin = useTranslations('login');
   const tCommon = useTranslations('common');
   const tTaal = useTranslations('taal');
+  const locale = useLocale();
+  const numLocale = locale === 'fr' ? 'fr-BE' : 'nl-BE';
   const isEmployee = role === 'employee' || role === 'technician';
   const canAddSite = role === 'owner' || role === 'developer';
 
@@ -136,9 +138,9 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
       if (res.ok && data.results) {
         const r = data.results;
         const parts = [];
-        if (r.programs) parts.push(`${r.programs} programma's`);
-        if (r.products) parts.push(`${r.products} producten`);
-        if (r.maintenance) parts.push(`${r.maintenance} onderhoudstaken`);
+        if (r.programs) parts.push(t('aantalProgrammas', { count: String(r.programs) }));
+        if (r.products) parts.push(t('aantalProducten', { count: String(r.products) }));
+        if (r.maintenance) parts.push(t('aantalOnderhoudstaken', { count: String(r.maintenance) }));
         if (r.prices) parts.push(t('prijsconfiguratie').toLowerCase());
         setCopyResult(parts.length ? `${t('gekopieerd')}: ${parts.join(', ')}.` : t('nietsTeKopieren'));
       } else {
@@ -174,7 +176,9 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
   const [showNewUserPassword, setShowNewUserPassword] = useState(false);
 
   // Energiefacturen
-  const MAANDEN_SHORT = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
+  const MAANDEN_SHORT = locale === 'fr'
+    ? Array.from({ length: 12 }, (_, i) => new Date(2000, i, 1).toLocaleDateString('fr-BE', { month: 'short' }))
+    : ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
   const [bills, setBills] = useState<EnergyBillItem[]>(initialBills);
   const [billYear, setBillYear] = useState(String(new Date().getFullYear()));
   const [billMonth, setBillMonth] = useState(String(new Date().getMonth() + 1));
@@ -324,10 +328,12 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
   const [markOpen, setMarkOpen] = useState<Record<string, { date: string; washes: string }>>({});
   const [savingMark, setSavingMark] = useState<string | null>(null);
 
-  const MAANDEN = ['januari', 'februari', 'maart', 'april', 'mei', 'juni', 'juli', 'augustus', 'september', 'oktober', 'november', 'december'];
+  const MAANDEN = locale === 'fr'
+    ? Array.from({ length: 12 }, (_, i) => new Date(2000, i, 1).toLocaleDateString('fr-BE', { month: 'long' }))
+    : ['januari', 'februari', 'maart', 'april', 'mei', 'juni', 'juli', 'augustus', 'september', 'oktober', 'november', 'december'];
 
   function taskTriggerLabel(task: MaintenanceTaskItem): string {
-    if (task.trigger_type === 'washes') return t('elkeWassingen', { count: (task.trigger_value ?? 0).toLocaleString('nl-BE') });
+    if (task.trigger_type === 'washes') return t('elkeWassingen', { count: (task.trigger_value ?? 0).toLocaleString(numLocale) });
     if (task.trigger_type === 'months') {
       if (task.trigger_value === 12) return t('eenKeerPerJaar');
       if (task.trigger_value === 24) return t('omDe2Jaar');
@@ -344,7 +350,7 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
       const next = (task.washes_at_last_done ?? 0) + task.trigger_value;
       const overdue = currentTotalWashes >= next;
       return {
-        label: t('bijWgn', { next: next.toLocaleString('nl-BE'), current: currentTotalWashes.toLocaleString('nl-BE') }),
+        label: t('bijWgn', { next: next.toLocaleString(numLocale), current: currentTotalWashes.toLocaleString(numLocale) }),
         overdue,
       };
     }
@@ -353,14 +359,14 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
       const next = new Date(task.last_done_at);
       next.setMonth(next.getMonth() + task.trigger_value);
       const overdue = now >= next;
-      return { label: next.toLocaleDateString('nl-BE', { day: '2-digit', month: '2-digit', year: 'numeric' }), overdue };
+      return { label: next.toLocaleDateString(numLocale, { day: '2-digit', month: '2-digit', year: 'numeric' }), overdue };
     }
     if (task.trigger_type === 'fixed_date') {
       const d = task.trigger_day ?? 1;
       const m = (task.trigger_month ?? 1) - 1;
       let next = new Date(now.getFullYear(), m, d);
       if (next <= now) next = new Date(now.getFullYear() + 1, m, d);
-      return { label: next.toLocaleDateString('nl-BE', { day: '2-digit', month: 'long', year: 'numeric' }), overdue: false };
+      return { label: next.toLocaleDateString(numLocale, { day: '2-digit', month: 'long', year: 'numeric' }), overdue: false };
     }
     if (task.trigger_type === 'fixed_months') {
       const months = task.trigger_month_list ?? [];
@@ -371,7 +377,7 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
         if (candidate <= now) candidate = new Date(now.getFullYear() + 1, m - 1, 1);
         if (!next || candidate < next) next = candidate;
       }
-      return { label: next!.toLocaleDateString('nl-BE', { month: 'long', year: 'numeric' }), overdue: false };
+      return { label: next!.toLocaleDateString(numLocale, { month: 'long', year: 'numeric' }), overdue: false };
     }
     return { label: '—', overdue: false };
   }
@@ -461,10 +467,10 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
 
       {/* ── Accountgegevens ─────────────────────────────────── */}
       <section className={styles.section}>
-        <h2 className={styles.sectionLabel}>Accountgegevens</h2>
+        <h2 className={styles.sectionLabel}>{t('accountgegevens')}</h2>
         <div className={styles.row}>
           <div className={styles.fieldGroup}>
-            <label className={styles.fieldLabel}>Gebruikersnaam</label>
+            <label className={styles.fieldLabel}>{tLogin('gebruikersnaam')}</label>
             <input
               className={styles.input}
               type="text"
@@ -496,7 +502,7 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
             </div>
           </div>
           <div className={styles.fieldGroup}>
-            <label className={styles.fieldLabel}>Verjaardag</label>
+            <label className={styles.fieldLabel}>{t('verjaardag')}</label>
             <input
               className={styles.input}
               type="date"
@@ -505,11 +511,11 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
             />
           </div>
           <div className={styles.fieldGroup}>
-            <label className={styles.fieldLabel}>Taal</label>
+            <label className={styles.fieldLabel}>{tTaal('label')}</label>
             <LanguageSwitcher />
           </div>
           <div className={styles.fieldGroup}>
-            <label className={styles.fieldLabel}>Meldingen</label>
+            <label className={styles.fieldLabel}>{t('meldingenLabel')}</label>
             <NotificationSettings />
           </div>
         </div>
@@ -829,7 +835,7 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
               const { label: nextLabel, overdue } = computeNextDue(mt);
               const isMarkOpen = mt.id in markOpen;
               const lastDate = mt.last_done_at
-                ? new Date(mt.last_done_at).toLocaleDateString('nl-BE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                ? new Date(mt.last_done_at).toLocaleDateString(numLocale, { day: '2-digit', month: '2-digit', year: 'numeric' })
                 : null;
               return (
                 <div key={mt.id} className={[styles.maintenanceRow, overdue ? styles.maintenanceOverdue : ''].filter(Boolean).join(' ')}>

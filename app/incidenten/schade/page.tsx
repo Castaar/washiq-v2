@@ -1,3 +1,4 @@
+import { getTranslations } from 'next-intl/server';
 import { NavBar } from '@/components/layout/NavBar/NavBar';
 import { SchadeForm } from '@/components/incidenten/SchadeForm/SchadeForm';
 import { getSession } from '@/lib/session';
@@ -10,11 +11,12 @@ export default async function SchadePage({
 }) {
   const { site } = await searchParams;
   const session = await getSession();
+  const t = await getTranslations('incidenten');
   const siteId = site ?? '';
 
   return (
     <div className={styles.root}>
-      <NavBar centerTitle="Schaderapport" backHref={`/incidenten?site=${siteId}`} />
+      <NavBar centerTitle={t('schadeRapport')} backHref={`/incidenten?site=${siteId}`} />
       <main className={styles.main}>
         <SchadeForm siteId={siteId} userName={session?.name ?? ''} />
       </main>

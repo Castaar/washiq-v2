@@ -1,5 +1,6 @@
 import { ChemicalStock, WashProgram, MaintenanceTask, OrderItem, Translation } from '@/lib/models';
 import nlMessages from '@/messages/nl.json';
+import frMessages from '@/messages/fr.json';
 
 export interface TranslationRow {
   key: string;
@@ -42,8 +43,10 @@ export async function getAllTranslationRows(): Promise<TranslationRow[]> {
   const rows: TranslationRow[] = [];
 
   const nlFlat = flatten(nlMessages);
+  // Committed French (messages/fr.json) shows when there's no runtime override yet
+  const frFlat = flatten(frMessages);
   for (const key of Object.keys(nlFlat).sort()) {
-    rows.push({ key, section: sectionFor(key), nl: nlFlat[key], fr: overrideMap[key] ?? '' });
+    rows.push({ key, section: sectionFor(key), nl: nlFlat[key], fr: overrideMap[key] ?? frFlat[key] ?? '' });
   }
 
   const [productNames, programNames, taskDescriptions, orderItemNames] = await Promise.all([

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { Toggle } from '@/components/ui/Toggle/Toggle';
 import styles from './ProgrammaCard.module.scss';
 
@@ -37,6 +37,7 @@ export function ProgrammaCard({ programs, totalWagens, costBreakdown, prevCostBr
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const t = useTranslations('dashboard');
+  const numLocale = useLocale() === 'fr' ? 'fr-BE' : 'nl-BE';
 
   function togglePerLiter(checked: boolean) {
     const params = new URLSearchParams(searchParams.toString());
@@ -110,10 +111,10 @@ export function ProgrammaCard({ programs, totalWagens, costBreakdown, prevCostBr
       <div className={styles.countRow}>
         <span className={styles.chemieLabel}>{t('wagens')}</span>
         <div className={styles.chemieValues}>
-          <span className={styles.chemieValue}>{selected.count.toLocaleString('nl-BE')}</span>
+          <span className={styles.chemieValue}>{selected.count.toLocaleString(numLocale)}</span>
           {countDelta !== 0 && (
             <span className={[styles.chemieDelta, countDelta >= 0 ? styles.positive : styles.negative].join(' ')}>
-              {countSign}{Math.abs(countDelta).toLocaleString('nl-BE')}
+              {countSign}{Math.abs(countDelta).toLocaleString(numLocale)}
             </span>
           )}
         </div>

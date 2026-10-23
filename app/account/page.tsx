@@ -1,4 +1,5 @@
 import type { Types } from 'mongoose';
+import { getTranslations } from 'next-intl/server';
 import { NavBar } from '@/components/layout/NavBar/NavBar';
 import { AccountForm } from '@/components/account/AccountForm/AccountForm';
 import { dbConnect } from '@/lib/db/mongoose';
@@ -12,6 +13,8 @@ export default async function AccountPage({
   searchParams: Promise<{ site?: string }>;
 }) {
   await dbConnect();
+  const t = await getTranslations('account');
+  const tNav = await getTranslations('nav');
 
   const session = await getSession();
   const sessionRole = session?.role ?? 'employee';
@@ -97,12 +100,12 @@ export default async function AccountPage({
   return (
     <div className={styles.root}>
       <NavBar
-        centerTitle={sites.find((s) => s.id === siteId)?.name ? `Account — ${sites.find((s) => s.id === siteId)!.name}` : 'Account'}
+        centerTitle={sites.find((s) => s.id === siteId)?.name ? t('titelMetSite', { name: sites.find((s) => s.id === siteId)!.name }) : tNav('account')}
         sites={sessionRole !== 'technician' ? sites : undefined}
         activeSiteId={siteId}
         backHref={sessionRole === 'technician' ? '/technieker' : '/'}
         addHref={addHref}
-        addLabel={sessionRole === 'employee' ? 'Dagfiche' : sessionRole === 'technician' ? 'Technieker' : 'Maandelijkse Ingave'}
+        addLabel={sessionRole === 'employee' ? t('addLabelDagfiche') : sessionRole === 'technician' ? t('addLabelTechnieker') : t('addLabelMaandelijkseIngave')}
       />
       <main className={styles.main}>
         <AccountForm

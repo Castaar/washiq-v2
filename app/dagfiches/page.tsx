@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import type { Types } from 'mongoose';
+import { getLocale, getTranslations } from 'next-intl/server';
 import { NavBar } from '@/components/layout/NavBar/NavBar';
 import { DagfichesPanel } from '@/components/dagfiches/DagfichesPanel/DagfichesPanel';
 import type { DagficheOverviewItem } from '@/components/dagfiches/DagfichesPanel/DagfichesPanel';
@@ -10,8 +11,8 @@ import { getSession } from '@/lib/session';
 import { filterSitesForUser, resolveActiveSite, redirectIfSetupNeeded, redirectWithSiteParam } from '@/lib/getUserSites';
 import styles from './page.module.scss';
 
-function fmtDateTime(d: Date) {
-  return d.toLocaleString('nl-BE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Brussels' });
+function fmtDateTime(d: Date, dateLocale: string) {
+  return d.toLocaleString(dateLocale, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Brussels' });
 }
 
 export default async function DagfichesPage({
@@ -25,6 +26,10 @@ export default async function DagfichesPage({
   }
 
   const { site } = await searchParams;
+  const t = await getTranslations('dagfiches');
+  const tCommon = await getTranslations('common');
+  const locale = await getLocale();
+  const dateLocale = locale === 'fr' ? 'fr-BE' : 'nl-BE';
   await dbConnect();
 
   const cookieStore = await cookies();
@@ -58,18 +63,18 @@ export default async function DagfichesPage({
     const ts = new Date((c.submitted_at as Date) ?? (c.date as Date));
     const clItems = (c.items as { label: string; checked: boolean; opmerking?: string }[]) ?? [];
     const uncheckedCount = clItems.filter((it) => !it.checked).length;
-    const userName = userNameMap[c.user_id?.toString() ?? ''] ?? 'Onbekend';
+    const userName = userNameMap[c.user_id?.toString() ?? ''] ?? tCommon('onbekend');
     return {
       id: (c._id as Types.ObjectId).toString(),
       userName,
-      submittedAt: fmtDateTime(ts),
-      dateKey: ts.toLocaleDateString('nl-BE', { timeZone: 'Europe/Brussels' }),
+      submittedAt: fmtDateTime(ts, dateLocale),
+      dateKey: ts.toLocaleDateString(dateLocale, { timeZone: 'Europe/Brussels' }),
       uncheckedCount,
       hasDefectNote: !!(c.defect_note && String(c.defect_note).trim()),
       payload: {
         type: 'dagfiche',
         submittedBy: userName,
-        submittedAt: fmtDateTime(ts),
+        submittedAt: fmtDateTime(ts, dateLocale),
         items: clItems.map(({ label, checked, opmerking }) => ({ label, checked, opmerking })),
         defectNote: c.defect_note ? String(c.defect_note) : undefined,
       },
@@ -81,8 +86,8 @@ export default async function DagfichesPage({
       <NavBar sites={allowedSites} activeSiteId={siteId ?? ''} backHref="/" />
       <main className={styles.main}>
         <div className={styles.content}>
-          <h1 className={styles.title}>Dagfiches — {siteName}</h1>
-          <p className={styles.subtitle}>Laatste 30 dagen. Klik op een regel voor het volledige overzicht.</p>
+          <h1 className={styles.title}>{t('titel', { site: siteName })}</h1>
+          <p className={styles.subtitle}>{t('subtitel')}</p>
           <DagfichesPanel key={siteId} items={items} siteId={siteId ?? ''} />
         </div>
       </main>

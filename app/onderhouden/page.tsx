@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers';
-import { getLocale } from 'next-intl/server';
+import { getLocale, getTranslations } from 'next-intl/server';
 import type { Types } from 'mongoose';
 import { NavBar } from '@/components/layout/NavBar/NavBar';
 import { OnderhoudPanel } from '@/components/onderhouden/OnderhoudPanel/OnderhoudPanel';
@@ -24,6 +24,7 @@ export default async function OnderhoudPage({
 
   const session = await getSession();
   const locale = await getLocale();
+  const tPagina = await getTranslations('onderhoudPagina');
   const contentTranslations = await getTranslationMap(locale);
   const cookieStore = await cookies();
   const cookieSite = cookieStore.get('glosiv_active_site')?.value;
@@ -64,7 +65,7 @@ export default async function OnderhoudPage({
       description: translateContent(contentTranslations, 'task', t.description as string),
       triggerType: t.trigger_type as OnderhoudTask['triggerType'],
       triggerValue: t.trigger_value as number ?? 0,
-      lastDoneAt: t.last_done_at ? new Date(t.last_done_at as Date).toLocaleDateString('nl-BE', { day: '2-digit', month: '2-digit', year: 'numeric' }) : undefined,
+      lastDoneAt: t.last_done_at ? new Date(t.last_done_at as Date).toLocaleDateString(locale === 'fr' ? 'fr-BE' : 'nl-BE', { day: '2-digit', month: '2-digit', year: 'numeric' }) : undefined,
       lastDoneByName: (t.last_done_by_name as string) || undefined,
       washesAtLastDone: t.washes_at_last_done as number ?? 0,
       isOverdue: overdue,
@@ -91,17 +92,17 @@ export default async function OnderhoudPage({
       <main className={styles.main}>
         <div className={styles.content}>
           <div className={styles.header}>
-            <h1 className={styles.title}>Onderhoud — {siteName}</h1>
+            <h1 className={styles.title}>{tPagina('titel', { site: siteName })}</h1>
           </div>
-          <OnderhoudPanel key={siteId ?? ''} tasks={tasks} siteId={siteId ?? ''} />
+          <OnderhoudPanel key={`onderhoud-${siteId ?? ''}`} tasks={tasks} siteId={siteId ?? ''} />
 
           {siteType !== 'selfcarwash' && (
             <div className={styles.header} style={{ marginTop: 'var(--space-6)' }}>
-              <h1 className={styles.title}>Slijtage textiel borstels</h1>
+              <h1 className={styles.title}>{tPagina('slijtageTitel')}</h1>
             </div>
           )}
           {siteType !== 'selfcarwash' && (
-            <BrushesPanel key={siteId ?? ''} siteId={siteId ?? ''} currentTellerstand={currentTellerstand} isOwner={isOwner} initialBrushes={brushes} />
+            <BrushesPanel key={`brushes-${siteId ?? ''}`} siteId={siteId ?? ''} currentTellerstand={currentTellerstand} isOwner={isOwner} initialBrushes={brushes} />
           )}
         </div>
       </main>

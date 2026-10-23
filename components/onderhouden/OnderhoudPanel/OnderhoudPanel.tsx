@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { Badge } from '@/components/ui/Badge/Badge';
 import styles from './OnderhoudPanel.module.scss';
 
@@ -27,6 +27,7 @@ export function OnderhoudPanel({
   siteId?: string;
 }) {
   const t = useTranslations('onderhoud');
+  const locale = useLocale();
   const [tasks, setTasks] = useState(initial);
   const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
   const [completing, setCompleting] = useState<string | null>(null);
@@ -42,7 +43,7 @@ export function OnderhoudPanel({
         body: JSON.stringify({ notes: noteDrafts[task.id]?.trim() ?? '' }),
       });
       if (res.ok) {
-        const now = new Date().toLocaleDateString('nl-BE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        const now = new Date().toLocaleDateString(locale === 'fr' ? 'fr-BE' : 'nl-BE', { day: '2-digit', month: '2-digit', year: 'numeric' });
         setTasks((prev) => prev.map((t) => t.id === task.id
           ? { ...t, isOverdue: false, isApproaching: false, lastDoneAt: now }
           : t,
@@ -145,6 +146,8 @@ function TaskCard({
 }) {
   const t = useTranslations('onderhoud');
   const tAlerts = useTranslations('alerts');
+  const locale = useLocale();
+  const numLocale = locale === 'fr' ? 'fr-BE' : 'nl-BE';
   const TRIGGER_LABEL: Record<string, string> = {
     washes: t('wassingen'),
     months: t('maanden'),
@@ -169,7 +172,7 @@ function TaskCard({
         </Link>
         <div className={styles.taskMeta}>
           {task.triggerType === 'washes' && task.triggerValue > 0 && (
-            <span>{t('elke', { count: task.triggerValue.toLocaleString('nl-BE'), unit: TRIGGER_LABEL[task.triggerType] })}</span>
+            <span>{t('elke', { count: task.triggerValue.toLocaleString(numLocale), unit: TRIGGER_LABEL[task.triggerType] })}</span>
           )}
           {task.triggerType === 'months' && task.triggerValue > 0 && (
             <span>{t('elke', { count: task.triggerValue, unit: TRIGGER_LABEL[task.triggerType] })}</span>
@@ -181,7 +184,7 @@ function TaskCard({
             </span>
           )}
           {task.washesRemaining != null && task.washesRemaining > 0 && (
-            <span className={styles.remaining}>{t('nogTeGaan', { count: task.washesRemaining.toLocaleString('nl-BE'), unit: t('wassingen') })}</span>
+            <span className={styles.remaining}>{t('nogTeGaan', { count: task.washesRemaining.toLocaleString(numLocale), unit: t('wassingen') })}</span>
           )}
           {task.isOverdue && task.washesRemaining != null && task.washesRemaining <= 0 && (
             <span className={styles.overdueLabel}>{t('verlopen')}</span>

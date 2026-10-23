@@ -6,8 +6,8 @@ import { MaintenanceTask, MaintenanceLog } from '@/lib/models';
 import { getTranslationMap, translateContent } from '@/lib/contentTranslations';
 import styles from './page.module.scss';
 
-function fmtDateTime(d: Date): string {
-  return d.toLocaleString('nl-BE', {
+function fmtDateTime(d: Date, locale: string): string {
+  return d.toLocaleString(locale === 'fr' ? 'fr-BE' : 'nl-BE', {
     day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
     timeZone: 'Europe/Brussels',
   });
@@ -26,11 +26,14 @@ export default async function OnderhoudTaskHistoryPage({
   const locale = await getLocale();
   const contentTranslations = await getTranslationMap(locale);
   const t = await getTranslations('onderhoud');
+  const tPagina = await getTranslations('onderhoudPagina');
+  const tNav = await getTranslations('nav');
+  const tCommon = await getTranslations('common');
   const TRIGGER_LABEL: Record<string, string> = {
     washes: t('wassingen'),
-    months: 'maanden',
-    fixed_date: 'vaste datum',
-    fixed_months: 'vaste maanden',
+    months: t('maanden'),
+    fixed_date: t('vasteDatum'),
+    fixed_months: t('vasteMaanden'),
   };
 
   const [task, logDocs] = await Promise.all([
@@ -46,10 +49,10 @@ export default async function OnderhoudTaskHistoryPage({
   if (!task) {
     return (
       <div className={styles.root}>
-        <NavBar centerTitle="Onderhoud" backHref={backHref} />
+        <NavBar centerTitle={tNav('onderhoud')} backHref={backHref} />
         <main className={styles.main}>
           <div className={styles.content}>
-            <p className={styles.empty}>Onderhoudstaak niet gevonden.</p>
+            <p className={styles.empty}>{tPagina('taakNietGevonden')}</p>
           </div>
         </main>
       </div>
@@ -57,21 +60,21 @@ export default async function OnderhoudTaskHistoryPage({
   }
 
   const triggerLabel = task.trigger_type === 'washes' && (task.trigger_value as number) > 0
-    ? `Elke ${(task.trigger_value as number).toLocaleString('nl-BE')} ${t('wassingen')}`
+    ? t('elke', { count: (task.trigger_value as number).toLocaleString(locale === 'fr' ? 'fr-BE' : 'nl-BE'), unit: t('wassingen') })
     : task.trigger_type === 'months' && (task.trigger_value as number) > 0
-      ? `Elke ${task.trigger_value} maanden`
+      ? t('elke', { count: task.trigger_value as number, unit: t('maanden') })
       : TRIGGER_LABEL[task.trigger_type as string] ?? '';
 
   const logs = logDocs.map((l) => ({
     id: (l._id as Types.ObjectId).toString(),
-    doneAt: fmtDateTime(new Date(l.done_at as Date)),
-    doneByName: (l.done_by as unknown as { name?: string } | null)?.name ?? 'Onbekend',
+    doneAt: fmtDateTime(new Date(l.done_at as Date), locale),
+    doneByName: (l.done_by as unknown as { name?: string } | null)?.name ?? tCommon('onbekend'),
     notes: (l.notes as string) ?? '',
   }));
 
   return (
     <div className={styles.root}>
-      <NavBar centerTitle="Historiek onderhoud" backHref={backHref} />
+      <NavBar centerTitle={tPagina('historiekTitel')} backHref={backHref} />
       <main className={styles.main}>
         <div className={styles.content}>
           <div className={styles.header}>
@@ -81,13 +84,13 @@ export default async function OnderhoudTaskHistoryPage({
 
           <div className={styles.list}>
             {logs.length === 0 ? (
-              <p className={styles.empty}>Nog geen uitvoeringen geregistreerd voor deze taak.</p>
+              <p className={styles.empty}>{tPagina('nogGeenUitvoeringen')}</p>
             ) : (
               logs.map((l) => (
                 <div key={l.id} className={styles.logRow}>
                   <div className={styles.logMain}>
                     <span className={styles.logDate}>{l.doneAt}</span>
-                    <span className={styles.logBy}>door {l.doneByName}</span>
+                    <span className={styles.logBy}>{tPagina('door', { name: l.doneByName })}</span>
                   </div>
                   {l.notes && <p className={styles.logNotes}>{l.notes}</p>}
                 </div>

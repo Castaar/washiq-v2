@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useTranslations } from 'next-intl';
 import styles from './Chip.module.scss';
 
 export type ChipTone = 'default' | 'blue' | 'teal' | 'amber' | 'red' | 'purple';
@@ -32,10 +33,10 @@ export function Chip({ children, selected = false, tone = 'default', onClick, ty
 
 export type Severity = 'laag' | 'medium' | 'hoog';
 
-const severityOptions: { value: Severity; label: string; tone: ChipTone }[] = [
-  { value: 'laag', label: 'Laag', tone: 'teal' },
-  { value: 'medium', label: 'Medium', tone: 'amber' },
-  { value: 'hoog', label: 'Hoog', tone: 'red' },
+const severityOptions: { value: Severity; labelKey: 'ernstLaag' | 'ernstMedium' | 'ernstHoog'; tone: ChipTone }[] = [
+  { value: 'laag', labelKey: 'ernstLaag', tone: 'teal' },
+  { value: 'medium', labelKey: 'ernstMedium', tone: 'amber' },
+  { value: 'hoog', labelKey: 'ernstHoog', tone: 'red' },
 ];
 
 export function SeverityChips({
@@ -47,11 +48,12 @@ export function SeverityChips({
   onChange: (value: Severity) => void;
   className?: string;
 }) {
+  const t = useTranslations('modals');
   return (
-    <div className={[styles.group, className ?? ''].filter(Boolean).join(' ')} role="radiogroup" aria-label="Ernst">
+    <div className={[styles.group, className ?? ''].filter(Boolean).join(' ')} role="radiogroup" aria-label={t('ernst')}>
       {severityOptions.map((opt) => (
         <Chip key={opt.value} tone={opt.tone} selected={value === opt.value} onClick={() => onChange(opt.value)}>
-          {opt.label}
+          {t(opt.labelKey)}
         </Chip>
       ))}
     </div>

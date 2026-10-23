@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import type { MaintenanceTaskPayload } from '@/lib/types/dashboard';
 import { ActivitySection } from '@/components/dashboard/ActivitySection/ActivitySection';
 import { BottomSheet } from '@/components/ui/BottomSheet/BottomSheet';
@@ -17,9 +17,7 @@ interface MaintenanceModalProps {
   onClose: () => void;
 }
 
-const MONTH_NAMES = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
-
-function triggerLabel(payload: MaintenanceTaskPayload, t: (key: string, values?: Record<string, string | number>) => string): string {
+function triggerLabel(payload: MaintenanceTaskPayload, t: (key: string, values?: Record<string, string | number>) => string, monthNames: string[]): string {
   switch (payload.triggerType) {
     case 'washes':
       return t('elkeWassingen', { count: payload.triggerValue });
@@ -28,9 +26,9 @@ function triggerLabel(payload: MaintenanceTaskPayload, t: (key: string, values?:
       if (payload.triggerValue === 24) return t('omDe2Jaar');
       return t('elkeMaanden', { count: payload.triggerValue });
     case 'fixed_date':
-      return t('jaarlijks', { date: `${payload.triggerDay} ${MONTH_NAMES[(payload.triggerMonth ?? 1) - 1]}` });
+      return t('jaarlijks', { date: `${payload.triggerDay} ${monthNames[(payload.triggerMonth ?? 1) - 1]}` });
     case 'fixed_months': {
-      const months = (payload.triggerMonthList ?? []).map((m) => MONTH_NAMES[m - 1]).join(' + ');
+      const months = (payload.triggerMonthList ?? []).map((m) => monthNames[m - 1]).join(' + ');
       return months || '—';
     }
     default:
@@ -40,6 +38,8 @@ function triggerLabel(payload: MaintenanceTaskPayload, t: (key: string, values?:
 
 export function MaintenanceModal({ payload, refId, refType, siteId, onClose }: MaintenanceModalProps) {
   const t = useTranslations('modals');
+  const numLocale = useLocale() === 'fr' ? 'fr-BE' : 'nl-BE';
+  const monthNames = t.raw('maandenKort') as string[];
   const router = useRouter();
   const [undoing, setUndoing] = useState(false);
   const [undone, setUndone] = useState(false);
@@ -123,7 +123,7 @@ export function MaintenanceModal({ payload, refId, refType, siteId, onClose }: M
             <p className={styles.sectionTitle}>{t('details')}</p>
             <div className={styles.row}>
               <span className={styles.rowLabel}>{t('frequentie')}</span>
-              <span className={styles.rowValue}>{triggerLabel(payload, t)}</span>
+              <span className={styles.rowValue}>{triggerLabel(payload, t, monthNames)}</span>
             </div>
             {payload.lastDoneAt ? (
               <>
@@ -148,18 +148,18 @@ export function MaintenanceModal({ payload, refId, refType, siteId, onClose }: M
               <>
                 <div className={styles.row}>
                   <span className={styles.rowLabel}>{t('wassingenBijLaatste')}</span>
-                  <span className={styles.rowValue}>{(payload.washesAtLastDone ?? 0).toLocaleString('nl-BE')}</span>
+                  <span className={styles.rowValue}>{(payload.washesAtLastDone ?? 0).toLocaleString(numLocale)}</span>
                 </div>
                 {payload.currentTellerstand !== undefined && (
                   <div className={styles.row}>
                     <span className={styles.rowLabel}>{t('huidigeTellerstand')}</span>
-                    <span className={styles.rowValue}>{payload.currentTellerstand.toLocaleString('nl-BE')}</span>
+                    <span className={styles.rowValue}>{payload.currentTellerstand.toLocaleString(numLocale)}</span>
                   </div>
                 )}
                 {payload.washesRemaining !== undefined && payload.washesRemaining > 0 && (
                   <div className={styles.row}>
                     <span className={styles.rowLabel}>{t('nogTeGaan')}</span>
-                    <span className={styles.rowValue}>{payload.washesRemaining.toLocaleString('nl-BE')} {t('wagens')}</span>
+                    <span className={styles.rowValue}>{payload.washesRemaining.toLocaleString(numLocale)} {t('wagens')}</span>
                   </div>
                 )}
                 {payload.washesRemaining === 0 && (

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useLocale, useTranslations } from 'next-intl';
 import styles from './OpdrachtenPanel.module.scss';
 
 export interface OpdrachtItem {
@@ -29,12 +30,16 @@ interface OpdrachtenPanelProps {
   activeDate: string;
 }
 
-function fmtDate(iso: string) {
+function fmtDate(iso: string, dateLocale: string) {
   const d = new Date(iso + 'T00:00:00');
-  return d.toLocaleDateString('nl-BE', { weekday: 'long', day: 'numeric', month: 'long' });
+  return d.toLocaleDateString(dateLocale, { weekday: 'long', day: 'numeric', month: 'long' });
 }
 
 export function OpdrachtenPanel({ siteId, userRole, opdrachten: initial, employees, activeDate }: OpdrachtenPanelProps) {
+  const t = useTranslations('opdrachten');
+  const tCommon = useTranslations('common');
+  const locale = useLocale();
+  const dateLocale = locale === 'fr' ? 'fr-BE' : 'nl-BE';
   const [items, setItems] = useState<OpdrachtItem[]>(initial);
   const [newText, setNewText] = useState('');
   const [newDate, setNewDate] = useState(activeDate);
@@ -98,7 +103,7 @@ export function OpdrachtenPanel({ siteId, userRole, opdrachten: initial, employe
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Opdracht verwijderen?')) return;
+    if (!confirm(t('confirmVerwijderen'))) return;
     const res = await fetch(`/api/opdrachten/${id}`, { method: 'DELETE' });
     if (res.ok) setItems((prev) => prev.filter((o) => o.id !== id));
   }
@@ -122,18 +127,18 @@ export function OpdrachtenPanel({ siteId, userRole, opdrachten: initial, employe
             className={[styles.dateBtn, d === selectedDate ? styles.active : ''].join(' ')}
             onClick={() => setSelectedDate(d)}
           >
-            {d === today ? 'Vandaag' : d === tomorrow ? 'Morgen' : new Date(d + 'T00:00:00').toLocaleDateString('nl-BE', { day: 'numeric', month: 'short' })}
+            {d === today ? tCommon('vandaag') : d === tomorrow ? t('morgen') : new Date(d + 'T00:00:00').toLocaleDateString(dateLocale, { day: 'numeric', month: 'short' })}
           </button>
         ))}
       </div>
 
-      <p className={styles.dateLabel}>{fmtDate(selectedDate)}</p>
+      <p className={styles.dateLabel}>{fmtDate(selectedDate, dateLocale)}</p>
 
       {/* ── Opdrachten lijst ─────────────────────────────── */}
       <div className={styles.list}>
         {visibleItems.length === 0 && (
           <p className={styles.empty}>
-            {isOwner ? 'Geen opdrachten voor deze dag. Voeg er een toe hieronder.' : 'Geen opdrachten voor vandaag.'}
+            {isOwner ? t('geenOpdrachtenDag') : t('geenOpdrachtenVandaag')}
           </p>
         )}
         {visibleItems.map((o) => (
@@ -145,23 +150,23 @@ export function OpdrachtenPanel({ siteId, userRole, opdrachten: initial, employe
             <button
               className={[styles.checkbox, o.isDone ? styles.checked : ''].join(' ')}
               onClick={() => toggleDone(o)}
-              aria-label={o.isDone ? 'Markeer als open' : 'Markeer als gedaan'}
+              aria-label={o.isDone ? t('markeerOpen') : t('markeerGedaan')}
             >
               {o.isDone && <span>✓</span>}
             </button>
             <div className={styles.itemBody}>
               <p className={styles.itemText}>{o.text}</p>
               {o.isDone && o.doneByName && (
-                <p className={styles.itemMeta}>Gedaan door {o.doneByName}</p>
+                <p className={styles.itemMeta}>{t('gedaanDoor', { name: o.doneByName })}</p>
               )}
               {!o.isDone && o.assignedToIds.length > 0 && (
                 <p className={styles.itemMeta}>
-                  Voor: {o.assignedToIds.map((id) => employees.find((e) => e.id === id)?.name ?? id).join(', ')}
+                  {t('voor', { names: o.assignedToIds.map((id) => employees.find((e) => e.id === id)?.name ?? id).join(', ') })}
                 </p>
               )}
             </div>
             {isOwner && (
-              <button className={styles.deleteBtn} onClick={() => handleDelete(o.id)} aria-label="Verwijderen">✕</button>
+              <button className={styles.deleteBtn} onClick={() => handleDelete(o.id)} aria-label={tCommon('verwijderen')}>✕</button>
             )}
           </div>
         ))}
@@ -170,11 +175,11 @@ export function OpdrachtenPanel({ siteId, userRole, opdrachten: initial, employe
       {/* ── Nieuwe opdracht (owner only) ─────────────────── */}
       {isOwner && (
         <form className={styles.createForm} onSubmit={handleCreate} noValidate>
-          <h3 className={styles.createTitle}>Nieuwe opdracht</h3>
+          <h3 className={styles.createTitle}>{t('nieuweOpdracht')}</h3>
 
           <div className={styles.formRow}>
             <div className={styles.formField}>
-              <label className={styles.label}>Datum</label>
+              <label className={styles.label}>{t('datum')}</label>
               <input
                 type="date"
                 className={styles.input}
@@ -188,13 +193,13 @@ export function OpdrachtenPanel({ siteId, userRole, opdrachten: initial, employe
             className={styles.textarea}
             value={newText}
             onChange={(e) => setNewText(e.target.value)}
-            placeholder="Omschrijving opdracht (bv. Droogzone volledig reinigen)"
+            placeholder={t('omschrijvingPlaceholder')}
             rows={3}
           />
 
           {employees.length > 0 && (
             <div className={styles.assignSection}>
-              <label className={styles.label}>Toewijzen aan (optioneel — leeg = iedereen)</label>
+              <label className={styles.label}>{t('toewijzenAan')}</label>
               <div className={styles.employeeGrid}>
                 {employees.map((emp) => (
                   <label key={emp.id} className={styles.empCheck}>
@@ -204,7 +209,7 @@ export function OpdrachtenPanel({ siteId, userRole, opdrachten: initial, employe
                       onChange={() => toggleEmployee(emp.id)}
                     />
                     <span className={styles.empName}>{emp.name}</span>
-                    {emp.role && <span className={styles.empRole}>{emp.role === 'technician' ? 'tech.' : 'med.'}</span>}
+                    {emp.role && <span className={styles.empRole}>{emp.role === 'technician' ? t('rolTech') : t('rolMed')}</span>}
                   </label>
                 ))}
               </div>
@@ -212,7 +217,7 @@ export function OpdrachtenPanel({ siteId, userRole, opdrachten: initial, employe
           )}
 
           <button type="submit" className={styles.submitBtn} disabled={saving || !newText.trim()}>
-            {saving ? 'Opslaan...' : 'Opdracht toevoegen'}
+            {saving ? t('opslaanBezig') : t('opdrachtToevoegen')}
           </button>
         </form>
       )}

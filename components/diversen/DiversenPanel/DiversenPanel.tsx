@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import styles from './DiversenPanel.module.scss';
 
 export interface BirthdayPerson {
@@ -20,8 +20,8 @@ export interface AnnouncementItem {
   isAllSites: boolean;
 }
 
-function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString('nl-BE', { day: 'numeric', month: 'short' });
+function fmtDate(iso: string, locale: string) {
+  return new Date(iso).toLocaleDateString(locale === 'fr' ? 'fr-BE' : 'nl-BE', { day: 'numeric', month: 'short' });
 }
 
 export function DiversenPanel({
@@ -38,6 +38,8 @@ export function DiversenPanel({
   siteName?: string;
 }) {
   const locale = useLocale();
+  const t = useTranslations('diversen');
+  const tCommon = useTranslations('common');
   const [announcements, setAnnouncements] = useState(initialAnnouncements);
   const [wishedIds, setWishedIds] = useState<string[]>([]);
   const [generalText, setGeneralText] = useState('');
@@ -100,7 +102,7 @@ export function DiversenPanel({
     <div className={styles.wrap}>
       {birthdays.length > 0 && (
         <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>🎂 Verjaardagen vandaag</h2>
+          <h2 className={styles.sectionTitle}>{t('verjaardagenVandaag')}</h2>
           <div className={styles.birthdayList}>
             {birthdays.map((b) => (
               <div key={b.id} className={styles.birthdayRow}>
@@ -111,7 +113,7 @@ export function DiversenPanel({
                   onClick={() => handleWish(b)}
                   disabled={wishedIds.includes(b.id)}
                 >
-                  {wishedIds.includes(b.id) ? 'Gewenst ✓' : 'Wens gelukkige verjaardag'}
+                  {wishedIds.includes(b.id) ? t('gewenst') : t('wensVerjaardag')}
                 </button>
               </div>
             ))}
@@ -121,17 +123,17 @@ export function DiversenPanel({
 
       {canPostGeneral && (
         <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>Algemeen bericht</h2>
+          <h2 className={styles.sectionTitle}>{t('algemeenBericht')}</h2>
           <textarea
             className={styles.textarea}
-            placeholder="Bv. Start promotie morgen!"
+            placeholder={t('berichtPlaceholder')}
             value={generalText}
             onChange={(e) => setGeneralText(e.target.value)}
             rows={3}
           />
           <textarea
             className={styles.textarea}
-            placeholder="Frans (optioneel) — bv. La promotion commence demain !"
+            placeholder={t('berichtFrPlaceholder')}
             value={generalTextFr}
             onChange={(e) => setGeneralTextFr(e.target.value)}
             rows={3}
@@ -143,7 +145,7 @@ export function DiversenPanel({
                 checked={perSiteOnly}
                 onChange={(e) => setPerSiteOnly(e.target.checked)}
               />
-              Enkel voor {siteName || 'dit filiaal'} (anders zichtbaar bij alle filialen)
+              {t('enkelVoor', { site: siteName || t('ditFiliaal') })}
             </label>
           )}
           <button
@@ -152,15 +154,15 @@ export function DiversenPanel({
             onClick={handlePostGeneral}
             disabled={posting || !generalText.trim()}
           >
-            {posting ? 'Bezig...' : 'Plaatsen'}
+            {posting ? tCommon('bezig') : t('plaatsen')}
           </button>
         </section>
       )}
 
       <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>Recente berichten</h2>
+        <h2 className={styles.sectionTitle}>{t('recenteBerichten')}</h2>
         {announcements.length === 0 ? (
-          <p className={styles.empty}>Nog geen berichten.</p>
+          <p className={styles.empty}>{t('nogGeenBerichten')}</p>
         ) : (
           <div className={styles.list}>
             {announcements.map((a) => (
@@ -169,8 +171,8 @@ export function DiversenPanel({
                 <div className={styles.itemBody}>
                   <p className={styles.itemText}>{displayText(a)}</p>
                   <span className={styles.itemMeta}>
-                    {a.created_by_name && `${a.created_by_name} · `}{fmtDate(a.created_at)}
-                    {a.kind === 'general' && !a.isAllSites && ' · dit filiaal'}
+                    {a.created_by_name && `${a.created_by_name} · `}{fmtDate(a.created_at, locale)}
+                    {a.kind === 'general' && !a.isAllSites && ` · ${t('ditFiliaal')}`}
                   </span>
                 </div>
               </div>

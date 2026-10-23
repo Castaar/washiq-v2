@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import styles from './WashProgramManager.module.scss';
 
 export interface WashProgramItem {
@@ -34,6 +35,8 @@ function ProgramRow({
   onDelete: (id: string) => void;
   onUpdate: (id: string, updated: Partial<WashProgramItem>) => void;
 }) {
+  const t = useTranslations('washPrograms');
+  const tCommon = useTranslations('common');
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(program.name);
   const [tier, setTier] = useState(program.tier);
@@ -62,7 +65,7 @@ function ProgramRow({
   }
 
   async function handleDelete() {
-    if (!confirm(`Programma "${program.name}" verwijderen?`)) return;
+    if (!confirm(t('confirmVerwijderen', { name: program.name }))) return;
     await fetch(`/api/programs/${program.id}`, { method: 'DELETE' });
     onDelete(program.id);
   }
@@ -75,8 +78,8 @@ function ProgramRow({
           <span className={styles.programName}>{program.name}</span>
         </div>
         <div className={styles.rowActions}>
-          <button type="button" className={styles.editBtn} onClick={() => setEditing((v) => !v)} aria-label="Bewerken">✏</button>
-          <button type="button" className={styles.deleteBtn} onClick={handleDelete} aria-label="Verwijderen">✕</button>
+          <button type="button" className={styles.editBtn} onClick={() => setEditing((v) => !v)} aria-label={tCommon('bewerken')}>✏</button>
+          <button type="button" className={styles.deleteBtn} onClick={handleDelete} aria-label={tCommon('verwijderen')}>✕</button>
         </div>
       </div>
       <div className={styles.chemPills}>
@@ -84,17 +87,17 @@ function ProgramRow({
           ? program.chemicals.map((c) => (
               <span key={c} className={styles.chemPill}>{c}</span>
             ))
-          : <span className={styles.noAccess}>Geen chemie</span>}
+          : <span className={styles.noAccess}>{t('geenChemie')}</span>}
       </div>
 
       {editing && (
         <div className={styles.editPanel}>
           <div className={styles.editRow}>
-            <span className={styles.editLabel}>Naam</span>
+            <span className={styles.editLabel}>{t('naam')}</span>
             <input className={styles.input} value={name} onChange={(e) => setName(e.target.value)} />
           </div>
           <div className={styles.editRow}>
-            <span className={styles.editLabel}>Tier</span>
+            <span className={styles.editLabel}>{t('tier')}</span>
             <input
               className={styles.input}
               type="number"
@@ -105,9 +108,9 @@ function ProgramRow({
             />
           </div>
           <div className={styles.editRow}>
-            <span className={styles.editLabel}>Producten</span>
+            <span className={styles.editLabel}>{t('producten')}</span>
             {availableProducts.length === 0 ? (
-              <span className={styles.noAccess}>Voeg eerst producten toe aan deze site</span>
+              <span className={styles.noAccess}>{t('eerstProducten')}</span>
             ) : (
               <div className={styles.checkboxGroup}>
                 {availableProducts.map((p) => (
@@ -124,9 +127,9 @@ function ProgramRow({
             )}
           </div>
           <div className={styles.editActions}>
-            <button type="button" className={styles.cancelBtn} onClick={() => setEditing(false)}>Annuleren</button>
+            <button type="button" className={styles.cancelBtn} onClick={() => setEditing(false)}>{tCommon('annuleren')}</button>
             <button type="button" className={styles.saveSmallBtn} onClick={handleSave} disabled={saving}>
-              {saving ? 'Opslaan...' : 'Opslaan'}
+              {saving ? `${tCommon('opslaan')}...` : tCommon('opslaan')}
             </button>
           </div>
         </div>
@@ -155,6 +158,8 @@ export function SiteProgramManager({
   onAddProgram: (program: WashProgramItem) => void;
   showCopy?: boolean;
 }) {
+  const t = useTranslations('washPrograms');
+  const tCommon = useTranslations('common');
   const [showAdd, setShowAdd] = useState(false);
   const [addName, setAddName] = useState('');
   const [addTier, setAddTier] = useState(programs.length + 1);
@@ -179,7 +184,7 @@ export function SiteProgramManager({
         body: JSON.stringify({ targetSiteId: site.id, copyPrograms: true, copyProducts: false, copyMaintenance: false }),
       });
       const data = (await res.json()) as { results?: { programs: number } };
-      setCopyResult(`${data.results?.programs ?? 0} programma's gekopieerd`);
+      setCopyResult(t('gekopieerd', { count: String(data.results?.programs ?? 0) }));
     } finally {
       setCopying(false);
     }
@@ -217,11 +222,11 @@ export function SiteProgramManager({
         <span className={styles.siteBlockTitle}>{site.name}</span>
         {showCopy && otherSites.length > 0 && (
           <button type="button" className={styles.copySmallBtn} onClick={() => setShowCopyForm((v) => !v)}>
-            Kopieer van...
+            {t('kopieerVan')}
           </button>
         )}
         <button type="button" className={styles.addSmallBtn} onClick={() => setShowAdd((v) => !v)}>
-          + Programma
+          {t('programmaToevoegen')}
         </button>
       </div>
       {showCopy && showCopyForm && (
@@ -231,20 +236,20 @@ export function SiteProgramManager({
             value={copySiteId}
             onChange={(e) => { setCopySiteId(e.target.value); setCopyResult(''); }}
           >
-            <option value="">-- Kies bronsite --</option>
+            <option value="">{t('kiesBronsite')}</option>
             {otherSites.map((s) => (
               <option key={s.id} value={s.id}>{s.name}</option>
             ))}
           </select>
           <button type="submit" className={styles.saveSmallBtn} disabled={copying || !copySiteId}>
-            {copying ? 'Bezig...' : 'Kopieer programma\'s'}
+            {copying ? tCommon('bezig') : t('kopieerProgrammas')}
           </button>
           {copyResult && <span className={styles.copyResult}>{copyResult}</span>}
         </form>
       )}
 
       {programs.length === 0 && !showAdd && (
-        <p className={styles.noAccess}>Geen programma&apos;s</p>
+        <p className={styles.noAccess}>{t('geenProgrammas')}</p>
       )}
 
       <div className={styles.programList}>
@@ -266,19 +271,19 @@ export function SiteProgramManager({
         <form className={styles.addForm} onSubmit={handleAdd} noValidate>
           <div className={styles.addFormRow}>
             <div className={styles.addField}>
-              <label className={styles.addLabel}>Naam</label>
-              <input className={styles.input} value={addName} onChange={(e) => setAddName(e.target.value)} placeholder="Programma naam" />
+              <label className={styles.addLabel}>{t('naam')}</label>
+              <input className={styles.input} value={addName} onChange={(e) => setAddName(e.target.value)} placeholder={t('naamPlaceholder')} />
             </div>
             <div className={styles.addField} style={{ maxWidth: 100 }}>
-              <label className={styles.addLabel}>Tier</label>
+              <label className={styles.addLabel}>{t('tier')}</label>
               <input className={styles.input} type="number" min={1} value={addTier} onChange={(e) => setAddTier(Number(e.target.value))} />
             </div>
           </div>
           <div className={styles.addFormRow}>
             <div className={styles.addFieldFull}>
-              <label className={styles.addLabel}>Producten</label>
+              <label className={styles.addLabel}>{t('producten')}</label>
               {availableProducts.length === 0 ? (
-                <span className={styles.noAccess}>Voeg eerst producten toe aan deze site</span>
+                <span className={styles.noAccess}>{t('eerstProducten')}</span>
               ) : (
                 <div className={styles.checkboxGroup}>
                   {availableProducts.map((p) => (
@@ -296,8 +301,8 @@ export function SiteProgramManager({
             </div>
           </div>
           <div className={styles.addFormFooter}>
-            <button type="button" className={styles.cancelBtn} onClick={() => setShowAdd(false)}>Annuleren</button>
-            <button type="submit" className={styles.saveSmallBtn} disabled={adding}>{adding ? 'Bezig...' : 'Opslaan'}</button>
+            <button type="button" className={styles.cancelBtn} onClick={() => setShowAdd(false)}>{tCommon('annuleren')}</button>
+            <button type="submit" className={styles.saveSmallBtn} disabled={adding}>{adding ? tCommon('bezig') : tCommon('opslaan')}</button>
           </div>
         </form>
       )}

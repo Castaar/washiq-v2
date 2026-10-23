@@ -78,7 +78,10 @@
     "bevestigen": "Bevestigen",
     "toevoegen": "Toevoegen",
     "vandaag": "Vandaag",
-    "alleFilialen": "Alle filialen"
+    "alleFilialen": "Alle filialen",
+    "fotoFoutEen": "Eén foto kon niet verwerkt worden. Probeer een andere foto of maak een nieuwe.",
+    "fotoFoutMeerdere": "{count} foto's konden niet verwerkt worden. Probeer andere foto's of maak nieuwe.",
+    "fotoVerwerken": "Foto verwerken…"
   },
   "taal": {
     "label": "Taal",
@@ -144,7 +147,14 @@
     "elkeMaanden": "Elke {count} maanden",
     "jaarlijks": "{date} (jaarlijks)",
     "bijWgn": "Bij {next} wgn (nu {current})",
-    "nogNietGedaan": "Nog niet gedaan"
+    "nogNietGedaan": "Nog niet gedaan",
+    "aantalProgrammas": "{count} programma's",
+    "aantalProducten": "{count} producten",
+    "aantalOnderhoudstaken": "{count} onderhoudstaken",
+    "titelMetSite": "Account — {name}",
+    "addLabelDagfiche": "Dagfiche",
+    "addLabelTechnieker": "Technieker",
+    "addLabelMaandelijkseIngave": "Maandelijkse Ingave"
   },
   "notificaties": {
     "ingeschakeld": "Meldingen zijn ingeschakeld.",
@@ -235,8 +245,22 @@
     "geregistreerdDoor": "Geregistreerd door: <b>{name}</b>",
     "opslaanMislukt": "Opslaan mislukt",
     "melden": "Melden",
-    "voertuigTypes": ["Personenwagen", "Bestelwagen", "Vrachtwagen", "Motor", "Fiets", "Andere"],
-    "schadeLocatiesList": ["Spiegel rechts", "Spiegel links", "Antenne", "Ruitenwisser vooraan", "Ruitenwisser achteraan", "Divers"]
+    "voertuigTypes": [
+      "Personenwagen",
+      "Bestelwagen",
+      "Vrachtwagen",
+      "Motor",
+      "Fiets",
+      "Andere"
+    ],
+    "schadeLocatiesList": [
+      "Spiegel rechts",
+      "Spiegel links",
+      "Antenne",
+      "Ruitenwisser vooraan",
+      "Ruitenwisser achteraan",
+      "Divers"
+    ]
   },
   "incidenten": {
     "typeSchade": "Schade",
@@ -256,7 +280,9 @@
     "ernst": "Ernst",
     "defectOpslaan": "Defect opslaan",
     "opgeslagen": "Opgeslagen ✓",
-    "openDefectMelden": "+ Defect melden"
+    "openDefectMelden": "+ Defect melden",
+    "ehboRapport": "EHBO rapport",
+    "schadeRapport": "Schaderapport"
   },
   "brushes": {
     "verticaalLinks": "Verticaal links",
@@ -424,7 +450,26 @@
     "bevestigen": "Zeker?",
     "ja": "Ja",
     "nee": "Nee",
-    "historiekBekijken": "Historiek bekijken →"
+    "historiekBekijken": "Historiek bekijken →",
+    "maandenKort": [
+      "jan",
+      "feb",
+      "mrt",
+      "apr",
+      "mei",
+      "jun",
+      "jul",
+      "aug",
+      "sep",
+      "okt",
+      "nov",
+      "dec"
+    ],
+    "fotoToevoegenMislukt": "Foto toevoegen mislukt, probeer opnieuw.",
+    "fotoGeenVerbinding": "Geen verbinding — foto niet toegevoegd.",
+    "extraFotoToevoegen": "Extra foto toevoegen",
+    "fotoToevoegen": "Foto toevoegen",
+    "fotoOpslaan": "Foto opslaan…"
   },
   "alerts": {
     "meldingen": "Meldingen",
@@ -448,5 +493,911 @@
     "verwijderdCount": "{count} verwijderd",
     "toonAlleItems": "Toon alle {count} items",
     "verwijderdToonAlles": "{count} verwijderd · Toon alles ({total})"
+  },
+  "dagfiches": {
+    "geenDagfiches": "Geen dagfiches gevonden voor de afgelopen 30 dagen.",
+    "nietAfgevinkt": "⚠ {count} niet afgevinkt",
+    "volledig": "✓ Volledig",
+    "dagrapportIngevuld": "Dagrapport ingevuld",
+    "titel": "Dagfiches — {site}",
+    "subtitel": "Laatste 30 dagen. Klik op een regel voor het volledige overzicht.",
+    "ernst": {
+      "laag": "laag",
+      "medium": "medium",
+      "hoog": "hoog"
+    },
+    "event": {
+      "vertrokken": "{name} vertrokken",
+      "aangemeld": "{name} aangemeld",
+      "externeTechnieker": "Externe technieker",
+      "schade": "Schade: {name}",
+      "voertuig": "Voertuig",
+      "door": "Door: {name}",
+      "ehbo": "EHBO: {name}",
+      "slachtoffer": "Slachtoffer",
+      "defectGemeld": "Defect gemeld: {name}",
+      "defect": "Defect",
+      "ernstDoor": "Ernst: {ernst} · Door: {name}",
+      "levering": "Levering: {name}",
+      "product": "Product",
+      "onderhoud": "Onderhoud: {name}",
+      "uitgevoerd": "Uitgevoerd"
+    }
+  },
+  "diversen": {
+    "verjaardagenVandaag": "🎂 Verjaardagen vandaag",
+    "gewenst": "Gewenst ✓",
+    "wensVerjaardag": "Wens gelukkige verjaardag",
+    "algemeenBericht": "Algemeen bericht",
+    "berichtPlaceholder": "Bv. Start promotie morgen!",
+    "berichtFrPlaceholder": "Frans (optioneel) — bv. La promotion commence demain !",
+    "enkelVoor": "Enkel voor {site} (anders zichtbaar bij alle filialen)",
+    "ditFiliaal": "dit filiaal",
+    "plaatsen": "Plaatsen",
+    "recenteBerichten": "Recente berichten",
+    "nogGeenBerichten": "Nog geen berichten."
+  },
+  "leveringenPagina": {
+    "confirmVerwijderen": "\"{label}\" verwijderen? De voorraad wordt aangepast.",
+    "verwijderd": "Verwijderd",
+    "geenRechtVerwijderen": "Enkel wie dit ingaf of een beheerder kan dit verwijderen",
+    "misluktOpnieuw": "Mislukt, probeer opnieuw",
+    "verwijder": "Verwijder",
+    "leveringTitel": "Levering: {name}",
+    "diverse": "diverse",
+    "verplaatstNaar": "Verplaatst naar {site}: {name}",
+    "ontvangenVan": "Ontvangen van {site}: {name}",
+    "correctieTitel": "Correctie: {name}",
+    "product": "product",
+    "teltNietAlsVerbruik": "(telt niet als verbruik)",
+    "titel": "Leveringen — {site}",
+    "subtitel": "Registreer een levering om de voorraad bij te werken.",
+    "historiekTitel": "Historiek leveringen — {site}",
+    "historiekUitleg": "Alle leveringen (ook diverse zoals een motor) en verplaatsingen.",
+    "corrigerenVia": "Corrigeren of verwijderen kan via <link>Historiek → Voorraad</link>.",
+    "nogGeenLeveringen": "Nog geen leveringen geregistreerd."
+  },
+  "logboek": {
+    "maanden": {
+      "jan": "Januari",
+      "feb": "Februari",
+      "mrt": "Maart",
+      "apr": "April",
+      "mei": "Mei",
+      "jun": "Juni",
+      "jul": "Juli",
+      "aug": "Augustus",
+      "sep": "September",
+      "okt": "Oktober",
+      "nov": "November",
+      "dec": "December"
+    },
+    "vulNaamJobstudent": "Vul de naam van de jobstudent in",
+    "vulNaamTechnieker": "Vul de naam van de technieker in",
+    "registrerenMislukt": "Registreren mislukt, probeer opnieuw",
+    "kiesEenMedewerker": "Kies een medewerker",
+    "kiesOokUur": "Kies ook het uur voor die datum.",
+    "confirmVerwijderen": "Deze registratie verwijderen?",
+    "csv": {
+      "medewerker": "Medewerker",
+      "datum": "Datum",
+      "aankomst": "Aankomst",
+      "vertrek": "Vertrek",
+      "uren": "Uren",
+      "totaalDezeSite": "Totaal (deze site)",
+      "totaalAlleSites": "Totaal (alle sites)",
+      "bestandsnaam": "uren-{month}-{year}"
+    },
+    "registreerAanwezigheid": "Registreer aanwezigheid",
+    "aangemeldAls": "Aangemeld als <strong>{name}</strong>",
+    "opmerkingOptioneel": "Opmerking (optioneel)",
+    "ikKomAan": "Ik kom aan",
+    "ikVertrek": "Ik vertrek",
+    "aankomstGeregistreerd": "Aankomst geregistreerd",
+    "vertrekGeregistreerd": "Vertrek geregistreerd",
+    "techniekerOfJobstudent": "Technieker of jobstudent",
+    "techniekerUitleg": "Komt er iemand zonder app-account langs (technieker van buitenaf, jobstudent,…)? Registreer hier wanneer die aankomt en vertrekt.",
+    "persoonType": {
+      "technician_extern": "Technieker",
+      "jobstudent": "Jobstudent"
+    },
+    "naamJobstudent": "Naam van de jobstudent",
+    "naamTechnieker": "Naam van de technieker",
+    "komtAan": "Komt aan",
+    "vertrekt": "Vertrekt",
+    "voorMedewerkerRegistreren": "Voor medewerker registreren",
+    "voorMedewerkerUitleg": "Vergat iemand zelf in of uit te checken? Registreer het hier in hun plaats.",
+    "kiesMedewerker": "Kies medewerker...",
+    "datumLeegVandaag": "Datum (leeg = vandaag)",
+    "uur24": "Uur (24u)",
+    "nu": "Nu",
+    "uurOptie": "{h} u",
+    "minuten": "Minuten",
+    "uurUitleg": "Uur in 24u-formaat (bv. 18 u = 6 uur 's avonds). Laat \"Nu\" staan voor het huidige tijdstip.",
+    "tabLogboek": "Logboek",
+    "tabMaandoverzicht": "Maandoverzicht",
+    "exporterenTitel": "Download een Excel-bestand (CSV) met alle uren van deze maand",
+    "exporteren": "⬇ Exporteren",
+    "laden": "Laden...",
+    "totaalGewerkteUren": "Totaal gewerkte uren (alle sites)",
+    "urenKort": "{uren} u",
+    "aantalWasbeurten": "Aantal wasbeurten",
+    "urenCompact": "{uren}u",
+    "wasbeurtenCompact": "{aantal}w",
+    "geenRegistratiesMaand": "Geen registraties gevonden voor deze maand.",
+    "dagen": "Dagen",
+    "aantalDagen": "{count, plural, one {# dag} other {# dagen}}",
+    "nietUitgestempeld": "niet uitgestempeld",
+    "dezeSite": "Deze site: <strong>{uren} uur</strong>",
+    "alleSites": "Alle sites: <strong>{uren} uur</strong>",
+    "logboekAlleMedewerkers": "Logboek — alle medewerkers",
+    "mijnRegistraties": "Mijn registraties",
+    "geenRegistraties30": "Geen registraties gevonden voor de afgelopen 30 dagen.",
+    "aankomst": "Aankomst",
+    "vertrek": "Vertrek",
+    "door": "door {name}",
+    "registratieVerwijderen": "Registratie verwijderen",
+    "verwijderen": "Verwijderen"
+  },
+  "onderhoudPagina": {
+    "titel": "Onderhoud — {site}",
+    "slijtageTitel": "Slijtage textiel borstels",
+    "borstelCategorie": {
+      "dak": "Dakborstel",
+      "verticaal_links": "Verticale borstel links",
+      "verticaal_rechts": "Verticale borstel rechts",
+      "halfhoog_links": "Half hoge verticale borstel links",
+      "halfhoog_rechts": "Half hoge verticale borstel rechts",
+      "wiel_links": "Wielborstel links",
+      "wiel_rechts": "Wielborstel rechts",
+      "droog_horizontaal": "Droogborstel horizontaal",
+      "droog_verticaal_links": "Droogborstel verticaal links",
+      "droog_verticaal_rechts": "Droogborstel verticaal rechts"
+    },
+    "toevoegenMislukt": "Toevoegen mislukt",
+    "taakNietGevonden": "Onderhoudstaak niet gevonden.",
+    "historiekTitel": "Historiek onderhoud",
+    "nogGeenUitvoeringen": "Nog geen uitvoeringen geregistreerd voor deze taak.",
+    "door": "door {name}"
+  },
+  "opdrachten": {
+    "confirmVerwijderen": "Opdracht verwijderen?",
+    "morgen": "Morgen",
+    "geenOpdrachtenDag": "Geen opdrachten voor deze dag. Voeg er een toe hieronder.",
+    "geenOpdrachtenVandaag": "Geen opdrachten voor vandaag.",
+    "markeerOpen": "Markeer als open",
+    "markeerGedaan": "Markeer als gedaan",
+    "gedaanDoor": "Gedaan door {name}",
+    "voor": "Voor: {names}",
+    "nieuweOpdracht": "Nieuwe opdracht",
+    "datum": "Datum",
+    "omschrijvingPlaceholder": "Omschrijving opdracht (bv. Droogzone volledig reinigen)",
+    "toewijzenAan": "Toewijzen aan (optioneel — leeg = iedereen)",
+    "rolTech": "tech.",
+    "rolMed": "med.",
+    "opslaanBezig": "Opslaan...",
+    "opdrachtToevoegen": "Opdracht toevoegen",
+    "titel": "Opdrachten — {site}"
+  },
+  "orders": {
+    "gekopieerd": "{count} product(en) gekopieerd",
+    "kopierenMislukt": "Kopiëren mislukt",
+    "kopieerTitel": "Kopieer producten van andere carwash",
+    "kiesBronsite": "-- Kies bronsite --",
+    "kopieren": "Kopiëren",
+    "categorie": {
+      "algemeen": "Producten & acties",
+      "chemie": "Chemie"
+    },
+    "nogGeenProducten": "Nog geen producten toegevoegd.",
+    "naam": "Naam",
+    "omschrijving": "Omschrijving",
+    "detailsPlaceholder": "Details (soort, hoeveelheid, ...)",
+    "besteldVinkje": "Besteld ✓",
+    "bestellen": "Bestellen",
+    "naamPlaceholder": "Naam (bv. Actiefolder maart)",
+    "omschrijvingOptioneel": "Omschrijving (optioneel)",
+    "productToevoegen": "+ Product toevoegen",
+    "bestellingen": "Bestellingen",
+    "filter": {
+      "open": "Open",
+      "alles": "Alles"
+    },
+    "geenBestellingen": "Geen bestellingen.",
+    "vinkjeBesteld": "✓ Besteld",
+    "markeerBesteld": "Markeer besteld",
+    "aangevraagd": "Aangevraagd"
+  },
+  "planning": {
+    "dagKort": {
+      "ma": "Ma",
+      "di": "Di",
+      "wo": "Wo",
+      "do": "Do",
+      "vr": "Vr",
+      "za": "Za",
+      "zo": "Zo"
+    },
+    "dagLang": {
+      "ma": "Maandag",
+      "di": "Dinsdag",
+      "wo": "Woensdag",
+      "do": "Donderdag",
+      "vr": "Vrijdag",
+      "za": "Zaterdag",
+      "zo": "Zondag"
+    },
+    "heeftVerlof": "{name} heeft verlof op {date}.",
+    "dezeMedewerker": "Deze medewerker",
+    "opslaanMislukt": "Opslaan mislukt.",
+    "opslaanMisluktOpnieuw": "Opslaan mislukt, probeer opnieuw",
+    "geenVerbinding": "Geen verbinding, probeer opnieuw",
+    "agenda": "Agenda",
+    "agendaPlaceholderMedewerker": "Bv. Interieur-afspraak 14u",
+    "agendaItemToevoegen": "+ Agenda-item toevoegen",
+    "mijnWerkschema": "Mijn werkschema",
+    "geenShiftenKomend": "Geen geplande shiften voor de komende 2 weken.",
+    "vorigeWeek": "← Vorige week",
+    "volgendeWeek": "Volgende week →",
+    "verlofVan": "Verlof: {name}",
+    "verlofVerwijderen": "Verlof verwijderen",
+    "medewerkerKiezen": "Medewerker...",
+    "plusVerlof": "+ Verlof",
+    "agendaItemVerwijderen": "Agenda-item verwijderen",
+    "agendaPlaceholder": "bv. VIP-behandeling",
+    "plusAgendaItem": "+ Agenda-item",
+    "geenShiftenGepland": "Geen shiften gepland",
+    "shiftVerwijderen": "Shift verwijderen",
+    "overzichtWeek": "Overzicht deze week",
+    "overzichtMaand": "Overzicht {month}",
+    "week": "Week",
+    "maand": "Maand",
+    "uren": "{uren}u",
+    "weekendDagen": "{count, plural, one {# weekenddag} other {# weekenddagen}} / 4w",
+    "shiftToevoegen": "Shift toevoegen",
+    "carwash": "Carwash",
+    "medewerker": "Medewerker",
+    "verlofSuffix": "(verlof)",
+    "datum": "Datum",
+    "van": "Van",
+    "tot": "Tot",
+    "opmerking": "Opmerking",
+    "optioneel": "Optioneel",
+    "opslaanBezig": "Opslaan..."
+  },
+  "technieker": {
+    "taakToevoegen": "+ Taak toevoegen",
+    "omschrijvingTaak": "Omschrijving taak...",
+    "ernst": {
+      "laag": "Laag",
+      "medium": "Medium",
+      "hoog": "Hoog"
+    },
+    "toewijzenAan": "Toewijzen aan... (optioneel)",
+    "gemarkeerdOpgelost": "“{title}” gemarkeerd als opgelost",
+    "ongedaanMaken": "Ongedaan maken",
+    "geenOpenstaande": "Geen openstaande problemen of onderhoud — alles is in orde.",
+    "soort": {
+      "defect": "Defect",
+      "schade": "Schade",
+      "maintenance": "Onderhoud",
+      "bestelling": "Bestelling"
+    },
+    "toegewezen": "Toegewezen: {name}",
+    "opmerkingOplossen": "Opmerking bij oplossen (optioneel)",
+    "zeker": "Zeker?",
+    "oplossen": "Oplossen",
+    "bestelddoor": "Besteld door {name}",
+    "binnenkortNog": "Binnenkort — nog {count} wasbeurten",
+    "binnenkort": "Binnenkort",
+    "paginaTitel": "Technieker"
+  },
+  "ranking": {
+    "titel": "Ranking",
+    "bekijkVergelijking": "Bekijk ranking vergelijking",
+    "nr": "Nr. {rank}",
+    "vanTotal": "van {total}",
+    "meerInfo": "Meer info",
+    "metricWagens": "Wagens",
+    "metricWater": "Water",
+    "metricEnergie": "Energie",
+    "metricZout": "Zout",
+    "metricFlockmiddel": "Flockmiddel",
+    "rangschikking": "Rangschikking",
+    "laden": "Laden…",
+    "enigeVestiging": "Dit is de enige vestiging onder dit eigenaarschap.",
+    "geenDataPunt": "Geen data beschikbaar.",
+    "geenData": "Geen data beschikbaar",
+    "week": "Week",
+    "maand": "Maand",
+    "eenheid": "Eenheid",
+    "prijs": "Prijs"
+  },
+  "layout": {
+    "demoEigenaar": "Eigenaar",
+    "demoTechnieker": "Technieker",
+    "demoWerknemer": "Werknemer",
+    "toonDemoBalk": "Toon demo-balk",
+    "demoOmgeving": "Demo-omgeving",
+    "alleenLezen": "alleen lezen",
+    "verbergDemoBalk": "Verberg demo-balk",
+    "selecteerCarwash": "Selecteer carwash",
+    "verversen": "Verversen…",
+    "loslatenOmTeVerversen": "Loslaten om te verversen",
+    "trekOmTeVerversen": "Trek om te verversen",
+    "meldingenInschakelen": "Meldingen inschakelen",
+    "ontvangMelding": "Ontvang een melding bij nieuwe incidenten en defecten.",
+    "inschakelen": "Inschakelen",
+    "addDeveloper": "Developer",
+    "addVoorraadIngeven": "Voorraad ingeven",
+    "addMaandelijkseIngave": "Maandelijkse Ingave"
+  },
+  "carwashPage": {
+    "kostWater": "Water",
+    "kostEnergie": "Energie",
+    "duurUurMin": "{h}u {m}min",
+    "duurUur": "{h}u",
+    "duurMin": "{m}min",
+    "nogWagens": "Nog {count} wagens",
+    "nietAfgevinkt": "Niet afgevinkt",
+    "gemeldDoor": "Gemeld door {name}",
+    "onderhoudPrefix": "Onderhoud:",
+    "onderhoudUitgevoerd": "Onderhoud uitgevoerd",
+    "waterAnomalieTitel": "Waterverbruik per wagen +{pct}%",
+    "waterAnomalieUitleg": "Sterke stijging t.o.v. vorige periode — controleer op lekken vóór de waterfactuur binnenkomt.",
+    "energieAnomalieTitel": "Energieverbruik per wagen +{pct}%",
+    "energieAnomalieUitleg": "Kan wijzen op slijtage van de motor — best snel laten nakijken.",
+    "waxAnomalieTitel": "Wax/chemie verbruik per wagen {pct}%",
+    "waxAnomalieUitleg": "Sterke daling — wagens kunnen te nat uit de tunnel komen.",
+    "gewerkt": "{duur} gewerkt",
+    "externeTechnieker": "Externe technieker",
+    "isVertrokken": "{name} is vertrokken",
+    "isAangekomen": "{name} is aangekomen",
+    "leveringTitel": "Levering: {name}",
+    "product": "Product",
+    "door": "door {name}",
+    "dagficheIngediend": "Dagfiche ingediend",
+    "ernstLaag": "laag",
+    "ernstMedium": "medium",
+    "ernstHoog": "hoog",
+    "weekdagen": [
+      "zondag",
+      "maandag",
+      "dinsdag",
+      "woensdag",
+      "donderdag",
+      "vrijdag",
+      "zaterdag"
+    ],
+    "prijzenNietIngesteld": "Prijzen nog niet ingesteld — stel uw instellingen in om kosten te berekenen",
+    "bekijkWerklijst": "Bekijk je volledige werklijst",
+    "geenIngavePeriode": "Geen ingave voor deze periode — meest recente ingave getoond"
+  },
+  "washPrograms": {
+    "confirmVerwijderen": "Programma \"{name}\" verwijderen?",
+    "geenChemie": "Geen chemie",
+    "naam": "Naam",
+    "tier": "Tier",
+    "producten": "Producten",
+    "eerstProducten": "Voeg eerst producten toe aan deze site",
+    "gekopieerd": "{count} programma's gekopieerd",
+    "kopieerVan": "Kopieer van...",
+    "programmaToevoegen": "+ Programma",
+    "kiesBronsite": "-- Kies bronsite --",
+    "kopieerProgrammas": "Kopieer programma's",
+    "geenProgrammas": "Geen programma's",
+    "naamPlaceholder": "Programma naam"
+  },
+  "instellingen": {
+    "elkeWasbeurten": "Elke {count} wasbeurten",
+    "eenKeerPerJaar": "1× per jaar",
+    "omDe2Jaar": "Om de 2 jaar",
+    "elkeMaanden": "Elke {count} maanden",
+    "jaarlijks": "{date} (jaarlijks)",
+    "productBestaatAl": "Product bestaat al",
+    "opslaanMislukt": "Opslaan mislukt",
+    "confirmProductVerwijderen": "Product \"{name}\" verwijderen? Historische data blijft bewaard.",
+    "vulDatumEindstand": "Vul een datum en de eindstand in.",
+    "bannerTitel": "Instellingen in 3 stappen",
+    "bannerTekst": "Volg de stappen hieronder om uw carwash in te stellen:",
+    "bannerStap1": "Prijzen per eenheid instellen",
+    "bannerStap2": "Startvoorraad ingeven",
+    "bannerStap3": "Eerste energiefactuur toevoegen",
+    "prijzen": "Prijzen",
+    "startvoorraad": "Startvoorraad",
+    "prijzenPerEenheid": "Prijzen per eenheid",
+    "prijzenHint": "Deze prijzen worden gebruikt om de wekelijkse en maandelijkse kostprijzen te berekenen.",
+    "water": "Water",
+    "prijsPerKg": "Prijs per kg",
+    "vulLiter1000kg": "Vul in hoeveel liter 1000 kg is.",
+    "soortAanpassing": "Soort aanpassing",
+    "rechtzetting": "<b>Rechtzetting</b> — de prijs was fout; wordt ook toegepast op eerdere periodes",
+    "nieuwePrijs": "<b>Nieuwe prijs vanaf vandaag</b> — eerdere periodes behouden de oude prijs",
+    "opgeslagen": "Opgeslagen",
+    "prijzenOpslaan": "Prijzen opslaan",
+    "productenBeheren": "Producten beheren",
+    "productenHint": "Voeg de chemische producten toe die uw carwash gebruikt. Elk product verschijnt automatisch in de maandelijkse ingave en de prijsberekening.",
+    "nogGeenProducten": "Nog geen producten toegevoegd.",
+    "itemVerwijderen": "{name} verwijderen",
+    "itemWijzigen": "{name} wijzigen",
+    "productnaamPlaceholder": "Productnaam (bv. Shampoo Pro)",
+    "eenheidLiter": "L (liter)",
+    "eenheidStuk": "st (stuk)",
+    "eenheidRol": "rol",
+    "productToevoegen": "+ Product toevoegen",
+    "bestaatElders": "Bestaat elders als \"{name}\" — <btn>gebruik dezelfde schrijfwijze</btn>",
+    "wasprogrammasHint": "Stel de wasprogramma's in voor deze site: naam, tier en welke producten erbij gebruikt worden.",
+    "startvoorraadHint": "Geef de huidige hoeveelheid in voor elk product. Dit is de startbasis voor voorraadberekeningen.",
+    "geenProductenGevonden": "Geen producten gevonden. Voeg eerst producten toe via \"Producten beheren\" hierboven.",
+    "product": "Product",
+    "huidigeVoorraad": "Huidige voorraad",
+    "minAlert": "Min. alert",
+    "eenheid": "Eenheid",
+    "voorraadOpslaan": "Voorraad opslaan",
+    "chemieVoorraad": "Chemie voorraad",
+    "chemieHint": "Neem maandelijks de voorraad op — de app berekent het verbruik automatisch (vorige telling + leveringen − nieuwe telling). Registreer een levering om de voorraad bij te werken. Voorraad verplaatsen naar een andere carwash kan via Leveringen.",
+    "nieuweTelling": "Nieuwe telling ({unit})",
+    "voorraadOpnemen": "📋 Voorraad opnemen",
+    "levering": "+ Levering",
+    "eersteTelling": "Eerste telling opgeslagen — verbruik wordt vanaf de volgende telling berekend.",
+    "negatiefVerbruik": "Let op: negatief verbruik ({amount} {unit}) — controleer of een levering ontbreekt of er een tikfout is.",
+    "verbruikSinds": "Verbruik sinds vorige telling: {amount} {unit}",
+    "energieHint": "Voeg uw maandelijkse energiefactuur toe zodra u deze ontvangt. Het systeem verdeelt de kost automatisch over de wagens van die maand.",
+    "bedragFactuur": "Bedrag factuur",
+    "watervoorraad": "Watervoorraad",
+    "waterHint": "Geef de start tellerstand water in van vóór u met deze app begon te registreren. Dit wordt gebruikt als vorige tellerstand voor de eerste ingave.",
+    "tellerstandWater": "Tellerstand water",
+    "startWagens": "Start hoeveelheid wagens",
+    "startWagensHint": "Geef het totale aantal wagens in dat gewassen is vóór u met deze app begon te registreren. Dit wordt opgeteld bij de tellerstand in het dashboard.",
+    "aantalWagens": "Aantal wagens",
+    "wagens": "wagens",
+    "tellerOpNul": "Teller op 0 gezet",
+    "tellerOpNulHint": "Wordt de tellerstand van de machine op 0 gezet? Geef de datum en de eindstand vóór de reset in. Daarna geeft u bij de ingave gewoon de stand in die op de machine staat; de app telt de eindstand erbij zodat onderhoud, borstels en verbruik blijven kloppen. Tellerstanden bij onderhoudstaken zijn altijd de doorlopende stand (inclusief eindstand).",
+    "tellerOpNulOp": "Teller op 0 gezet op {date}",
+    "eindstandWagens": "Eindstand {count} wagens",
+    "confirmResetVerwijderen": "Deze reset verwijderen?",
+    "resetVerwijderen": "Reset verwijderen",
+    "datumReset": "Datum reset",
+    "eindstandVoorReset": "Eindstand vóór reset",
+    "resetToevoegen": "Reset toevoegen",
+    "onderhoudstakenHint": "Beheer de terugkerende onderhoudstaken voor deze site. Huidige tellerstand (doorlopend): <b>{count} wasbeurten</b>.",
+    "omschrijving": "Omschrijving",
+    "omschrijvingPlaceholder": "bijv. Borstels nakijken",
+    "typeTrigger": "Type trigger",
+    "triggerWasbeurten": "Op aantal wasbeurten",
+    "triggerMaanden": "Op aantal maanden",
+    "triggerVasteDatum": "Vaste datum per jaar",
+    "intervalWasbeurten": "Interval (wasbeurten)",
+    "intervalMaanden": "Interval (maanden)",
+    "tellerstandLaatsteKeer": "Tellerstand laatste keer",
+    "datumLaatsteKeer": "Datum laatste keer",
+    "datumLaatsteUitvoering": "Datum laatste uitvoering",
+    "dag": "Dag",
+    "bijv": "bijv. {value}",
+    "wijzigingenOpslaan": "Wijzigingen opslaan",
+    "laatsteDatum": "laatste: {date}",
+    "wgn": "{count} wgn.",
+    "nogGeenTaken": "Nog geen onderhoudstaken geconfigureerd.",
+    "taakToevoegen": "Taak toevoegen",
+    "onderhoudstaakToevoegen": "+ Onderhoudstaak toevoegen"
+  },
+  "setup": {
+    "stapWelkom": "Welkom",
+    "stapTellerstand": "Tellerstand",
+    "stapOnderhoud": "Onderhoud",
+    "stapPrijzen": "Prijzen",
+    "stapKlaar": "Klaar",
+    "titel": "Eerste configuratie",
+    "stapVan": "Stap {current} van {total} — {label}",
+    "klaarUitroep": "Klaar!",
+    "welkomLead": "Welkom bij Glosiv. Deze wizard helpt je de site <b>{name}</b> in enkele minuten klaar te zetten. Je kan dit altijd later aanpassen via de instellingen.",
+    "typeCarwash": "Type carwash",
+    "typeWasstraat": "Wasstraat — met tellerstand per wasprogramma",
+    "typeSelfcarwash": "Selfcarwash — geen wagens tellen",
+    "selfVoorraad": "Voorraad beheer",
+    "selfOnderhoud": "Onderhoudstaken & incidenten",
+    "selfLogboek": "In- en uitcheck (logboek)",
+    "kostprijzenInstellen": "Kostprijzen per eenheid instellen",
+    "wasTellerstand": "Huidige tellerstand ingeven",
+    "wasOnderhoud": "Onderhoudstaken configureren (op wasbeurten of op datum)",
+    "andereSites": "Andere sites zonder configuratie: {sites}.",
+    "startConfiguratie": "Start configuratie →",
+    "tellerstandLead": "Voer de huidige stand in van de hoofdteller van de wasstraat. Dit is het totale aantal wasbeurten dat de machine heeft uitgevoerd.",
+    "huidigAantal": "Huidig aantal wasbeurten (tellerstand)",
+    "datumTellerstand": "Datum van deze tellerstand",
+    "waterTellerstand": "Huidige tellerstand water (m³)",
+    "volgende": "Volgende →",
+    "onderhoudLead": "Voeg de terugkerende onderhoudstaken toe voor deze site. Kies of een taak getriggerd wordt op een <b>aantal wasbeurten</b> of na een <b>bepaald aantal maanden</b>.",
+    "jaarlijksOp": "Jaarlijks op {day} {month}",
+    "elkeMaandEn": "Elke {count} maand(en)",
+    "laatsteKeer": "laatste keer: {date}",
+    "wasAfk": "{count} was.",
+    "laatsteUitvoeringInvullen": "Laatste uitvoering invullen",
+    "prijzenLead": "Stel de kostprijs per eenheid in. Deze worden gebruikt om de kostprijs per wasbeurt te berekenen. Je kunt ze later altijd aanpassen via de instellingen.",
+    "prijsWater": "Water",
+    "prijsEnergie": "Energie",
+    "prijsZout": "Zout",
+    "prijsFlock": "Flockmiddel",
+    "prijsRuitendoekjes": "Ruitendoekjes",
+    "eenheidLiter": "€ / liter",
+    "eenheidStuk": "€ / stuk",
+    "bezigOpslaan": "Bezig met opslaan...",
+    "opslaanAfronden": "Opslaan & afronden →",
+    "klaarLead": "<b>{name}</b> is klaar voor gebruik. Je kan nu beginnen met het registreren van verbruik, onderhoud en incidenten.",
+    "tellerstandOpgeslagen": "Tellerstand opgeslagen: {count} wasbeurten",
+    "waterOpgeslagen": "Tellerstand water opgeslagen: {count} m³",
+    "takenGeconfigureerd": "{count, plural, one {# onderhoudstaak} other {# onderhoudstaken}} geconfigureerd",
+    "kostprijzenIngesteld": "Kostprijzen ingesteld",
+    "naarDashboard": "Naar het dashboard →"
+  },
+  "historiek": {
+    "verbruikPerWassingTitle": "Verbruik per wassing — {site}",
+    "verbruikPerWassingSub": "Wekelijks, water en elektriciteit per wassing",
+    "chemieMaandTitle": "Chemieverbruik per maand — {site}",
+    "chemieMaandSub": "Berekend uit de voorraadtellingen: vorige telling + leveringen ± verplaatsingen ± correcties − nieuwe telling.",
+    "chemieMaandGeschat": "* = geschat: een telperiode over meerdere maanden is verdeeld volgens het aantal wagens (selfcarwash: dagen).",
+    "tussenTellingenTitle": "Verbruik tussen tellingen — {site}",
+    "tussenTellingenSub": "Per product het verbruik tussen de laatste twee tellingen; tik op een product voor alle periodes. Een rood gemarkeerde rij wijst op een fout in een telling of levering — corrigeer die bij Voorraad hieronder.",
+    "chemiePerWagenTitle": "Chemieverbruik per wagen — {site}",
+    "chemiePerWagenSub": "Verbruik tussen twee tellingen gedeeld door het aantal wagens in die periode. Verschijnt vanaf de tweede telling.",
+    "historiekTitle": "Historiek — {site}",
+    "historiekSub": "Pannes, schadegevallen/EHBO, bestellingen en onderhouden",
+    "ingavesTitle": "Maandelijkse Ingaves — {site}",
+    "chart": {
+      "water": "Water",
+      "elektriciteit": "Elektriciteit",
+      "unitWater": "m³/wassing",
+      "unitElektriciteit": "€/wassing",
+      "begin": "Begin",
+      "perWagenUnit": "{unit}/wagen",
+      "geenData": "Geen verbruiksdata beschikbaar. Voeg maandelijkse ingaves toe om grafieken te zien.",
+      "alleProducten": "Alle producten"
+    },
+    "fallback": {
+      "schade": "Schade",
+      "ehbo": "EHBO",
+      "diverse": "diverse",
+      "product": "product"
+    },
+    "ledger": {
+      "levering": "Levering: {name}",
+      "verplaatstNaar": "Verplaatst naar {site}: {name}",
+      "ontvangenVan": "Ontvangen van {site}: {name}",
+      "correctie": "Correctie: {name}",
+      "correctieDetail": "{from} → {to} {unit} ({delta}) · telt niet als verbruik",
+      "telling": "Telling: {name}",
+      "tellingOngeldig": "Telling: {name} — ONGELDIG",
+      "voorraadOngeldig": "Voorraad {qty} {unit} · telt niet mee in de berekening",
+      "voorraadBegin": "Voorraad {qty} {unit} (beginstand)",
+      "voorraadVerbruik": "Voorraad {qty} {unit} · verbruik {consumption} {unit}"
+    },
+    "tabel": {
+      "periode": "Periode",
+      "begin": "Begin",
+      "leveringen": "Leveringen",
+      "verplaatst": "Verplaatst",
+      "correcties": "Correcties",
+      "eind": "Eind",
+      "verbruik": "Verbruik",
+      "wagens": "Wagens",
+      "perWagen": "Per wagen",
+      "tellingOngeldig": "(telling {dates} ongeldig)",
+      "negatief": "negatief — controleer telling of levering",
+      "leeg": "Nog geen verbruik: er zijn minstens twee tellingen per product nodig."
+    },
+    "events": {
+      "tabs": {
+        "pannes": "Pannes",
+        "schade": "Schade / EHBO",
+        "bestellingen": "Bestellingen",
+        "leveringen": "Voorraad",
+        "onderhouden": "Onderhouden"
+      },
+      "verwijderdHerberekend": "Verwijderd — voorraad en verbruik zijn herberekend",
+      "aangepastHerberekend": "Aangepast — voorraad en verbruik zijn herberekend",
+      "mislukt": "Mislukt, probeer opnieuw",
+      "geenRechten": "Enkel de maker of een beheerder kan dit doen",
+      "deleteReading": "De voorraad keert terug naar de vorige telling.",
+      "deleteDelivery": "De voorraad wordt met deze levering verminderd.",
+      "deleteAdjustment": "De correctie wordt ongedaan gemaakt.",
+      "deleteTransfer": "De voorraad gaat terug naar de oorspronkelijke carwash.",
+      "confirmVerwijderen": "\"{title}\" verwijderen?",
+      "editReading": "Juiste GETELDE hoeveelheid op {date}.\nLet op: dit wijzigt de telling zelf. Wil je enkel de huidige voorraad rechtzetten, doe dat dan bij Instellingen.",
+      "editDelivery": "Juiste geleverde hoeveelheid:",
+      "weerMeetellen": "Deze telling weer laten meetellen?",
+      "ongeldigVerklaren": "Deze telling ongeldig verklaren?\nZe blijft zichtbaar, maar telt niet meer mee: de periodes ervoor en erna worden één periode met het juiste verbruik.",
+      "juisteDatum": "Juiste datum (dd/mm/jjjj):",
+      "ongeldigeDatum": "Ongeldige datum — gebruik dd/mm/jjjj",
+      "geenPannes": "Geen pannes gevonden.",
+      "geenSchade": "Geen schadegevallen of EHBO-incidenten gevonden.",
+      "geenBestellingen": "Geen bestellingen gevonden.",
+      "geenLeveringen": "Nog geen leveringen, verplaatsingen of tellingen.",
+      "geenOnderhouden": "Geen uitgevoerde onderhouden gevonden.",
+      "opgelost": "✓ Opgelost",
+      "open": "Open",
+      "schade": "Schade",
+      "ehbo": "EHBO",
+      "besteld": "✓ Besteld",
+      "gedaan": "✓ Gedaan",
+      "verwijder": "Verwijder",
+      "bestellingVerwijderd": "Bestelling verwijderd",
+      "tellingWijzigen": "Telling wijzigen",
+      "corrigeer": "Corrigeer",
+      "datum": "Datum",
+      "weerGeldig": "Weer geldig",
+      "ongeldig": "Ongeldig",
+      "ongedaanMaken": "Ongedaan maken",
+      "confirmUndo": "\"{name}\" als niet uitgevoerd terugzetten?",
+      "onderhoudTeruggezet": "Onderhoud teruggezet"
+    },
+    "list": {
+      "confirmDelete": "Ingave van {date} definitief verwijderen? De tellerstand valt terug op de vorige ingave.",
+      "verwijderenMislukt": "Verwijderen mislukt",
+      "opslaanMislukt": "Opslaan mislukt",
+      "chemieTellingMislukt": "Weekingave opgeslagen, maar een chemie-telling is mislukt.",
+      "wagens": "Wagens",
+      "water": "Water",
+      "energie": "Energie",
+      "kostprijs": "Kostprijs",
+      "bewerken": "✏ Bewerken",
+      "datum": "Datum",
+      "datumIngave": "Datum ingave",
+      "resetHint": "Teller op 0 gezet op {date} (eindstand {end}) — geef de tellerstand van de machine in.",
+      "verbruik": "Verbruik",
+      "energieKwh": "Energie (kWh)",
+      "chemieVoorraadOp": "Chemie — voorraad op {date}",
+      "laden": "Laden...",
+      "geenProducten": "Geen producten gevonden.",
+      "nietIngegeven": "niet ingegeven",
+      "tellingHint": "De telling wordt vastgelegd op de datum van deze ingave; het verbruik wordt automatisch herberekend.",
+      "ingaveVerwijderen": "Ingave verwijderen",
+      "zoutverzachter": "Zoutverzachter",
+      "chemie": "Chemie",
+      "leeg": "Nog geen ingaves gevonden voor deze carwash.",
+      "beginsaldo": "Beginsaldo",
+      "standTeller": "Stand teller",
+      "wagensAantal": "{count} wagens"
+    }
+  },
+  "ingave": {
+    "kiesDatum": "Kies een datum in de week die u wilt invullen",
+    "ingaveVan": "Ingave van {date}",
+    "tellerstand": "Tellerstand",
+    "vorigeTotaal": "Vorige tellerstand totaal: {value}",
+    "resetHint": "Teller op 0 gezet op {date} (eindstand {end}). Geef de tellerstand in die nu op de machine staat — wagens sinds de vorige ingave = ({end} − {previous}) + nieuwe tellerstand.",
+    "nieuweTellerstand": "Nieuwe tellerstand",
+    "onderhoudVervallen": "vervallen! Onderhoud is al voorbij.",
+    "onderhoudNog": "nog {count} wagens tot onderhoud.",
+    "wassingenPerProgramma": "Aantal wassingen per programma",
+    "geenProgrammas": "Geen programma's gevonden. Voeg eerst programma's toe in de database.",
+    "somPerProgramma": "Som per programma: {sum} — verwacht verschil: {diff}",
+    "komtNietOvereen": "komt niet overeen!",
+    "mismatchError": "Som van de tellerstanden per programma ({sum}) komt niet overeen met het verschil tussen nieuwe en vorige tellerstand ({diff}).",
+    "vulTellerstandIn": "Vul de nieuwe tellerstand in.",
+    "opslaanMislukt": "Opslaan mislukt — probeer opnieuw.",
+    "elektriciteitsfactuur": "Elektriciteitsfactuur",
+    "bedrag": "Bedrag (€)",
+    "tellerstandWater": "Tellerstand water",
+    "vorigeWater": "Vorige tellerstand water: {value} m³",
+    "nieuweWater": "Nieuwe tellerstand water (m³)",
+    "verbruikPeriode": "Verbruik deze periode: {value} m³",
+    "voorraadPerProduct": "Voorraad per product",
+    "voorraadHint": "Geef de nieuwe voorraad in — het verbruik wordt automatisch berekend.",
+    "nieuweVoorraad": "{product} — nieuwe voorraad ({unit})",
+    "vorige": "Vorige: {value}",
+    "historiekBekijken": "Historiek bekijken",
+    "opslaanBezig": "Opslaan..."
+  },
+  "handleiding": {
+    "introTitle": "Welkom bij Glosiv",
+    "introSubtitle": "Deze handleiding legt uit hoe de app werkt en wat alle knoppen betekenen. Klik op een onderdeel om de uitleg te tonen. Je kunt deze pagina altijd opnieuw raadplegen via je accountpagina.",
+    "watIsDit": "Wat is dit?",
+    "knoppenActies": "Knoppen & acties",
+    "nietMeerTonen": "Niet meer tonen na inloggen",
+    "opgeslagen": "✓ Opgeslagen",
+    "begrepen": "Begrepen, ga verder →",
+    "terugDashboard": "← Terug naar dashboard",
+    "sections": {
+      "dashboard": {
+        "title": "Dashboard",
+        "text": "Het dashboard is de startpagina van de app. Hier zie je in één oogopslag hoe de carwash presteert: het totale aantal wasbeurten, verbruikskosten, lopende alerts en onderhoudstaken die aandacht vereisen.",
+        "buttons": {
+          "siteSelector": {
+            "tag": "Site selector",
+            "desc": "Bovenaan kun je wisselen tussen de carwashlocaties waartoe je toegang hebt."
+          },
+          "periode": {
+            "tag": "Periode (week / maand)",
+            "desc": "Schakel tussen een weekoverzicht en een maandoverzicht van de statistieken."
+          },
+          "prijsEenheid": {
+            "tag": "Prijs / Eenheid",
+            "desc": "Bekijk kosten in euro of in verbruikseenheden (liters, kg, kWh)."
+          },
+          "accountIcoon": {
+            "tag": "Account-icoon",
+            "desc": "Rechtsboven navigeer je naar je accountinstellingen."
+          },
+          "alertKaarten": {
+            "tag": "Alert-kaarten",
+            "desc": "Rode of oranje kaarten wijzen op lage voorraad of achterstallig onderhoud. Klik erop voor meer details."
+          }
+        }
+      },
+      "dagfiche": {
+        "title": "Dagfiche",
+        "text": "De dagfiche is de dagelijkse checklist die medewerkers invullen. Je registreert het aantal wasbeurten per programma, het verbruik van chemicaliën, zout en flockmiddel, en of er bijzonderheden zijn.",
+        "buttons": {
+          "programmaTeller": {
+            "tag": "Programma-teller",
+            "desc": "Voer het aantal wagens per wasprogramma in door de teller te verhogen of een getal in te typen."
+          },
+          "verbruik": {
+            "tag": "Verbruik invullen",
+            "desc": "Vul de hoeveelheden in voor chemicaliën, zout, flockmiddel en ruitendoekjes."
+          },
+          "opmerking": {
+            "tag": "Opmerking",
+            "desc": "Voeg optioneel een opmerking toe bij bijzonderheden van de dag."
+          },
+          "versturen": {
+            "tag": "Versturen",
+            "desc": "Klik op 'Versturen' om de dagfiche op te slaan. Dit kan slechts één keer per dag per site."
+          }
+        }
+      },
+      "wekelijkseIngave": {
+        "title": "Maandelijkse ingave",
+        "text": "Als Full options-gebruiker of beheerder voer je hier wekelijks de wasaantallen en het chemicaliënverbruik in. De gegevens worden gebruikt voor kostprijsberekeningen en rapportage in de historiek.",
+        "buttons": {
+          "weekSelecteren": {
+            "tag": "Week selecteren",
+            "desc": "Kies de week waarover je gegevens invult via de weekkiezer bovenaan."
+          },
+          "wasaantallen": {
+            "tag": "Wasaantallen",
+            "desc": "Vul per programma het totale aantal wasbeurten in voor die week."
+          },
+          "verbruik": {
+            "tag": "Verbruik",
+            "desc": "Registreer het verbruik van alle chemicaliën, zout, flockmiddel en energie voor die week."
+          },
+          "opslaan": {
+            "tag": "Opslaan",
+            "desc": "Klik op 'Opslaan' om de weekingave te bewaren. Bestaande ingaves kunnen later worden bewerkt."
+          },
+          "bewerken": {
+            "tag": "Bewerken",
+            "desc": "Een eerder opgeslagen weekingave kun je aanpassen via het potloodpictogram."
+          }
+        }
+      },
+      "historiek": {
+        "title": "Historiek",
+        "text": "De historiek toont een overzicht van alle maandelijkse ingaves, gesorteerd van nieuw naar oud. Je kunt per week de kostprijs, het verbruik en de wasaantallen raadplegen.",
+        "buttons": {
+          "weekRij": {
+            "tag": "Week-rij",
+            "desc": "Klik op een week om de details in te klappen: wasaantallen, verbruik en berekende kosten."
+          },
+          "weergave": {
+            "tag": "Weergave (Prijs / Eenheid)",
+            "desc": "Schakel bovenaan tussen de kostprijsweergave (€) en de eenheidsweergave (L, kg, kWh)."
+          },
+          "periode": {
+            "tag": "Periode (week / maand)",
+            "desc": "Groepeer de weergave per week of per maand."
+          },
+          "bewerkenVerwijderen": {
+            "tag": "Bewerken / Verwijderen",
+            "desc": "Via de icoontjes op elke rij kun je een weekingave aanpassen of verwijderen."
+          }
+        }
+      },
+      "incidenten": {
+        "title": "Incidenten",
+        "text": "Hier registreer en bekijk je incidenten op de carwash. Er zijn twee types: EHBO (gezondheids- en veiligheidsincidenten) en Schade (schade aan voertuigen of installaties).",
+        "buttons": {
+          "ehbo": {
+            "tag": "+ EHBO",
+            "desc": "Registreer een nieuw EHBO-incident: vul datum, omschrijving en betrokkenen in."
+          },
+          "schade": {
+            "tag": "+ Schade",
+            "desc": "Meld schade aan een voertuig of aan de installatie met foto-upload en beschrijving."
+          },
+          "incidentKaart": {
+            "tag": "Incident-kaart",
+            "desc": "Klik op een bestaand incident voor de volledige details en eventueel om het te bewerken of te verwijderen."
+          },
+          "tabs": {
+            "tag": "Tabs (EHBO / Schade)",
+            "desc": "Wissel bovenaan tussen de twee incidenttypes."
+          }
+        }
+      },
+      "account": {
+        "title": "Account & instellingen",
+        "text": "Via de accountpagina beheer je jouw profiel, de prijsconfiguratie van de site, het personeel, de chemievoorraad en de onderhoudsplanning. Medewerkers zien enkel hun eigen profielgegevens.",
+        "buttons": {
+          "email": {
+            "tag": "E-mail wijzigen",
+            "desc": "Pas je inlogadres aan onder 'Accountgegevens'."
+          },
+          "wachtwoord": {
+            "tag": "Wachtwoord wijzigen",
+            "desc": "Voer een nieuw wachtwoord in en klik op 'Opslaan'."
+          },
+          "kostprijzen": {
+            "tag": "Kostprijzen (Full options)",
+            "desc": "Stel de prijs per eenheid in voor energie, water, zout, flockmiddel en chemicaliën."
+          },
+          "gebruikers": {
+            "tag": "Gebruikers beheren (Full options)",
+            "desc": "Voeg nieuwe medewerkers toe of trek de toegang van bestaande gebruikers in."
+          },
+          "voorraad": {
+            "tag": "Voorraad (Full options)",
+            "desc": "Stel het huidige voorraadniveau en het minimale alertniveau in per product. Registreer leveringen via '+ Levering'."
+          },
+          "onderhoud": {
+            "tag": "Onderhoud (Full options)",
+            "desc": "Bekijk en markeer onderhoudstaken als 'Gedaan' met de datum van uitvoering."
+          },
+          "energiefacturen": {
+            "tag": "Energiefacturen (Full options)",
+            "desc": "Voeg maandelijkse energiefacturen toe voor kostprijsrapportage."
+          },
+          "handleiding": {
+            "tag": "Handleiding",
+            "desc": "Kom terug naar deze pagina om de uitleg opnieuw te lezen."
+          }
+        }
+      },
+      "developer": {
+        "title": "Developer-paneel",
+        "text": "Het developer-paneel geeft toegang tot beheerfuncties: sites aanmaken en bewerken, wasprogramma's configureren, onderhoudstaken instellen en de database-seedtools. Alleen zichtbaar voor accounts met de developer-rol.",
+        "buttons": {
+          "sites": {
+            "tag": "Sites beheren",
+            "desc": "Maak nieuwe carwashlocaties aan, bewerk de naam en locatie of verwijder een site."
+          },
+          "wasprogrammas": {
+            "tag": "Wasprogramma's",
+            "desc": "Definieer de wasprogramma's per site: naam, tier, gebruikte chemicaliën en doekjes."
+          },
+          "onderhoudstaken": {
+            "tag": "Onderhoudstaken",
+            "desc": "Voeg onderhoudstaken toe met een triggertype (wasbeurten, maanden of vaste datum)."
+          },
+          "seed": {
+            "tag": "Seed / Cleanup",
+            "desc": "Vul de database met testdata of verwijder alle collecties voor een schone start."
+          }
+        }
+      },
+      "navigatie": {
+        "title": "Navigatie & algemene tips",
+        "navigerenTitle": "Navigeren tussen pagina's",
+        "buttons": {
+          "terug": {
+            "tag": "← Pijl (terug)",
+            "desc": "De pijl linksboven brengt je terug naar de vorige pagina of het dashboard."
+          },
+          "siteSelector": {
+            "tag": "Site selector",
+            "desc": "Via de pillknop bovenaan wissel je van carwashlocatie zonder opnieuw in te loggen."
+          },
+          "accountIcoon": {
+            "tag": "Account-icoon",
+            "desc": "Het persoonsicoontje rechtsboven opent de accountpagina."
+          }
+        },
+        "installerenTitle": "Installeren als app",
+        "installerenText": "Glosiv werkt als een Progressive Web App (PWA). Op Android verschijnt er een installatieknop op de inlogpagina. Op iOS (Safari): tik op het deelknopje en kies “Zet op beginscherm”. Eenmaal geïnstalleerd opent de app in volledig scherm zonder browserbalk.",
+        "pushTitle": "Push-meldingen",
+        "pushText": "De app kan meldingen sturen bij lage voorraad en achterstallig onderhoud. Keur meldingen goed via de pop-up die verschijnt na het inloggen om dit te activeren."
+      }
+    }
   }
 }

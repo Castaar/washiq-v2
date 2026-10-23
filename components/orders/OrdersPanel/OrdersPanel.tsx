@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useLocale, useTranslations } from 'next-intl';
 import styles from './OrdersPanel.module.scss';
 
 export type OrderCategory = 'algemeen' | 'chemie';
@@ -28,13 +29,8 @@ export interface OrderSiteOption {
   name: string;
 }
 
-const CATEGORY_LABEL: Record<OrderCategory, string> = {
-  algemeen: 'Producten & acties',
-  chemie: 'Chemie',
-};
-
-function fmtDateTime(iso: string) {
-  return new Date(iso).toLocaleString('nl-BE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+function fmtDateTime(iso: string, locale: string) {
+  return new Date(iso).toLocaleString(locale === 'fr' ? 'fr-BE' : 'nl-BE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 }
 
 export function OrdersPanel({
@@ -50,6 +46,9 @@ export function OrdersPanel({
   canManage: boolean;
   otherSites?: OrderSiteOption[];
 }) {
+  const t = useTranslations('orders');
+  const tCommon = useTranslations('common');
+  const locale = useLocale();
   const [items, setItems] = useState(initialItems);
   const [requests, setRequests] = useState(initialRequests);
   const [orderedIds, setOrderedIds] = useState<string[]>([]);
@@ -159,14 +158,14 @@ export function OrdersPanel({
       });
       if (res.ok) {
         const data = (await res.json()) as { copied: number };
-        setCopyResult(`${data.copied} product(en) gekopieerd`);
+        setCopyResult(t('gekopieerd', { count: data.copied }));
         if (data.copied > 0) {
           const refreshed = await fetch(`/api/orders/items?siteId=${siteId}`);
           if (refreshed.ok) setItems(await refreshed.json() as OrderItemData[]);
         }
       } else {
         const err = (await res.json().catch(() => null)) as { error?: string } | null;
-        setCopyResult(err?.error ?? 'Kopiëren mislukt');
+        setCopyResult(err?.error ?? t('kopierenMislukt'));
       }
     } finally {
       setCopying(false);
@@ -218,16 +217,16 @@ export function OrdersPanel({
     <div className={styles.wrap}>
       {canManage && otherSites.length > 0 && (
         <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>Kopieer producten van andere carwash</h2>
+          <h2 className={styles.sectionTitle}>{t('kopieerTitel')}</h2>
           <div className={styles.copyRow}>
             <select className={styles.select} value={copyFromSiteId} onChange={(e) => { setCopyFromSiteId(e.target.value); setCopyResult(''); }}>
-              <option value="">-- Kies bronsite --</option>
+              <option value="">{t('kiesBronsite')}</option>
               {otherSites.map((s) => (
                 <option key={s.id} value={s.id}>{s.name}</option>
               ))}
             </select>
             <button type="button" className={styles.saveBtn} onClick={handleCopy} disabled={copying || !copyFromSiteId}>
-              {copying ? 'Bezig...' : 'Kopiëren'}
+              {copying ? tCommon('bezig') : t('kopieren')}
             </button>
             {copyResult && <span className={styles.copyResult}>{copyResult}</span>}
           </div>
@@ -239,25 +238,25 @@ export function OrdersPanel({
         if (categoryItems.length === 0 && !canManage) return null;
         return (
           <section key={category} className={styles.section}>
-            <h2 className={styles.sectionTitle}>{CATEGORY_LABEL[category]}</h2>
+            <h2 className={styles.sectionTitle}>{t(`categorie.${category}`)}</h2>
             {categoryItems.length === 0 ? (
-              <p className={styles.empty}>Nog geen producten toegevoegd.</p>
+              <p className={styles.empty}>{t('nogGeenProducten')}</p>
             ) : (
               <div className={styles.list}>
                 {categoryItems.map((item) => (
                   editingId === item.id ? (
                     <div key={item.id} className={styles.editCard}>
-                      <input className={styles.input} value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Naam" autoFocus />
-                      <textarea className={styles.textarea} value={editDescription} onChange={(e) => setEditDescription(e.target.value)} placeholder="Omschrijving" rows={2} />
+                      <input className={styles.input} value={editName} onChange={(e) => setEditName(e.target.value)} placeholder={t('naam')} autoFocus />
+                      <textarea className={styles.textarea} value={editDescription} onChange={(e) => setEditDescription(e.target.value)} placeholder={t('omschrijving')} rows={2} />
                       <select className={styles.select} value={editCategory} onChange={(e) => setEditCategory(e.target.value as OrderCategory)}>
                         {categories.map((c) => (
-                          <option key={c} value={c}>{CATEGORY_LABEL[c]}</option>
+                          <option key={c} value={c}>{t(`categorie.${c}`)}</option>
                         ))}
                       </select>
                       <div className={styles.formActions}>
-                        <button type="button" className={styles.cancelBtn} onClick={() => setEditingId(null)}>Annuleren</button>
+                        <button type="button" className={styles.cancelBtn} onClick={() => setEditingId(null)}>{tCommon('annuleren')}</button>
                         <button type="button" className={styles.saveBtn} onClick={handleSaveEdit} disabled={savingEdit || !editName.trim()}>
-                          {savingEdit ? 'Bezig...' : 'Opslaan'}
+                          {savingEdit ? tCommon('bezig') : tCommon('opslaan')}
                         </button>
                       </div>
                     </div>
@@ -274,7 +273,7 @@ export function OrdersPanel({
                         {item.description && <span className={styles.itemDesc}>{item.description}</span>}
                         <input
                           className={styles.detailsInput}
-                          placeholder="Details (soort, hoeveelheid, ...)"
+                          placeholder={t('detailsPlaceholder')}
                           value={detailsDraft[item.id] ?? ''}
                           onClick={(e) => e.stopPropagation()}
                           onKeyDown={(e) => e.stopPropagation()}
@@ -288,14 +287,14 @@ export function OrdersPanel({
                         onClick={(e) => { e.stopPropagation(); handleOrder(item); }}
                         disabled={orderingId === item.id || orderedIds.includes(item.id)}
                       >
-                        {orderedIds.includes(item.id) ? 'Besteld ✓' : orderingId === item.id ? 'Bezig...' : 'Bestellen'}
+                        {orderedIds.includes(item.id) ? t('besteldVinkje') : orderingId === item.id ? tCommon('bezig') : t('bestellen')}
                       </button>
                       {canManage && (
                         <button
                           type="button"
                           className={styles.deleteBtn}
                           onClick={(e) => { e.stopPropagation(); handleDeleteItem(item.id); }}
-                          aria-label="Verwijderen"
+                          aria-label={tCommon('verwijderen')}
                         >
                           ✕
                         </button>
@@ -311,30 +310,30 @@ export function OrdersPanel({
                 <div className={styles.addForm}>
                   <input
                     className={styles.input}
-                    placeholder="Naam (bv. Actiefolder maart)"
+                    placeholder={t('naamPlaceholder')}
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     autoFocus
                   />
                   <textarea
                     className={styles.textarea}
-                    placeholder="Omschrijving (optioneel)"
+                    placeholder={t('omschrijvingOptioneel')}
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     rows={2}
                   />
                   <div className={styles.formActions}>
                     <button type="button" className={styles.cancelBtn} onClick={() => setFormOpenFor(null)}>
-                      Annuleren
+                      {tCommon('annuleren')}
                     </button>
                     <button type="button" className={styles.saveBtn} onClick={() => handleAddItem(category)} disabled={saving || !name.trim()}>
-                      {saving ? 'Bezig...' : 'Opslaan'}
+                      {saving ? tCommon('bezig') : tCommon('opslaan')}
                     </button>
                   </div>
                 </div>
               ) : (
                 <button type="button" className={styles.openFormBtn} onClick={() => { setName(''); setDescription(''); setFormOpenFor(category); }}>
-                  + Product toevoegen
+                  {t('productToevoegen')}
                 </button>
               )
             )}
@@ -346,7 +345,7 @@ export function OrdersPanel({
         <section className={styles.section}>
           <div className={styles.listHeader}>
             <h2 className={styles.sectionTitle}>
-              Bestellingen {openCount > 0 && <span className={styles.openBadge}>{openCount}</span>}
+              {t('bestellingen')} {openCount > 0 && <span className={styles.openBadge}>{openCount}</span>}
             </h2>
             <div className={styles.filterTabs}>
               {(['open', 'alles'] as const).map((f) => (
@@ -356,13 +355,13 @@ export function OrdersPanel({
                   className={[styles.filterTab, requestFilter === f ? styles.filterTabActive : ''].filter(Boolean).join(' ')}
                   onClick={() => setRequestFilter(f)}
                 >
-                  {f.charAt(0).toUpperCase() + f.slice(1)}
+                  {t(`filter.${f}`)}
                 </button>
               ))}
             </div>
           </div>
           {filteredRequests.length === 0 ? (
-            <p className={styles.empty}>Geen bestellingen.</p>
+            <p className={styles.empty}>{t('geenBestellingen')}</p>
           ) : (
             <div className={styles.list}>
               {filteredRequests.map((req) => (
@@ -379,7 +378,7 @@ export function OrdersPanel({
                     <span className={styles.itemName}>{req.item_name}</span>
                     {req.details && <span className={styles.itemDesc}>{req.details}</span>}
                     <span className={styles.itemDesc}>
-                      {req.requested_by_name} · {fmtDateTime(req.requested_at)}
+                      {req.requested_by_name} · {fmtDateTime(req.requested_at, locale)}
                     </span>
                   </div>
                   {canManage ? (
@@ -389,11 +388,11 @@ export function OrdersPanel({
                       onClick={() => handleToggleHandled(req)}
                       disabled={handlingId === req.id}
                     >
-                      {req.is_handled ? '✓ Besteld' : 'Markeer besteld'}
+                      {req.is_handled ? t('vinkjeBesteld') : t('markeerBesteld')}
                     </button>
                   ) : (
                     <span className={[styles.resolveBtn, styles.statusTag, req.is_handled ? styles.resolveBtnDone : ''].filter(Boolean).join(' ')}>
-                      {req.is_handled ? '✓ Besteld' : 'Aangevraagd'}
+                      {req.is_handled ? t('vinkjeBesteld') : t('aangevraagd')}
                     </span>
                   )}
                 </div>

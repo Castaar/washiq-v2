@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useLocale, useTranslations } from 'next-intl';
 import styles from './SetupWizard.module.scss';
 
 interface SiteOption {
@@ -36,7 +37,8 @@ interface Props {
   initialTasks: Omit<TaskDraft, 'trigger_day' | 'trigger_month'>[];
 }
 
-const STEP_LABELS = ['Welkom', 'Tellerstand', 'Onderhoud', 'Prijzen', 'Klaar'];
+// Message keys (setup namespace) for the step labels, by step index.
+const STEP_LABELS = ['stapWelkom', 'stapTellerstand', 'stapOnderhoud', 'stapPrijzen', 'stapKlaar'];
 const MONTHS_NL = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
 
 function emptyTask(): TaskDraft {
@@ -53,6 +55,15 @@ function emptyTask(): TaskDraft {
 
 export function SetupWizard({ siteId, siteName, sites, initialPrices, initialTasks }: Props) {
   const router = useRouter();
+  const tr = useTranslations('setup');
+  const tInst = useTranslations('instellingen');
+  const tCommon = useTranslations('common');
+  const tAccount = useTranslations('account');
+  const locale = useLocale();
+  const numLocale = locale === 'fr' ? 'fr-BE' : 'nl-BE';
+  const monthsShort = locale === 'fr'
+    ? Array.from({ length: 12 }, (_, i) => new Date(2000, i, 1).toLocaleDateString('fr-BE', { month: 'short' }))
+    : MONTHS_NL;
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
   const [siteType, setSiteType] = useState<'wasstraat' | 'selfcarwash'>('wasstraat');
@@ -147,13 +158,17 @@ export function SetupWizard({ siteId, siteName, sites, initialPrices, initialTas
       <div className={styles.header}>
         <div className={styles.headerTop}>
           <span className={styles.siteName}>{siteName}</span>
-          <button type="button" className={styles.closeBtn} onClick={handleClose} aria-label="Sluiten">✕</button>
+          <button type="button" className={styles.closeBtn} onClick={handleClose} aria-label={tCommon('sluiten')}>✕</button>
         </div>
-        <h1 className={styles.title}>Eerste configuratie</h1>
+        <h1 className={styles.title}>{tr('titel')}</h1>
         <p className={styles.subtitle}>
           {step < 4
-            ? `Stap ${position + 1} van ${activeSteps.length - 1} — ${STEP_LABELS[activeSteps[position + 1]] ?? ''}`
-            : 'Klaar!'}
+            ? tr('stapVan', {
+                current: String(position + 1),
+                total: String(activeSteps.length - 1),
+                label: STEP_LABELS[activeSteps[position + 1]] ? tr(STEP_LABELS[activeSteps[position + 1]]) : '',
+              })
+            : tr('klaarUitroep')}
         </p>
         <div className={styles.progressBar}>
           <div className={styles.progressFill} style={{ width: `${progressPct}%` }} />
@@ -164,12 +179,11 @@ export function SetupWizard({ siteId, siteName, sites, initialPrices, initialTas
       {step === 0 && (
         <div className={styles.body}>
           <p className={styles.lead}>
-            Welkom bij Glosiv. Deze wizard helpt je de site <strong>{siteName}</strong> in enkele
-            minuten klaar te zetten. Je kan dit altijd later aanpassen via de instellingen.
+            {tr.rich('welkomLead', { name: siteName, b: (chunks) => <strong>{chunks}</strong> })}
           </p>
 
           <div className={styles.fieldGroup}>
-            <label className={styles.label}>Type carwash</label>
+            <label className={styles.label}>{tr('typeCarwash')}</label>
             <div className={styles.radioGroup}>
               <label className={styles.radioLabel}>
                 <input
@@ -179,7 +193,7 @@ export function SetupWizard({ siteId, siteName, sites, initialPrices, initialTas
                   checked={siteType === 'wasstraat'}
                   onChange={() => setSiteType('wasstraat')}
                 />
-                Wasstraat — met tellerstand per wasprogramma
+                {tr('typeWasstraat')}
               </label>
               <label className={styles.radioLabel}>
                 <input
@@ -189,32 +203,32 @@ export function SetupWizard({ siteId, siteName, sites, initialPrices, initialTas
                   checked={siteType === 'selfcarwash'}
                   onChange={() => setSiteType('selfcarwash')}
                 />
-                Selfcarwash — geen wagens tellen
+                {tr('typeSelfcarwash')}
               </label>
             </div>
           </div>
 
           {siteType === 'selfcarwash' ? (
             <ul className={styles.checkList}>
-              <li>Voorraad beheer</li>
-              <li>Onderhoudstaken &amp; incidenten</li>
-              <li>In- en uitcheck (logboek)</li>
-              <li>Kostprijzen per eenheid instellen</li>
+              <li>{tr('selfVoorraad')}</li>
+              <li>{tr('selfOnderhoud')}</li>
+              <li>{tr('selfLogboek')}</li>
+              <li>{tr('kostprijzenInstellen')}</li>
             </ul>
           ) : (
             <ul className={styles.checkList}>
-              <li>Huidige tellerstand ingeven</li>
-              <li>Onderhoudstaken configureren (op wasbeurten of op datum)</li>
-              <li>Kostprijzen per eenheid instellen</li>
+              <li>{tr('wasTellerstand')}</li>
+              <li>{tr('wasOnderhoud')}</li>
+              <li>{tr('kostprijzenInstellen')}</li>
             </ul>
           )}
           {sites.filter((s) => !s.setup_done && s.id !== siteId).length > 0 && (
             <p className={styles.hint}>
-              Andere sites zonder configuratie: {sites.filter((s) => !s.setup_done && s.id !== siteId).map((s) => s.name).join(', ')}.
+              {tr('andereSites', { sites: sites.filter((s) => !s.setup_done && s.id !== siteId).map((s) => s.name).join(', ') })}
             </p>
           )}
           <button className={styles.btnPrimary} onClick={() => setStep(siteType === 'selfcarwash' ? 2 : 1)}>
-            Start configuratie →
+            {tr('startConfiguratie')}
           </button>
         </div>
       )}
@@ -223,12 +237,11 @@ export function SetupWizard({ siteId, siteName, sites, initialPrices, initialTas
       {step === 1 && (
         <div className={styles.body}>
           <p className={styles.lead}>
-            Voer de huidige stand in van de hoofdteller van de wasstraat. Dit is het totale aantal
-            wasbeurten dat de machine heeft uitgevoerd.
+            {tr('tellerstandLead')}
           </p>
           <div className={styles.fieldGroup}>
             <label className={styles.label} htmlFor="tellerstand">
-              Huidig aantal wasbeurten (tellerstand)
+              {tr('huidigAantal')}
             </label>
             <input
               id="tellerstand"
@@ -236,13 +249,13 @@ export function SetupWizard({ siteId, siteName, sites, initialPrices, initialTas
               min={0}
               className={styles.input}
               value={tellerstand || ''}
-              placeholder="bijv. 125400"
+              placeholder={tInst('bijv', { value: '125400' })}
               onChange={(e) => setTellerstand(parseInt(e.target.value) || 0)}
             />
           </div>
           <div className={styles.fieldGroup}>
             <label className={styles.label} htmlFor="tellerstandDate">
-              Datum van deze tellerstand
+              {tr('datumTellerstand')}
             </label>
             <input
               id="tellerstandDate"
@@ -254,7 +267,7 @@ export function SetupWizard({ siteId, siteName, sites, initialPrices, initialTas
           </div>
           <div className={styles.fieldGroup}>
             <label className={styles.label} htmlFor="waterTellerstand">
-              Huidige tellerstand water (m³)
+              {tr('waterTellerstand')}
             </label>
             <input
               id="waterTellerstand"
@@ -262,13 +275,13 @@ export function SetupWizard({ siteId, siteName, sites, initialPrices, initialTas
               min={0}
               className={styles.input}
               value={waterTellerstand || ''}
-              placeholder="bijv. 4500"
+              placeholder={tInst('bijv', { value: '4500' })}
               onChange={(e) => setWaterTellerstand(parseInt(e.target.value) || 0)}
             />
           </div>
           <div className={styles.navRow}>
-            <button className={styles.btnSecondary} onClick={() => setStep(0)}>← Terug</button>
-            <button className={styles.btnPrimary} onClick={() => setStep(2)}>Volgende →</button>
+            <button className={styles.btnSecondary} onClick={() => setStep(0)}>← {tCommon('terug')}</button>
+            <button className={styles.btnPrimary} onClick={() => setStep(2)}>{tr('volgende')}</button>
           </div>
         </div>
       )}
@@ -277,8 +290,7 @@ export function SetupWizard({ siteId, siteName, sites, initialPrices, initialTas
       {step === 2 && (
         <div className={styles.body}>
           <p className={styles.lead}>
-            Voeg de terugkerende onderhoudstaken toe voor deze site. Kies of een taak getriggerd
-            wordt op een <strong>aantal wasbeurten</strong> of na een <strong>bepaald aantal maanden</strong>.
+            {tr.rich('onderhoudLead', { b: (chunks) => <strong>{chunks}</strong> })}
           </p>
 
           {/* Existing tasks */}
@@ -291,12 +303,12 @@ export function SetupWizard({ siteId, siteName, sites, initialPrices, initialTas
                       <span className={styles.taskDesc}>{t.description}</span>
                       <span className={styles.taskTrigger}>
                         {t.trigger_type === 'washes'
-                          ? `Elke ${t.trigger_value.toLocaleString('nl-BE')} wasbeurten`
+                          ? tInst('elkeWasbeurten', { count: t.trigger_value.toLocaleString(numLocale) })
                           : t.trigger_type === 'fixed_date'
-                          ? `Jaarlijks op ${t.trigger_day} ${MONTHS_NL[(t.trigger_month ?? 1) - 1]}`
-                          : `Elke ${t.trigger_value} maand(en)`}
-                        {t.last_done_at && ` — laatste keer: ${t.last_done_at}`}
-                        {t.trigger_type === 'washes' && t.washes_at_last_done > 0 && ` (${t.washes_at_last_done.toLocaleString('nl-BE')} was.)`}
+                          ? tr('jaarlijksOp', { day: String(t.trigger_day), month: monthsShort[(t.trigger_month ?? 1) - 1] })
+                          : tr('elkeMaandEn', { count: String(t.trigger_value) })}
+                        {t.last_done_at && ` — ${tr('laatsteKeer', { date: t.last_done_at })}`}
+                        {t.trigger_type === 'washes' && t.washes_at_last_done > 0 && ` (${tr('wasAfk', { count: t.washes_at_last_done.toLocaleString(numLocale) })})`}
                       </span>
                     </div>
                     <div className={styles.taskRowActions}>
@@ -304,7 +316,7 @@ export function SetupWizard({ siteId, siteName, sites, initialPrices, initialTas
                         type="button"
                         className={styles.editTaskBtn}
                         onClick={() => setEditingTaskIdx(editingTaskIdx === i ? null : i)}
-                        title="Laatste uitvoering invullen"
+                        title={tr('laatsteUitvoeringInvullen')}
                       >
                         ✏
                       </button>
@@ -312,7 +324,7 @@ export function SetupWizard({ siteId, siteName, sites, initialPrices, initialTas
                         type="button"
                         className={styles.removeBtn}
                         onClick={() => removeTask(i)}
-                        title="Verwijderen"
+                        title={tCommon('verwijderen')}
                       >
                         ✕
                       </button>
@@ -322,7 +334,7 @@ export function SetupWizard({ siteId, siteName, sites, initialPrices, initialTas
                     <div className={styles.taskEditPanel}>
                       <div className={styles.fieldRow}>
                         <div className={styles.fieldGroup}>
-                          <label className={styles.label}>Datum laatste uitvoering</label>
+                          <label className={styles.label}>{tInst('datumLaatsteUitvoering')}</label>
                           <input
                             type="date"
                             className={styles.input}
@@ -332,12 +344,12 @@ export function SetupWizard({ siteId, siteName, sites, initialPrices, initialTas
                         </div>
                         {t.trigger_type === 'washes' && (
                           <div className={styles.fieldGroup}>
-                            <label className={styles.label}>Tellerstand laatste keer</label>
+                            <label className={styles.label}>{tInst('tellerstandLaatsteKeer')}</label>
                             <input
                               type="number"
                               min={0}
                               className={styles.input}
-                              placeholder="bijv. 120000"
+                              placeholder={tInst('bijv', { value: '120000' })}
                               value={t.washes_at_last_done || ''}
                               onChange={(e) => setTasks((prev) => prev.map((task, idx) => idx === i ? { ...task, washes_at_last_done: parseInt(e.target.value) || 0 } : task))}
                             />
@@ -355,20 +367,20 @@ export function SetupWizard({ siteId, siteName, sites, initialPrices, initialTas
           {addingTask ? (
             <div className={styles.addTaskForm}>
               <div className={styles.fieldGroup}>
-                <label className={styles.label}>Omschrijving</label>
+                <label className={styles.label}>{tInst('omschrijving')}</label>
                 <input
                   type="text"
                   className={styles.input}
-                  placeholder="bijv. Borstels nakijken"
+                  placeholder={tInst('omschrijvingPlaceholder')}
                   value={newTask.description}
                   onChange={(e) => setNewTask((t) => ({ ...t, description: e.target.value }))}
                 />
               </div>
 
               <div className={styles.fieldGroup}>
-                <label className={styles.label}>Type trigger</label>
+                <label className={styles.label}>{tInst('typeTrigger')}</label>
                 <div className={styles.radioGroup}>
-                  {([['washes', 'Op aantal wasbeurten'], ['months', 'Op aantal maanden'], ['fixed_date', 'Vaste datum per jaar']] as [TaskDraft['trigger_type'], string][])
+                  {([['washes', tInst('triggerWasbeurten')], ['months', tInst('triggerMaanden')], ['fixed_date', tInst('triggerVasteDatum')]] as [TaskDraft['trigger_type'], string][])
                     .filter(([val]) => siteType !== 'selfcarwash' || val !== 'washes')
                     .map(([val, lbl]) => (
                     <label key={val} className={styles.radioLabel}>
@@ -388,29 +400,29 @@ export function SetupWizard({ siteId, siteName, sites, initialPrices, initialTas
               {newTask.trigger_type === 'washes' && (
                 <div className={styles.fieldRow}>
                   <div className={styles.fieldGroup}>
-                    <label className={styles.label}>Interval (wasbeurten)</label>
+                    <label className={styles.label}>{tInst('intervalWasbeurten')}</label>
                     <input
                       type="number"
                       min={1}
                       className={styles.input}
-                      placeholder="bijv. 5000"
+                      placeholder={tInst('bijv', { value: '5000' })}
                       value={newTask.trigger_value || ''}
                       onChange={(e) => setNewTask((t) => ({ ...t, trigger_value: parseInt(e.target.value) || 0 }))}
                     />
                   </div>
                   <div className={styles.fieldGroup}>
-                    <label className={styles.label}>Tellerstand laatste keer</label>
+                    <label className={styles.label}>{tInst('tellerstandLaatsteKeer')}</label>
                     <input
                       type="number"
                       min={0}
                       className={styles.input}
-                      placeholder="bijv. 120000"
+                      placeholder={tInst('bijv', { value: '120000' })}
                       value={newTask.washes_at_last_done || ''}
                       onChange={(e) => setNewTask((t) => ({ ...t, washes_at_last_done: parseInt(e.target.value) || 0 }))}
                     />
                   </div>
                   <div className={styles.fieldGroup}>
-                    <label className={styles.label}>Datum laatste keer</label>
+                    <label className={styles.label}>{tInst('datumLaatsteKeer')}</label>
                     <input
                       type="date"
                       className={styles.input}
@@ -424,18 +436,18 @@ export function SetupWizard({ siteId, siteName, sites, initialPrices, initialTas
               {newTask.trigger_type === 'months' && (
                 <div className={styles.fieldRow}>
                   <div className={styles.fieldGroup}>
-                    <label className={styles.label}>Interval (maanden)</label>
+                    <label className={styles.label}>{tInst('intervalMaanden')}</label>
                     <input
                       type="number"
                       min={1}
                       className={styles.input}
-                      placeholder="bijv. 3"
+                      placeholder={tInst('bijv', { value: '3' })}
                       value={newTask.trigger_value || ''}
                       onChange={(e) => setNewTask((t) => ({ ...t, trigger_value: parseInt(e.target.value) || 0 }))}
                     />
                   </div>
                   <div className={styles.fieldGroup}>
-                    <label className={styles.label}>Datum laatste uitvoering</label>
+                    <label className={styles.label}>{tInst('datumLaatsteUitvoering')}</label>
                     <input
                       type="date"
                       className={styles.input}
@@ -449,7 +461,7 @@ export function SetupWizard({ siteId, siteName, sites, initialPrices, initialTas
               {newTask.trigger_type === 'fixed_date' && (
                 <div className={styles.fieldRow}>
                   <div className={styles.fieldGroup}>
-                    <label className={styles.label}>Dag</label>
+                    <label className={styles.label}>{tInst('dag')}</label>
                     <input
                       type="number"
                       min={1}
@@ -460,19 +472,19 @@ export function SetupWizard({ siteId, siteName, sites, initialPrices, initialTas
                     />
                   </div>
                   <div className={styles.fieldGroup}>
-                    <label className={styles.label}>Maand</label>
+                    <label className={styles.label}>{tAccount('maand')}</label>
                     <select
                       className={styles.input}
                       value={newTask.trigger_month}
                       onChange={(e) => setNewTask((t) => ({ ...t, trigger_month: parseInt(e.target.value) }))}
                     >
-                      {MONTHS_NL.map((m, i) => (
+                      {monthsShort.map((m, i) => (
                         <option key={i} value={i + 1}>{m}</option>
                       ))}
                     </select>
                   </div>
                   <div className={styles.fieldGroup}>
-                    <label className={styles.label}>Datum laatste uitvoering</label>
+                    <label className={styles.label}>{tInst('datumLaatsteUitvoering')}</label>
                     <input
                       type="date"
                       className={styles.input}
@@ -484,8 +496,8 @@ export function SetupWizard({ siteId, siteName, sites, initialPrices, initialTas
               )}
 
               <div className={styles.addTaskActions}>
-                <button type="button" className={styles.btnSecondary} onClick={() => { setAddingTask(false); setNewTask(emptyTask()); }}>Annuleren</button>
-                <button type="button" className={styles.btnPrimary} onClick={addTask} disabled={!newTask.description.trim()}>Taak toevoegen</button>
+                <button type="button" className={styles.btnSecondary} onClick={() => { setAddingTask(false); setNewTask(emptyTask()); }}>{tCommon('annuleren')}</button>
+                <button type="button" className={styles.btnPrimary} onClick={addTask} disabled={!newTask.description.trim()}>{tInst('taakToevoegen')}</button>
               </div>
             </div>
           ) : (
@@ -497,13 +509,13 @@ export function SetupWizard({ siteId, siteName, sites, initialPrices, initialTas
                 setAddingTask(true);
               }}
             >
-              + Onderhoudstaak toevoegen
+              {tInst('onderhoudstaakToevoegen')}
             </button>
           )}
 
           <div className={styles.navRow}>
-            <button className={styles.btnSecondary} onClick={() => setStep(siteType === 'selfcarwash' ? 0 : 1)}>← Terug</button>
-            <button className={styles.btnPrimary} onClick={() => setStep(3)}>Volgende →</button>
+            <button className={styles.btnSecondary} onClick={() => setStep(siteType === 'selfcarwash' ? 0 : 1)}>← {tCommon('terug')}</button>
+            <button className={styles.btnPrimary} onClick={() => setStep(3)}>{tr('volgende')}</button>
           </div>
         </div>
       )}
@@ -512,16 +524,15 @@ export function SetupWizard({ siteId, siteName, sites, initialPrices, initialTas
       {step === 3 && (
         <div className={styles.body}>
           <p className={styles.lead}>
-            Stel de kostprijs per eenheid in. Deze worden gebruikt om de kostprijs per wasbeurt te
-            berekenen. Je kunt ze later altijd aanpassen via de instellingen.
+            {tr('prijzenLead')}
           </p>
           <div className={styles.priceGrid}>
             {([
-              ['water_per_liter', 'Water', '€ / liter'],
-              ['energy_per_kw', 'Energie', '€ / kWh'],
-              ['salt_per_kg', 'Zout', '€ / kg'],
-              ['flock_per_kg', 'Flockmiddel', '€ / kg'],
-              ['cloth_per_unit', 'Ruitendoekjes', '€ / stuk'],
+              ['water_per_liter', tr('prijsWater'), tr('eenheidLiter')],
+              ['energy_per_kw', tr('prijsEnergie'), '€ / kWh'],
+              ['salt_per_kg', tr('prijsZout'), '€ / kg'],
+              ['flock_per_kg', tr('prijsFlock'), '€ / kg'],
+              ['cloth_per_unit', tr('prijsRuitendoekjes'), tr('eenheidStuk')],
             ] as [keyof Prices, string, string][]).map(([key, label, unit]) => (
               <div key={key} className={styles.priceField}>
                 <label className={styles.label}>{label}</label>
@@ -541,9 +552,9 @@ export function SetupWizard({ siteId, siteName, sites, initialPrices, initialTas
             ))}
           </div>
           <div className={styles.navRow}>
-            <button className={styles.btnSecondary} onClick={() => setStep(2)}>← Terug</button>
+            <button className={styles.btnSecondary} onClick={() => setStep(2)}>← {tCommon('terug')}</button>
             <button className={styles.btnPrimary} onClick={handleFinish} disabled={saving}>
-              {saving ? 'Bezig met opslaan...' : 'Opslaan & afronden →'}
+              {saving ? tr('bezigOpslaan') : tr('opslaanAfronden')}
             </button>
           </div>
         </div>
@@ -554,24 +565,23 @@ export function SetupWizard({ siteId, siteName, sites, initialPrices, initialTas
         <div className={styles.body}>
           <div className={styles.doneIcon} aria-hidden="true">✓</div>
           <p className={styles.lead}>
-            <strong>{siteName}</strong> is klaar voor gebruik. Je kan nu beginnen met het registreren
-            van verbruik, onderhoud en incidenten.
+            {tr.rich('klaarLead', { name: siteName, b: (chunks) => <strong>{chunks}</strong> })}
           </p>
           <ul className={styles.checkList}>
             {siteType === 'wasstraat' && (
               <>
-                <li>Tellerstand opgeslagen: {tellerstand.toLocaleString('nl-BE')} wasbeurten</li>
-                <li>Tellerstand water opgeslagen: {waterTellerstand.toLocaleString('nl-BE')} m³</li>
+                <li>{tr('tellerstandOpgeslagen', { count: tellerstand.toLocaleString(numLocale) })}</li>
+                <li>{tr('waterOpgeslagen', { count: waterTellerstand.toLocaleString(numLocale) })}</li>
               </>
             )}
-            <li>{tasks.length} onderhoudstaak{tasks.length !== 1 ? 'en' : ''} geconfigureerd</li>
-            <li>Kostprijzen ingesteld</li>
+            <li>{tr('takenGeconfigureerd', { count: tasks.length })}</li>
+            <li>{tr('kostprijzenIngesteld')}</li>
           </ul>
           <button
             className={styles.btnPrimary}
             onClick={() => router.push(`/?site=${siteId}`)}
           >
-            Naar het dashboard →
+            {tr('naarDashboard')}
           </button>
         </div>
       )}

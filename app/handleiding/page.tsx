@@ -1,3 +1,4 @@
+import { getTranslations } from 'next-intl/server';
 import { NavBar } from '@/components/layout/NavBar/NavBar';
 import { HandleidingContent } from '@/components/handleiding/HandleidingContent/HandleidingContent';
 import { getSession } from '@/lib/session';
@@ -9,6 +10,7 @@ export default async function HandleidingPage({
   searchParams: Promise<{ site?: string; from?: string }>;
 }) {
   const session = await getSession();
+  const tNav = await getTranslations('nav');
   const role = session?.role ?? 'employee';
 
   const { site, from } = await searchParams;
@@ -17,7 +19,7 @@ export default async function HandleidingPage({
   return (
     <div className={styles.root}>
       <NavBar
-        centerTitle="Handleiding"
+        centerTitle={tNav('handleiding')}
         backHref={site ? `/?site=${site}` : '/'}
       />
       <main className={styles.main}>

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useLocale, useTranslations } from 'next-intl';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { brusselsInstant, parseDayInput } from '@/lib/dates';
 import type { IncidentSchadePayload, IncidentEhboPayload, DefectPayload } from '@/lib/types/dashboard';
@@ -72,16 +73,11 @@ interface EventHistoryPanelProps {
 
 type Tab = 'pannes' | 'schade' | 'bestellingen' | 'leveringen' | 'onderhouden';
 
-const TAB_LABEL: Record<Tab, string> = {
-  pannes: 'Pannes',
-  schade: 'Schade / EHBO',
-  bestellingen: 'Bestellingen',
-  leveringen: 'Voorraad',
-  onderhouden: 'Onderhouden',
-};
+// Tab order; labels come from historiek.events.tabs.<key>
+const TABS: Tab[] = ['pannes', 'schade', 'bestellingen', 'leveringen', 'onderhouden'];
 
-function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString('nl-BE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+function fmtDate(iso: string, loc: string) {
+  return new Date(iso).toLocaleDateString(loc, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
 const LEDGER_ENDPOINT: Record<StockLedgerItem['kind'], string> = {
@@ -94,6 +90,8 @@ const LEDGER_ENDPOINT: Record<StockLedgerItem['kind'], string> = {
 
 export function EventHistoryPanel({ defects, schades, orders, maintenance, stockLedger }: EventHistoryPanelProps) {
   const router = useRouter();
+  const t = useTranslations('historiek.events');
+  const loc = useLocale() === 'fr' ? 'fr-BE' : 'nl-BE';
   const { showToast } = useToast();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>('pannes');
@@ -107,11 +105,11 @@ export function EventHistoryPanel({ defects, schades, orders, maintenance, stock
         body: body ? JSON.stringify(body) : undefined,
       });
       if (res.ok) {
-        showToast(method === 'DELETE' ? 'Verwijderd — voorraad en verbruik zijn herberekend' : 'Aangepast — voorraad en verbruik zijn herberekend');
+        showToast(method === 'DELETE' ? t('verwijderdHerberekend') : t('aangepastHerberekend'));
         router.refresh();
       } else {
         const err = (await res.json().catch(() => null)) as { error?: string } | null;
-        showToast(err?.error ?? 'Mislukt, probeer opnieuw');
+        showToast(err?.error ?? t('mislukt'));
       }
     } finally {
       setBusyId(null);
@@ -127,7 +125,7 @@ export function EventHistoryPanel({ defects, schades, orders, maintenance, stock
         showToast(okText);
         router.refresh();
       } else {
-        showToast(res.status === 403 ? 'Enkel de maker of een beheerder kan dit doen' : 'Mislukt, probeer opnieuw');
+        showToast(res.status === 403 ? t('geenRechten') : t('mislukt'));
       }
     } finally {
       setBusyId(null);
@@ -136,17 +134,17 @@ export function EventHistoryPanel({ defects, schades, orders, maintenance, stock
 
   function handleDeleteLedger(item: StockLedgerItem) {
     const extra = item.kind === 'reading'
-      ? '\n\nDe voorraad keert terug naar de vorige telling.'
-      : item.kind === 'delivery' ? '\n\nDe voorraad wordt met deze levering verminderd.'
-      : item.kind === 'adjustment' ? '\n\nDe correctie wordt ongedaan gemaakt.' : '\n\nDe voorraad gaat terug naar de oorspronkelijke carwash.';
-    if (!confirm(`"${item.title}" verwijderen?${extra}`)) return;
+      ? `\n\n${t('deleteReading')}`
+      : item.kind === 'delivery' ? `\n\n${t('deleteDelivery')}`
+      : item.kind === 'adjustment' ? `\n\n${t('deleteAdjustment')}` : `\n\n${t('deleteTransfer')}`;
+    if (!confirm(`${t('confirmVerwijderen', { title: item.title })}${extra}`)) return;
     void ledgerRequest(item, 'DELETE');
   }
 
   function handleEditLedger(item: StockLedgerItem) {
     const question = item.kind === 'reading'
-      ? `${item.title}\n\nJuiste GETELDE hoeveelheid op ${fmtDate(item.at)}.\nLet op: dit wijzigt de telling zelf. Wil je enkel de huidige voorraad rechtzetten, doe dat dan bij Instellingen.`
-      : `${item.title}\n\nJuiste geleverde hoeveelheid:`;
+      ? `${item.title}\n\n${t('editReading', { date: fmtDate(item.at, loc) })}`
+      : `${item.title}\n\n${t('editDelivery')}`;
     const input = prompt(question, String(item.quantity ?? ''));
     if (input === null) return;
     const qty = parseFloat(input.replace(',', '.'));
@@ -156,19 +154,19 @@ export function EventHistoryPanel({ defects, schades, orders, maintenance, stock
 
   function handleToggleInvalid(item: StockLedgerItem) {
     const msg = item.invalid
-      ? `${item.title}\n\nDeze telling weer laten meetellen?`
-      : `${item.title}\n\nDeze telling ongeldig verklaren?\nZe blijft zichtbaar, maar telt niet meer mee: de periodes ervoor en erna worden één periode met het juiste verbruik.`;
+      ? `${item.title}\n\n${t('weerMeetellen')}`
+      : `${item.title}\n\n${t('ongeldigVerklaren')}`;
     if (!confirm(msg)) return;
     void ledgerRequest(item, 'PATCH', { invalid: !item.invalid });
   }
 
   function handleEditLedgerDate(item: StockLedgerItem) {
     const cur = new Date(item.at).toLocaleDateString('nl-BE', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Europe/Brussels' });
-    const input = prompt(`${item.title}\n\nJuiste datum (dd/mm/jjjj):`, cur);
+    const input = prompt(`${item.title}\n\n${t('juisteDatum')}`, cur);
     if (input === null) return;
     const day = parseDayInput(input);
     if (!day) {
-      showToast('Ongeldige datum — gebruik dd/mm/jjjj');
+      showToast(t('ongeldigeDatum'));
       return;
     }
     // A count belongs to the end of its day; a delivery to midday, so a delivery and
@@ -192,30 +190,30 @@ export function EventHistoryPanel({ defects, schades, orders, maintenance, stock
   return (
     <div className={styles.wrap}>
       <div className={styles.tabs} role="tablist">
-        {(Object.keys(TAB_LABEL) as Tab[]).map((t) => (
+        {TABS.map((k) => (
           <button
-            key={t}
+            key={k}
             role="tab"
-            aria-selected={tab === t}
-            className={[styles.tab, tab === t ? styles.tabActive : ''].join(' ')}
-            onClick={() => setTab(t)}
+            aria-selected={tab === k}
+            className={[styles.tab, tab === k ? styles.tabActive : ''].join(' ')}
+            onClick={() => setTab(k)}
           >
-            {TAB_LABEL[t]} <span className={styles.tabCount}>{counts[t]}</span>
+            {t(`tabs.${k}`)} <span className={styles.tabCount}>{counts[k]}</span>
           </button>
         ))}
       </div>
 
       {tab === 'pannes' && (
         <div className={styles.list}>
-          {defects.length === 0 && <p className={styles.empty}>Geen pannes gevonden.</p>}
+          {defects.length === 0 && <p className={styles.empty}>{t('geenPannes')}</p>}
           {defects.map((d) => (
             <div key={d.id} className={[styles.row, styles.rowClickable, d.isResolved ? styles.rowDone : ''].join(' ')} onClick={() => setOpenDefect(d)}>
               <div className={styles.rowBody}>
                 <span className={styles.rowTitle}>{d.omschrijving}</span>
-                <span className={styles.rowMeta}>{d.reportedByName} · {fmtDate(d.createdAt)}</span>
+                <span className={styles.rowMeta}>{d.reportedByName} · {fmtDate(d.createdAt, loc)}</span>
               </div>
               <span className={[styles.badge, d.isResolved ? styles.badgeDone : styles.badgeOpen].join(' ')}>
-                {d.isResolved ? '✓ Opgelost' : 'Open'}
+                {d.isResolved ? t('opgelost') : t('open')}
               </span>
             </div>
           ))}
@@ -224,16 +222,16 @@ export function EventHistoryPanel({ defects, schades, orders, maintenance, stock
 
       {tab === 'schade' && (
         <div className={styles.list}>
-          {schades.length === 0 && <p className={styles.empty}>Geen schadegevallen of EHBO-incidenten gevonden.</p>}
+          {schades.length === 0 && <p className={styles.empty}>{t('geenSchade')}</p>}
           {schades.map((s) => (
             <div key={s.id} className={[styles.row, styles.rowClickable, s.payload.isResolved ? styles.rowDone : ''].join(' ')} onClick={() => setOpenSchade(s)}>
               <div className={styles.rowBody}>
                 <span className={styles.rowTitle}>{s.title}</span>
                 {s.subtitle && <span className={styles.rowSub}>{s.subtitle}</span>}
-                <span className={styles.rowMeta}>{s.reportedByName} · {fmtDate(s.createdAt)}</span>
+                <span className={styles.rowMeta}>{s.reportedByName} · {fmtDate(s.createdAt, loc)}</span>
               </div>
               <span className={[styles.badge, s.payload.isResolved ? styles.badgeDone : (s.kind === 'schade' ? styles.badgeSchade : styles.badgeEhbo)].join(' ')}>
-                {s.payload.isResolved ? '✓ Opgelost' : s.kind === 'schade' ? 'Schade' : 'EHBO'}
+                {s.payload.isResolved ? t('opgelost') : s.kind === 'schade' ? t('schade') : t('ehbo')}
               </span>
             </div>
           ))}
@@ -242,23 +240,23 @@ export function EventHistoryPanel({ defects, schades, orders, maintenance, stock
 
       {tab === 'bestellingen' && (
         <div className={styles.list}>
-          {orders.length === 0 && <p className={styles.empty}>Geen bestellingen gevonden.</p>}
+          {orders.length === 0 && <p className={styles.empty}>{t('geenBestellingen')}</p>}
           {orders.map((o) => (
             <div key={o.id} className={[styles.row, o.isHandled ? styles.rowDone : ''].join(' ')}>
               <div className={styles.rowBody}>
                 <span className={styles.rowTitle}>{o.itemName}</span>
                 {o.details && <span className={styles.rowSub}>{o.details}</span>}
-                <span className={styles.rowMeta}>{o.requestedByName} · {fmtDate(o.requestedAt)}</span>
+                <span className={styles.rowMeta}>{o.requestedByName} · {fmtDate(o.requestedAt, loc)}</span>
               </div>
               <span className={[styles.badge, o.isHandled ? styles.badgeDone : styles.badgeOpen].join(' ')}>
-                {o.isHandled ? '✓ Besteld' : 'Open'}
+                {o.isHandled ? t('besteld') : t('open')}
               </span>
               <button
                 type="button"
                 className={styles.tab}
                 disabled={busyId === o.id}
-                onClick={() => simpleAction(o.id, `/api/orders/requests/${o.id}`, 'DELETE', `"${o.itemName}" verwijderen?`, 'Bestelling verwijderd')}
-              >Verwijder</button>
+                onClick={() => simpleAction(o.id, `/api/orders/requests/${o.id}`, 'DELETE', t('confirmVerwijderen', { title: o.itemName }), t('bestellingVerwijderd'))}
+              >{t('verwijder')}</button>
             </div>
           ))}
         </div>
@@ -266,29 +264,29 @@ export function EventHistoryPanel({ defects, schades, orders, maintenance, stock
 
       {tab === 'leveringen' && (
         <div className={styles.list}>
-          {stockLedger.length === 0 && <p className={styles.empty}>Nog geen leveringen, verplaatsingen of tellingen.</p>}
+          {stockLedger.length === 0 && <p className={styles.empty}>{t('geenLeveringen')}</p>}
           {stockLedger.map((d) => (
             <div key={`${d.kind}-${d.id}`} className={styles.row}>
               <div className={styles.rowBody}>
                 <span className={styles.rowTitle}>{d.title}</span>
                 {d.detail && <span className={styles.rowSub}>{d.detail}</span>}
-                <span className={styles.rowMeta}>{d.byName ? `${d.byName} · ` : ''}{fmtDate(d.at)}</span>
+                <span className={styles.rowMeta}>{d.byName ? `${d.byName} · ` : ''}{fmtDate(d.at, loc)}</span>
               </div>
               <div style={{ display: 'flex', gap: 6, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                 {d.quantity !== undefined && (
                   <button type="button" className={styles.tab} disabled={busyId === d.id} onClick={() => handleEditLedger(d)}>
-                    {d.kind === 'reading' ? 'Telling wijzigen' : 'Corrigeer'}
+                    {d.kind === 'reading' ? t('tellingWijzigen') : t('corrigeer')}
                   </button>
                 )}
                 {(d.kind === 'reading' || d.kind === 'delivery') && (
-                  <button type="button" className={styles.tab} disabled={busyId === d.id} onClick={() => handleEditLedgerDate(d)}>Datum</button>
+                  <button type="button" className={styles.tab} disabled={busyId === d.id} onClick={() => handleEditLedgerDate(d)}>{t('datum')}</button>
                 )}
                 {d.kind === 'reading' && (
                   <button type="button" className={styles.tab} disabled={busyId === d.id} onClick={() => handleToggleInvalid(d)}>
-                    {d.invalid ? 'Weer geldig' : 'Ongeldig'}
+                    {d.invalid ? t('weerGeldig') : t('ongeldig')}
                   </button>
                 )}
-                <button type="button" className={styles.tab} disabled={busyId === d.id} onClick={() => handleDeleteLedger(d)}>Verwijder</button>
+                <button type="button" className={styles.tab} disabled={busyId === d.id} onClick={() => handleDeleteLedger(d)}>{t('verwijder')}</button>
               </div>
             </div>
           ))}
@@ -297,22 +295,22 @@ export function EventHistoryPanel({ defects, schades, orders, maintenance, stock
 
       {tab === 'onderhouden' && (
         <div className={styles.list}>
-          {maintenance.length === 0 && <p className={styles.empty}>Geen uitgevoerde onderhouden gevonden.</p>}
+          {maintenance.length === 0 && <p className={styles.empty}>{t('geenOnderhouden')}</p>}
           {maintenance.map((m) => (
             <div key={m.id} className={styles.row}>
               <div className={styles.rowBody}>
                 <span className={styles.rowTitle}>{m.description}</span>
                 {m.notes && <span className={styles.rowSub}>{m.notes}</span>}
-                <span className={styles.rowMeta}>{m.doneByName} · {fmtDate(m.doneAt)}</span>
+                <span className={styles.rowMeta}>{m.doneByName} · {fmtDate(m.doneAt, loc)}</span>
               </div>
-              <span className={[styles.badge, styles.badgeDone].join(' ')}>✓ Gedaan</span>
+              <span className={[styles.badge, styles.badgeDone].join(' ')}>{t('gedaan')}</span>
               {m.canUndo && m.taskId && (
                 <button
                   type="button"
                   className={styles.tab}
                   disabled={busyId === m.id}
-                  onClick={() => simpleAction(m.id, `/api/maintenance/${m.taskId}/undo-complete`, 'POST', `"${m.description}" als niet uitgevoerd terugzetten?`, 'Onderhoud teruggezet')}
-                >Ongedaan maken</button>
+                  onClick={() => simpleAction(m.id, `/api/maintenance/${m.taskId}/undo-complete`, 'POST', t('confirmUndo', { name: m.description }), t('onderhoudTeruggezet'))}
+                >{t('ongedaanMaken')}</button>
               )}
             </div>
           ))}

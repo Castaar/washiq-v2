@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import {
   ResponsiveContainer,
   LineChart,
@@ -29,12 +30,13 @@ const COLORS = [
 ];
 
 export function ChemieChart({ data, products }: ChemieChartProps) {
+  const t = useTranslations('historiek.chart');
   const [activeProduct, setActiveProduct] = useState<string | null>(null);
 
   if (products.length === 0 || data.length === 0) {
     return (
       <div className={styles.empty}>
-        Geen verbruiksdata beschikbaar. Voeg maandelijkse ingaves toe om grafieken te zien.
+        {t('geenData')}
       </div>
     );
   }
@@ -48,7 +50,7 @@ export function ChemieChart({ data, products }: ChemieChartProps) {
           className={[styles.filterBtn, activeProduct === null ? styles.active : ''].join(' ')}
           onClick={() => setActiveProduct(null)}
         >
-          Alle producten
+          {t('alleProducten')}
         </button>
         {products.map((p) => (
           <button

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useLocale, useTranslations } from 'next-intl';
 import { countInstantForDay } from '@/lib/dates';
 import { counterOffset, toMachineReading, resetsBetween, type CounterReset } from '@/lib/counter';
 import styles from './HistoryList.module.scss';
@@ -76,6 +77,10 @@ function EntryRow({
   isSelfcarwash?: boolean;
 }) {
   const router = useRouter();
+  const t = useTranslations('historiek.list');
+  const tIn = useTranslations('ingave');
+  const tCommon = useTranslations('common');
+  const loc = useLocale() === 'fr' ? 'fr-BE' : 'nl-BE';
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -143,12 +148,12 @@ function EntryRow({
   const waterUsage = newWaterTellerstandNum !== null ? newWaterTellerstandNum - previousWaterTellerstand : 0;
 
   async function handleDelete() {
-    if (!confirm(`Ingave van ${formatDate(entry.weekStart)} definitief verwijderen? De tellerstand valt terug op de vorige ingave.`)) return;
+    if (!confirm(t('confirmDelete', { date: formatDate(entry.weekStart) }))) return;
     setSaving(true);
     setError('');
     try {
       const res = await fetch(`/api/weekly-entry/${entry.id}`, { method: 'DELETE' });
-      if (!res.ok) { setError('Verwijderen mislukt'); return; }
+      if (!res.ok) { setError(t('verwijderenMislukt')); return; }
       router.refresh();
     } finally {
       setSaving(false);
@@ -158,12 +163,12 @@ function EntryRow({
   async function handleSave() {
     setError('');
     if (!isSelfcarwash && newTellerstandNum === null) {
-      setError('Vul de nieuwe tellerstand in.');
+      setError(tIn('vulTellerstandIn'));
       return;
     }
     if (!isSelfcarwash && tellerstandMismatch) {
       setError(
-        `Som van de tellerstanden per programma (${programCountSum.toLocaleString('nl-BE')}) komt niet overeen met het verschil tussen nieuwe en vorige tellerstand (${(expectedDiff ?? 0).toLocaleString('nl-BE')}).`,
+        tIn('mismatchError', { sum: programCountSum.toLocaleString(loc), diff: (expectedDiff ?? 0).toLocaleString(loc) }),
       );
       return;
     }
@@ -188,7 +193,7 @@ function EntryRow({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
-      if (!res.ok) { setError('Opslaan mislukt'); return; }
+      if (!res.ok) { setError(t('opslaanMislukt')); return; }
 
       if (electricityAmount.trim() !== '') {
         await fetch('/api/energy-bills', {
@@ -227,7 +232,7 @@ function EntryRow({
       }
       if (stockCalls.length > 0) {
         const results = await Promise.all(stockCalls);
-        if (results.some((r) => !r.ok)) { setError('Weekingave opgeslagen, maar een chemie-telling is mislukt.'); return; }
+        if (results.some((r) => !r.ok)) { setError(t('chemieTellingMislukt')); return; }
       }
       setStockProducts(null);
       setEditing(false);
@@ -243,12 +248,12 @@ function EntryRow({
       <div className={styles.entryHeader} onClick={() => !editing && setExpanded((v) => !v)}>
         <span className={styles.weekLabel}>{formatDate(entry.weekStart)}</span>
         <div className={styles.entrySummary}>
-          {!isSelfcarwash && <span className={styles.summaryItem}><span className={styles.summaryLabel}>Wagens</span>{totalWagens}</span>}
-          <span className={styles.summaryItem}><span className={styles.summaryLabel}>Water</span>{entry.waterLiters} m³</span>
-          <span className={styles.summaryItem}><span className={styles.summaryLabel}>Energie</span>{entry.energyKw} kWh</span>
+          {!isSelfcarwash && <span className={styles.summaryItem}><span className={styles.summaryLabel}>{t('wagens')}</span>{totalWagens}</span>}
+          <span className={styles.summaryItem}><span className={styles.summaryLabel}>{t('water')}</span>{entry.waterLiters} m³</span>
+          <span className={styles.summaryItem}><span className={styles.summaryLabel}>{t('energie')}</span>{entry.energyKw} kWh</span>
           {entry.totalCost > 0 && (
             <span className={[styles.summaryItem, styles.costItem].join(' ')}>
-              <span className={styles.summaryLabel}>Kostprijs</span>
+              <span className={styles.summaryLabel}>{t('kostprijs')}</span>
               €{entry.totalCost.toFixed(2)}
             </span>
           )}
@@ -259,7 +264,7 @@ function EntryRow({
             className={styles.editBtn}
             onClick={(e) => { e.stopPropagation(); setEditing((v) => !v); setExpanded(true); }}
           >
-            {editing ? 'Annuleren' : '✏ Bewerken'}
+            {editing ? tCommon('annuleren') : t('bewerken')}
           </button>
           <span className={[styles.chevron, expanded ? styles.chevronOpen : ''].join(' ')}>›</span>
         </div>
@@ -271,10 +276,10 @@ function EntryRow({
           {editing ? (
             <>
               <div className={styles.editSection}>
-                <p className={styles.editSectionTitle}>Datum</p>
+                <p className={styles.editSectionTitle}>{t('datum')}</p>
                 <div className={styles.fieldsRow}>
                   <div className={styles.fieldGroup}>
-                    <label className={styles.fieldLabel}>Datum ingave</label>
+                    <label className={styles.fieldLabel}>{t('datumIngave')}</label>
                     <input
                       className={styles.input}
                       type="date"
@@ -287,16 +292,16 @@ function EntryRow({
 
               {!isSelfcarwash && (<>
               <div className={styles.editSection}>
-                <p className={styles.editSectionTitle}>Tellerstand</p>
-                <p className={styles.lastValueHint}>Vorige tellerstand totaal: {previousMachine.toLocaleString('nl-BE')}</p>
+                <p className={styles.editSectionTitle}>{tIn('tellerstand')}</p>
+                <p className={styles.lastValueHint}>{tIn('vorigeTotaal', { value: previousMachine.toLocaleString(loc) })}</p>
                 {resetsInPeriod.map((r) => (
                   <p key={r.date} className={styles.lastValueHint}>
-                    Teller op 0 gezet op {r.date.split('-').reverse().join('/')} (eindstand {r.end_value.toLocaleString('nl-BE')}) — geef de tellerstand van de machine in.
+                    {t('resetHint', { date: r.date.split('-').reverse().join('/'), end: r.end_value.toLocaleString(loc) })}
                   </p>
                 ))}
                 <div className={styles.fieldsRow}>
                   <div className={styles.fieldGroup}>
-                    <label className={styles.fieldLabel}>Nieuwe tellerstand</label>
+                    <label className={styles.fieldLabel}>{tIn('nieuweTellerstand')}</label>
                     <input
                       className={styles.input}
                       type="number"
@@ -308,7 +313,7 @@ function EntryRow({
               </div>
 
               <div className={styles.editSection}>
-                <p className={styles.editSectionTitle}>Aantal wassingen per programma</p>
+                <p className={styles.editSectionTitle}>{tIn('wassingenPerProgramma')}</p>
                 <div className={styles.fieldsRow}>
                   {programs.map((p) => (
                     <div key={p.id} className={styles.fieldGroup}>
@@ -324,8 +329,8 @@ function EntryRow({
                 </div>
                 {newTellerstandNum !== null && (
                   <p className={tellerstandMismatch ? styles.tellerstandError : styles.tellerstandOk}>
-                    Som per programma: {programCountSum.toLocaleString('nl-BE')} — verwacht verschil: {(expectedDiff ?? 0).toLocaleString('nl-BE')}
-                    {tellerstandMismatch ? ' — komt niet overeen!' : ' ✓'}
+                    {tIn('somPerProgramma', { sum: programCountSum.toLocaleString(loc), diff: (expectedDiff ?? 0).toLocaleString(loc) })}
+                    {tellerstandMismatch ? ` — ${tIn('komtNietOvereen')}` : ' ✓'}
                   </p>
                 )}
               </div>
@@ -333,10 +338,10 @@ function EntryRow({
               </>)}
 
               <div className={styles.editSection}>
-                <p className={styles.editSectionTitle}>Elektriciteitsfactuur</p>
+                <p className={styles.editSectionTitle}>{tIn('elektriciteitsfactuur')}</p>
                 <div className={styles.fieldsRow}>
                   <div className={styles.fieldGroup}>
-                    <label className={styles.fieldLabel}>Bedrag (€)</label>
+                    <label className={styles.fieldLabel}>{tIn('bedrag')}</label>
                     <input
                       className={styles.input}
                       type="number"
@@ -348,11 +353,11 @@ function EntryRow({
               </div>
 
               <div className={styles.editSection}>
-                <p className={styles.editSectionTitle}>Tellerstand water</p>
-                <p className={styles.lastValueHint}>Vorige tellerstand water: {previousWaterTellerstand.toLocaleString('nl-BE')} m³</p>
+                <p className={styles.editSectionTitle}>{tIn('tellerstandWater')}</p>
+                <p className={styles.lastValueHint}>{tIn('vorigeWater', { value: previousWaterTellerstand.toLocaleString(loc) })}</p>
                 <div className={styles.fieldsRow}>
                   <div className={styles.fieldGroup}>
-                    <label className={styles.fieldLabel}>Nieuwe tellerstand water (m³)</label>
+                    <label className={styles.fieldLabel}>{tIn('nieuweWater')}</label>
                     <input
                       className={styles.input}
                       type="number"
@@ -362,15 +367,15 @@ function EntryRow({
                   </div>
                 </div>
                 {newWaterTellerstandNum !== null && (
-                  <p className={styles.tellerstandOk}>Verbruik deze periode: {waterUsage.toLocaleString('nl-BE')} m³</p>
+                  <p className={styles.tellerstandOk}>{tIn('verbruikPeriode', { value: waterUsage.toLocaleString(loc) })}</p>
                 )}
               </div>
 
               <div className={styles.editSection}>
-                <p className={styles.editSectionTitle}>Verbruik</p>
+                <p className={styles.editSectionTitle}>{t('verbruik')}</p>
                 <div className={styles.fieldsRow}>
                   {[
-                    { label: 'Energie (kWh)', value: energyKw, set: setEnergyKw },
+                    { label: t('energieKwh'), value: energyKw, set: setEnergyKw },
                   ].map(({ label, value, set }) => (
                     <div key={label} className={styles.fieldGroup}>
                       <label className={styles.fieldLabel}>{label}</label>
@@ -381,11 +386,11 @@ function EntryRow({
               </div>
 
               <div className={styles.editSection}>
-                <p className={styles.editSectionTitle}>Chemie — voorraad op {formatDate(entry.weekStart)}</p>
+                <p className={styles.editSectionTitle}>{t('chemieVoorraadOp', { date: formatDate(entry.weekStart) })}</p>
                 {stockProducts === null ? (
-                  <p className={styles.fieldLabel}>Laden...</p>
+                  <p className={styles.fieldLabel}>{t('laden')}</p>
                 ) : stockProducts.length === 0 ? (
-                  <p className={styles.fieldLabel}>Geen producten gevonden.</p>
+                  <p className={styles.fieldLabel}>{t('geenProducten')}</p>
                 ) : (
                   <>
                     <div className={styles.fieldsRow}>
@@ -397,7 +402,7 @@ function EntryRow({
                             type="number"
                             step="any"
                             min="0"
-                            placeholder="niet ingegeven"
+                            placeholder={t('nietIngegeven')}
                             value={stockInputs[pr.id] ?? ''}
                             onChange={(e) => setStockInputs((prev) => ({ ...prev, [pr.id]: e.target.value }))}
                           />
@@ -405,7 +410,7 @@ function EntryRow({
                       ))}
                     </div>
                     <p className={styles.fieldLabel}>
-                      De telling wordt vastgelegd op de datum van deze ingave; het verbruik wordt automatisch herberekend.
+                      {t('tellingHint')}
                     </p>
                   </>
                 )}
@@ -413,17 +418,17 @@ function EntryRow({
 
               {error && <p className={styles.error}>{error}</p>}
               <div className={styles.editFooter}>
-                <button type="button" className={styles.cancelBtn} onClick={handleDelete} disabled={saving}>Ingave verwijderen</button>
-                <button type="button" className={styles.cancelBtn} onClick={() => setEditing(false)}>Annuleren</button>
+                <button type="button" className={styles.cancelBtn} onClick={handleDelete} disabled={saving}>{t('ingaveVerwijderen')}</button>
+                <button type="button" className={styles.cancelBtn} onClick={() => setEditing(false)}>{tCommon('annuleren')}</button>
                 <button type="button" className={styles.saveBtn} onClick={handleSave} disabled={saving}>
-                  {saving ? 'Opslaan...' : 'Opslaan'}
+                  {saving ? tIn('opslaanBezig') : tCommon('opslaan')}
                 </button>
               </div>
             </>
           ) : (
             <>
               {!isSelfcarwash && <div className={styles.detailSection}>
-                <p className={styles.detailSectionTitle}>Tellerstand</p>
+                <p className={styles.detailSectionTitle}>{tIn('tellerstand')}</p>
                 <div className={styles.detailGrid}>
                   {entry.programCounts.map((pc) => (
                     <span key={pc.programId} className={styles.detailItem}>
@@ -434,12 +439,12 @@ function EntryRow({
                 </div>
               </div>}
               <div className={styles.detailSection}>
-                <p className={styles.detailSectionTitle}>Verbruik</p>
+                <p className={styles.detailSectionTitle}>{t('verbruik')}</p>
                 <div className={styles.detailGrid}>
-                  <span className={styles.detailItem}><span className={styles.detailLabel}>Energie</span><span className={styles.detailValue}>{entry.energyKw} kWh</span></span>
-                  <span className={styles.detailItem}><span className={styles.detailLabel}>Water</span><span className={styles.detailValue}>{entry.waterLiters} m³</span></span>
+                  <span className={styles.detailItem}><span className={styles.detailLabel}>{t('energie')}</span><span className={styles.detailValue}>{entry.energyKw} kWh</span></span>
+                  <span className={styles.detailItem}><span className={styles.detailLabel}>{t('water')}</span><span className={styles.detailValue}>{entry.waterLiters} m³</span></span>
                   {entry.saltKg > 0 && !entry.chemicalUsages.some((cu) => cu.name.toLowerCase() === 'zoutverzachter') && (
-                    <span className={styles.detailItem}><span className={styles.detailLabel}>Zoutverzachter</span><span className={styles.detailValue}>{entry.saltKg} kg</span></span>
+                    <span className={styles.detailItem}><span className={styles.detailLabel}>{t('zoutverzachter')}</span><span className={styles.detailValue}>{entry.saltKg} kg</span></span>
                   )}
                   {(entry.blobLiters ?? 0) > 0 && !entry.chemicalUsages.some((cu) => cu.name.toLowerCase() === 'blob') && (
                     <span className={styles.detailItem}><span className={styles.detailLabel}>Blob</span><span className={styles.detailValue}>{entry.blobLiters} L</span></span>
@@ -448,7 +453,7 @@ function EntryRow({
               </div>
               {entry.chemicalUsages.length > 0 && (
                 <div className={styles.detailSection}>
-                  <p className={styles.detailSectionTitle}>Chemie</p>
+                  <p className={styles.detailSectionTitle}>{t('chemie')}</p>
                   <div className={styles.detailGrid}>
                     {entry.chemicalUsages.map((cu) => (
                       <span key={cu.chemicalId} className={styles.detailItem}>
@@ -469,8 +474,10 @@ function EntryRow({
 
 // ── Main list ─────────────────────────────────────────────────
 export function HistoryList({ entries, programs, startCarCount = 0, startWaterCount = 0, siteId, energyBillsByMonth, isSelfcarwash = false, counterResets = [] }: HistoryListProps) {
+  const t = useTranslations('historiek.list');
+  const loc = useLocale() === 'fr' ? 'fr-BE' : 'nl-BE';
   if (entries.length === 0) {
-    return <p className={styles.empty}>Nog geen ingaves gevonden voor deze carwash.</p>;
+    return <p className={styles.empty}>{t('leeg')}</p>;
   }
 
   return (
@@ -498,9 +505,9 @@ export function HistoryList({ entries, programs, startCarCount = 0, startWaterCo
       })}
       {startCarCount > 0 && (
         <div className={styles.startRow}>
-          <span className={styles.startLabel}>Beginsaldo</span>
+          <span className={styles.startLabel}>{t('beginsaldo')}</span>
           <div className={styles.startMeta}>
-            <span className={styles.startItem}><span className={styles.startItemLabel}>Stand teller</span>{startCarCount.toLocaleString('nl-BE')} wagens</span>
+            <span className={styles.startItem}><span className={styles.startItemLabel}>{t('standTeller')}</span>{t('wagensAantal', { count: startCarCount.toLocaleString(loc) })}</span>
           </div>
         </div>
       )}

@@ -1,4 +1,5 @@
 import { cookies } from 'next/headers';
+import { getLocale, getTranslations } from 'next-intl/server';
 import { m } from '@/lib/demo';
 import type { Types } from 'mongoose';
 import { NavBar } from '@/components/layout/NavBar/NavBar';
@@ -13,8 +14,8 @@ import styles from './page.module.scss';
 
 // Runs server-side (Vercel = UTC) — pin the timezone so times aren't off by
 // 1-2 hours vs. Belgian local time.
-function fmtTime(d: Date) {
-  return d.toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Brussels' });
+function fmtTime(dateLocale: string, d: Date) {
+  return d.toLocaleTimeString(dateLocale, { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Brussels' });
 }
 
 export default async function DagfichePage({
@@ -25,6 +26,11 @@ export default async function DagfichePage({
   const session = await getSession();
   const isDemo = session?.demo === true;
   const { site } = await searchParams;
+  const t = await getTranslations('dagfiches');
+  const tCommon = await getTranslations('common');
+  const locale = await getLocale();
+  const dateLocale = locale === 'fr' ? 'fr-BE' : 'nl-BE';
+  const fmtErnst = (ernst: string) => (['laag', 'medium', 'hoog'].includes(ernst) ? t(`ernst.${ernst}`) : ernst);
 
   await dbConnect();
 
@@ -80,43 +86,45 @@ export default async function DagfichePage({
   const todayEvents: TodayEvent[] = [
     ...attendanceToday.map((l) => ({
       kind: (l.type === 'sluiting' ? 'uitlog' : 'inlog') as TodayEvent['kind'],
-      label: `${l.user_name ?? 'Onbekend'} ${l.type === 'sluiting' ? 'vertrokken' : 'aangemeld'}`,
-      time: fmtTime(new Date(l.timestamp as Date)),
-      detail: (l.person_type as string) === 'technician_extern' ? 'Externe technieker' : undefined,
+      label: l.type === 'sluiting'
+        ? t('event.vertrokken', { name: l.user_name ?? tCommon('onbekend') })
+        : t('event.aangemeld', { name: l.user_name ?? tCommon('onbekend') }),
+      time: fmtTime(dateLocale, new Date(l.timestamp as Date)),
+      detail: (l.person_type as string) === 'technician_extern' ? t('event.externeTechnieker') : undefined,
     })),
     ...incSchadesToday.map((s) => ({
       kind: 'incident' as const,
-      label: `Schade: ${(s.merk_model as string) || m(isDemo, (s.naam_eigenaar as string)) || 'Voertuig'}`,
-      time: fmtTime(new Date(s.created_at as Date)),
-      detail: [(s.omschrijving as string) || '', (s.reported_by_name as string) ? `Door: ${s.reported_by_name as string}` : ''].filter(Boolean).join(' · ') || undefined,
+      label: t('event.schade', { name: (s.merk_model as string) || m(isDemo, (s.naam_eigenaar as string)) || t('event.voertuig') }),
+      time: fmtTime(dateLocale, new Date(s.created_at as Date)),
+      detail: [(s.omschrijving as string) || '', (s.reported_by_name as string) ? t('event.door', { name: s.reported_by_name as string }) : ''].filter(Boolean).join(' · ') || undefined,
     })),
     ...incEhbosToday.map((e) => ({
       kind: 'incident' as const,
-      label: `EHBO: ${m(isDemo, (e.naam_slachtoffer as string)) || 'Slachtoffer'}`,
-      time: fmtTime(new Date(e.created_at as Date)),
-      detail: [(e.verwonding as string) || '', (e.reported_by_name as string) ? `Door: ${e.reported_by_name as string}` : ''].filter(Boolean).join(' · ') || undefined,
+      label: t('event.ehbo', { name: m(isDemo, (e.naam_slachtoffer as string)) || t('event.slachtoffer') }),
+      time: fmtTime(dateLocale, new Date(e.created_at as Date)),
+      detail: [(e.verwonding as string) || '', (e.reported_by_name as string) ? t('event.door', { name: e.reported_by_name as string }) : ''].filter(Boolean).join(' · ') || undefined,
     })),
     ...defectsToday.map((d) => ({
       kind: 'defect' as const,
-      label: `Defect gemeld: ${((d.omschrijving as string) ?? '').slice(0, 50) || 'Defect'}`,
-      time: fmtTime(new Date(d.created_at as Date)),
-      detail: `Ernst: ${d.ernst as string} · Door: ${d.reported_by_name as string}`,
+      label: t('event.defectGemeld', { name: ((d.omschrijving as string) ?? '').slice(0, 50) || t('event.defect') }),
+      time: fmtTime(dateLocale, new Date(d.created_at as Date)),
+      detail: t('event.ernstDoor', { ernst: fmtErnst(d.ernst as string), name: d.reported_by_name as string }),
     })),
     ...deliveriesToday.map((d) => {
       const chem = d.chemical_id as { name?: string; unit?: string } | null;
       return {
         kind: 'levering' as const,
-        label: `Levering: ${chem?.name ?? ((d.note as string) || 'Product')}`,
-        time: fmtTime(new Date(d.delivered_at as Date)),
-        detail: chem?.name ? `${d.quantity as number} ${chem?.unit ?? ''}` : ((d.logged_by_name as string) ? `Door: ${d.logged_by_name as string}` : undefined),
+        label: t('event.levering', { name: chem?.name ?? ((d.note as string) || t('event.product')) }),
+        time: fmtTime(dateLocale, new Date(d.delivered_at as Date)),
+        detail: chem?.name ? `${d.quantity as number} ${chem?.unit ?? ''}` : ((d.logged_by_name as string) ? t('event.door', { name: d.logged_by_name as string }) : undefined),
       };
     }),
     ...maintenanceLogsToday.map((l) => {
       const taskDesc = (l.task_id as unknown as { description?: string } | null)?.description ?? '';
       return {
         kind: 'onderhoud' as const,
-        label: `Onderhoud: ${taskDesc || 'Uitgevoerd'}`,
-        time: fmtTime(new Date(l.done_at as Date)),
+        label: t('event.onderhoud', { name: taskDesc || t('event.uitgevoerd') }),
+        time: fmtTime(dateLocale, new Date(l.done_at as Date)),
         detail: (l.notes as string) || undefined,
       };
     }),

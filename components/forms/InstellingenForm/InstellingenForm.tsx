@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useLocale, useTranslations } from 'next-intl';
 import { SiteProgramManager } from '@/components/shared/WashProgramManager/WashProgramManager';
 import type { WashProgramItem } from '@/components/shared/WashProgramManager/WashProgramManager';
 import type { CounterReset } from '@/lib/counter';
@@ -79,6 +80,18 @@ const MONTHS = [
 
 const MONTHS_SHORT = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
 
+// Display-only month names in the active locale. Dutch keeps the hardcoded
+// lists above (unchanged output); other locales come from Intl.
+function localeMonths(locale: string, style: 'long' | 'short'): string[] {
+  if (locale !== 'fr') return style === 'long' ? MONTHS : MONTHS_SHORT;
+  return Array.from({ length: 12 }, (_, i) => {
+    const m = new Date(2000, i, 1).toLocaleDateString('fr-BE', { month: style });
+    return style === 'long' ? m.charAt(0).toUpperCase() + m.slice(1) : m;
+  });
+}
+
+type TFn = ReturnType<typeof useTranslations>;
+
 function emptyTask(): NewTaskDraft {
   return {
     description: '',
@@ -91,15 +104,15 @@ function emptyTask(): NewTaskDraft {
   };
 }
 
-function taskTriggerLabel(t: MaintenanceTaskItem): string {
-  if (t.trigger_type === 'washes') return `Elke ${t.trigger_value.toLocaleString('nl-BE')} wasbeurten`;
+function taskTriggerLabel(t: MaintenanceTaskItem, tr: TFn, months: string[], numLocale: string): string {
+  if (t.trigger_type === 'washes') return tr('elkeWasbeurten', { count: t.trigger_value.toLocaleString(numLocale) });
   if (t.trigger_type === 'months') {
-    if (t.trigger_value === 12) return '1× per jaar';
-    if (t.trigger_value === 24) return 'Om de 2 jaar';
-    return `Elke ${t.trigger_value} maanden`;
+    if (t.trigger_value === 12) return tr('eenKeerPerJaar');
+    if (t.trigger_value === 24) return tr('omDe2Jaar');
+    return tr('elkeMaanden', { count: String(t.trigger_value) });
   }
-  if (t.trigger_type === 'fixed_date') return `${t.trigger_day} ${MONTHS[(t.trigger_month ?? 1) - 1]} (jaarlijks)`;
-  if (t.trigger_type === 'fixed_months') return (t.trigger_month_list ?? []).map((m) => MONTHS[m - 1]).join(' + ');
+  if (t.trigger_type === 'fixed_date') return tr('jaarlijks', { date: `${t.trigger_day} ${months[(t.trigger_month ?? 1) - 1]}` });
+  if (t.trigger_type === 'fixed_months') return (t.trigger_month_list ?? []).map((m) => months[m - 1]).join(' + ');
   return '';
 }
 
@@ -141,6 +154,13 @@ function PriceField({
 // ─── Main component ───────────────────────────────────────────
 
 export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stocks, energyBills, startCarCount, startWaterCount, counterResets: initialResets = [], existingProductNames = [], maintenanceTasks: initialTasks, currentTotalWashes, programs: initialPrograms }: InstellingenFormProps) {
+  const tr = useTranslations('instellingen');
+  const tCommon = useTranslations('common');
+  const tAccount = useTranslations('account');
+  const locale = useLocale();
+  const numLocale = locale === 'fr' ? 'fr-BE' : 'nl-BE';
+  const monthsLong = localeMonths(locale, 'long');
+  const monthsShort = localeMonths(locale, 'short');
   const isFirstTime = !priceConfig;
 
   // ── Wasprogramma's state ──────────────────────────────────
@@ -184,7 +204,7 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
     const name = newProductName.trim();
     if (!name) return;
     if (productList.some((p) => p.name.toLowerCase() === name.toLowerCase())) {
-      setProductError('Product bestaat al');
+      setProductError(tr('productBestaatAl'));
       return;
     }
     setProductError('');
@@ -202,7 +222,7 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
       setChemPrices((prev) => ({ ...prev, [data.name]: '' }));
       setNewProductName('');
     } else {
-      setProductError('Opslaan mislukt');
+      setProductError(tr('opslaanMislukt'));
     }
     setAddingProduct(false);
   }
@@ -210,7 +230,7 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
   async function handleDeleteProduct(id: string) {
     const product = productList.find((p) => p.id === id);
     if (!product) return;
-    if (!confirm(`Product "${product.name}" verwijderen? Historische data blijft bewaard.`)) return;
+    if (!confirm(tr('confirmProductVerwijderen', { name: product.name }))) return;
     const res = await fetch(`/api/stock/${id}`, { method: 'DELETE' });
     if (res.ok) {
       setProductList((prev) => prev.filter((p) => p.id !== id));
@@ -289,7 +309,7 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
         setReadingResult((prev) => ({ ...prev, [stockId]: { consumption: data.consumption, unit, isFirstReading: data.isFirstReading } }));
       } else {
         const err = (await res.json().catch(() => null)) as { error?: string } | null;
-        setReadingError((prev) => ({ ...prev, [stockId]: err?.error ?? 'Opslaan mislukt' }));
+        setReadingError((prev) => ({ ...prev, [stockId]: err?.error ?? tr('opslaanMislukt') }));
       }
     } finally {
       setSavingReading(null);
@@ -331,7 +351,7 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
         body: JSON.stringify(body),
       });
       const data = (await res.json().catch(() => null)) as { counter_resets?: CounterReset[]; error?: string } | null;
-      if (!res.ok) { setResetError(data?.error ?? 'Opslaan mislukt'); return false; }
+      if (!res.ok) { setResetError(data?.error ?? tr('opslaanMislukt')); return false; }
       setResets(data?.counter_resets ?? []);
       return true;
     } finally {
@@ -342,7 +362,7 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
   async function handleAddReset(e: React.FormEvent) {
     e.preventDefault();
     const endValue = parseInt(resetEnd);
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(resetDate) || !(endValue > 0)) { setResetError('Vul een datum en de eindstand in.'); return; }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(resetDate) || !(endValue > 0)) { setResetError(tr('vulDatumEindstand')); return; }
     if (await saveResets({ add_counter_reset: { date: resetDate, end_value: endValue } })) {
       setResetDate('');
       setResetEnd('');
@@ -600,14 +620,14 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
       {/* ── First-time welcome ───────────────────────────────── */}
       {isFirstTime && !pricesSaved && (
         <div className={styles.firstTimeBanner}>
-          <span className={styles.bannerTitle}>Instellingen in 3 stappen</span>
+          <span className={styles.bannerTitle}>{tr('bannerTitel')}</span>
           <p className={styles.bannerText}>
-            Volg de stappen hieronder om uw carwash in te stellen:
+            {tr('bannerTekst')}
           </p>
           <ol className={styles.bannerSteps}>
-            <li>Prijzen per eenheid instellen</li>
-            <li>Startvoorraad ingeven</li>
-            <li>Eerste energiefactuur toevoegen</li>
+            <li>{tr('bannerStap1')}</li>
+            <li>{tr('bannerStap2')}</li>
+            <li>{tr('bannerStap3')}</li>
           </ol>
         </div>
       )}
@@ -616,17 +636,17 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
       <div className={styles.progressRow}>
         <div className={[styles.progressStep, hasPrices ? styles.stepDone : styles.stepActive].join(' ')}>
           <StepBadge num={1} done={hasPrices} />
-          <span>Prijzen</span>
+          <span>{tr('prijzen')}</span>
         </div>
         <div className={[styles.progressLine, hasPrices ? styles.lineDone : ''].join(' ')} />
         <div className={[styles.progressStep, hasStock ? styles.stepDone : hasPrices ? styles.stepActive : styles.stepIdle].join(' ')}>
           <StepBadge num={2} done={hasStock} />
-          <span>Startvoorraad</span>
+          <span>{tr('startvoorraad')}</span>
         </div>
         <div className={[styles.progressLine, hasStock ? styles.lineDone : ''].join(' ')} />
         <div className={[styles.progressStep, bills.length > 0 ? styles.stepDone : styles.stepIdle].join(' ')}>
           <StepBadge num={3} done={bills.length > 0} />
-          <span>Energiefacturen</span>
+          <span>{tAccount('energiefacturen')}</span>
         </div>
       </div>
 
@@ -634,14 +654,14 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
       <form className={styles.section} onSubmit={handleSavePrices} noValidate>
         <div className={styles.sectionHead}>
           <StepBadge num={1} done={hasPrices} />
-          <h2 className={styles.sectionTitle}>Prijzen per eenheid</h2>
+          <h2 className={styles.sectionTitle}>{tr('prijzenPerEenheid')}</h2>
         </div>
         <p className={styles.sectionHint}>
-          Deze prijzen worden gebruikt om de wekelijkse en maandelijkse kostprijzen te berekenen.
+          {tr('prijzenHint')}
         </p>
 
         <div className={styles.priceGrid}>
-          <PriceField label="Water" unit="€ / m³" value={waterPrice} onChange={setWaterPrice} />
+          <PriceField label={tr('water')} unit="€ / m³" value={waterPrice} onChange={setWaterPrice} />
           {productList.map((s) => {
             const perKg = chemPriceUnit[s.name] === 'kg';
             const canUseKg = s.unit.toLowerCase() === 'l';
@@ -660,7 +680,7 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
                       checked={perKg}
                       onChange={(e) => setChemPriceUnit((prev) => ({ ...prev, [s.name]: e.target.checked ? 'kg' : 'stock' }))}
                     />
-                    Prijs per kg
+                    {tr('prijsPerKg')}
                   </label>
                 )}
                 {canUseKg && perKg && (
@@ -679,7 +699,7 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
                   </div>
                 )}
                 {canUseKg && perKg && !(parseFloat(chemLiters[s.name] ?? '') > 0) && (
-                  <span className={styles.priceKgHint}>Vul in hoeveel liter 1000 kg is.</span>
+                  <span className={styles.priceKgHint}>{tr('vulLiter1000kg')}</span>
                 )}
                 {canUseKg && perKg && parseFloat(chemLiters[s.name] ?? '') > 0 && parseFloat(chemPrices[s.name] ?? '') > 0 && (
                   <span className={styles.priceKgHint}>
@@ -692,26 +712,26 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
         </div>
 
         {hasPriceConfig && (
-          <div className={styles.priceModeGroup} role="radiogroup" aria-label="Soort aanpassing">
+          <div className={styles.priceModeGroup} role="radiogroup" aria-label={tr('soortAanpassing')}>
             <label className={styles.priceModeOption}>
               <input type="radio" name="priceMode" checked={priceMode === 'correctie'} onChange={() => setPriceMode('correctie')} />
               <span>
-                <strong>Rechtzetting</strong> — de prijs was fout; wordt ook toegepast op eerdere periodes
+                {tr.rich('rechtzetting', { b: (chunks) => <strong>{chunks}</strong> })}
               </span>
             </label>
             <label className={styles.priceModeOption}>
               <input type="radio" name="priceMode" checked={priceMode === 'nieuw'} onChange={() => setPriceMode('nieuw')} />
               <span>
-                <strong>Nieuwe prijs vanaf vandaag</strong> — eerdere periodes behouden de oude prijs
+                {tr.rich('nieuwePrijs', { b: (chunks) => <strong>{chunks}</strong> })}
               </span>
             </label>
           </div>
         )}
 
         <div className={styles.sectionFooter}>
-          {pricesSaved && <span className={styles.savedMsg}>Opgeslagen</span>}
+          {pricesSaved && <span className={styles.savedMsg}>{tr('opgeslagen')}</span>}
           <button type="submit" className={styles.saveBtn} disabled={savingPrices}>
-            {savingPrices ? 'Opslaan...' : 'Prijzen opslaan'}
+            {savingPrices ? `${tCommon('opslaan')}...` : tr('prijzenOpslaan')}
           </button>
         </div>
       </form>
@@ -719,15 +739,15 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
       {/* ── Sectie 1b: Producten beheren ─────────────────────── */}
       <div className={styles.section}>
         <div className={styles.sectionHead}>
-          <h2 className={styles.sectionTitle}>Producten beheren</h2>
+          <h2 className={styles.sectionTitle}>{tr('productenBeheren')}</h2>
         </div>
         <p className={styles.sectionHint}>
-          Voeg de chemische producten toe die uw carwash gebruikt. Elk product verschijnt automatisch in de maandelijkse ingave en de prijsberekening.
+          {tr('productenHint')}
         </p>
 
         <div className={styles.productList}>
           {productList.length === 0 && (
-            <p className={styles.emptyHint}>Nog geen producten toegevoegd.</p>
+            <p className={styles.emptyHint}>{tr('nogGeenProducten')}</p>
           )}
           {productList.map((p) => (
             <div key={p.id} className={styles.productRow}>
@@ -737,7 +757,7 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
                 type="button"
                 className={styles.deleteProductBtn}
                 onClick={() => handleDeleteProduct(p.id)}
-                aria-label={`${p.name} verwijderen`}
+                aria-label={tr('itemVerwijderen', { name: p.name })}
               >
                 ✕
               </button>
@@ -758,7 +778,7 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
               const match = existingProductNames.find((p) => p.name.toLowerCase() === val.trim().toLowerCase());
               if (match) setNewProductUnit(match.unit);
             }}
-            placeholder="Productnaam (bv. Shampoo Pro)"
+            placeholder={tr('productnaamPlaceholder')}
           />
           <datalist id="existing-product-names">
             {existingProductNames.map((p) => (
@@ -770,18 +790,18 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
             value={newProductUnit}
             onChange={(e) => setNewProductUnit(e.target.value)}
           >
-            <option value="L">L (liter)</option>
+            <option value="L">{tr('eenheidLiter')}</option>
             <option value="kg">kg</option>
             <option value="ml">ml</option>
-            <option value="st">st (stuk)</option>
-            <option value="rol">rol</option>
+            <option value="st">{tr('eenheidStuk')}</option>
+            <option value="rol">{tr('eenheidRol')}</option>
           </select>
           <button
             type="submit"
             className={styles.saveBtn}
             disabled={addingProduct || !newProductName.trim()}
           >
-            {addingProduct ? 'Toevoegen...' : '+ Product toevoegen'}
+            {addingProduct ? `${tCommon('toevoegen')}...` : tr('productToevoegen')}
           </button>
         </form>
         {productError && <p className={styles.errorMsg}>{productError}</p>}
@@ -792,14 +812,18 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
           if (!caseMatch || caseMatch.name === trimmed) return null;
           return (
             <p className={styles.sectionHint} style={{ margin: '4px 0 0' }}>
-              Bestaat elders als &quot;{caseMatch.name}&quot; —{' '}
-              <button
-                type="button"
-                onClick={() => { setNewProductName(caseMatch.name); setNewProductUnit(caseMatch.unit); }}
-                style={{ background: 'none', border: 'none', padding: 0, color: 'inherit', textDecoration: 'underline', cursor: 'pointer' }}
-              >
-                gebruik dezelfde schrijfwijze
-              </button>
+              {tr.rich('bestaatElders', {
+                name: caseMatch.name,
+                btn: (chunks) => (
+                  <button
+                    type="button"
+                    onClick={() => { setNewProductName(caseMatch.name); setNewProductUnit(caseMatch.unit); }}
+                    style={{ background: 'none', border: 'none', padding: 0, color: 'inherit', textDecoration: 'underline', cursor: 'pointer' }}
+                  >
+                    {chunks}
+                  </button>
+                ),
+              })}
             </p>
           );
         })()}
@@ -809,10 +833,10 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
       {siteType !== 'selfcarwash' && (
         <div className={styles.section}>
           <div className={styles.sectionHead}>
-            <h2 className={styles.sectionTitle}>Wasprogramma&apos;s</h2>
+            <h2 className={styles.sectionTitle}>{tAccount('wasprogrammas')}</h2>
           </div>
           <p className={styles.sectionHint}>
-            Stel de wasprogramma&apos;s in voor deze site: naam, tier en welke producten erbij gebruikt worden.
+            {tr('wasprogrammasHint')}
           </p>
           <SiteProgramManager
             site={site}
@@ -831,30 +855,30 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
       <form className={styles.section} onSubmit={handleSaveStock} noValidate>
         <div className={styles.sectionHead}>
           <StepBadge num={2} done={hasStock} />
-          <h2 className={styles.sectionTitle}>Startvoorraad</h2>
+          <h2 className={styles.sectionTitle}>{tr('startvoorraad')}</h2>
         </div>
         <p className={styles.sectionHint}>
-          Geef de huidige hoeveelheid in voor elk product. Dit is de startbasis voor voorraadberekeningen.
+          {tr('startvoorraadHint')}
         </p>
 
         {productList.length === 0 ? (
           <p className={styles.emptyHint}>
-            Geen producten gevonden. Voeg eerst producten toe via &quot;Producten beheren&quot; hierboven.
+            {tr('geenProductenGevonden')}
           </p>
         ) : (
           <>
             <div className={styles.startStockTable}>
               <div className={styles.startStockHeaderRow}>
-                <span>Product</span>
-                <span>Huidige voorraad</span>
-                <span>Min. alert</span>
-                <span>Eenheid</span>
+                <span>{tr('product')}</span>
+                <span>{tr('huidigeVoorraad')}</span>
+                <span>{tr('minAlert')}</span>
+                <span>{tr('eenheid')}</span>
               </div>
               {productList.map((s) => (
                 <div key={s.id} className={styles.startStockRow}>
                   <span className={styles.stockName}>{s.name}</span>
                   <div className={styles.startStockField}>
-                    <span className={styles.startStockFieldLabel}>Huidige voorraad</span>
+                    <span className={styles.startStockFieldLabel}>{tr('huidigeVoorraad')}</span>
                     <input
                       className={styles.stockInput}
                       type="number"
@@ -865,7 +889,7 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
                     />
                   </div>
                   <div className={styles.startStockField}>
-                    <span className={styles.startStockFieldLabel}>Min. alert</span>
+                    <span className={styles.startStockFieldLabel}>{tr('minAlert')}</span>
                     <input
                       className={styles.stockInput}
                       type="number"
@@ -876,7 +900,7 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
                     />
                   </div>
                   <div className={styles.startStockField}>
-                    <span className={styles.startStockFieldLabel}>Eenheid</span>
+                    <span className={styles.startStockFieldLabel}>{tr('eenheid')}</span>
                     <span className={styles.stockUnit}>{s.unit}</span>
                   </div>
                 </div>
@@ -884,9 +908,9 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
             </div>
 
             <div className={styles.sectionFooter}>
-              {stockSaved && <span className={styles.savedMsg}>Opgeslagen</span>}
+              {stockSaved && <span className={styles.savedMsg}>{tr('opgeslagen')}</span>}
               <button type="submit" className={styles.saveBtn} disabled={savingStock}>
-                {savingStock ? 'Opslaan...' : 'Voorraad opslaan'}
+                {savingStock ? `${tCommon('opslaan')}...` : tr('voorraadOpslaan')}
               </button>
             </div>
           </>
@@ -896,14 +920,13 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
       {/* ── Sectie 2b: Chemie voorraad ───────────────────────── */}
       <div className={styles.section}>
         <div className={styles.sectionHead}>
-          <h2 className={styles.sectionTitle}>Chemie voorraad</h2>
+          <h2 className={styles.sectionTitle}>{tr('chemieVoorraad')}</h2>
         </div>
         <p className={styles.sectionHint}>
-          Neem maandelijks de voorraad op — de app berekent het verbruik automatisch (vorige telling + leveringen − nieuwe telling).
-          Registreer een levering om de voorraad bij te werken. Voorraad verplaatsen naar een andere carwash kan via Leveringen.
+          {tr('chemieHint')}
         </p>
         {productList.length === 0 ? (
-          <p className={styles.emptyHint}>Geen producten gevonden. Voeg eerst producten toe via &quot;Producten beheren&quot; hierboven.</p>
+          <p className={styles.emptyHint}>{tr('geenProductenGevonden')}</p>
         ) : (
           <div className={styles.stockTable}>
             {productList.map((s) => {
@@ -933,7 +956,7 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
                         type="number"
                         min="0"
                         step="any"
-                        placeholder={`Nieuwe telling (${s.unit})`}
+                        placeholder={tr('nieuweTelling', { unit: s.unit })}
                         value={readingOpen[s.id]}
                         onChange={(e) => setReadingOpen((prev) => ({ ...prev, [s.id]: e.target.value }))}
                         autoFocus
@@ -997,14 +1020,14 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
                           className={styles.stockActionBtn}
                           onClick={() => setReadingOpen((prev) => ({ ...prev, [s.id]: '' }))}
                         >
-                          📋 Voorraad opnemen
+                          {tr('voorraadOpnemen')}
                         </button>
                         <button
                           type="button"
                           className={styles.stockActionBtn}
                           onClick={() => setDeliveryOpen((prev) => ({ ...prev, [s.id]: '' }))}
                         >
-                          + Levering
+                          {tr('levering')}
                         </button>
                       </div>
                       {readingResult[s.id] && (
@@ -1013,10 +1036,10 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
                           style={{ margin: 0, color: readingResult[s.id].consumption < 0 ? 'var(--color-accent-red)' : undefined }}
                         >
                           {readingResult[s.id].isFirstReading
-                            ? 'Eerste telling opgeslagen — verbruik wordt vanaf de volgende telling berekend.'
+                            ? tr('eersteTelling')
                             : readingResult[s.id].consumption < 0
-                              ? `Let op: negatief verbruik (${readingResult[s.id].consumption} ${readingResult[s.id].unit}) — controleer of een levering ontbreekt of er een tikfout is.`
-                              : `Verbruik sinds vorige telling: ${readingResult[s.id].consumption} ${readingResult[s.id].unit}`}
+                              ? tr('negatiefVerbruik', { amount: String(readingResult[s.id].consumption), unit: readingResult[s.id].unit })
+                              : tr('verbruikSinds', { amount: String(readingResult[s.id].consumption), unit: readingResult[s.id].unit })}
                         </span>
                       )}
                     </>
@@ -1032,10 +1055,10 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
       <div className={styles.section}>
         <div className={styles.sectionHead}>
           <StepBadge num={3} done={bills.length > 0} />
-          <h2 className={styles.sectionTitle}>Energiefacturen</h2>
+          <h2 className={styles.sectionTitle}>{tAccount('energiefacturen')}</h2>
         </div>
         <p className={styles.sectionHint}>
-          Voeg uw maandelijkse energiefactuur toe zodra u deze ontvangt. Het systeem verdeelt de kost automatisch over de wagens van die maand.
+          {tr('energieHint')}
         </p>
 
         <form className={styles.billForm} onSubmit={handleAddBill} noValidate>
@@ -1044,7 +1067,7 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
             value={billMonth}
             onChange={(e) => setBillMonth(e.target.value)}
           >
-            {MONTHS.map((m, i) => (
+            {monthsLong.map((m, i) => (
               <option key={m} value={String(i + 1)}>{m}</option>
             ))}
           </select>
@@ -1066,7 +1089,7 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
               step="0.01"
               value={billAmount}
               onChange={(e) => setBillAmount(e.target.value)}
-              placeholder="Bedrag factuur"
+              placeholder={tr('bedragFactuur')}
             />
           </div>
           <button
@@ -1074,7 +1097,7 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
             className={styles.saveBtn}
             disabled={savingBill || !billAmount}
           >
-            {savingBill ? 'Opslaan...' : 'Toevoegen'}
+            {savingBill ? `${tCommon('opslaan')}...` : tCommon('toevoegen')}
           </button>
         </form>
 
@@ -1082,7 +1105,7 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
           <div className={styles.billsList}>
             {bills.map((b) => (
               <div key={b.id} className={styles.billRow}>
-                <span className={styles.billPeriod}>{MONTHS[b.month - 1]} {b.year}</span>
+                <span className={styles.billPeriod}>{monthsLong[b.month - 1]} {b.year}</span>
                 <span className={styles.billAmount}>€ {b.amount_euro.toFixed(2)}</span>
               </div>
             ))}
@@ -1093,14 +1116,14 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
       {/* ── Sectie 3b: Watervoorraad ──────────────────────────── */}
       <form className={styles.section} onSubmit={handleSaveWaterCount} noValidate>
         <div className={styles.sectionHead}>
-          <h2 className={styles.sectionTitle}>Watervoorraad</h2>
+          <h2 className={styles.sectionTitle}>{tr('watervoorraad')}</h2>
         </div>
         <p className={styles.sectionHint}>
-          Geef de start tellerstand water in van vóór u met deze app begon te registreren. Dit wordt gebruikt als vorige tellerstand voor de eerste ingave.
+          {tr('waterHint')}
         </p>
 
         <div className={styles.priceField}>
-          <label className={styles.priceLabel}>Tellerstand water</label>
+          <label className={styles.priceLabel}>{tr('tellerstandWater')}</label>
           <div className={styles.priceInputWrap}>
             <input
               className={styles.priceInput}
@@ -1116,9 +1139,9 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
         </div>
 
         <div className={styles.sectionFooter}>
-          {waterCountSaved && <span className={styles.savedMsg}>Opgeslagen</span>}
+          {waterCountSaved && <span className={styles.savedMsg}>{tr('opgeslagen')}</span>}
           <button type="submit" className={styles.saveBtn} disabled={savingWaterCount}>
-            {savingWaterCount ? 'Opslaan...' : 'Opslaan'}
+            {savingWaterCount ? `${tCommon('opslaan')}...` : tCommon('opslaan')}
           </button>
         </div>
       </form>
@@ -1127,14 +1150,14 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
       {siteType !== 'selfcarwash' && (
         <form className={styles.section} onSubmit={handleSaveCarCount} noValidate>
           <div className={styles.sectionHead}>
-            <h2 className={styles.sectionTitle}>Start hoeveelheid wagens</h2>
+            <h2 className={styles.sectionTitle}>{tr('startWagens')}</h2>
           </div>
           <p className={styles.sectionHint}>
-            Geef het totale aantal wagens in dat gewassen is vóór u met deze app begon te registreren. Dit wordt opgeteld bij de tellerstand in het dashboard.
+            {tr('startWagensHint')}
           </p>
 
           <div className={styles.priceField}>
-            <label className={styles.priceLabel}>Aantal wagens</label>
+            <label className={styles.priceLabel}>{tr('aantalWagens')}</label>
             <div className={styles.priceInputWrap}>
               <input
                 className={styles.priceInput}
@@ -1145,14 +1168,14 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
                 onChange={(e) => { setCarCount(e.target.value); setCarCountSaved(false); }}
                 placeholder="0"
               />
-              <span className={styles.priceUnit}>wagens</span>
+              <span className={styles.priceUnit}>{tr('wagens')}</span>
             </div>
           </div>
 
           <div className={styles.sectionFooter}>
-            {carCountSaved && <span className={styles.savedMsg}>Opgeslagen</span>}
+            {carCountSaved && <span className={styles.savedMsg}>{tr('opgeslagen')}</span>}
             <button type="submit" className={styles.saveBtn} disabled={savingCarCount}>
-              {savingCarCount ? 'Opslaan...' : 'Opslaan'}
+              {savingCarCount ? `${tCommon('opslaan')}...` : tCommon('opslaan')}
             </button>
           </div>
         </form>
@@ -1162,10 +1185,10 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
       {siteType !== 'selfcarwash' && (
         <form className={styles.section} onSubmit={handleAddReset} noValidate>
           <div className={styles.sectionHead}>
-            <h2 className={styles.sectionTitle}>Teller op 0 gezet</h2>
+            <h2 className={styles.sectionTitle}>{tr('tellerOpNul')}</h2>
           </div>
           <p className={styles.sectionHint}>
-            Wordt de tellerstand van de machine op 0 gezet? Geef de datum en de eindstand vóór de reset in. Daarna geeft u bij de ingave gewoon de stand in die op de machine staat; de app telt de eindstand erbij zodat onderhoud, borstels en verbruik blijven kloppen. Tellerstanden bij onderhoudstaken zijn altijd de doorlopende stand (inclusief eindstand).
+            {tr('tellerOpNulHint')}
           </p>
 
           {resets.length > 0 && (
@@ -1173,15 +1196,15 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
               {resets.map((r) => (
                 <div key={r.date} className={styles.taskRow}>
                   <div className={styles.taskInfo}>
-                    <span className={styles.taskDesc}>Teller op 0 gezet op {r.date.split('-').reverse().join('/')}</span>
-                    <span className={styles.taskTrigger}>Eindstand {r.end_value.toLocaleString('nl-BE')} wagens</span>
+                    <span className={styles.taskDesc}>{tr('tellerOpNulOp', { date: r.date.split('-').reverse().join('/') })}</span>
+                    <span className={styles.taskTrigger}>{tr('eindstandWagens', { count: r.end_value.toLocaleString(numLocale) })}</span>
                   </div>
                   <button
                     type="button"
                     className={styles.deleteProductBtn}
                     disabled={savingReset}
-                    onClick={() => { if (confirm('Deze reset verwijderen?')) saveResets({ remove_counter_reset: r.date }); }}
-                    aria-label="Reset verwijderen"
+                    onClick={() => { if (confirm(tr('confirmResetVerwijderen'))) saveResets({ remove_counter_reset: r.date }); }}
+                    aria-label={tr('resetVerwijderen')}
                   >
                     ✕
                   </button>
@@ -1192,7 +1215,7 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
 
           <div className={styles.priceGrid}>
             <div className={styles.priceField}>
-              <label className={styles.priceLabel}>Datum reset</label>
+              <label className={styles.priceLabel}>{tr('datumReset')}</label>
               <div className={styles.priceInputWrap}>
                 <input
                   className={styles.priceInput}
@@ -1203,7 +1226,7 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
               </div>
             </div>
             <div className={styles.priceField}>
-              <label className={styles.priceLabel}>Eindstand vóór reset</label>
+              <label className={styles.priceLabel}>{tr('eindstandVoorReset')}</label>
               <div className={styles.priceInputWrap}>
                 <input
                   className={styles.priceInput}
@@ -1214,7 +1237,7 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
                   onChange={(e) => setResetEnd(e.target.value)}
                   placeholder="0"
                 />
-                <span className={styles.priceUnit}>wagens</span>
+                <span className={styles.priceUnit}>{tr('wagens')}</span>
               </div>
             </div>
           </div>
@@ -1222,7 +1245,7 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
           <div className={styles.sectionFooter}>
             {resetError && <span className={styles.savedMsg}>{resetError}</span>}
             <button type="submit" className={styles.saveBtn} disabled={savingReset}>
-              {savingReset ? 'Opslaan...' : 'Reset toevoegen'}
+              {savingReset ? `${tCommon('opslaan')}...` : tr('resetToevoegen')}
             </button>
           </div>
         </form>
@@ -1231,10 +1254,10 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
       {/* ── Sectie 5: Onderhoudstaken ────────────────────────── */}
       <div className={styles.section}>
         <div className={styles.sectionHead}>
-          <h2 className={styles.sectionTitle}>Onderhoudstaken</h2>
+          <h2 className={styles.sectionTitle}>{tAccount('onderhoudstaken')}</h2>
         </div>
         <p className={styles.sectionHint}>
-          Beheer de terugkerende onderhoudstaken voor deze site. Huidige tellerstand (doorlopend): <strong>{currentTotalWashes.toLocaleString('nl-BE')} wasbeurten</strong>.
+          {tr.rich('onderhoudstakenHint', { count: currentTotalWashes.toLocaleString(numLocale), b: (chunks) => <strong>{chunks}</strong> })}
         </p>
 
         {/* Task list */}
@@ -1244,7 +1267,7 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
               editingTaskId === t.id ? (
                 <form key={t.id} className={styles.addTaskForm} onSubmit={handleSaveEditTask} noValidate>
                   <div className={styles.taskFormField}>
-                    <label className={styles.priceLabel}>Omschrijving</label>
+                    <label className={styles.priceLabel}>{tr('omschrijving')}</label>
                     <input
                       className={styles.productInput}
                       type="text"
@@ -1255,9 +1278,9 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
                   </div>
 
                   <div className={styles.taskFormField}>
-                    <label className={styles.priceLabel}>Type trigger</label>
+                    <label className={styles.priceLabel}>{tr('typeTrigger')}</label>
                     <div className={styles.radioGroup}>
-                      {([['washes', 'Op aantal wasbeurten'], ['months', 'Op aantal maanden'], ['fixed_date', 'Vaste datum per jaar']] as [NewTaskDraft['trigger_type'], string][]).filter(([val]) => siteType !== 'selfcarwash' || val !== 'washes').map(([val, lbl]) => (
+                      {([['washes', tr('triggerWasbeurten')], ['months', tr('triggerMaanden')], ['fixed_date', tr('triggerVasteDatum')]] as [NewTaskDraft['trigger_type'], string][]).filter(([val]) => siteType !== 'selfcarwash' || val !== 'washes').map(([val, lbl]) => (
                         <label key={val} className={styles.radioLabel}>
                           <input
                             type="radio"
@@ -1275,7 +1298,7 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
                   {editTask.trigger_type === 'washes' && (
                     <div className={styles.taskFormRow}>
                       <div className={styles.taskFormField}>
-                        <label className={styles.priceLabel}>Interval (wasbeurten)</label>
+                        <label className={styles.priceLabel}>{tr('intervalWasbeurten')}</label>
                         <input
                           className={styles.stockInput}
                           type="number"
@@ -1285,7 +1308,7 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
                         />
                       </div>
                       <div className={styles.taskFormField}>
-                        <label className={styles.priceLabel}>Tellerstand laatste keer</label>
+                        <label className={styles.priceLabel}>{tr('tellerstandLaatsteKeer')}</label>
                         <input
                           className={styles.stockInput}
                           type="number"
@@ -1295,7 +1318,7 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
                         />
                       </div>
                       <div className={styles.taskFormField}>
-                        <label className={styles.priceLabel}>Datum laatste keer</label>
+                        <label className={styles.priceLabel}>{tr('datumLaatsteKeer')}</label>
                         <input
                           className={styles.stockInput}
                           type="date"
@@ -1309,7 +1332,7 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
                   {editTask.trigger_type === 'months' && (
                     <div className={styles.taskFormRow}>
                       <div className={styles.taskFormField}>
-                        <label className={styles.priceLabel}>Interval (maanden)</label>
+                        <label className={styles.priceLabel}>{tr('intervalMaanden')}</label>
                         <input
                           className={styles.stockInput}
                           type="number"
@@ -1319,7 +1342,7 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
                         />
                       </div>
                       <div className={styles.taskFormField}>
-                        <label className={styles.priceLabel}>Datum laatste uitvoering</label>
+                        <label className={styles.priceLabel}>{tr('datumLaatsteUitvoering')}</label>
                         <input
                           className={styles.stockInput}
                           type="date"
@@ -1333,7 +1356,7 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
                   {editTask.trigger_type === 'fixed_date' && (
                     <div className={styles.taskFormRow}>
                       <div className={styles.taskFormField}>
-                        <label className={styles.priceLabel}>Dag</label>
+                        <label className={styles.priceLabel}>{tr('dag')}</label>
                         <input
                           className={styles.stockInput}
                           type="number"
@@ -1344,19 +1367,19 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
                         />
                       </div>
                       <div className={styles.taskFormField}>
-                        <label className={styles.priceLabel}>Maand</label>
+                        <label className={styles.priceLabel}>{tAccount('maand')}</label>
                         <select
                           className={styles.stockInput}
                           value={editTask.trigger_month}
                           onChange={(e) => setEditTask((d) => ({ ...d, trigger_month: parseInt(e.target.value) }))}
                         >
-                          {MONTHS_SHORT.map((m, i) => (
+                          {monthsShort.map((m, i) => (
                             <option key={i} value={i + 1}>{m}</option>
                           ))}
                         </select>
                       </div>
                       <div className={styles.taskFormField}>
-                        <label className={styles.priceLabel}>Datum laatste uitvoering</label>
+                        <label className={styles.priceLabel}>{tr('datumLaatsteUitvoering')}</label>
                         <input
                           className={styles.stockInput}
                           type="date"
@@ -1369,10 +1392,10 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
 
                   <div className={styles.taskFormActions}>
                     <button type="button" className={styles.cancelBtn} onClick={() => setEditingTaskId(null)}>
-                      Annuleren
+                      {tCommon('annuleren')}
                     </button>
                     <button type="submit" className={styles.saveBtn} disabled={savingEditTask || !editTask.description.trim()}>
-                      {savingEditTask ? 'Opslaan...' : 'Wijzigingen opslaan'}
+                      {savingEditTask ? `${tCommon('opslaan')}...` : tr('wijzigingenOpslaan')}
                     </button>
                   </div>
                 </form>
@@ -1385,16 +1408,16 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
                   <div className={styles.taskInfo}>
                     <span className={styles.taskDesc}>{t.description}</span>
                     <span className={styles.taskTrigger}>
-                      {taskTriggerLabel(t)}
-                      {t.last_done_at && ` — laatste: ${new Date(t.last_done_at).toLocaleDateString('nl-BE', { day: '2-digit', month: '2-digit', year: 'numeric' })}`}
-                      {t.trigger_type === 'washes' && t.washes_at_last_done > 0 && ` (${t.washes_at_last_done.toLocaleString('nl-BE')} wgn.)`}
+                      {taskTriggerLabel(t, tr, monthsLong, numLocale)}
+                      {t.last_done_at && ` — ${tr('laatsteDatum', { date: new Date(t.last_done_at).toLocaleDateString(numLocale, { day: '2-digit', month: '2-digit', year: 'numeric' }) })}`}
+                      {t.trigger_type === 'washes' && t.washes_at_last_done > 0 && ` (${tr('wgn', { count: t.washes_at_last_done.toLocaleString(numLocale) })})`}
                     </span>
                   </div>
                   <button
                     type="button"
                     className={styles.deleteProductBtn}
                     onClick={() => handleStartEditTask(t)}
-                    aria-label={`${t.description} wijzigen`}
+                    aria-label={tr('itemWijzigen', { name: t.description })}
                   >
                     ✎
                   </button>
@@ -1403,7 +1426,7 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
                     className={styles.deleteProductBtn}
                     onClick={() => handleDeleteTask(t.id)}
                     disabled={deletingTask === t.id}
-                    aria-label={`${t.description} verwijderen`}
+                    aria-label={tr('itemVerwijderen', { name: t.description })}
                   >
                     {deletingTask === t.id ? '...' : '✕'}
                   </button>
@@ -1413,18 +1436,18 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
           </div>
         )}
         {tasks.length === 0 && !addingTask && (
-          <p className={styles.emptyHint}>Nog geen onderhoudstaken geconfigureerd.</p>
+          <p className={styles.emptyHint}>{tr('nogGeenTaken')}</p>
         )}
 
         {/* Add task form */}
         {addingTask ? (
           <form className={styles.addTaskForm} onSubmit={handleAddTask} noValidate>
             <div className={styles.taskFormField}>
-              <label className={styles.priceLabel}>Omschrijving</label>
+              <label className={styles.priceLabel}>{tr('omschrijving')}</label>
               <input
                 className={styles.productInput}
                 type="text"
-                placeholder="bijv. Borstels nakijken"
+                placeholder={tr('omschrijvingPlaceholder')}
                 value={newTask.description}
                 onChange={(e) => setNewTask((t) => ({ ...t, description: e.target.value }))}
                 autoFocus
@@ -1432,9 +1455,9 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
             </div>
 
             <div className={styles.taskFormField}>
-              <label className={styles.priceLabel}>Type trigger</label>
+              <label className={styles.priceLabel}>{tr('typeTrigger')}</label>
               <div className={styles.radioGroup}>
-                {([['washes', 'Op aantal wasbeurten'], ['months', 'Op aantal maanden'], ['fixed_date', 'Vaste datum per jaar']] as [NewTaskDraft['trigger_type'], string][]).filter(([val]) => siteType !== 'selfcarwash' || val !== 'washes').map(([val, lbl]) => (
+                {([['washes', tr('triggerWasbeurten')], ['months', tr('triggerMaanden')], ['fixed_date', tr('triggerVasteDatum')]] as [NewTaskDraft['trigger_type'], string][]).filter(([val]) => siteType !== 'selfcarwash' || val !== 'washes').map(([val, lbl]) => (
                   <label key={val} className={styles.radioLabel}>
                     <input
                       type="radio"
@@ -1452,29 +1475,29 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
             {newTask.trigger_type === 'washes' && (
               <div className={styles.taskFormRow}>
                 <div className={styles.taskFormField}>
-                  <label className={styles.priceLabel}>Interval (wasbeurten)</label>
+                  <label className={styles.priceLabel}>{tr('intervalWasbeurten')}</label>
                   <input
                     className={styles.stockInput}
                     type="number"
                     min={1}
-                    placeholder="bijv. 5000"
+                    placeholder={tr('bijv', { value: '5000' })}
                     value={newTask.trigger_value || ''}
                     onChange={(e) => setNewTask((t) => ({ ...t, trigger_value: parseInt(e.target.value) || 0 }))}
                   />
                 </div>
                 <div className={styles.taskFormField}>
-                  <label className={styles.priceLabel}>Tellerstand laatste keer</label>
+                  <label className={styles.priceLabel}>{tr('tellerstandLaatsteKeer')}</label>
                   <input
                     className={styles.stockInput}
                     type="number"
                     min={0}
-                    placeholder="bijv. 120000"
+                    placeholder={tr('bijv', { value: '120000' })}
                     value={newTask.washes_at_last_done || ''}
                     onChange={(e) => setNewTask((t) => ({ ...t, washes_at_last_done: parseInt(e.target.value) || 0 }))}
                   />
                 </div>
                 <div className={styles.taskFormField}>
-                  <label className={styles.priceLabel}>Datum laatste keer</label>
+                  <label className={styles.priceLabel}>{tr('datumLaatsteKeer')}</label>
                   <input
                     className={styles.stockInput}
                     type="date"
@@ -1488,18 +1511,18 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
             {newTask.trigger_type === 'months' && (
               <div className={styles.taskFormRow}>
                 <div className={styles.taskFormField}>
-                  <label className={styles.priceLabel}>Interval (maanden)</label>
+                  <label className={styles.priceLabel}>{tr('intervalMaanden')}</label>
                   <input
                     className={styles.stockInput}
                     type="number"
                     min={1}
-                    placeholder="bijv. 3"
+                    placeholder={tr('bijv', { value: '3' })}
                     value={newTask.trigger_value || ''}
                     onChange={(e) => setNewTask((t) => ({ ...t, trigger_value: parseInt(e.target.value) || 0 }))}
                   />
                 </div>
                 <div className={styles.taskFormField}>
-                  <label className={styles.priceLabel}>Datum laatste uitvoering</label>
+                  <label className={styles.priceLabel}>{tr('datumLaatsteUitvoering')}</label>
                   <input
                     className={styles.stockInput}
                     type="date"
@@ -1513,7 +1536,7 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
             {newTask.trigger_type === 'fixed_date' && (
               <div className={styles.taskFormRow}>
                 <div className={styles.taskFormField}>
-                  <label className={styles.priceLabel}>Dag</label>
+                  <label className={styles.priceLabel}>{tr('dag')}</label>
                   <input
                     className={styles.stockInput}
                     type="number"
@@ -1524,19 +1547,19 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
                   />
                 </div>
                 <div className={styles.taskFormField}>
-                  <label className={styles.priceLabel}>Maand</label>
+                  <label className={styles.priceLabel}>{tAccount('maand')}</label>
                   <select
                     className={styles.stockInput}
                     value={newTask.trigger_month}
                     onChange={(e) => setNewTask((t) => ({ ...t, trigger_month: parseInt(e.target.value) }))}
                   >
-                    {MONTHS_SHORT.map((m, i) => (
+                    {monthsShort.map((m, i) => (
                       <option key={i} value={i + 1}>{m}</option>
                     ))}
                   </select>
                 </div>
                 <div className={styles.taskFormField}>
-                  <label className={styles.priceLabel}>Datum laatste uitvoering</label>
+                  <label className={styles.priceLabel}>{tr('datumLaatsteUitvoering')}</label>
                   <input
                     className={styles.stockInput}
                     type="date"
@@ -1553,14 +1576,14 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
                 className={styles.cancelBtn}
                 onClick={() => { setAddingTask(false); setNewTask(emptyTask()); }}
               >
-                Annuleren
+                {tCommon('annuleren')}
               </button>
               <button
                 type="submit"
                 className={styles.saveBtn}
                 disabled={savingTask || !newTask.description.trim()}
               >
-                {savingTask ? 'Opslaan...' : 'Taak toevoegen'}
+                {savingTask ? `${tCommon('opslaan')}...` : tr('taakToevoegen')}
               </button>
             </div>
           </form>
@@ -1571,7 +1594,7 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
             style={{ marginTop: 8 }}
             onClick={() => setAddingTask(true)}
           >
-            + Onderhoudstaak toevoegen
+            {tr('onderhoudstaakToevoegen')}
           </button>
         )}
       </div>

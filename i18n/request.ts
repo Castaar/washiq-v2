@@ -19,6 +19,22 @@ function setByPath(obj: Record<string, unknown>, path: string, value: string) {
   cur[parts[parts.length - 1]] = value;
 }
 
+function getByPath(obj: Record<string, unknown>, path: string): unknown {
+  let cur: unknown = obj;
+  for (const part of path.split('.')) {
+    if (typeof cur !== 'object' || cur === null) return undefined;
+    cur = (cur as Record<string, unknown>)[part];
+  }
+  return cur;
+}
+
+// True when `translated` still contains every {placeholder} used in `source`.
+function keepsPlaceholders(source: string, translated: string): boolean {
+  const names = (s: string) => [...s.matchAll(/\{(\w+)/g)].map((m) => m[1]);
+  const have = names(translated);
+  return names(source).every((n) => have.includes(n));
+}
+
 // Deep-merge `overlay` onto `base`, skipping empty-string/null leaves so a
 // key that only exists in nl.json (not yet translated) falls back to its
 // Dutch value instead of throwing a missing-message error.
@@ -56,7 +72,13 @@ export default getRequestConfig(async () => {
   try {
     await dbConnect();
     const overrides = await Translation.find({ locale }).select('key value').lean();
-    for (const o of overrides) setByPath(messages, o.key as string, o.value as string);
+    for (const o of overrides) {
+      // An override that dropped a {placeholder} of the Dutch text (e.g. "(nom)"
+      // typed instead of "{name}") would show literally — keep the committed text.
+      const nlValue = getByPath(nlMessages, o.key as string);
+      if (typeof nlValue === 'string' && !keepsPlaceholders(nlValue, o.value as string)) continue;
+      setByPath(messages, o.key as string, o.value as string);
+    }
   } catch {
     // DB unavailable — fall back to the committed JSON as-is.
   }

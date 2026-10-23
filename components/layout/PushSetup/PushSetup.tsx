@@ -2,12 +2,15 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { registerPushSubscription, requestAndRegisterPush } from '@/lib/pushClient';
 import styles from './PushSetup.module.scss';
 
 const DISMISSED_KEY = 'glosiv_push_dismissed';
 
 export default function PushSetup() {
+  const tr = useTranslations('layout');
+  const tCommon = useTranslations('common');
   const pathname = usePathname();
   const [state, setState] = useState<'hidden' | 'prompt'>('hidden');
   // Refs prevent duplicate banner shows / subscription calls across navigations
@@ -75,19 +78,19 @@ export default function PushSetup() {
   }
 
   return (
-    <div className={styles.banner} role="alertdialog" aria-label="Meldingen inschakelen">
+    <div className={styles.banner} role="alertdialog" aria-label={tr('meldingenInschakelen')}>
       <span className={styles.icon}>🔔</span>
       <div className={styles.text}>
         <p>
-          <strong>Meldingen inschakelen</strong>
-          Ontvang een melding bij nieuwe incidenten en defecten.
+          <strong>{tr('meldingenInschakelen')}</strong>
+          {tr('ontvangMelding')}
         </p>
       </div>
       <div className={styles.actions}>
         <button className={styles.enableBtn} onClick={handleEnable}>
-          Inschakelen
+          {tr('inschakelen')}
         </button>
-        <button className={styles.dismissBtn} onClick={handleDismiss} aria-label="Sluiten">
+        <button className={styles.dismissBtn} onClick={handleDismiss} aria-label={tCommon('sluiten')}>
           ✕
         </button>
       </div>

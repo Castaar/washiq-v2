@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import styles from './PullToRefresh.module.scss';
 
 const THRESHOLD = 70;
@@ -24,6 +25,7 @@ function scrollParent(el: Element | null): Element | null {
 // The installed app (iOS/Android standalone) has no browser pull-to-refresh.
 // Pulling down at the top of a page reloads it, so fresh data always shows.
 export function PullToRefresh() {
+  const t = useTranslations('layout');
   const [pull, setPull] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const start = useRef<{ x: number; y: number; active: boolean } | null>(null);
@@ -89,7 +91,7 @@ export function PullToRefresh() {
       <div className={[styles.bubble, ready ? styles.ready : '', refreshing ? styles.spin : ''].filter(Boolean).join(' ')}>
         ↻
       </div>
-      <span className={styles.label}>{refreshing ? 'Verversen…' : ready ? 'Loslaten om te verversen' : 'Trek om te verversen'}</span>
+      <span className={styles.label}>{refreshing ? t('verversen') : ready ? t('loslatenOmTeVerversen') : t('trekOmTeVerversen')}</span>
     </div>
   );
 }

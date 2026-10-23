@@ -49,6 +49,7 @@ export function IncidentenPanel({
 }) {
   const t = useTranslations('incidenten');
   const tCommon = useTranslations('common');
+  const tp = useTranslations('carwashPage');
   const TYPE_LABEL: Record<IncidentListItem['type'], string> = {
     schade: t('typeSchade'),
     ehbo: t('typeEhbo'),
@@ -98,7 +99,7 @@ export function IncidentenPanel({
           id: ((await res.json()) as { id: string }).id,
           type: 'defect',
           title: omschrijving.slice(0, 40),
-          subtitle: ernst,
+          subtitle: ernst === 'laag' ? tp('ernstLaag') : ernst === 'hoog' ? tp('ernstHoog') : tp('ernstMedium'),
           date,
           is_resolved: false,
           resolved_by_name: '',

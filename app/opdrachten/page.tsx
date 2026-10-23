@@ -1,4 +1,5 @@
 import { cookies } from 'next/headers';
+import { getTranslations } from 'next-intl/server';
 import { NavBar } from '@/components/layout/NavBar/NavBar';
 import { OpdrachtenPanel } from '@/components/opdrachten/OpdrachtenPanel/OpdrachtenPanel';
 import type { OpdrachtItem, SiteEmployee } from '@/components/opdrachten/OpdrachtenPanel/OpdrachtenPanel';
@@ -16,6 +17,7 @@ export default async function OpdrachtenPage({
 }) {
   const { site, date: dateParam } = await searchParams;
   const session = await getSession();
+  const t = await getTranslations('opdrachten');
   await dbConnect();
 
   const cookieStore = await cookies();
@@ -84,7 +86,7 @@ export default async function OpdrachtenPage({
       <main className={styles.main}>
         <div className={styles.content}>
           <div className={styles.header}>
-            <h1 className={styles.title}>Opdrachten — {siteName}</h1>
+            <h1 className={styles.title}>{t('titel', { site: siteName })}</h1>
           </div>
           <OpdrachtenPanel
             key={siteId}

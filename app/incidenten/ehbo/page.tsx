@@ -1,3 +1,4 @@
+import { getTranslations } from 'next-intl/server';
 import { NavBar } from '@/components/layout/NavBar/NavBar';
 import { EhboForm } from '@/components/incidenten/EhboForm/EhboForm';
 import { getSession } from '@/lib/session';
@@ -10,11 +11,12 @@ export default async function EhboPage({
 }) {
   const { site } = await searchParams;
   const session = await getSession();
+  const t = await getTranslations('incidenten');
   const siteId = site ?? '';
 
   return (
     <div className={styles.root}>
-      <NavBar centerTitle="EHBO rapport" backHref={`/incidenten?site=${siteId}`} />
+      <NavBar centerTitle={t('ehboRapport')} backHref={`/incidenten?site=${siteId}`} />
       <main className={styles.main}>
         <EhboForm siteId={siteId} userName={session?.name ?? ''} />
       </main>

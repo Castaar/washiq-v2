@@ -77,10 +77,10 @@ export function IncidentModal({ payload, refId, refType, siteId, onClose }: Inci
         router.refresh();
       } else {
         const err = (await res.json().catch(() => null)) as { error?: string } | null;
-        setPhotoError(err?.error ?? 'Foto toevoegen mislukt, probeer opnieuw.');
+        setPhotoError(err?.error ?? t('fotoToevoegenMislukt'));
       }
     } catch {
-      setPhotoError('Geen verbinding — foto niet toegevoegd.');
+      setPhotoError(t('fotoGeenVerbinding'));
     } finally {
       setAddingPhotos(false);
     }
@@ -415,9 +415,9 @@ export function IncidentModal({ payload, refId, refType, siteId, onClose }: Inci
 
         {photos.length < 10 && (
           <div className={styles.section}>
-            <p className={styles.sectionTitle}>{photos.length > 0 ? 'Extra foto toevoegen' : 'Foto toevoegen'}</p>
+            <p className={styles.sectionTitle}>{photos.length > 0 ? t('extraFotoToevoegen') : t('fotoToevoegen')}</p>
             {addingPhotos ? (
-              <p className={styles.textBlock}>Foto opslaan…</p>
+              <p className={styles.textBlock}>{t('fotoOpslaan')}</p>
             ) : (
               <PhotoUpload photos={[]} onChange={handleAddPhotos} maxPhotos={10 - photos.length} />
             )}
