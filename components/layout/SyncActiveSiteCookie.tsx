@@ -11,7 +11,7 @@ function getCookie(name: string): string | undefined {
 }
 
 // Deep links (push notifications, shared URLs) carry ?site=<id> but never
-// go through the SiteSelector's onChange, so dodane_active_site never gets
+// go through the SiteSelector's onChange, so glosiv_active_site never gets
 // set/updated — leaving the root layout's nav (which only trusts the
 // cookie) showing the previous site's type/links. Sync it here and force
 // a refresh so the nav catches up immediately instead of one nav later.
@@ -22,8 +22,8 @@ export function SyncActiveSiteCookie() {
   useEffect(() => {
     const siteId = searchParams.get('site');
     if (!siteId) return;
-    if (getCookie('dodane_active_site') === siteId) return;
-    document.cookie = `dodane_active_site=${siteId}; path=/; max-age=2592000; SameSite=Lax`;
+    if (getCookie('glosiv_active_site') === siteId) return;
+    document.cookie = `glosiv_active_site=${siteId}; path=/; max-age=2592000; SameSite=Lax`;
     router.refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);

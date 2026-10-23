@@ -1,4 +1,4 @@
-const CACHE = 'dodane-v6';
+const CACHE = 'glosiv-v7';
 // Holds the target of the last notification click, so the app can still
 // navigate there when iOS resumes it without delivering our postMessage.
 const NAV_CACHE = 'glosiv-pending-nav';
@@ -83,7 +83,7 @@ self.addEventListener('push', (event) => {
   try {
     data = event.data.json();
   } catch {
-    data = { title: 'Dodane', body: event.data.text(), url: '/', icon: '/icons/icon-192.png' };
+    data = { title: 'Glosiv', body: event.data.text(), url: '/', icon: '/icons/icon-192.png' };
   }
 
   const { title, body, url, icon } = data;

@@ -134,7 +134,7 @@ export function SetupWizard({ siteId, siteName, sites, initialPrices, initialTas
   function handleClose() {
     const otherSite = sites.find((s) => s.id !== siteId && s.setup_done) ?? sites.find((s) => s.id !== siteId);
     if (otherSite) {
-      document.cookie = `dodane_active_site=${otherSite.id}; path=/; max-age=2592000; SameSite=Lax`;
+      document.cookie = `glosiv_active_site=${otherSite.id}; path=/; max-age=2592000; SameSite=Lax`;
       router.push(`/?site=${otherSite.id}`);
     } else {
       router.push('/');

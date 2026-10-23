@@ -6,7 +6,7 @@ import { Translation } from '@/lib/models';
 export const SUPPORTED_LOCALES = ['nl', 'fr'] as const;
 export type Locale = (typeof SUPPORTED_LOCALES)[number];
 export const DEFAULT_LOCALE: Locale = 'nl';
-export const LOCALE_COOKIE = 'dodane_locale';
+export const LOCALE_COOKIE = 'glosiv_locale';
 
 function setByPath(obj: Record<string, unknown>, path: string, value: string) {
   const parts = path.split('.');

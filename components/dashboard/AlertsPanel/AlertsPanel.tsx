@@ -29,7 +29,7 @@ const severityLabelKeys: Record<string, string> = {
 };
 
 // ─── Persistent dismiss via localStorage ─────────────────────
-const DISMISS_KEY = 'dodane_dismissed_alerts';
+const DISMISS_KEY = 'glosiv_dismissed_alerts';
 
 function useDismissed() {
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());

@@ -30,5 +30,5 @@ export const navSections: NavSection[] = [
   },
 ];
 
-export const workspaceName = 'Dodane HQ';
+export const workspaceName = 'Glosiv';
 export const workspaceSubtitle = 'Inventory Suite';

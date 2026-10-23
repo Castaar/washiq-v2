@@ -24,7 +24,7 @@ export default async function OrdersPage({
   const contentTranslations = await getTranslationMap(locale);
 
   const cookieStore = await cookies();
-  const cookieSite = cookieStore.get('dodane_active_site')?.value;
+  const cookieSite = cookieStore.get('glosiv_active_site')?.value;
 
   const [siteDocs, userDoc] = await Promise.all([
     Site.find({}).select('_id name location site_type').lean(),

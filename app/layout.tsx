@@ -56,7 +56,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   let siteType: 'wasstraat' | 'selfcarwash' = 'wasstraat';
   if (session) {
     const cookieStore = await cookies();
-    const activeSiteId = cookieStore.get('dodane_active_site')?.value;
+    const activeSiteId = cookieStore.get('glosiv_active_site')?.value;
     if (activeSiteId) {
       await dbConnect();
       const siteDoc = await Site.findById(activeSiteId).select('site_type').lean();

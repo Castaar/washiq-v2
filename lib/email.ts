@@ -10,7 +10,7 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-const FROM = process.env.SMTP_FROM ?? 'Glosiv <noreply@washiq.be>';
+const FROM = process.env.SMTP_FROM ?? 'Glosiv <noreply@glosiv.com>';
 
 export async function sendWelcomeEmail(to: string, name: string, password: string) {
   await transporter.sendMail({

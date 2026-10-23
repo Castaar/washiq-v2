@@ -1,4 +1,4 @@
-# Dodane — Carwash Inventory Suite
+# Glosiv — Carwash Inventory Suite
 
 Next.js 15 PWA for managing carwash operations (stock, consumption, incidents, maintenance). UI is in Dutch (Flemish). Backend is MongoDB via Mongoose.
 
@@ -28,7 +28,7 @@ node scripts/cleanup-collections.mjs  # drop all collections
 ### Auth & sessions
 
 - Custom JWT auth via `jose` — no NextAuth or external library.
-- Session stored in an `httpOnly` cookie named `dodane_session` (7-day expiry).
+- Session stored in an `httpOnly` cookie named `glosiv_session` (7-day expiry).
 - `lib/session.ts` — sign, verify, read session from cookie or `NextRequest`.
 - `proxy.ts` — runs on every request; redirects unauthenticated users to `/login` and enforces role-based page access.
 

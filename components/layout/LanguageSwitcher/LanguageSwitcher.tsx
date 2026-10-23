@@ -4,7 +4,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import styles from './LanguageSwitcher.module.scss';
 
-const LOCALE_COOKIE = 'dodane_locale';
+const LOCALE_COOKIE = 'glosiv_locale';
 
 export function LanguageSwitcher() {
   const locale = useLocale();

@@ -23,7 +23,7 @@ export default async function DashboardPage({
   const refDate = dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam) ? dateParam : new Date().toISOString().slice(0, 10);
   const session = await getSession();
   const cookieStore = await cookies();
-  const cookieSite = cookieStore.get('dodane_active_site')?.value;
+  const cookieSite = cookieStore.get('glosiv_active_site')?.value;
 
   await dbConnect();
 

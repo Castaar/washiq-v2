@@ -2,7 +2,7 @@ import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 import type { NextRequest } from 'next/server';
 
-const COOKIE_NAME = 'dodane_session';
+const COOKIE_NAME = 'glosiv_session';
 const SECRET = new TextEncoder().encode(
   process.env.SESSION_SECRET ?? 'change-me-in-production-32-chars!',
 );

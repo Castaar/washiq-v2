@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { registerPushSubscription, requestAndRegisterPush } from '@/lib/pushClient';
 import styles from './PushSetup.module.scss';
 
-const DISMISSED_KEY = 'dodane_push_dismissed';
+const DISMISSED_KEY = 'glosiv_push_dismissed';
 
 export default function PushSetup() {
   const pathname = usePathname();

@@ -23,7 +23,7 @@ export function SiteSelector({ sites, activeSiteId }: SiteSelectorProps) {
 
   function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
     const siteId = e.target.value;
-    document.cookie = `dodane_active_site=${siteId}; path=/; max-age=2592000; SameSite=Lax`;
+    document.cookie = `glosiv_active_site=${siteId}; path=/; max-age=2592000; SameSite=Lax`;
     const params = new URLSearchParams(searchParams.toString());
     params.set('site', siteId);
     router.push(`${pathname}?${params.toString()}`);

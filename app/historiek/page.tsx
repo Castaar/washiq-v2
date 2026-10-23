@@ -28,7 +28,7 @@ export default async function HistoriekPage({
   const isDemo = session?.demo === true;
 
   const cookieStore = await cookies();
-  const cookieSite = cookieStore.get('dodane_active_site')?.value;
+  const cookieSite = cookieStore.get('glosiv_active_site')?.value;
 
   const [siteDocs, userDoc] = await Promise.all([
     Site.find({}).select('_id name location start_car_count start_water_count site_type counter_resets').lean(),
