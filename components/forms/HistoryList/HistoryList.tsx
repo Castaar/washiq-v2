@@ -43,6 +43,8 @@ interface HistoryListProps {
   energyBillsByMonth: Record<string, number>;
   isSelfcarwash?: boolean;
   counterResets?: CounterReset[];
+  // Day the start counts belong to (a takeover's stats_from), for the oldest entry
+  startDay?: string;
 }
 
 function dateToDateString(date: Date): string {
@@ -473,7 +475,7 @@ function EntryRow({
 }
 
 // ── Main list ─────────────────────────────────────────────────
-export function HistoryList({ entries, programs, startCarCount = 0, startWaterCount = 0, siteId, energyBillsByMonth, isSelfcarwash = false, counterResets = [] }: HistoryListProps) {
+export function HistoryList({ entries, programs, startCarCount = 0, startWaterCount = 0, siteId, energyBillsByMonth, isSelfcarwash = false, counterResets = [], startDay = '0000-00-00' }: HistoryListProps) {
   const t = useTranslations('historiek.list');
   const loc = useLocale() === 'fr' ? 'fr-BE' : 'nl-BE';
   if (entries.length === 0) {
@@ -484,7 +486,7 @@ export function HistoryList({ entries, programs, startCarCount = 0, startWaterCo
     <div className={styles.list}>
       {entries.map((e, i) => {
         const previousTellerstand = i < entries.length - 1 ? entries[i + 1].tellerstand : startCarCount;
-        const previousDay = i < entries.length - 1 ? entries[i + 1].weekStart.slice(0, 10) : '0000-00-00';
+        const previousDay = i < entries.length - 1 ? entries[i + 1].weekStart.slice(0, 10) : startDay;
         const previousWaterTellerstand = i < entries.length - 1 ? entries[i + 1].waterTellerstand : startWaterCount;
         const weekDate = new Date(e.weekStart);
         const billKey = `${weekDate.getUTCFullYear()}-${weekDate.getUTCMonth() + 1}`;

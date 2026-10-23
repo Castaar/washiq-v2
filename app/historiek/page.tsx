@@ -14,6 +14,8 @@ import { dbConnect } from '@/lib/db/mongoose';
 import { Site, WashProgram, WeeklyEntry, ChemicalStock, StockReading, User, EnergyBill, Defect, IncidentSchade, IncidentEhbo, OrderRequest, MaintenanceLog, StockDelivery, StockTransfer, StockAdjustment } from '@/lib/models';
 import { getSession } from '@/lib/session';
 import type { Types } from 'mongoose';
+import { entryDateFilter, statsFromInstant, billBeforeStatsFrom } from '@/lib/statsFrom';
+import { counterOffset } from '@/lib/counter';
 import { filterSitesForUser, resolveActiveSite, redirectIfSetupNeeded, redirectWithSiteParam } from '@/lib/getUserSites';
 import styles from './page.module.scss';
 
@@ -34,7 +36,7 @@ export default async function HistoriekPage({
   const cookieSite = cookieStore.get('glosiv_active_site')?.value;
 
   const [siteDocs, userDoc] = await Promise.all([
-    Site.find({}).select('_id name location start_car_count start_water_count site_type counter_resets').lean(),
+    Site.find({}).select('_id name location start_car_count start_water_count site_type counter_resets stats_from').lean(),
     session ? User.findById(session.userId).select('site_ids role').lean() : null,
   ]);
 
@@ -51,13 +53,23 @@ export default async function HistoriekPage({
   // the pannes/schade/bestellingen/onderhouden history below is still
   // fully relevant, so only skip the wagen-specific sections, not the page.
   const isSelfcarwash = siteDoc?.site_type === 'selfcarwash';
-  const startCarCount = (siteDoc?.start_car_count as number) ?? 0;
-  const startWaterCount = (siteDoc?.start_water_count as number) ?? 0;
+  const counterResets = ((siteDoc?.counter_resets as { date: string; end_value: number }[] | undefined) ?? []).map((r) => ({ date: r.date, end_value: r.end_value }));
+  // Figures before stats_from belong to a previous owner (lib/statsFrom.ts)
+  const statsFrom = (siteDoc?.stats_from as string | null | undefined) ?? null;
   const filter = siteId ? { site_id: siteId } : {};
+  // The water meter isn't reset: the first ingave after a takeover continues from
+  // the previous owner's last reading.
+  const lastEntryBeforeStats = statsFrom && siteId
+    ? await WeeklyEntry.findOne({ site_id: siteId, week_start: { $lt: new Date(`${statsFrom}T00:00:00Z`) } }).sort({ week_start: -1 }).select('water_tellerstand').lean()
+    : null;
+  const startCarCount = statsFrom ? counterOffset(counterResets, statsFrom) : ((siteDoc?.start_car_count as number) ?? 0);
+  const startWaterCount = lastEntryBeforeStats
+    ? ((lastEntryBeforeStats.water_tellerstand as number) ?? 0)
+    : ((siteDoc?.start_water_count as number) ?? 0);
 
   const [programDocs, entryDocs, stockDocs, energyBillDocs, readingDocs, defectDocs, schadeDocs, ehboDocs, orderDocs, maintenanceLogDocs, deliveryDocs, transferDocs, adjustmentDocs] = await Promise.all([
     WashProgram.find(filter).select('_id name tier chemicals').sort({ tier: 1 }).lean(),
-    WeeklyEntry.find(filter).sort({ week_start: 1 }).lean(),
+    WeeklyEntry.find({ ...filter, ...entryDateFilter(statsFrom) }).sort({ week_start: 1 }).lean(),
     ChemicalStock.find(filter).select('name unit').sort({ name: 1 }).lean(),
     EnergyBill.find(filter).select('year month amount_euro').lean(),
     StockReading.find(filter).select('name unit quantity consumption recorded_at recorded_by chemical_id is_invalid').sort({ recorded_at: 1 }).lean(),
@@ -73,6 +85,7 @@ export default async function HistoriekPage({
 
   const energyBillsByMonth: Record<string, number> = {};
   for (const b of energyBillDocs) {
+    if (billBeforeStatsFrom(b.year as number, b.month as number, statsFrom)) continue;
     energyBillsByMonth[`${b.year}-${b.month}`] = (b.amount_euro as number) ?? 0;
   }
 
@@ -140,7 +153,9 @@ export default async function HistoriekPage({
   const chartData: ChemieDataPoint[] = entryDocs.length > 0 ? [beginRow, ...entryChartData] : [];
 
   // Counts marked "ongeldig" are skipped in every calculation (their neighbours merge).
-  const validReadings = readingDocs.filter((r) => !r.is_invalid);
+  // Counts before stats_from are left out, so the first count after it is the baseline.
+  const statsFromAt = statsFromInstant(statsFrom);
+  const validReadings = readingDocs.filter((r) => !r.is_invalid && (!statsFromAt || (r.recorded_at as Date) >= statsFromAt));
 
   // ── Build monthly chart data: chemie-verbruik per product, uit voorraadtellingen ──
   const productReadingNames = [...new Set(validReadings.map((r) => r.name as string))];
@@ -519,7 +534,7 @@ export default async function HistoriekPage({
           <div className={styles.header}>
             <h1 className={styles.title}>{th('ingavesTitle', { site: siteName })}</h1>
           </div>
-          <HistoryList entries={entries} programs={programs} startCarCount={startCarCount} startWaterCount={startWaterCount} siteId={siteId ?? ''} energyBillsByMonth={energyBillsByMonth} isSelfcarwash={isSelfcarwash} counterResets={((siteDoc?.counter_resets as { date: string; end_value: number }[] | undefined) ?? []).map((r) => ({ date: r.date, end_value: r.end_value }))} />
+          <HistoryList entries={entries} programs={programs} startCarCount={startCarCount} startWaterCount={startWaterCount} siteId={siteId ?? ''} energyBillsByMonth={energyBillsByMonth} isSelfcarwash={isSelfcarwash} counterResets={counterResets} startDay={statsFrom ?? undefined} />
         </div>
       </main>
     </div>

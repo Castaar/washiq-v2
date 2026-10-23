@@ -32,6 +32,8 @@ import type { LogEntry } from '@/components/logboek/LogboekPanel/LogboekPanel';
 import type { AlertItem, AlertsPanelData, VoorraadItem, ConsumptionData, DagfichePayload, IncidentSchadePayload, IncidentEhboPayload, DefectPayload, MaintenanceTaskPayload } from '@/lib/types/dashboard';
 import { computeIsOverdue, computeIsApproaching, washesRemaining } from '@/lib/maintenance';
 import { priceAt, pricePerStockUnit } from '@/lib/prices';
+import { isBeforeStatsFrom, statsFromInstant, billBeforeStatsFrom } from '@/lib/statsFrom';
+import { counterOffset } from '@/lib/counter';
 import styles from './CarwashPage.module.scss';
 import type { Types } from 'mongoose';
 
@@ -87,8 +89,8 @@ export async function CarwashPage({
 
   // ── Resolve site ─────────────────────────────────────────────
   const resolvedSite = propSiteId
-    ? await Site.findById(propSiteId).select('_id name owner_id start_car_count').lean()
-    : await Site.findOne({}).select('_id name owner_id start_car_count').lean();
+    ? await Site.findById(propSiteId).select('_id name owner_id start_car_count counter_resets stats_from').lean()
+    : await Site.findOne({}).select('_id name owner_id start_car_count counter_resets stats_from').lean();
   const siteName = (resolvedSite as Record<string, unknown>)?.name as string ?? '';
   const siteId = resolvedSite ? (resolvedSite._id as Types.ObjectId).toString() : null;
   const filter = siteId ? { site_id: siteId } : {};
@@ -122,7 +124,7 @@ export async function CarwashPage({
   // Both batches are independent (day-log batch only needs dayStart/dayEnd,
   // not the results of the first) — fired together to save a Mongo round trip.
   const [
-    entries, monthEntries, prevMonthEntries, lastTwoEntries, programs, priceConfigs, stocks, tasks, logs, checklists, openDefects, openSchades, energyBillCur, energyBillPrev, readings, openOrderRequests, allEntriesLite,
+    entriesRaw, monthEntriesRaw, prevMonthEntriesRaw, lastTwoEntries, programs, priceConfigs, stocks, tasks, logs, checklists, openDefects, openSchades, energyBillCurRaw, energyBillPrevRaw, readingsRaw, openOrderRequests, allEntriesLiteRaw,
     dayAttendance, dayDeliveries, dayChecklists, dayMaintenanceLogs, daySchades, dayEhbos, dayDefects,
   ] = await Promise.all([
     period === 'week'
@@ -162,8 +164,24 @@ export async function CarwashPage({
     Defect.find({ ...filter, created_at: { $gte: dayStart, $lt: dayEnd } }).sort({ created_at: -1 }).lean(),
   ]);
 
-  const latestEntry = lastTwoEntries[0] ?? null;
-  const prevIngave  = lastTwoEntries[1] ?? null;
+  // Figures before stats_from belong to a previous owner (lib/statsFrom.ts): left out
+  // of every statistic here. Maintenance keeps using the real latest tellerstand.
+  const statsFrom = ((resolvedSite as Record<string, unknown> | null)?.stats_from as string | null | undefined) ?? null;
+  const counterResets = ((resolvedSite as Record<string, unknown> | null)?.counter_resets as { date: string; end_value: number }[] | undefined) ?? [];
+  const keepEntry = (e: { week_start?: unknown }) => !isBeforeStatsFrom(new Date(e.week_start as Date).toISOString().slice(0, 10), statsFrom);
+  const statsFromAt = statsFromInstant(statsFrom);
+  const entries = entriesRaw.filter(keepEntry);
+  const monthEntries = monthEntriesRaw.filter(keepEntry);
+  const prevMonthEntries = prevMonthEntriesRaw.filter(keepEntry);
+  const allEntriesLite = allEntriesLiteRaw.filter(keepEntry);
+  const readings = readingsRaw.filter((r) => !statsFromAt || (r.recorded_at as Date) >= statsFromAt);
+  const energyBillCur = billBeforeStatsFrom(curYear, curMonth, statsFrom) ? null : energyBillCurRaw;
+  const energyBillPrev = billBeforeStatsFrom(prevYear, prevMonth, statsFrom) ? null : energyBillPrevRaw;
+
+  const latestAnyEntry = lastTwoEntries[0] ?? null;
+  const statsEntries = lastTwoEntries.filter(keepEntry);
+  const latestEntry = statsEntries[0] ?? null;
+  const prevIngave  = statsEntries[1] ?? null;
 
   // ── Chemistry per wagen, derived from stock readings ──────────
   // Consumption between two counts (previous count + deliveries ± transfers − new
@@ -401,10 +419,11 @@ export async function CarwashPage({
 
   // Current tellerstand from the latest weekly entry, or fall back to start_car_count
   const startCarCount = (resolvedSite as Record<string, unknown>)?.start_car_count as number ?? 0;
-  const currentTellerstand = (latestEntry as Record<string, unknown>)?.tellerstand as number ?? startCarCount;
+  const currentTellerstand = (latestAnyEntry as Record<string, unknown>)?.tellerstand as number ?? startCarCount;
 
-  // Previous period's tellerstand for WagensCard delta
-  const prevTellerstand = (prevIngave as Record<string, unknown> | null)?.tellerstand as number ?? startCarCount;
+  // Previous period's tellerstand for WagensCard delta (after a takeover: the counter on stats_from)
+  const prevTellerstand = (prevIngave as Record<string, unknown> | null)?.tellerstand as number
+    ?? (statsFrom ? counterOffset(counterResets, statsFrom) : startCarCount);
   const tellerstandDelta = latestEntry ? currentTellerstand - prevTellerstand : 0;
 
   // Energy bills for the two most recent ingave months
@@ -418,8 +437,8 @@ export async function CarwashPage({
         EnergyBill.findOne({ site_id: siteId, year: prevYear2,  month: prevMonth2  }).lean(),
       ])
     : [null, null];
-  const latestBillAmount = (latestBillDoc as Record<string,unknown> | null)?.amount_euro as number ?? 0;
-  const prevBillAmount2  = (prevBillDoc  as Record<string,unknown> | null)?.amount_euro as number ?? effectiveBillAmount;
+  const latestBillAmount = billBeforeStatsFrom(latestYear, latestMonth, statsFrom) ? 0 : (latestBillDoc as Record<string,unknown> | null)?.amount_euro as number ?? 0;
+  const prevBillAmount2  = billBeforeStatsFrom(prevYear2, prevMonth2, statsFrom) ? 0 : (prevBillDoc  as Record<string,unknown> | null)?.amount_euro as number ?? effectiveBillAmount;
 
   // Cost breakdown per wagen for latest and previous ingave
   const latestCostRows = costPerWagen(latestEntry, latestBillAmount, curChemistryRows);

@@ -12,6 +12,8 @@ export interface ISite extends Document {
   setup_done: boolean;
   // Wash counter set to 0 (see lib/counter.ts) — entries stay on one continuous scale
   counter_resets: { date: string; end_value: number }[];
+  // First day of the current owner's figures (see lib/statsFrom.ts)
+  stats_from: string | null;
   created_at: Date;
 }
 const SiteSchema = new Schema<ISite>({
@@ -27,6 +29,7 @@ const SiteSchema = new Schema<ISite>({
   start_water_count: { type: Number, default: 0 },
   setup_done: { type: Boolean, default: false },
   counter_resets: [{ date: String, end_value: Number, _id: false }],
+  stats_from: { type: String, default: null },
   created_at: { type: Date, default: Date.now },
 });
 export const Site = models.Site || model<ISite>('Site', SiteSchema);

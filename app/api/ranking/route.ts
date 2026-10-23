@@ -11,6 +11,7 @@ import { dbConnect } from '@/lib/db/mongoose';
 import { Site, WeeklyEntry, PriceConfig } from '@/lib/models';
 import { getSession } from '@/lib/session';
 import type { Types } from 'mongoose';
+import { isBeforeStatsFrom } from '@/lib/statsFrom';
 
 export async function GET(req: NextRequest) {
   const session = await getSession();
@@ -33,7 +34,7 @@ export async function GET(req: NextRequest) {
   }
 
   // Get all sites under the same owner
-  const ownerSites = await Site.find({ owner_id: currentSite.owner_id }).select('_id name location').lean();
+  const ownerSites = await Site.find({ owner_id: currentSite.owner_id }).select('_id name location stats_from').lean();
 
   if (ownerSites.length <= 1) {
     return NextResponse.json({ sites: [], currentSite: { id: siteId, rank: 1 }, history: [], totalSites: 1, singleSite: true });
@@ -57,8 +58,11 @@ export async function GET(req: NextRequest) {
   // Group entries by site (max 8 per site)
   const entriesBySite: Record<string, typeof allEntries> = {};
   for (const sId of ownerSiteIds) {
+    // Ingaven from before a takeover (stats_from) don't count for the current owner
+    const statsFrom = ownerSites.find((s) => (s._id as Types.ObjectId).toString() === sId)?.stats_from as string | null | undefined;
     entriesBySite[sId] = allEntries
       .filter((e) => e.site_id.toString() === sId)
+      .filter((e) => !isBeforeStatsFrom(new Date(e.week_start as Date).toISOString().slice(0, 10), statsFrom))
       .slice(0, 8);
   }
 

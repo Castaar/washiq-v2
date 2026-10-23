@@ -26,7 +26,7 @@ export default async function WekelijkseIngavePage({
   const cookieSite = cookieStore.get('glosiv_active_site')?.value;
 
   const [siteDocs, userDoc] = await Promise.all([
-    Site.find({}).select('_id name location start_car_count start_water_count site_type counter_resets').lean(),
+    Site.find({}).select('_id name location start_car_count start_water_count site_type counter_resets stats_from').lean(),
     session ? User.findById(session.userId).select('site_ids role').lean() : null,
   ]);
 
@@ -127,6 +127,7 @@ export default async function WekelijkseIngavePage({
           startWaterCount={startWaterCount}
           contentTranslations={contentTranslations}
           isSelfcarwash={siteDoc?.site_type === 'selfcarwash'}
+          statsFrom={(siteDoc?.stats_from as string | null | undefined) ?? null}
           counterResets={((siteDoc?.counter_resets as { date: string; end_value: number }[] | undefined) ?? []).map((r) => ({ date: r.date, end_value: r.end_value }))}
         />
       </main>

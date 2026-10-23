@@ -11,6 +11,7 @@ import { getSession } from '@/lib/session';
 import { computeIsOverdue } from '@/lib/maintenance';
 import { filterSitesForUser, resolveActiveSite, redirectIfSetupNeeded, redirectWithSiteParam } from '@/lib/getUserSites';
 import styles from './page.module.scss';
+import { isBeforeStatsFrom } from '@/lib/statsFrom';
 
 // Runs server-side (Vercel = UTC) — pin the timezone so times aren't off by
 // 1-2 hours vs. Belgian local time.
@@ -38,7 +39,7 @@ export default async function DagfichePage({
   const cookieSite = cookieStore.get('glosiv_active_site')?.value;
 
   const [siteDocs, userDoc] = await Promise.all([
-    Site.find({}).select('_id name location site_type').lean(),
+    Site.find({}).select('_id name location site_type stats_from').lean(),
     session ? User.findById(session.userId).select('site_ids role').lean() : null,
   ]);
 
@@ -58,7 +59,7 @@ export default async function DagfichePage({
   const todayEnd = new Date(todayStart.getTime() + 86400000);
 
   const [lastEntry, allTaskDocs, maintenanceLogsToday, incSchadesToday, incEhbosToday, defectsToday, deliveriesToday, attendanceToday] = await Promise.all([
-    WeeklyEntry.findOne({ site_id: siteId }).sort({ week_start: -1 }).select('program_counts').lean(),
+    WeeklyEntry.findOne({ site_id: siteId }).sort({ week_start: -1 }).select('program_counts week_start').lean(),
     MaintenanceTask.find({ site_id: siteId })
       .select('_id description trigger_type trigger_value trigger_day trigger_month trigger_month_list last_done_at is_overdue')
       .lean(),
@@ -70,7 +71,10 @@ export default async function DagfichePage({
     AttendanceLog.find({ site_id: siteId, timestamp: { $gte: todayStart, $lt: todayEnd } }).sort({ timestamp: 1 }).lean(),
   ]);
 
-  const totalWagens = (lastEntry?.program_counts ?? []).reduce(
+  // An ingave from before a takeover (stats_from) belongs to the previous owner
+  const statsFrom = (siteDocs.find((s) => (s._id as Types.ObjectId).toString() === siteId)?.stats_from as string | null | undefined) ?? null;
+  const lastStatsEntry = lastEntry && !isBeforeStatsFrom(new Date(lastEntry.week_start as Date).toISOString().slice(0, 10), statsFrom) ? lastEntry : null;
+  const totalWagens = (lastStatsEntry?.program_counts ?? []).reduce(
     (sum: number, p: { count?: number }) => sum + (p.count ?? 0),
     0,
   );

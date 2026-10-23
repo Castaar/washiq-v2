@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
-import { AttendanceLog, WeeklyEntry } from '@/lib/models';
+import { AttendanceLog, Site, WeeklyEntry } from '@/lib/models';
 import { getSessionFromRequest } from '@/lib/session';
 import { buildSessions, type WorkSession } from '@/lib/attendance-hours';
 
@@ -27,7 +27,11 @@ function brusselsTimeStr(d: Date): string {
 }
 
 async function washCountForRange(siteId: string, from: Date, to: Date): Promise<number> {
-  const entries = await WeeklyEntry.find({ site_id: siteId, week_start: { $gte: from, $lt: to } })
+  // Ingaven from before a takeover (stats_from) belong to the previous owner
+  const site = await Site.findById(siteId).select('stats_from').lean();
+  const statsFrom = (site?.stats_from as string | null | undefined) ?? null;
+  const start = statsFrom && new Date(`${statsFrom}T00:00:00Z`) > from ? new Date(`${statsFrom}T00:00:00Z`) : from;
+  const entries = await WeeklyEntry.find({ site_id: siteId, week_start: { $gte: start, $lt: to } })
     .select('program_counts')
     .lean();
   return entries.reduce((sum, e) => {

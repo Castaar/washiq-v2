@@ -53,6 +53,8 @@ export interface WeeklyEntryFormProps {
   isSelfcarwash?: boolean;
   // Wash counter resets for this site (machine counter set to 0)
   counterResets?: CounterReset[];
+  // First day of the current owner's figures (lib/statsFrom.ts)
+  statsFrom?: string | null;
 }
 
 // The ingave is stored on the exact date that was picked (00:00 UTC), not snapped to a week.
@@ -129,7 +131,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 }
 
 // ─── Main form ────────────────────────────────────────────────
-export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesTasks = [], startCarCount = 0, startWaterCount = 0, contentTranslations = {}, isSelfcarwash = false, counterResets = [] }: WeeklyEntryFormProps) {
+export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesTasks = [], startCarCount = 0, startWaterCount = 0, contentTranslations = {}, isSelfcarwash = false, counterResets = [], statsFrom = null }: WeeklyEntryFormProps) {
   const router = useRouter();
   const t = useTranslations('ingave');
   const tCommon = useTranslations('common');
@@ -164,8 +166,12 @@ export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesT
   const [submitError, setSubmitError] = useState('');
 
   // Internally one continuous counter; the user types what the machine shows.
-  const previousTellerstand = lastEntry?.tellerstand ?? startCarCount;
-  const lastDay = lastEntry?.weekStart?.slice(0, 10) ?? '0000-00-00';
+  // After a takeover (statsFrom) the first ingave counts wagens from the counter
+  // value on that day, not from the previous owner's last ingave.
+  const entryDay = lastEntry?.weekStart?.slice(0, 10) ?? '0000-00-00';
+  const fromTakeover = !!statsFrom && entryDay < statsFrom;
+  const previousTellerstand = fromTakeover ? counterOffset(counterResets, statsFrom) : (lastEntry?.tellerstand ?? startCarCount);
+  const lastDay = fromTakeover ? statsFrom : entryDay;
   const previousMachine = toMachineReading(counterResets, lastDay, previousTellerstand);
   const resetsSinceLast = resetsBetween(counterResets, lastDay, pickedDate);
   const newTellerstandNum = newTellerstand.trim() === '' ? null : parseFloat(newTellerstand);
