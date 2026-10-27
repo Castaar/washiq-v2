@@ -3,7 +3,7 @@ import { dbConnect } from '@/lib/db/mongoose';
 import { Site, Planning, ShiftReminderSent, User } from '@/lib/models';
 import { sendPushToUser } from '@/lib/push';
 
-// GET /api/cron/shift-reminder — called once daily in the evening by Vercel
+// GET /api/cron/shift-reminder — called once daily late in the morning by Vercel
 // Cron (see vercel.json). Everyone who is planned to work tomorrow gets one
 // push with their shift(s): site, hours and the planning note.
 export async function GET(req: NextRequest) {
