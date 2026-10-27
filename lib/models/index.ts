@@ -754,6 +754,22 @@ const ClosingReminderSentSchema = new Schema<IClosingReminderSent>({
 ClosingReminderSentSchema.index({ site_id: 1, date: 1 }, { unique: true });
 export const ClosingReminderSent = models.ClosingReminderSent || model<IClosingReminderSent>('ClosingReminderSent', ClosingReminderSentSchema);
 
+// ─── ShiftReminderSent ──────────────────────────────────────────
+// Dedupe marker so the evening "your shift tomorrow" push goes out only
+// once per employee per day, even if the cron is called again.
+export interface IShiftReminderSent extends Document {
+  user_id: Types.ObjectId;
+  date: string; // YYYY-MM-DD (Europe/Brussels) of the shift
+  sent_at: Date;
+}
+const ShiftReminderSentSchema = new Schema<IShiftReminderSent>({
+  user_id: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  date: { type: String, required: true },
+  sent_at: { type: Date, default: Date.now },
+});
+ShiftReminderSentSchema.index({ user_id: 1, date: 1 }, { unique: true });
+export const ShiftReminderSent = models.ShiftReminderSent || model<IShiftReminderSent>('ShiftReminderSent', ShiftReminderSentSchema);
+
 // ─── Translation ────────────────────────────────────────────────
 // Runtime overrides on top of the git-committed messages/<locale>.json
 // files, so a developer can update translations (e.g. via CSV import)
