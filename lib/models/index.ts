@@ -723,6 +723,8 @@ export interface IAnnouncement extends Document {
   created_by_name: string;
   is_all_sites: boolean;
   site_ids: Types.ObjectId[];
+  // Per-filiaal messages only: who was planned there when it was posted
+  recipient_ids?: Types.ObjectId[];
   created_at: Date;
 }
 const AnnouncementSchema = new Schema<IAnnouncement>({
@@ -732,9 +734,11 @@ const AnnouncementSchema = new Schema<IAnnouncement>({
   created_by_name: { type: String, default: '' },
   is_all_sites: { type: Boolean, default: true },
   site_ids: [{ type: Schema.Types.ObjectId, ref: 'Site' }],
+  recipient_ids: { type: [{ type: Schema.Types.ObjectId, ref: 'User' }], default: undefined },
   created_at: { type: Date, default: Date.now },
 });
 AnnouncementSchema.index({ site_ids: 1 });
+AnnouncementSchema.index({ recipient_ids: 1 });
 AnnouncementSchema.index({ created_at: -1 });
 export const Announcement = models.Announcement || model<IAnnouncement>('Announcement', AnnouncementSchema);
 

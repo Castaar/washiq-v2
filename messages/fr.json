@@ -75,6 +75,8 @@
     "berichtPlaceholder": "Néerlandais — p. ex. Start promotie morgen!",
     "berichtFrPlaceholder": "Français (facultatif) — p. ex. La promotion commence demain !",
     "enkelVoor": "Uniquement pour {site} (sinon visible dans toutes les filiales)",
+    "enkelVoorUitleg": "Uniquement pour les personnes planifiées ici aujourd'hui ou dans les 7 prochains jours, et pour les propriétaires.",
+    "verstuurdNaar": "Publié. Envoyé à {count, plural, =0 {personne : personne n'est planifié ici aujourd'hui ni dans les 7 prochains jours} one {# collaborateur planifié} other {# collaborateurs planifiés}} et aux propriétaires.",
     "ditFiliaal": "cette filiale",
     "plaatsen": "Publier",
     "recenteBerichten": "Messages récents",

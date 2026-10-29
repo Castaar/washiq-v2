@@ -122,9 +122,9 @@ export async function POST(req: NextRequest) {
   });
 
   const actionLabel = { opening: 'is aangekomen', sluiting: 'is vertrokken', pauze_start: 'neemt pauze', pauze_einde: 'is terug van pauze' }[body.type];
-  // Developers see every site regardless of their assigned site_ids (same
-  // as the site picker elsewhere) — owners stay scoped to their own sites.
-  afterResponse(User.find({ is_active: true, $or: [{ role: 'developer' }, { site_ids: body.siteId, role: { $in: ['owner', 'technician', 'employee'] } }] })
+  // Only owners (scoped to their own sites) and developers are notified of
+  // arrivals/departures — colleagues don't need to know who clocks in when.
+  afterResponse(User.find({ is_active: true, $or: [{ role: 'developer' }, { site_ids: body.siteId, role: 'owner' }] })
     .select('_id')
     .lean()
     .then((notifyUsers) =>

@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
-import { Announcement } from '@/lib/models';
+import { Announcement, User } from '@/lib/models';
 import { getSessionFromRequest } from '@/lib/session';
-import { sendPushToAll, sendPushToSite, afterResponse } from '@/lib/push';
+import { sendPushToAll, sendPushToUser, afterResponse } from '@/lib/push';
+import { announcementFilter, plannedRecipientIds } from '@/lib/announcements';
 import type { Types } from 'mongoose';
 
 // GET /api/announcements?siteId=xxx
@@ -13,9 +14,7 @@ export async function GET(req: NextRequest) {
   const siteId = req.nextUrl.searchParams.get('siteId');
   await dbConnect();
 
-  const filter = siteId
-    ? { $or: [{ is_all_sites: true }, { site_ids: siteId }] }
-    : { is_all_sites: true };
+  const filter = announcementFilter(session.role, session.userId, siteId);
 
   const limit = req.nextUrl.searchParams.get('limit');
   const docs = await Announcement.find(filter).sort({ created_at: -1 }).limit(limit ? parseInt(limit) : 10).lean();
@@ -48,24 +47,49 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
+  const isAll = body.is_all_sites !== false;
+  if (!isAll) {
+    if (kind !== 'general' || !body.siteId) return NextResponse.json({ error: 'siteId required' }, { status: 400 });
+    if (session.role !== 'developer' && !session.siteIds.includes(body.siteId)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+  }
+
   await dbConnect();
 
-  const isAll = body.is_all_sites !== false;
+  const recipientIds = isAll ? undefined : await plannedRecipientIds(body.siteId!);
   const doc = await Announcement.create({
     text: body.text.trim(),
     text_fr: body.text_fr?.trim() || undefined,
     kind,
     created_by_name: session.name,
     is_all_sites: isAll,
-    site_ids: isAll ? [] : (body.siteId ? [body.siteId] : []),
+    site_ids: isAll ? [] : [body.siteId],
+    recipient_ids: recipientIds,
   });
 
   if (kind === 'general') {
-    const pushPayload = { title: 'Nieuw bericht', body: body.text.trim(), url: '/diversen' };
-    afterResponse(isAll ? sendPushToAll(pushPayload) : sendPushToSite(body.siteId!, pushPayload));
+    const pushPayload = { title: 'Nieuw bericht', body: body.text.trim(), url: `/diversen${isAll ? '' : `?site=${body.siteId}`}` };
+    if (isAll) {
+      afterResponse(sendPushToAll(pushPayload));
+    } else {
+      // The planned recipients plus the filiaal's owners — nobody else
+      afterResponse(User.find({ is_active: true, $or: [{ _id: { $in: recipientIds } }, { role: 'owner', site_ids: body.siteId }] })
+        .select('_id')
+        .lean()
+        .then((users) =>
+          Promise.allSettled(
+            users
+              .map((u) => (u._id as Types.ObjectId).toString())
+              .filter((id) => id !== session.userId)
+              .map((id) => sendPushToUser(id, pushPayload)),
+          ),
+        )
+        .catch(() => {}));
+    }
   }
 
-  return NextResponse.json({ id: (doc._id as Types.ObjectId).toString() }, { status: 201 });
+  return NextResponse.json({ id: (doc._id as Types.ObjectId).toString(), recipientCount: recipientIds?.length ?? null }, { status: 201 });
 }
 
 // DELETE /api/announcements?id=xxx — owner/developer only

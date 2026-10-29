@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { dbConnect } from '@/lib/db/mongoose';
 import { Site, User, Announcement, PriceConfig, AttendanceLog } from '@/lib/models';
+import { announcementFilter } from '@/lib/announcements';
 import { NavBar } from '@/components/layout/NavBar/NavBar';
 import { CarwashPage } from '@/components/dashboard/CarwashPage/CarwashPage';
 import { AnnouncementBanner } from '@/components/dashboard/AnnouncementBanner/AnnouncementBanner';
@@ -84,9 +85,7 @@ export default async function DashboardPage({
   const addLabel = userRole === 'developer' ? tLayout('addDeveloper') : userRole === 'employee' ? tDagfiche('titel') : activeSiteType === 'selfcarwash' ? tLayout('addVoorraadIngeven') : tLayout('addMaandelijkseIngave');
 
   // Started now (exec() fires the query) so it runs alongside the attendance query below.
-  const announcementPromise = Announcement.find({
-    $or: [{ is_all_sites: true }, { site_ids: activeSiteId }],
-  })
+  const announcementPromise = Announcement.find(announcementFilter(userRole, session?.userId, activeSiteId))
     .sort({ created_at: -1 })
     .limit(5)
     .lean()

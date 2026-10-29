@@ -18,6 +18,7 @@ export interface AnnouncementItem {
   created_by_name: string;
   created_at: string;
   isAllSites: boolean;
+  siteName?: string;
 }
 
 function fmtDate(iso: string, locale: string) {
@@ -46,6 +47,7 @@ export function DiversenPanel({
   const [generalTextFr, setGeneralTextFr] = useState('');
   const [perSiteOnly, setPerSiteOnly] = useState(false);
   const [posting, setPosting] = useState(false);
+  const [sentInfo, setSentInfo] = useState('');
 
   function displayText(a: AnnouncementItem) {
     return locale === 'fr' && a.text_fr ? a.text_fr : a.text;
@@ -72,6 +74,7 @@ export function DiversenPanel({
   async function handlePostGeneral() {
     if (!generalText.trim()) return;
     setPosting(true);
+    setSentInfo('');
     try {
       const res = await fetch('/api/announcements', {
         method: 'POST',
@@ -85,11 +88,12 @@ export function DiversenPanel({
         }),
       });
       if (res.ok) {
-        const data = (await res.json()) as { id: string };
+        const data = (await res.json()) as { id: string; recipientCount: number | null };
         setAnnouncements((prev) => [
-          { id: data.id, text: generalText.trim(), text_fr: generalTextFr.trim(), kind: 'general', created_by_name: '', created_at: new Date().toISOString(), isAllSites: !perSiteOnly },
+          { id: data.id, text: generalText.trim(), text_fr: generalTextFr.trim(), kind: 'general', created_by_name: '', created_at: new Date().toISOString(), isAllSites: !perSiteOnly, siteName: perSiteOnly ? siteName : undefined },
           ...prev,
         ]);
+        if (data.recipientCount !== null) setSentInfo(t('verstuurdNaar', { count: data.recipientCount }));
         setGeneralText('');
         setGeneralTextFr('');
       }
@@ -148,6 +152,7 @@ export function DiversenPanel({
               {t('enkelVoor', { site: siteName || t('ditFiliaal') })}
             </label>
           )}
+          {siteId && perSiteOnly && <p className={styles.perSiteHint}>{t('enkelVoorUitleg')}</p>}
           <button
             type="button"
             className={styles.postBtn}
@@ -156,6 +161,7 @@ export function DiversenPanel({
           >
             {posting ? tCommon('bezig') : t('plaatsen')}
           </button>
+          {sentInfo && <p className={styles.perSiteHint} role="status">{sentInfo}</p>}
         </section>
       )}
 
@@ -172,7 +178,7 @@ export function DiversenPanel({
                   <p className={styles.itemText}>{displayText(a)}</p>
                   <span className={styles.itemMeta}>
                     {a.created_by_name && `${a.created_by_name} · `}{fmtDate(a.created_at, locale)}
-                    {a.kind === 'general' && !a.isAllSites && ` · ${t('ditFiliaal')}`}
+                    {a.kind === 'general' && !a.isAllSites && ` · ${a.siteName || t('ditFiliaal')}`}
                   </span>
                 </div>
               </div>

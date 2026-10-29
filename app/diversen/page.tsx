@@ -5,6 +5,7 @@ import { DiversenPanel } from '@/components/diversen/DiversenPanel/DiversenPanel
 import type { BirthdayPerson, AnnouncementItem } from '@/components/diversen/DiversenPanel/DiversenPanel';
 import { dbConnect } from '@/lib/db/mongoose';
 import { Site, User, Announcement } from '@/lib/models';
+import { announcementFilter } from '@/lib/announcements';
 import { getSession } from '@/lib/session';
 import { filterSitesForUser, resolveActiveSite, redirectIfSetupNeeded, redirectWithSiteParam } from '@/lib/getUserSites';
 import styles from './page.module.scss';
@@ -37,7 +38,7 @@ export default async function DiversenPage({
   const [users, announcementDocs] = await Promise.all([
     User.find({ is_active: true, birthday: { $ne: '' } }).select('_id name birthday').lean(),
     // Berichten voor alle filialen, plus berichten specifiek voor de actieve site.
-    Announcement.find(siteId ? { $or: [{ is_all_sites: true }, { site_ids: siteId }] } : { is_all_sites: true })
+    Announcement.find(announcementFilter(userRole, session?.userId, siteId))
       .sort({ created_at: -1 }).limit(20).lean(),
   ]);
 
@@ -61,6 +62,7 @@ export default async function DiversenPage({
     created_by_name: (a.created_by_name as string) ?? '',
     created_at: (a.created_at as Date).toISOString(),
     isAllSites: Boolean(a.is_all_sites),
+    siteName: siteDocs.find((s) => String(s._id) === String((a.site_ids as Types.ObjectId[] | undefined)?.[0]))?.name as string | undefined,
   }));
 
   const canPostGeneral = session?.role === 'owner' || session?.role === 'developer';
