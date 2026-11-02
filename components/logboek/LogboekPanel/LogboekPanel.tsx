@@ -6,6 +6,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { brusselsInstant } from '@/lib/dates';
 import type { AttendanceType } from '@/lib/attendance-hours';
 import type { MonthlyReport } from '@/lib/attendance-report';
+import { IconDownload, IconPrinter } from '@/components/ui/icons';
 import styles from './LogboekPanel.module.scss';
 
 export interface LogEntry {
@@ -601,24 +602,28 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
             <span className={styles.monthLabel}>
               {monthName(selMonth)} {selYear}
             </span>
-            <button
-              type="button"
-              className={styles.exportBtn}
-              onClick={exportCsv}
-              disabled={exporting}
-              title={t('exporterenTitel')}
-            >
-              {t('exporteren')}
-            </button>
-            <a
-              className={styles.exportBtn}
-              href={`/logboek/afdruk?year=${selYear}&month=${selMonth}`}
-              target="_blank"
-              rel="noopener"
-              title={t('afdrukkenTitel')}
-            >
-              {t('afdrukken')}
-            </a>
+            <div className={styles.exportGroup}>
+              <button
+                type="button"
+                className={styles.exportBtn}
+                onClick={exportCsv}
+                disabled={exporting}
+                title={t('exporterenTitel')}
+              >
+                <IconDownload size={16} aria-hidden="true" />
+                {t('exporteren')}
+              </button>
+              <a
+                className={styles.exportBtn}
+                href={`/logboek/afdruk?year=${selYear}&month=${selMonth}`}
+                target="_blank"
+                rel="noopener"
+                title={t('afdrukkenTitel')}
+              >
+                <IconPrinter size={16} aria-hidden="true" />
+                {t('afdrukken')}
+              </a>
+            </div>
           </div>
 
           {summaryLoading && <p className={styles.empty}>{t('laden')}</p>}

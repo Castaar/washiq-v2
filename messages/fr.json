@@ -169,7 +169,7 @@
     "tabLogboek": "Journal",
     "tabMaandoverzicht": "Aperçu mensuel",
     "exporterenTitel": "Téléchargez un fichier Excel (CSV) avec les heures de ce mois, pour tous les car-wash ensemble",
-    "exporteren": "⬇ Exporter",
+    "exporteren": "Exporter",
     "laden": "Chargement...",
     "totaalGewerkteUren": "Total des heures prestées (tous les sites)",
     "urenKort": "{uren} h",
@@ -197,7 +197,7 @@
     "pauzeGeregistreerd": "Pause enregistrée",
     "pauzeEindeGeregistreerd": "Fin de pause enregistrée",
     "pauzeMinuten": "pause {min} min",
-    "afdrukken": "🖨 Imprimer",
+    "afdrukken": "Imprimer",
     "afdrukkenTitel": "Ouvrir un aperçu imprimable des heures prestées de tous les car-wash"
   },
   "onderhoudPagina": {

@@ -628,7 +628,7 @@
     "tabLogboek": "Logboek",
     "tabMaandoverzicht": "Maandoverzicht",
     "exporterenTitel": "Download een Excel-bestand (CSV) met de uren van deze maand, voor alle carwashes samen",
-    "exporteren": "⬇ Exporteren",
+    "exporteren": "Exporteren",
     "laden": "Laden...",
     "totaalGewerkteUren": "Totaal gewerkte uren (alle sites)",
     "urenKort": "{uren} u",
@@ -656,7 +656,7 @@
     "pauzeGeregistreerd": "Pauze geregistreerd",
     "pauzeEindeGeregistreerd": "Einde pauze geregistreerd",
     "pauzeMinuten": "pauze {min} min",
-    "afdrukken": "🖨 Afdrukken",
+    "afdrukken": "Afdrukken",
     "afdrukkenTitel": "Open een afdrukbaar overzicht van de gepresteerde uren van alle carwashes"
   },
   "onderhoudPagina": {
