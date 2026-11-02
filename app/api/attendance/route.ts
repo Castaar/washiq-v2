@@ -86,19 +86,25 @@ export async function POST(req: NextRequest) {
   // Owner/developer can backdate an on-behalf registration to the time it
   // actually happened (e.g. filling it in after the fact at end of day) —
   // everyone else always logs at "now".
-  const timestamp = isOnBehalf && body.timestamp ? new Date(body.timestamp) : new Date();
+  // A named jobstudent can be filled in afterwards by the owner as well.
+  const isOwnerRole = session.role === 'owner' || session.role === 'developer';
+  const canBackdate = isOnBehalf || (body.personType === 'jobstudent' && isOwnerRole);
+  const timestamp = canBackdate && body.timestamp ? new Date(body.timestamp) : new Date();
 
   // A backdated departure that falls before that person's arrival the same day is
   // almost always a 12h/24h slip (06:30 meant as 18:30) — refuse it with a hint.
-  if (isOnBehalf && body.type === 'sluiting' && body.timestamp) {
+  if (canBackdate && body.type === 'sluiting' && body.timestamp) {
     const day = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Brussels' }).format(timestamp);
+    const person = isOnBehalf
+      ? { user_id: body.onBehalfOfUserId }
+      : { person_type: 'jobstudent', user_name: new RegExp(`^${body.personName!.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') };
     const arrival = await AttendanceLog.findOne({
-      user_id: body.onBehalfOfUserId,
+      ...person,
       type: 'opening',
       timestamp: { $gte: brusselsInstant(day, '00:00:00'), $lte: timestamp },
     }).sort({ timestamp: 1 }).lean();
     const laterArrival = arrival ? null : await AttendanceLog.findOne({
-      user_id: body.onBehalfOfUserId,
+      ...person,
       type: 'opening',
       timestamp: { $gt: timestamp, $lte: brusselsInstant(day, '23:59:59') },
     }).lean();

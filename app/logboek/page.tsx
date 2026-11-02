@@ -41,6 +41,12 @@ export default async function LogboekPage({
     : [];
   const employees = employeeDocs.map((u) => ({ id: (u._id as Types.ObjectId).toString(), name: u.name as string }));
 
+  // Names used before, so the owner picks the same spelling again
+  const jobstudentNames = isOwner
+    ? ((await AttendanceLog.distinct('user_name', { site_id: siteId, person_type: 'jobstudent' })) as string[])
+      .map((n) => n.trim()).filter(Boolean).sort((a, b) => a.localeCompare(b))
+    : [];
+
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
@@ -75,6 +81,7 @@ export default async function LogboekPage({
             currentUserId={session?.userId ?? ''}
             recentLogs={recentLogs}
             employees={employees}
+            jobstudentNames={jobstudentNames}
           />
         </div>
       </main>

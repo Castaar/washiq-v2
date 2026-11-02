@@ -50,44 +50,63 @@ export interface DayRecord {
 }
 
 export interface EmployeeSummary {
-  userId: string;
+  userId: string; // user id, or "js:<name>" for a jobstudent registered by name
   userName: string;
+  isJobstudent?: boolean;
   totalHours: number;
   totalHoursAllSites: number;
   daysWorked: number;
   days: DayRecord[];
 }
 
-type LeanLog = { user_id: unknown; user_name?: string; site_id: unknown; timestamp: unknown; type: unknown };
+type LeanLog = { user_id: unknown; user_name?: string; person_type?: string; site_id: unknown; timestamp: unknown; type: unknown };
 
-function groupByUser(logs: LeanLog[]): Map<string, LeanLog[]> {
+// A jobstudent is registered by name under the account of whoever registered
+// them, so they're keyed by name — never mixed into that colleague's own hours.
+function personKey(l: LeanLog): string {
+  if (l.person_type === 'jobstudent') return `js:${(l.user_name ?? '').trim().toLowerCase()}`;
+  return (l.user_id as { toString(): string }).toString();
+}
+
+function groupByPerson(logs: LeanLog[]): Map<string, LeanLog[]> {
   const m = new Map<string, LeanLog[]>();
   for (const l of logs) {
-    const uid = (l.user_id as { toString(): string }).toString();
-    if (!m.has(uid)) m.set(uid, []);
-    m.get(uid)!.push(l);
+    const key = personKey(l);
+    if (!m.has(key)) m.set(key, []);
+    m.get(key)!.push(l);
   }
   return m;
+}
+
+// All logs (any site) of the people who have a log at this site in the range
+async function personLogsForSite(siteId: string, from: Date, to: Date): Promise<{ siteLogs: LeanLog[]; logsByPerson: Map<string, LeanLog[]> }> {
+  const siteLogs = await AttendanceLog.find({
+    site_id: siteId,
+    timestamp: { $gte: from, $lt: to },
+    person_type: { $ne: 'technician_extern' },
+  }).select('user_id user_name person_type').lean() as LeanLog[];
+  if (siteLogs.length === 0) return { siteLogs, logsByPerson: new Map() };
+  const userIds = [...new Set(siteLogs.filter((l) => l.person_type !== 'jobstudent').map((l) => (l.user_id as { toString(): string }).toString()))];
+  const allLogs = await AttendanceLog.find({
+    timestamp: { $gte: from, $lt: to },
+    $or: [
+      { user_id: { $in: userIds }, person_type: { $nin: ['technician_extern', 'jobstudent'] } },
+      { person_type: 'jobstudent' },
+    ],
+  }).select('user_id user_name person_type site_id timestamp type').lean() as LeanLog[];
+  const keys = new Set(siteLogs.map(personKey));
+  const logsByPerson = groupByPerson(allLogs);
+  for (const key of logsByPerson.keys()) if (!keys.has(key)) logsByPerson.delete(key);
+  return { siteLogs, logsByPerson };
 }
 
 // Hours worked per site for the people who have any log at that site in the range.
 // A shift that starts at this site counts here, even when the check-out is elsewhere.
 async function siteHoursForRange(siteId: string, from: Date, to: Date): Promise<number> {
-  const siteLogs = await AttendanceLog.find({
-    site_id: siteId,
-    timestamp: { $gte: from, $lt: to },
-    person_type: { $ne: 'technician_extern' },
-  }).select('user_id').lean();
-  const userIds = [...new Set(siteLogs.map((l) => (l.user_id as { toString(): string }).toString()))];
-  if (userIds.length === 0) return 0;
-  const allLogs = await AttendanceLog.find({
-    user_id: { $in: userIds },
-    timestamp: { $gte: from, $lt: to },
-    person_type: { $ne: 'technician_extern' },
-  }).select('user_id site_id timestamp type').lean();
+  const { logsByPerson } = await personLogsForSite(siteId, from, to);
   let total = 0;
-  for (const userLogs of groupByUser(allLogs as LeanLog[]).values()) {
-    for (const sess of buildSessions(userLogs)) {
+  for (const personLogs of logsByPerson.values()) {
+    for (const sess of buildSessions(personLogs)) {
       if (sess.startSite === siteId) total += sess.hours;
     }
   }
@@ -118,30 +137,18 @@ export async function GET(req: NextRequest) {
 
   await dbConnect();
 
-  const siteLogs = await AttendanceLog.find({
-    site_id: siteId,
-    timestamp: { $gte: from, $lt: to },
-    person_type: { $ne: 'technician_extern' },
-  }).select('user_id user_name').lean();
+  const { siteLogs, logsByPerson } = await personLogsForSite(siteId, from, to);
 
   const names = new Map<string, string>();
   for (const l of siteLogs) {
-    const uid = (l.user_id as { toString(): string }).toString();
-    if (!names.has(uid)) names.set(uid, (l.user_name as string) ?? '');
+    const key = personKey(l);
+    if (!names.has(key)) names.set(key, (l.user_name ?? '').trim());
   }
   const userIds = [...names.keys()];
-
-  const allLogs = userIds.length === 0 ? [] : await AttendanceLog.find({
-    user_id: { $in: userIds },
-    timestamp: { $gte: from, $lt: to },
-    person_type: { $ne: 'technician_extern' },
-  }).select('user_id user_name site_id timestamp type').lean();
-
-  const logsByUser = groupByUser(allLogs as LeanLog[]);
   const result: EmployeeSummary[] = [];
 
   for (const userId of userIds) {
-    const sessions = buildSessions(logsByUser.get(userId) ?? []);
+    const sessions = buildSessions(logsByPerson.get(userId) ?? []);
     const touchesSite = (s: WorkSession) => s.startSite === siteId || s.endSite === siteId;
 
     const byDate = new Map<string, WorkSession[]>();
@@ -172,7 +179,7 @@ export async function GET(req: NextRequest) {
     const totalHoursAllSites = Math.round(sessions.reduce((sum, x) => sum + x.hours, 0) * 10) / 10;
     const daysWorked = days.filter((d) => d.hours > 0).length;
 
-    result.push({ userId, userName: names.get(userId) ?? '', totalHours, totalHoursAllSites, daysWorked, days });
+    result.push({ userId, userName: names.get(userId) ?? '', ...(userId.startsWith('js:') ? { isJobstudent: true } : {}), totalHours, totalHoursAllSites, daysWorked, days });
   }
 
   result.sort((a, b) => a.userName.localeCompare(b.userName));

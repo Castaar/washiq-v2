@@ -31,6 +31,7 @@ interface DayRecord {
 interface EmployeeSummary {
   userId: string;
   userName: string;
+  isJobstudent?: boolean;
   totalHours: number;
   totalHoursAllSites: number;
   daysWorked: number;
@@ -44,7 +45,11 @@ interface LogboekPanelProps {
   currentUserId: string;
   recentLogs: LogEntry[];
   employees?: EmployeeOption[];
+  jobstudentNames?: string[];
 }
+
+// On-behalf picker value for "a jobstudent, by name" (not a user account)
+const JOBSTUDENT = '__jobstudent__';
 
 function fmtTime(iso: string, dateLocale: string) {
   const d = new Date(iso);
@@ -78,7 +83,7 @@ function fmtDayNL(dateStr: string, dateLocale: string) {
   return d.toLocaleDateString(dateLocale, { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
-export function LogboekPanel({ siteId, userRole, userName, currentUserId, recentLogs, employees = [] }: LogboekPanelProps) {
+export function LogboekPanel({ siteId, userRole, userName, currentUserId, recentLogs, employees = [], jobstudentNames = [] }: LogboekPanelProps) {
   const t = useTranslations('logboek');
   const locale = useLocale();
   const dateLocale = locale === 'fr' ? 'fr-BE' : 'nl-BE';
@@ -102,6 +107,7 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
   // of uit te checken. Tijdstip is aanpasbaar zodat het achteraf op het
   // juiste (werkelijke) moment kan ingevuld worden i.p.v. altijd "nu".
   const [onBehalfUserId, setOnBehalfUserId] = useState('');
+  const [onBehalfJobName, setOnBehalfJobName] = useState('');
   // Date + 24h hour/minute pickers (a datetime-local field shows AM/PM on some phones,
   // which led to 06:30 being saved where 18:30 was meant).
   const [onBehalfDate, setOnBehalfDate] = useState('');
@@ -191,6 +197,11 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
       setOnBehalfError(t('kiesOokUur'));
       return;
     }
+    const isJob = onBehalfUserId === JOBSTUDENT;
+    if (isJob && !onBehalfJobName.trim()) {
+      setOnBehalfError(t('vulNaamJobstudent'));
+      return;
+    }
     const emp = employees.find((e) => e.id === onBehalfUserId);
     setOnBehalfSaving(true);
     const res = await fetch('/api/attendance', {
@@ -198,8 +209,9 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         siteId, type,
-        onBehalfOfUserId: onBehalfUserId,
-        onBehalfOfUserName: emp?.name ?? '',
+        ...(isJob
+          ? { personType: 'jobstudent', personName: onBehalfJobName.trim() }
+          : { onBehalfOfUserId: onBehalfUserId, onBehalfOfUserName: emp?.name ?? '' }),
         timestamp: onBehalfHour !== ''
           ? brusselsInstant(onBehalfDate || new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Brussels' }).format(new Date()), `${onBehalfHour}:${onBehalfMinute}:00`).toISOString()
           : undefined,
@@ -260,9 +272,10 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
     if (!summary || summary.length === 0) return;
     const rows = [[t('csv.medewerker'), t('csv.datum'), t('csv.aankomst'), t('csv.vertrek'), t('csv.pauze'), t('csv.uren')]];
     for (const emp of summary) {
+      const name = emp.isJobstudent ? `${emp.userName} (${t('persoonType.jobstudent').toLowerCase()})` : emp.userName;
       for (const day of emp.days) {
         rows.push([
-          emp.userName,
+          name,
           day.date,
           day.checkIn || '',
           day.checkOut || '',
@@ -270,8 +283,8 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
           day.hours > 0 ? day.hours.toFixed(2) : '',
         ]);
       }
-      rows.push([emp.userName, t('csv.totaalDezeSite'), '', '', '', emp.totalHours.toFixed(2)]);
-      rows.push([emp.userName, t('csv.totaalAlleSites'), '', '', '', emp.totalHoursAllSites.toFixed(2)]);
+      rows.push([name, t('csv.totaalDezeSite'), '', '', '', emp.totalHours.toFixed(2)]);
+      rows.push([name, t('csv.totaalAlleSites'), '', '', '', emp.totalHoursAllSites.toFixed(2)]);
     }
     const csv = rows.map((r) => r.map((v) => `"${v.replace(/"/g, '""')}"`).join(';')).join('\n');
     const blob = new Blob([`﻿${csv}`], { type: 'text/csv;charset=utf-8;' });
@@ -422,10 +435,27 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
             onChange={(e) => setOnBehalfUserId(e.target.value)}
           >
             <option value="">{t('kiesMedewerker')}</option>
+            <option value={JOBSTUDENT}>{t('jobstudentMetNaam')}</option>
             {employees.map((emp) => (
               <option key={emp.id} value={emp.id}>{emp.name}</option>
             ))}
           </select>
+
+          {onBehalfUserId === JOBSTUDENT && (
+            <>
+              <input
+                className={styles.noteInput}
+                type="text"
+                list="jobstudent-names"
+                placeholder={t('naamJobstudent')}
+                value={onBehalfJobName}
+                onChange={(e) => setOnBehalfJobName(e.target.value)}
+              />
+              <datalist id="jobstudent-names">
+                {jobstudentNames.map((n) => <option key={n} value={n} />)}
+              </datalist>
+            </>
+          )}
 
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <input
@@ -617,7 +647,7 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
                 <div key={emp.userId} className={styles.summaryRow}>
                   {/* Employee summary line */}
                   <div className={styles.summaryLine}>
-                    <span className={styles.colName}>{emp.userName}</span>
+                    <span className={styles.colName}>{emp.userName}{emp.isJobstudent && ` (${t('persoonType.jobstudent').toLowerCase()})`}</span>
                     <span className={styles.colDays}>{t('aantalDagen', { count: emp.daysWorked })}</span>
                     <span className={styles.colHoursVal}>
                       {t('urenKort', { uren: emp.totalHoursAllSites.toFixed(1).replace('.0', '') })}
