@@ -591,7 +591,12 @@
       "totaalDezeSite": "Totaal (deze site)",
       "totaalAlleSites": "Totaal (alle sites)",
       "bestandsnaam": "uren-{month}-{year}",
-      "pauze": "Pauze (min)"
+      "pauze": "Pauze (min)",
+      "carwash": "Carwash",
+      "geenVertrek": "geen vertrek",
+      "subtotaal": "Subtotaal",
+      "totaal": "Totaal",
+      "totaalIedereen": "Totaal iedereen"
     },
     "registreerAanwezigheid": "Registreer aanwezigheid",
     "aangemeldAls": "Aangemeld als <strong>{name}</strong>",
@@ -622,7 +627,7 @@
     "uurUitleg": "Uur in 24u-formaat (bv. 18 u = 6 uur 's avonds). Laat \"Nu\" staan voor het huidige tijdstip.",
     "tabLogboek": "Logboek",
     "tabMaandoverzicht": "Maandoverzicht",
-    "exporterenTitel": "Download een Excel-bestand (CSV) met alle uren van deze maand",
+    "exporterenTitel": "Download een Excel-bestand (CSV) met de uren van deze maand, voor alle carwashes samen",
     "exporteren": "⬇ Exporteren",
     "laden": "Laden...",
     "totaalGewerkteUren": "Totaal gewerkte uren (alle sites)",
@@ -650,7 +655,9 @@
     "terugVanPauze": "Terug van pauze",
     "pauzeGeregistreerd": "Pauze geregistreerd",
     "pauzeEindeGeregistreerd": "Einde pauze geregistreerd",
-    "pauzeMinuten": "pauze {min} min"
+    "pauzeMinuten": "pauze {min} min",
+    "afdrukken": "🖨 Afdrukken",
+    "afdrukkenTitel": "Open een afdrukbaar overzicht van de gepresteerde uren van alle carwashes"
   },
   "onderhoudPagina": {
     "titel": "Onderhoud — {site}",
@@ -1416,5 +1423,42 @@
         "pushText": "De app kan meldingen sturen bij lage voorraad en achterstallig onderhoud. Keur meldingen goed via de pop-up die verschijnt na het inloggen om dit te activeren."
       }
     }
+  },
+  "afdruk": {
+    "titel": "Gepresteerde uren",
+    "periode": "{maand} {jaar}",
+    "carwashes": "Carwashes",
+    "opgemaakt": "Opgemaakt op {datum}",
+    "afdrukken": "Afdrukken / opslaan als pdf",
+    "overzicht": "Overzicht",
+    "medewerker": "Medewerker",
+    "dagen": "Dagen",
+    "pauze": "Pauze",
+    "totaal": "Totaal",
+    "totaalIedereen": "Totaal",
+    "datum": "Datum",
+    "carwash": "Carwash",
+    "aankomst": "Aankomst",
+    "vertrek": "Vertrek",
+    "uren": "Uren",
+    "geenVertrek": "geen vertrek",
+    "geenVertrekUitleg": "Zonder vertrek telt de dag als 0 uur.",
+    "jobstudent": "jobstudent",
+    "geenGegevens": "Geen registraties in deze maand.",
+    "voetnoot": "Gewerkte uren = vertrek min aankomst, min de geregistreerde pauzes.",
+    "gemaaktMet": "Gemaakt met Glosiv",
+    "kies": "Kies welk blad je wil afdrukken",
+    "totaalBlad": "Totaaloverzicht (met wasbeurten)",
+    "iedereenApart": "Alle medewerkers, elk op een eigen blad",
+    "ratioTitel": "Gepresteerde uren t.o.v. wasbeurten",
+    "urenGewerkt": "Gewerkte uren",
+    "wasbeurten": "Wasbeurten",
+    "wasbeurtenPerUur": "Wasbeurten per uur",
+    "minutenPerWasbeurt": "Minuten per wasbeurt",
+    "totaalWasstraten": "Totaal wasstraten",
+    "ratioUitleg": "Wasbeurten volgens de maandelijkse ingave. Minuten per wasbeurt = gewerkte minuten gedeeld door het aantal wasbeurten. Het totaal telt enkel carwashes met wasbeurten.",
+    "geenWasbeurten": "Voor deze maand is er nog geen maandelijkse ingave met wasbeurten, dus de verhouding kan nog niet berekend worden.",
+    "handtekeningWerknemer": "Handtekening werknemer",
+    "handtekeningWerkgever": "Handtekening werkgever"
   }
 }

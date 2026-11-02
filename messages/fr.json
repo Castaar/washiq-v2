@@ -132,7 +132,12 @@
       "totaalDezeSite": "Total (ce site)",
       "totaalAlleSites": "Total (tous les sites)",
       "bestandsnaam": "heures-{month}-{year}",
-      "pauze": "Pause (min)"
+      "pauze": "Pause (min)",
+      "carwash": "Car-wash",
+      "geenVertrek": "pas de départ",
+      "subtotaal": "Sous-total",
+      "totaal": "Total",
+      "totaalIedereen": "Total général"
     },
     "registreerAanwezigheid": "Enregistrer la présence",
     "aangemeldAls": "Connecté en tant que <strong>{name}</strong>",
@@ -163,7 +168,7 @@
     "uurUitleg": "Heure au format 24 h (p. ex. 18 h = 6 heures du soir). Laissez « Maintenant » pour l’heure actuelle.",
     "tabLogboek": "Journal",
     "tabMaandoverzicht": "Aperçu mensuel",
-    "exporterenTitel": "Téléchargez un fichier Excel (CSV) avec toutes les heures de ce mois",
+    "exporterenTitel": "Téléchargez un fichier Excel (CSV) avec les heures de ce mois, pour tous les car-wash ensemble",
     "exporteren": "⬇ Exporter",
     "laden": "Chargement...",
     "totaalGewerkteUren": "Total des heures prestées (tous les sites)",
@@ -191,7 +196,9 @@
     "terugVanPauze": "Retour de pause",
     "pauzeGeregistreerd": "Pause enregistrée",
     "pauzeEindeGeregistreerd": "Fin de pause enregistrée",
-    "pauzeMinuten": "pause {min} min"
+    "pauzeMinuten": "pause {min} min",
+    "afdrukken": "🖨 Imprimer",
+    "afdrukkenTitel": "Ouvrir un aperçu imprimable des heures prestées de tous les car-wash"
   },
   "onderhoudPagina": {
     "titel": "Entretien — {site}",
@@ -1042,5 +1049,42 @@
   },
   "schadeForm": {
     "geregistreerdDoor": "Enregistré par : <b>{name}</b>"
+  },
+  "afdruk": {
+    "titel": "Heures prestées",
+    "periode": "{maand} {jaar}",
+    "carwashes": "Car-wash",
+    "opgemaakt": "Établi le {datum}",
+    "afdrukken": "Imprimer / enregistrer en pdf",
+    "overzicht": "Aperçu",
+    "medewerker": "Collaborateur",
+    "dagen": "Jours",
+    "pauze": "Pause",
+    "totaal": "Total",
+    "totaalIedereen": "Total",
+    "datum": "Date",
+    "carwash": "Car-wash",
+    "aankomst": "Arrivée",
+    "vertrek": "Départ",
+    "uren": "Heures",
+    "geenVertrek": "pas de départ",
+    "geenVertrekUitleg": "Sans départ, la journée compte pour 0 heure.",
+    "jobstudent": "étudiant jobiste",
+    "geenGegevens": "Aucun enregistrement ce mois-ci.",
+    "voetnoot": "Heures prestées = départ moins arrivée, moins les pauses enregistrées.",
+    "gemaaktMet": "Réalisé avec Glosiv",
+    "kies": "Choisissez la feuille à imprimer",
+    "totaalBlad": "Aperçu total (avec lavages)",
+    "iedereenApart": "Tous les collaborateurs, chacun sur sa feuille",
+    "ratioTitel": "Heures prestées par rapport aux lavages",
+    "urenGewerkt": "Heures prestées",
+    "wasbeurten": "Lavages",
+    "wasbeurtenPerUur": "Lavages par heure",
+    "minutenPerWasbeurt": "Minutes par lavage",
+    "totaalWasstraten": "Total tunnels de lavage",
+    "ratioUitleg": "Lavages selon l'encodage mensuel. Minutes par lavage = minutes prestées divisées par le nombre de lavages. Le total ne compte que les car-wash avec des lavages.",
+    "geenWasbeurten": "Il n'y a pas encore d'encodage mensuel avec des lavages pour ce mois, le rapport ne peut donc pas encore être calculé.",
+    "handtekeningWerknemer": "Signature du collaborateur",
+    "handtekeningWerkgever": "Signature de l'employeur"
   }
 }

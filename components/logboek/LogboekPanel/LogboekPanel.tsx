@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { brusselsInstant } from '@/lib/dates';
 import type { AttendanceType } from '@/lib/attendance-hours';
+import type { MonthlyReport } from '@/lib/attendance-report';
 import styles from './LogboekPanel.module.scss';
 
 export interface LogEntry {
@@ -108,6 +109,7 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
   // juiste (werkelijke) moment kan ingevuld worden i.p.v. altijd "nu".
   const [onBehalfUserId, setOnBehalfUserId] = useState('');
   const [onBehalfJobName, setOnBehalfJobName] = useState('');
+  const [exporting, setExporting] = useState(false);
   // Date + 24h hour/minute pickers (a datetime-local field shows AM/PM on some phones,
   // which led to 06:30 being saved where 18:30 was meant).
   const [onBehalfDate, setOnBehalfDate] = useState('');
@@ -268,32 +270,47 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
     if (view === 'maand') loadSummary(year, month);
   }
 
-  function exportCsv() {
-    if (!summary || summary.length === 0) return;
-    const rows = [[t('csv.medewerker'), t('csv.datum'), t('csv.aankomst'), t('csv.vertrek'), t('csv.pauze'), t('csv.uren')]];
-    for (const emp of summary) {
-      const name = emp.isJobstudent ? `${emp.userName} (${t('persoonType.jobstudent').toLowerCase()})` : emp.userName;
-      for (const day of emp.days) {
-        rows.push([
-          name,
-          day.date,
-          day.checkIn || '',
-          day.checkOut || '',
-          (day.pauseMinutes ?? 0) > 0 ? String(day.pauseMinutes) : '',
-          day.hours > 0 ? day.hours.toFixed(2) : '',
-        ]);
+  // Export covers every carwash of the owner, not just the selected one
+  async function exportCsv() {
+    setExporting(true);
+    try {
+      const res = await fetch(`/api/attendance/report?year=${selYear}&month=${selMonth}`);
+      if (!res.ok) return;
+      const report = (await res.json()) as MonthlyReport;
+      const num = (n: number) => n.toFixed(2).replace('.', ',');
+      const fmtDay = (d: string) => d.split('-').reverse().join('/');
+      const rows: string[][] = [[t('csv.medewerker'), t('csv.datum'), t('csv.carwash'), t('csv.aankomst'), t('csv.vertrek'), t('csv.pauze'), t('csv.uren')]];
+      for (const p of report.people) {
+        const name = p.isJobstudent ? `${p.name} (${t('persoonType.jobstudent').toLowerCase()})` : p.name;
+        for (const s of p.sessions) {
+          rows.push([
+            name,
+            fmtDay(s.date),
+            s.endSite && s.endSite !== s.site ? `${s.site} → ${s.endSite}` : s.site,
+            s.checkIn,
+            s.checkOut || t('csv.geenVertrek'),
+            s.pauseMinutes > 0 ? String(s.pauseMinutes) : '',
+            s.checkOut ? num(s.hours) : '',
+          ]);
+        }
+        if (p.perSite.length > 1) {
+          for (const ps of p.perSite) rows.push([name, t('csv.subtotaal'), ps.site, '', '', '', num(ps.hours)]);
+        }
+        rows.push([name, t('csv.totaal'), '', '', '', p.pauseMinutes > 0 ? String(p.pauseMinutes) : '', num(p.totalHours)]);
+        rows.push([]);
       }
-      rows.push([name, t('csv.totaalDezeSite'), '', '', '', emp.totalHours.toFixed(2)]);
-      rows.push([name, t('csv.totaalAlleSites'), '', '', '', emp.totalHoursAllSites.toFixed(2)]);
+      rows.push([t('csv.totaalIedereen'), '', '', '', '', '', num(report.totalHours)]);
+      const csv = rows.map((r) => r.map((v) => `"${v.replace(/"/g, '""')}"`).join(';')).join('\n');
+      const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${t('csv.bestandsnaam', { month: monthName(selMonth).toLowerCase(), year: selYear })}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setExporting(false);
     }
-    const csv = rows.map((r) => r.map((v) => `"${v.replace(/"/g, '""')}"`).join(';')).join('\n');
-    const blob = new Blob([`﻿${csv}`], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${t('csv.bestandsnaam', { month: monthName(selMonth).toLowerCase(), year: selYear })}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
   }
 
   const grouped = groupByDate(logs, dateLocale);
@@ -588,11 +605,20 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
               type="button"
               className={styles.exportBtn}
               onClick={exportCsv}
-              disabled={!summary || summary.length === 0}
+              disabled={exporting}
               title={t('exporterenTitel')}
             >
               {t('exporteren')}
             </button>
+            <a
+              className={styles.exportBtn}
+              href={`/logboek/afdruk?year=${selYear}&month=${selMonth}`}
+              target="_blank"
+              rel="noopener"
+              title={t('afdrukkenTitel')}
+            >
+              {t('afdrukken')}
+            </a>
           </div>
 
           {summaryLoading && <p className={styles.empty}>{t('laden')}</p>}
