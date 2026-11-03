@@ -5,6 +5,7 @@ import type { Shift, PlanningEmployee, AgendaEventItem, VerlofItem } from '@/com
 import { dbConnect } from '@/lib/db/mongoose';
 import { Site, Planning, User, AgendaEvent, Verlof } from '@/lib/models';
 import { getSession } from '@/lib/session';
+import { brusselsMonth, contractStatuses } from '@/lib/contract-hours';
 import type { Types } from 'mongoose';
 import { filterSitesForUser, resolveActiveSite, redirectIfSetupNeeded, redirectWithSiteParam } from '@/lib/getUserSites';
 import styles from './page.module.scss';
@@ -68,6 +69,9 @@ export default async function PlanningPage({
       : Promise.resolve([]),
   ]);
 
+  const nowMonth = brusselsMonth();
+  const contractStatus = isOwner ? await contractStatuses(nowMonth.year, nowMonth.month) : [];
+
   const shifts: Shift[] = shiftDocs.map((d) => ({
     id: (d._id as Types.ObjectId).toString(),
     userId: (d.user_id as Types.ObjectId).toString(),
@@ -125,6 +129,7 @@ export default async function PlanningPage({
             verlofItems={verlofItems}
             weekStart={weekStart}
             allowedSites={allowedSites}
+            contractStatus={contractStatus}
           />
         </div>
       </main>

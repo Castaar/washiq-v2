@@ -46,7 +46,7 @@ export default async function AccountPage({
     : '/wekelijkse-ingave';
 
   const [userDocs, currentUserDoc, taskDocs, weeklyEntries, energyBillDocs] = await Promise.all([
-    User.find({ site_ids: siteId, is_demo: { $ne: true } }).select('_id name email role').lean(),
+    User.find({ site_ids: siteId, is_demo: { $ne: true } }).select('_id name email role contract_hours').lean(),
     session ? User.findById(session.userId).select('_id name email birthday').lean() : Promise.resolve(null),
     MaintenanceTask.find({ site_id: siteId }).sort({ description: 1 }).lean(),
     WeeklyEntry.find({ site_id: siteId }).select('program_counts').lean(),
@@ -67,6 +67,7 @@ export default async function AccountPage({
     name: (u.name as string) ?? '',
     email: (u.email as string) ?? '',
     role: (u.role as string) ?? 'employee',
+    contractHours: (u.contract_hours as number | null | undefined) ?? null,
   }));
 
   const currentUser = currentUserDoc

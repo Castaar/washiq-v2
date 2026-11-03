@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
+import { ContractAlert } from '@/components/contract/ContractAlert/ContractAlert';
+import type { ContractStatus } from '@/lib/contract-hours';
 import styles from './PlanningPanel.module.scss';
 
 export interface Shift {
@@ -54,6 +56,7 @@ interface PlanningPanelProps {
   verlofItems: VerlofItem[];
   weekStart: string;
   allowedSites?: AllowedSite[];
+  contractStatus?: ContractStatus[];
 }
 
 // Message-key suffixes for planning.dagKort.* / planning.dagLang.* (Mon..Sun)
@@ -109,9 +112,10 @@ function weekendsInWindow(shifts: Shift[], userId: string, windowWeeks: number, 
   return days.size;
 }
 
-export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initialShifts, employees, agendaEvents: initialAgendaEvents, verlofItems: initialVerlofItems, weekStart: initialWeekStart, allowedSites = [] }: PlanningPanelProps) {
+export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initialShifts, employees, agendaEvents: initialAgendaEvents, verlofItems: initialVerlofItems, weekStart: initialWeekStart, allowedSites = [], contractStatus = [] }: PlanningPanelProps) {
   const t = useTranslations('planning');
   const tCommon = useTranslations('common');
+  const tContract = useTranslations('contract');
   const locale = useLocale();
   const fmtDay = (dateStr: string) => fmtDayLabel(dateStr, locale);
   const [shifts, setShifts] = useState<Shift[]>(initialShifts);
@@ -426,8 +430,13 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
   }
 
   // ── Owner view: week calendar ───────────────────────────────
+  const contractOf = (userId: string) => contractStatus.find((c) => c.userId === userId);
+  const fmtH = (n: number) => n.toLocaleString(locale === 'fr' ? 'fr-BE' : 'nl-BE', { maximumFractionDigits: 1 });
+
   return (
     <div className={styles.wrapper}>
+      {isOwner && <ContractAlert items={contractStatus} />}
+
       {/* Week navigation */}
       <div className={styles.weekNav}>
         <button className={styles.navBtn} onClick={prevWeek}>{t('vorigeWeek')}</button>
@@ -627,6 +636,7 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
               const totalHours = empHoursShifts.reduce((sum, s) => sum + shiftHours(s.startTime, s.endTime), 0);
               const weekendDays4w = weekendsInWindow(shifts, emp.id, 4, weekStart);
               const weekendWarn = weekendDays4w >= 4;
+              const contract = contractOf(emp.id);
               return (
                 <div key={emp.id} className={styles.hoursRow}>
                   <span className={styles.hoursName}>{emp.name}</span>
@@ -637,6 +647,15 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
                     {t('weekendDagen', { count: weekendDays4w })}
                     {weekendWarn && ' ⚠'}
                   </span>
+                  {contract && (
+                    <span
+                      className={[styles.contractBadge, contract.reached ? styles.contractReached : ''].filter(Boolean).join(' ')}
+                      title={tContract('gewerktDezeMaand')}
+                    >
+                      {tContract('gewerktVan', { gewerkt: fmtH(contract.workedHours), contract: fmtH(contract.contractHours) })}
+                      {contract.reached && ' ⚠'}
+                    </span>
+                  )}
                 </div>
               );
             })}
@@ -672,6 +691,7 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
               {siteEmployees.map((em) => (
                 <option key={em.id} value={em.id} disabled={isOnVerlof(em.id, newDate)}>
                   {em.name}{isOnVerlof(em.id, newDate) ? ` ${t('verlofSuffix')}` : ''}
+                  {contractOf(em.id)?.reached ? ` (${tContract('bereikt')})` : ''}
                 </option>
               ))}
             </select>

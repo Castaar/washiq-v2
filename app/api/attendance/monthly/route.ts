@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
-import { AttendanceLog, Site, WeeklyEntry } from '@/lib/models';
+import { AttendanceLog, Site, User, WeeklyEntry } from '@/lib/models';
 import { getSessionFromRequest } from '@/lib/session';
 import { buildSessions, type WorkSession } from '@/lib/attendance-hours';
 
@@ -53,6 +53,8 @@ export interface EmployeeSummary {
   userId: string; // user id, or "js:<name>" for a jobstudent registered by name
   userName: string;
   isJobstudent?: boolean;
+  contractHours?: number | null; // monthly contract; overtime is measured over all sites
+  overtime?: number;
   totalHours: number;
   totalHoursAllSites: number;
   daysWorked: number;
@@ -180,6 +182,15 @@ export async function GET(req: NextRequest) {
     const daysWorked = days.filter((d) => d.hours > 0).length;
 
     result.push({ userId, userName: names.get(userId) ?? '', ...(userId.startsWith('js:') ? { isJobstudent: true } : {}), totalHours, totalHoursAllSites, daysWorked, days });
+  }
+
+  const contracts = await User.find({ _id: { $in: result.filter((r) => !r.isJobstudent).map((r) => r.userId) }, contract_hours: { $gt: 0 } })
+    .select('_id contract_hours').lean();
+  for (const c of contracts) {
+    const r = result.find((x) => x.userId === String(c._id));
+    if (!r) continue;
+    r.contractHours = c.contract_hours as number;
+    r.overtime = Math.round(Math.max(0, r.totalHoursAllSites - r.contractHours) * 10) / 10;
   }
 
   result.sort((a, b) => a.userName.localeCompare(b.userName));

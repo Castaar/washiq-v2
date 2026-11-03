@@ -154,7 +154,10 @@
     "titelMetSite": "Account — {name}",
     "addLabelDagfiche": "Dagfiche",
     "addLabelTechnieker": "Technieker",
-    "addLabelMaandelijkseIngave": "Maandelijkse Ingave"
+    "addLabelMaandelijkseIngave": "Maandelijkse Ingave",
+    "contractUitleg": "Contracturen per maand. Leeg laten als er geen contract is.",
+    "contractUrenPerMaand": "Contracturen per maand voor {name}",
+    "contractEenheid": "u/maand"
   },
   "notificaties": {
     "ingeschakeld": "Meldingen zijn ingeschakeld.",
@@ -596,7 +599,9 @@
       "geenVertrek": "geen vertrek",
       "subtotaal": "Subtotaal",
       "totaal": "Totaal",
-      "totaalIedereen": "Totaal iedereen"
+      "totaalIedereen": "Totaal iedereen",
+      "contract": "Contract (u)",
+      "overuren": "Overuren (u)"
     },
     "registreerAanwezigheid": "Registreer aanwezigheid",
     "aangemeldAls": "Aangemeld als <strong>{name}</strong>",
@@ -657,7 +662,9 @@
     "pauzeEindeGeregistreerd": "Einde pauze geregistreerd",
     "pauzeMinuten": "pauze {min} min",
     "afdrukken": "Afdrukken",
-    "afdrukkenTitel": "Open een afdrukbaar overzicht van de gepresteerde uren van alle carwashes"
+    "afdrukkenTitel": "Open een afdrukbaar overzicht van de gepresteerde uren van alle carwashes",
+    "vanContract": "van {contract} u",
+    "overurenKort": "+{uren} u over"
   },
   "onderhoudPagina": {
     "titel": "Onderhoud — {site}",
@@ -1459,6 +1466,18 @@
     "ratioUitleg": "Wasbeurten volgens de maandelijkse ingave. Minuten per wasbeurt = gewerkte minuten gedeeld door het aantal wasbeurten. Het totaal telt enkel carwashes met wasbeurten.",
     "geenWasbeurten": "Voor deze maand is er nog geen maandelijkse ingave met wasbeurten, dus de verhouding kan nog niet berekend worden.",
     "handtekeningWerknemer": "Handtekening werknemer",
-    "handtekeningWerkgever": "Handtekening werkgever"
+    "handtekeningWerkgever": "Handtekening werkgever",
+    "contract": "Contract",
+    "overuren": "Overuren",
+    "overurenUitleg": "Overuren = gewerkte uren over alle carwashes min de contracturen van die maand."
+  },
+  "contract": {
+    "bereiktTitel": "Contracturen bereikt deze maand",
+    "gewerktVan": "{gewerkt} u van {contract} u",
+    "overuren": "+{uren} u overuren",
+    "contract": "Contract",
+    "overurenKort": "Overuren",
+    "gewerktDezeMaand": "Gewerkt deze maand",
+    "bereikt": "contract bereikt"
   }
 }

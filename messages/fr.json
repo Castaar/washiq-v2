@@ -137,7 +137,9 @@
       "geenVertrek": "pas de départ",
       "subtotaal": "Sous-total",
       "totaal": "Total",
-      "totaalIedereen": "Total général"
+      "totaalIedereen": "Total général",
+      "contract": "Contrat (h)",
+      "overuren": "Heures sup. (h)"
     },
     "registreerAanwezigheid": "Enregistrer la présence",
     "aangemeldAls": "Connecté en tant que <strong>{name}</strong>",
@@ -198,7 +200,9 @@
     "pauzeEindeGeregistreerd": "Fin de pause enregistrée",
     "pauzeMinuten": "pause {min} min",
     "afdrukken": "Imprimer",
-    "afdrukkenTitel": "Ouvrir un aperçu imprimable des heures prestées de tous les car-wash"
+    "afdrukkenTitel": "Ouvrir un aperçu imprimable des heures prestées de tous les car-wash",
+    "vanContract": "sur {contract} h",
+    "overurenKort": "+{uren} h sup."
   },
   "onderhoudPagina": {
     "titel": "Entretien — {site}",
@@ -491,7 +495,10 @@
     "laatste": "Dernier : {label}",
     "tekensNodig": "Encore {count} caractère(s) nécessaire(s) (minimum 6).",
     "toegevoegd": "{name} a été ajouté.",
-    "volgende": "Prochain : {label}"
+    "volgende": "Prochain : {label}",
+    "contractUitleg": "Heures de contrat par mois. Laisser vide s’il n’y a pas de contrat.",
+    "contractUrenPerMaand": "Heures de contrat par mois pour {name}",
+    "contractEenheid": "h/mois"
   },
   "washPrograms": {
     "confirmVerwijderen": "Supprimer le programme « {name} » ?",
@@ -1085,6 +1092,18 @@
     "ratioUitleg": "Lavages selon l'encodage mensuel. Minutes par lavage = minutes prestées divisées par le nombre de lavages. Le total ne compte que les car-wash avec des lavages.",
     "geenWasbeurten": "Il n'y a pas encore d'encodage mensuel avec des lavages pour ce mois, le rapport ne peut donc pas encore être calculé.",
     "handtekeningWerknemer": "Signature du collaborateur",
-    "handtekeningWerkgever": "Signature de l'employeur"
+    "handtekeningWerkgever": "Signature de l'employeur",
+    "contract": "Contrat",
+    "overuren": "Heures sup.",
+    "overurenUitleg": "Heures supplémentaires = heures prestées dans tous les car-wash moins les heures de contrat du mois."
+  },
+  "contract": {
+    "bereiktTitel": "Heures de contrat atteintes ce mois-ci",
+    "gewerktVan": "{gewerkt} h sur {contract} h",
+    "overuren": "+{uren} h supplémentaires",
+    "contract": "Contrat",
+    "overurenKort": "Heures sup.",
+    "gewerktDezeMaand": "Presté ce mois-ci",
+    "bereikt": "contrat atteint"
   }
 }

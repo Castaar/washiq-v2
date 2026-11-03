@@ -162,11 +162,35 @@ $accent: #e7e231;
 
 .num {
   text-align: right !important;
+}
+
+td.num {
   white-space: nowrap;
+}
+
+// The overview has a column per carwash (plus contract/overuren) — keep it on the page
+.overviewTable {
+  font-size: 8.5pt;
+
+  th {
+    font-size: 7pt;
+    vertical-align: bottom;
+  }
+
+  td,
+  th {
+    padding-left: 4px;
+    padding-right: 4px;
+  }
 }
 
 .strong {
   font-weight: 700;
+}
+
+.overtime {
+  font-weight: 700;
+  color: #b4530f;
 }
 
 .missing td {

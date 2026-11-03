@@ -6,6 +6,7 @@ import type { LogEntry } from '@/components/logboek/LogboekPanel/LogboekPanel';
 import { dbConnect } from '@/lib/db/mongoose';
 import { Site, AttendanceLog, User } from '@/lib/models';
 import { getSession } from '@/lib/session';
+import { brusselsMonth, contractStatuses } from '@/lib/contract-hours';
 import type { Types } from 'mongoose';
 import { filterSitesForUser, resolveActiveSite, redirectIfSetupNeeded, redirectWithSiteParam } from '@/lib/getUserSites';
 import styles from './page.module.scss';
@@ -47,6 +48,9 @@ export default async function LogboekPage({
       .map((n) => n.trim()).filter(Boolean).sort((a, b) => a.localeCompare(b))
     : [];
 
+  const nowMonth = brusselsMonth();
+  const contractAlerts = isOwner ? await contractStatuses(nowMonth.year, nowMonth.month) : [];
+
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
@@ -82,6 +86,7 @@ export default async function LogboekPage({
             recentLogs={recentLogs}
             employees={employees}
             jobstudentNames={jobstudentNames}
+            contractAlerts={contractAlerts}
           />
         </div>
       </main>

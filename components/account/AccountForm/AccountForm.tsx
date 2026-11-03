@@ -14,6 +14,7 @@ interface UserItem {
   name: string;
   email: string;
   role: string;
+  contractHours: number | null;
 }
 
 export interface EnergyBillItem {
@@ -160,6 +161,7 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
 
   // Personeelsgegevens
   const [users, setUsers] = useState(initialUsers);
+  const [contractSavedId, setContractSavedId] = useState<string | null>(null);
   const [newName, setNewName] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -277,6 +279,24 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
     }
   }
 
+  // Monthly contract hours — saved when the field loses focus; empty clears it
+  async function handleSaveContract(userId: string, value: string) {
+    const hours = value.trim() === '' ? null : Number(value.replace(',', '.'));
+    if (hours !== null && (!Number.isFinite(hours) || hours < 0)) return;
+    const current = users.find((u) => u.id === userId)?.contractHours ?? null;
+    if ((hours || null) === current) return;
+    const res = await fetch(`/api/users/${userId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contractHours: hours }),
+    });
+    if (res.ok) {
+      setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, contractHours: hours || null } : u));
+      setContractSavedId(userId);
+      setTimeout(() => setContractSavedId((id) => (id === userId ? null : id)), 2500);
+    }
+  }
+
   async function handleChangeRole(userId: string, newUserRole: string) {
     const res = await fetch(`/api/users/${userId}`, {
       method: 'PATCH',
@@ -305,7 +325,7 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
       });
       const data = await res.json() as { id?: string; error?: string };
       if (res.ok && data.id) {
-        setUsers((prev) => [...prev, { id: data.id!, name: newName.trim(), email: newEmail.trim(), role: newRole }]);
+        setUsers((prev) => [...prev, { id: data.id!, name: newName.trim(), email: newEmail.trim(), role: newRole, contractHours: null }]);
         setNewName('');
         setNewEmail('');
         setNewPassword('');
@@ -705,6 +725,25 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
                   </select>
                 ) : (
                   <span className={`${styles.roleBadge} ${styles[`role_${u.role}`]}`}>{roleLabel}</span>
+                )}
+                {canChangeRole && (u.role === 'employee' || u.role === 'technician') && (
+                  <label className={styles.contractField} title={t('contractUitleg')}>
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      min={0}
+                      step={0.5}
+                      className={`${styles.input} ${styles.contractInput}`}
+                      defaultValue={u.contractHours ?? ''}
+                      placeholder="–"
+                      aria-label={t('contractUrenPerMaand', { name: u.name })}
+                      onBlur={(e) => handleSaveContract(u.id, e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+                    />
+                    <span className={styles.contractUnit}>
+                      {contractSavedId === u.id ? t('opgeslagen') : t('contractEenheid')}
+                    </span>
+                  </label>
                 )}
                 {canChangeRole && (
                   resetOpenId === u.id ? (

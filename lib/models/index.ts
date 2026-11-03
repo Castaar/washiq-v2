@@ -46,6 +46,8 @@ export interface IUser extends Document {
   birthday: string;
   is_active: boolean;
   is_demo?: boolean;
+  // Contract hours per month (employees/technicians); null = no contract set
+  contract_hours?: number | null;
   created_at: Date;
   pending_deletion_at: Date | null;
 }
@@ -61,6 +63,7 @@ const UserSchema = new Schema<IUser>({
   is_active: { type: Boolean, default: true },
   // Demo accounts: read-only presentation logins (enforced in proxy.ts)
   is_demo: { type: Boolean, default: false },
+  contract_hours: { type: Number, default: null },
   created_at: { type: Date, default: Date.now },
   // Set when this user's last site access is revoked (site_ids becomes
   // empty) — 30 days later a cron job permanently deletes the account.
@@ -773,6 +776,22 @@ const ShiftReminderSentSchema = new Schema<IShiftReminderSent>({
 });
 ShiftReminderSentSchema.index({ user_id: 1, date: 1 }, { unique: true });
 export const ShiftReminderSent = models.ShiftReminderSent || model<IShiftReminderSent>('ShiftReminderSent', ShiftReminderSentSchema);
+
+// ─── ContractReachedSent ────────────────────────────────────────
+// Dedupe marker: owners are told only once per month that an employee has
+// worked their contract hours.
+export interface IContractReachedSent extends Document {
+  user_id: Types.ObjectId;
+  month: string; // YYYY-MM (Europe/Brussels)
+  sent_at: Date;
+}
+const ContractReachedSentSchema = new Schema<IContractReachedSent>({
+  user_id: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  month: { type: String, required: true },
+  sent_at: { type: Date, default: Date.now },
+});
+ContractReachedSentSchema.index({ user_id: 1, month: 1 }, { unique: true });
+export const ContractReachedSent = models.ContractReachedSent || model<IContractReachedSent>('ContractReachedSent', ContractReachedSentSchema);
 
 // ─── Translation ────────────────────────────────────────────────
 // Runtime overrides on top of the git-committed messages/<locale>.json

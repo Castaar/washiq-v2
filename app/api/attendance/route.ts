@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
-import { AttendanceLog, User } from '@/lib/models';
+import { AttendanceLog, ContractReachedSent, User } from '@/lib/models';
 import { getSessionFromRequest } from '@/lib/session';
 import { brusselsInstant } from '@/lib/dates';
 import type { AttendanceType } from '@/lib/attendance-hours';
 import { sendPushToUser, afterResponse } from '@/lib/push';
+import { brusselsMonth, contractStatuses } from '@/lib/contract-hours';
 import type { Types } from 'mongoose';
 
 // GET /api/attendance?siteId=xxx&date=YYYY-MM-DD
@@ -147,6 +148,30 @@ export async function POST(req: NextRequest) {
       ),
     )
     .catch(() => {}));
+
+  // A departure can push an employee past their monthly contract hours — tell
+  // the owners once per month (the dedupe marker's unique index makes it race-safe).
+  if (body.type === 'sluiting' && !isExtern) {
+    const workerId = isOnBehalf ? body.onBehalfOfUserId! : session.userId;
+    const { year, month, key } = brusselsMonth(timestamp);
+    afterResponse(contractStatuses(year, month, [workerId])
+      .then(async ([status]) => {
+        if (!status?.reached) return;
+        try {
+          await ContractReachedSent.create({ user_id: workerId, month: key });
+        } catch {
+          return; // already told this month
+        }
+        const owners = await User.find({ is_active: true, role: 'owner', site_ids: body.siteId }).select('_id').lean();
+        const fmt = (n: number) => n.toLocaleString('nl-BE', { maximumFractionDigits: 1 });
+        await Promise.allSettled(owners.map((o) => sendPushToUser(String(o._id), {
+          title: `${status.name}: contracturen bereikt`,
+          body: `${fmt(status.workedHours)} u gewerkt van ${fmt(status.contractHours)} u deze maand. Wat erboven komt, telt als overuren.`,
+          url: `/logboek?site=${body.siteId}`,
+        })));
+      })
+      .catch(() => {}));
+  }
 
   return NextResponse.json({
     id: (log._id as Types.ObjectId).toString(),

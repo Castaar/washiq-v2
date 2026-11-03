@@ -1,4 +1,4 @@
-import { AttendanceLog, Site, WeeklyEntry } from '@/lib/models';
+import { AttendanceLog, Site, User, WeeklyEntry } from '@/lib/models';
 import { buildSessions, brusselsDay } from '@/lib/attendance-hours';
 import { brusselsInstant } from '@/lib/dates';
 
@@ -19,6 +19,8 @@ export interface ReportPerson {
   key: string;
   name: string;
   isJobstudent: boolean;
+  contractHours: number | null; // monthly contract, null when none is set
+  overtime: number | null;      // hours above the contract
   totalHours: number;
   pauseMinutes: number;
   daysWorked: number;
@@ -104,12 +106,23 @@ export async function buildMonthlyReport(siteIds: string[], year: number, month:
       key,
       name: names.get(key) ?? '',
       isJobstudent: key.startsWith('js:'),
+      contractHours: null,
+      overtime: null,
       totalHours: round2(sessions.reduce((sum, s) => sum + s.hours, 0)),
       pauseMinutes: sessions.reduce((sum, s) => sum + s.pauseMinutes, 0),
       daysWorked: new Set(sessions.filter((s) => s.hours > 0).map((s) => s.date)).size,
       perSite: [...perSiteMap].map(([site, hours]) => ({ site, hours: round2(hours) })).sort((a, b) => a.site.localeCompare(b.site)),
       sessions,
     });
+  }
+
+  const contracts = await User.find({ _id: { $in: people.filter((p) => !p.isJobstudent).map((p) => p.key) }, contract_hours: { $gt: 0 } })
+    .select('_id contract_hours').lean();
+  for (const c of contracts) {
+    const p = people.find((x) => x.key === String(c._id));
+    if (!p) continue;
+    p.contractHours = c.contract_hours as number;
+    p.overtime = round2(Math.max(0, p.totalHours - p.contractHours));
   }
 
   // Employees first, then jobstudents, each alphabetically

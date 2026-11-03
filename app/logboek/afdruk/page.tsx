@@ -42,6 +42,9 @@ export default async function AfdrukPage({
   const day = (d: string) => new Intl.DateTimeFormat(dateLocale, { weekday: 'short', day: '2-digit', month: '2-digit', timeZone: 'UTC' }).format(new Date(`${d}T12:00:00Z`));
   const personName = (p: ReportPerson) => (p.isJobstudent ? `${p.name} (${t('jobstudent')})` : p.name);
 
+  const hasContracts = report.people.some((p) => p.contractHours !== null);
+  const totalOvertime = report.people.reduce((sum, p) => sum + (p.overtime ?? 0), 0);
+
   const view = params.view === 'alle' || report.people.some((p) => p.key === params.view) ? params.view! : 'totaal';
   const shownPeople = view === 'alle' ? report.people : report.people.filter((p) => p.key === view);
   const options = [
@@ -104,13 +107,15 @@ export default async function AfdrukPage({
           ) : (
             <>
               <h2 className={styles.sectionTitle}>{t('overzicht')}</h2>
-              <table className={styles.table}>
+              <table className={`${styles.table} ${styles.overviewTable}`}>
                 <thead>
                   <tr>
                     <th>{t('medewerker')}</th>
                     {report.sites.map((s) => <th key={s} className={styles.num}>{s}</th>)}
                     <th className={styles.num}>{t('dagen')}</th>
                     <th className={styles.num}>{t('totaal')}</th>
+                    {hasContracts && <th className={styles.num}>{t('contract')}</th>}
+                    {hasContracts && <th className={styles.num}>{t('overuren')}</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -123,6 +128,12 @@ export default async function AfdrukPage({
                       })}
                       <td className={styles.num}>{p.daysWorked}</td>
                       <td className={`${styles.num} ${styles.strong}`}>{hours(p.totalHours)}</td>
+                      {hasContracts && <td className={styles.num}>{p.contractHours !== null ? hours(p.contractHours) : '–'}</td>}
+                      {hasContracts && (
+                        <td className={`${styles.num} ${p.overtime ? styles.overtime : ''}`}>
+                          {p.overtime ? `+${hours(p.overtime)}` : '–'}
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -132,6 +143,8 @@ export default async function AfdrukPage({
                     {report.siteStats.map((s) => <td key={s.site} className={styles.num}>{hours(s.hours)}</td>)}
                     <td />
                     <td className={styles.num}>{hours(report.totalHours)}</td>
+                    {hasContracts && <td />}
+                    {hasContracts && <td className={styles.num}>{totalOvertime > 0 ? `+${hours(totalOvertime)}` : '–'}</td>}
                   </tr>
                 </tfoot>
               </table>
@@ -161,7 +174,7 @@ export default async function AfdrukPage({
                 <tfoot>
                   <tr>
                     <td>{t('totaalWasstraten')}</td>
-                    <td className={styles.num}>{hours(report.washTotals.hours)}</td>
+                    <td className={styles.num}>{report.washTotals.washes > 0 ? hours(report.washTotals.hours) : '–'}</td>
                     <td className={styles.num}>{report.washTotals.washes > 0 ? count(report.washTotals.washes) : '–'}</td>
                     <td className={styles.num}>{report.washTotals.washesPerHour !== null ? hours(report.washTotals.washesPerHour) : '–'}</td>
                     <td className={styles.num}>{report.washTotals.minutesPerWash !== null ? hours(report.washTotals.minutesPerWash) : '–'}</td>
@@ -174,6 +187,7 @@ export default async function AfdrukPage({
             </>
           )}
 
+          {hasContracts && <p className={styles.note}>{t('overurenUitleg')}</p>}
           {footer(report.people.some((p) => p.sessions.some((s) => !s.checkOut)), [t('handtekeningWerkgever')])}
         </article>
       )}
@@ -191,6 +205,18 @@ export default async function AfdrukPage({
               <dt>{t('pauze')}</dt>
               <dd className={styles.metaStrong}>{minutes(p.pauseMinutes)}</dd>
             </div>
+            {p.contractHours !== null && (
+              <div>
+                <dt>{t('contract')}</dt>
+                <dd className={styles.metaStrong}>{hours(p.contractHours)} u</dd>
+              </div>
+            )}
+            {p.contractHours !== null && (
+              <div>
+                <dt>{t('overuren')}</dt>
+                <dd className={`${styles.metaStrong} ${p.overtime ? styles.overtime : ''}`}>{p.overtime ? `+${hours(p.overtime)} u` : '–'}</dd>
+              </div>
+            )}
             <div>
               <dt>{t('totaal')}</dt>
               <dd className={styles.metaStrong}>{hours(p.totalHours)} u</dd>

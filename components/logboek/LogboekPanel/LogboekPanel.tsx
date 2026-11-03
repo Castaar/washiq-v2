@@ -7,6 +7,8 @@ import { brusselsInstant } from '@/lib/dates';
 import type { AttendanceType } from '@/lib/attendance-hours';
 import type { MonthlyReport } from '@/lib/attendance-report';
 import { IconDownload, IconPrinter } from '@/components/ui/icons';
+import { ContractAlert } from '@/components/contract/ContractAlert/ContractAlert';
+import type { ContractStatus } from '@/lib/contract-hours';
 import styles from './LogboekPanel.module.scss';
 
 export interface LogEntry {
@@ -34,6 +36,8 @@ interface EmployeeSummary {
   userId: string;
   userName: string;
   isJobstudent?: boolean;
+  contractHours?: number | null;
+  overtime?: number;
   totalHours: number;
   totalHoursAllSites: number;
   daysWorked: number;
@@ -48,6 +52,7 @@ interface LogboekPanelProps {
   recentLogs: LogEntry[];
   employees?: EmployeeOption[];
   jobstudentNames?: string[];
+  contractAlerts?: ContractStatus[];
 }
 
 // On-behalf picker value for "a jobstudent, by name" (not a user account)
@@ -85,7 +90,7 @@ function fmtDayNL(dateStr: string, dateLocale: string) {
   return d.toLocaleDateString(dateLocale, { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
-export function LogboekPanel({ siteId, userRole, userName, currentUserId, recentLogs, employees = [], jobstudentNames = [] }: LogboekPanelProps) {
+export function LogboekPanel({ siteId, userRole, userName, currentUserId, recentLogs, employees = [], jobstudentNames = [], contractAlerts = [] }: LogboekPanelProps) {
   const t = useTranslations('logboek');
   const locale = useLocale();
   const dateLocale = locale === 'fr' ? 'fr-BE' : 'nl-BE';
@@ -280,7 +285,7 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
       const report = (await res.json()) as MonthlyReport;
       const num = (n: number) => n.toFixed(2).replace('.', ',');
       const fmtDay = (d: string) => d.split('-').reverse().join('/');
-      const rows: string[][] = [[t('csv.medewerker'), t('csv.datum'), t('csv.carwash'), t('csv.aankomst'), t('csv.vertrek'), t('csv.pauze'), t('csv.uren')]];
+      const rows: string[][] = [[t('csv.medewerker'), t('csv.datum'), t('csv.carwash'), t('csv.aankomst'), t('csv.vertrek'), t('csv.pauze'), t('csv.uren'), t('csv.contract'), t('csv.overuren')]];
       for (const p of report.people) {
         const name = p.isJobstudent ? `${p.name} (${t('persoonType.jobstudent').toLowerCase()})` : p.name;
         for (const s of p.sessions) {
@@ -297,10 +302,15 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
         if (p.perSite.length > 1) {
           for (const ps of p.perSite) rows.push([name, t('csv.subtotaal'), ps.site, '', '', '', num(ps.hours)]);
         }
-        rows.push([name, t('csv.totaal'), '', '', '', p.pauseMinutes > 0 ? String(p.pauseMinutes) : '', num(p.totalHours)]);
+        rows.push([
+          name, t('csv.totaal'), '', '', '', p.pauseMinutes > 0 ? String(p.pauseMinutes) : '', num(p.totalHours),
+          p.contractHours !== null ? num(p.contractHours) : '',
+          p.overtime !== null ? num(p.overtime) : '',
+        ]);
         rows.push([]);
       }
-      rows.push([t('csv.totaalIedereen'), '', '', '', '', '', num(report.totalHours)]);
+      const totalOvertime = report.people.reduce((sum, p) => sum + (p.overtime ?? 0), 0);
+      rows.push([t('csv.totaalIedereen'), '', '', '', '', '', num(report.totalHours), '', totalOvertime > 0 ? num(totalOvertime) : '']);
       const csv = rows.map((r) => r.map((v) => `"${v.replace(/"/g, '""')}"`).join(';')).join('\n');
       const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
@@ -318,6 +328,8 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
 
   return (
     <div className={styles.wrapper}>
+      {isOwner && <ContractAlert items={contractAlerts} />}
+
       {/* ── Registreer aankomst / vertrek ─────────────────────── */}
       <div className={styles.registerCard}>
         <h2 className={styles.registerTitle}>{t('registreerAanwezigheid')}</h2>
@@ -682,6 +694,16 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
                     <span className={styles.colDays}>{t('aantalDagen', { count: emp.daysWorked })}</span>
                     <span className={styles.colHoursVal}>
                       {t('urenKort', { uren: emp.totalHoursAllSites.toFixed(1).replace('.0', '') })}
+                      {emp.contractHours ? (
+                        <span className={styles.contractInfo}>
+                          {t('vanContract', { contract: emp.contractHours.toLocaleString(dateLocale) })}
+                          {(emp.overtime ?? 0) > 0 && (
+                            <span className={styles.overtimeBadge}>
+                              {t('overurenKort', { uren: (emp.overtime ?? 0).toLocaleString(dateLocale, { maximumFractionDigits: 1 }) })}
+                            </span>
+                          )}
+                        </span>
+                      ) : null}
                     </span>
                     <button
                       type="button"

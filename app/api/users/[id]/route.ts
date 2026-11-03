@@ -28,6 +28,7 @@ export async function PATCH(
     newPassword?: string;
     whatsapp?: string;
     is_active?: boolean;
+    contractHours?: number | null;
   };
 
   if (session.role !== 'developer' && body.removeSiteId && id === session.userId) {
@@ -64,6 +65,13 @@ export async function PATCH(
   if (body.newPassword) update.password_hash = await bcrypt.hash(body.newPassword, 12);
   if (body.whatsapp !== undefined) update.whatsapp = body.whatsapp.trim();
   if (body.is_active !== undefined) update.is_active = body.is_active;
+  if (body.contractHours !== undefined) {
+    const h = body.contractHours === null ? null : Number(body.contractHours);
+    if (h !== null && (!Number.isFinite(h) || h < 0 || h > 400)) {
+      return NextResponse.json({ error: 'Ongeldig aantal contracturen' }, { status: 400 });
+    }
+    update.contract_hours = h === null || h === 0 ? null : Math.round(h * 100) / 100;
+  }
   if (body.addSiteId)    arrayOps['$addToSet'] = { site_ids: new mongoose.Types.ObjectId(body.addSiteId) };
   if (body.removeSiteId) arrayOps['$pull']     = { site_ids: new mongoose.Types.ObjectId(body.removeSiteId) };
 
