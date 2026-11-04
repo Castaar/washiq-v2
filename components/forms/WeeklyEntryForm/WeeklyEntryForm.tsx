@@ -154,7 +154,6 @@ export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesT
   const [newTellerstand, setNewTellerstand] = useState('');
   const [electricityAmount, setElectricityAmount] = useState('');
   const [newWaterTellerstand, setNewWaterTellerstand] = useState('');
-  const [energyKw, setEnergyKw] = useState('');
   // Per product: the new physical stock count (not a usage amount) — posted
   // straight to /api/stock/reading, which derives consumption itself from
   // (previous reading + deliveries since - this new count), same as Instellingen.
@@ -234,7 +233,6 @@ export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesT
       tellerstand: isSelfcarwash ? previousTellerstand : newContinuous,
       water_liters: waterUsage,
       water_tellerstand: newWaterTellerstandNum ?? previousWaterTellerstand,
-      energy_kw: parseFloat(energyKw) || 0,
       program_counts: isSelfcarwash ? [] : programs.map((p) => ({
         program_id: p.id,
         name: p.name,

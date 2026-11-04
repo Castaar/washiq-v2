@@ -96,7 +96,6 @@ function EntryRow({
     initialElectricityAmount != null ? String(initialElectricityAmount) : '',
   );
   const [newWaterTellerstand, setNewWaterTellerstand] = useState(String(entry.waterTellerstand ?? 0));
-  const [energyKw, setEnergyKw] = useState(String(entry.energyKw));
   const [programCounts, setProgramCounts] = useState<Record<string, string>>(
     Object.fromEntries(
       programs.map((p) => {
@@ -183,7 +182,7 @@ function EntryRow({
         tellerstand: isSelfcarwash ? entry.tellerstand : newContinuous,
         water_liters: waterUsage,
         water_tellerstand: newWaterTellerstandNum ?? previousWaterTellerstand,
-        energy_kw: parseFloat(energyKw) || 0,
+        energy_kw: entry.energyKw,
         program_counts: isSelfcarwash ? [] : programs.map((p) => ({
           program_id: p.id,
           name: p.name,
@@ -252,10 +251,13 @@ function EntryRow({
         <div className={styles.entrySummary}>
           {!isSelfcarwash && <span className={styles.summaryItem}><span className={styles.summaryLabel}>{t('wagens')}</span>{totalWagens}</span>}
           <span className={styles.summaryItem}><span className={styles.summaryLabel}>{t('water')}</span>{entry.waterLiters} m³</span>
-          <span className={styles.summaryItem}><span className={styles.summaryLabel}>{t('energie')}</span>{entry.energyKw} kWh</span>
+          <span className={styles.summaryItem}>
+            <span className={styles.summaryLabel}>{t('elektriciteit')}</span>
+            {initialElectricityAmount != null ? `€${initialElectricityAmount.toLocaleString(loc, { maximumFractionDigits: 2 })}` : '—'}
+          </span>
           {entry.totalCost > 0 && (
             <span className={[styles.summaryItem, styles.costItem].join(' ')}>
-              <span className={styles.summaryLabel}>{t('kostprijs')}</span>
+              <span className={styles.summaryLabel}>{t('waterkost')}</span>
               €{entry.totalCost.toFixed(2)}
             </span>
           )}
@@ -374,20 +376,6 @@ function EntryRow({
               </div>
 
               <div className={styles.editSection}>
-                <p className={styles.editSectionTitle}>{t('verbruik')}</p>
-                <div className={styles.fieldsRow}>
-                  {[
-                    { label: t('energieKwh'), value: energyKw, set: setEnergyKw },
-                  ].map(({ label, value, set }) => (
-                    <div key={label} className={styles.fieldGroup}>
-                      <label className={styles.fieldLabel}>{label}</label>
-                      <input className={styles.input} type="number" value={value} onChange={(e) => set(e.target.value)} />
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className={styles.editSection}>
                 <p className={styles.editSectionTitle}>{t('chemieVoorraadOp', { date: formatDate(entry.weekStart) })}</p>
                 {stockProducts === null ? (
                   <p className={styles.fieldLabel}>{t('laden')}</p>
@@ -443,7 +431,6 @@ function EntryRow({
               <div className={styles.detailSection}>
                 <p className={styles.detailSectionTitle}>{t('verbruik')}</p>
                 <div className={styles.detailGrid}>
-                  <span className={styles.detailItem}><span className={styles.detailLabel}>{t('energie')}</span><span className={styles.detailValue}>{entry.energyKw} kWh</span></span>
                   <span className={styles.detailItem}><span className={styles.detailLabel}>{t('water')}</span><span className={styles.detailValue}>{entry.waterLiters} m³</span></span>
                   {entry.saltKg > 0 && !entry.chemicalUsages.some((cu) => cu.name.toLowerCase() === 'zoutverzachter') && (
                     <span className={styles.detailItem}><span className={styles.detailLabel}>{t('zoutverzachter')}</span><span className={styles.detailValue}>{entry.saltKg} kg</span></span>

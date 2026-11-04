@@ -60,10 +60,7 @@ type View = 'prijs' | 'liter';
 
 const METRICS: { key: Metric; labelKey: string; unit: string; costKey: keyof SiteWeek | '' }[] = [
   { key: 'wagens',  labelKey: 'metricWagens',      unit: 'wgn', costKey: '' },
-  { key: 'water',   labelKey: 'metricWater',       unit: 'L',   costKey: 'waterCost' },
-  { key: 'energy',  labelKey: 'metricEnergie',     unit: 'kWh', costKey: 'energyCost' },
-  { key: 'salt',    labelKey: 'metricZout',        unit: 'kg',  costKey: 'saltCost' },
-  { key: 'flock',   labelKey: 'metricFlockmiddel', unit: 'kg',  costKey: 'flockCost' },
+  { key: 'water',   labelKey: 'metricWater',       unit: 'm³',  costKey: 'waterCost' },
 ];
 
 // ─── Chart dimensions ────────────────────────────────────────
