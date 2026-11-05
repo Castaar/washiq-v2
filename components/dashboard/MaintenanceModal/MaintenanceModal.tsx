@@ -17,10 +17,10 @@ interface MaintenanceModalProps {
   onClose: () => void;
 }
 
-function triggerLabel(payload: MaintenanceTaskPayload, t: (key: string, values?: Record<string, string | number>) => string, monthNames: string[]): string {
+function triggerLabel(payload: MaintenanceTaskPayload, t: (key: string, values?: Record<string, string | number>) => string, monthNames: string[], numLocale: string): string {
   switch (payload.triggerType) {
     case 'washes':
-      return t('elkeWassingen', { count: payload.triggerValue });
+      return t('elkeWassingen', { count: payload.triggerValue.toLocaleString(numLocale) });
     case 'months':
       if (payload.triggerValue === 12) return t('eenKeerPerJaar');
       if (payload.triggerValue === 24) return t('omDe2Jaar');
@@ -123,7 +123,7 @@ export function MaintenanceModal({ payload, refId, refType, siteId, onClose }: M
             <p className={styles.sectionTitle}>{t('details')}</p>
             <div className={styles.row}>
               <span className={styles.rowLabel}>{t('frequentie')}</span>
-              <span className={styles.rowValue}>{triggerLabel(payload, t, monthNames)}</span>
+              <span className={styles.rowValue}>{triggerLabel(payload, t, monthNames, numLocale)}</span>
             </div>
             {payload.lastDoneAt ? (
               <>
@@ -146,10 +146,12 @@ export function MaintenanceModal({ payload, refId, refType, siteId, onClose }: M
             )}
             {payload.triggerType === 'washes' && (
               <>
-                <div className={styles.row}>
-                  <span className={styles.rowLabel}>{t('wassingenBijLaatste')}</span>
-                  <span className={styles.rowValue}>{(payload.washesAtLastDone ?? 0).toLocaleString(numLocale)}</span>
-                </div>
+                {payload.washesAtLastDone !== undefined && (
+                  <div className={styles.row}>
+                    <span className={styles.rowLabel}>{t('wassingenBijLaatste')}</span>
+                    <span className={styles.rowValue}>{payload.washesAtLastDone.toLocaleString(numLocale)}</span>
+                  </div>
+                )}
                 {payload.currentTellerstand !== undefined && (
                   <div className={styles.row}>
                     <span className={styles.rowLabel}>{t('huidigeTellerstand')}</span>

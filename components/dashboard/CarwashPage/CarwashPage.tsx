@@ -46,6 +46,45 @@ function mondayOf(date: Date): Date {
   return d;
 }
 
+const MAINTENANCE_LOG_TASK_FIELDS = 'description trigger_type trigger_value trigger_day trigger_month trigger_month_list washes_at_last_done last_done_at';
+
+// Dashboard modal data for a done-maintenance log. The washes count is stored on the
+// task, not the log, so it only describes this log when it is the task's latest completion.
+function maintenanceLogPayload(
+  l: { task_id?: unknown; done_at?: unknown; notes?: unknown; done_by_name?: unknown },
+  fmtDate: (d: Date) => string,
+): MaintenanceTaskPayload | undefined {
+  const task = l.task_id as {
+    _id: Types.ObjectId;
+    description?: string;
+    trigger_type?: MaintenanceTaskPayload['triggerType'];
+    trigger_value?: number;
+    trigger_day?: number;
+    trigger_month?: number;
+    trigger_month_list?: number[];
+    washes_at_last_done?: number;
+    last_done_at?: Date | null;
+  } | null;
+  if (!task) return undefined;
+  const doneAt = new Date(l.done_at as Date);
+  const isLatest = task.last_done_at != null && new Date(task.last_done_at).getTime() === doneAt.getTime();
+  return {
+    type: 'maintenance_task',
+    description: task.description ?? '',
+    triggerType: task.trigger_type ?? 'washes',
+    triggerValue: task.trigger_value ?? 0,
+    triggerDay: task.trigger_day,
+    triggerMonth: task.trigger_month,
+    triggerMonthList: task.trigger_month_list,
+    lastDoneAt: fmtDate(doneAt),
+    washesAtLastDone: isLatest ? task.washes_at_last_done : undefined,
+    taskId: task._id.toString(),
+    canUndo: true,
+    notes: (l.notes as string) ?? '',
+    doneByName: (l.done_by_name as string) || undefined,
+  };
+}
+
 export async function CarwashPage({
   siteId: propSiteId,
   siteType = 'wasstraat',
@@ -139,7 +178,7 @@ export async function CarwashPage({
     PriceConfig.find(filter).sort({ valid_from: -1 }).lean(),
     ChemicalStock.find(filter).sort({ name: 1 }).lean(),
     MaintenanceTask.find(filter).lean(),
-    MaintenanceLog.find(filter).sort({ done_at: -1 }).limit(10).populate('task_id', 'description').lean(),
+    MaintenanceLog.find(filter).sort({ done_at: -1 }).limit(10).populate('task_id', MAINTENANCE_LOG_TASK_FIELDS).lean(),
     DailyChecklist.find(filter).sort({ submitted_at: -1 }).limit(7).lean(),
     // Unresolved defects/pannes — stay visible on the dashboard until marked resolved,
     // regardless of which day they were originally reported.
@@ -159,7 +198,7 @@ export async function CarwashPage({
     AttendanceLog.find({ ...filter, timestamp: { $gte: dayStart, $lt: dayEnd } }).sort({ timestamp: -1 }).lean(),
     StockDelivery.find({ ...filter, delivered_at: { $gte: dayStart, $lt: dayEnd } }).sort({ delivered_at: -1 }).populate('chemical_id', 'name').populate('logged_by', 'name').lean(),
     DailyChecklist.find({ ...filter, submitted_at: { $gte: dayStart, $lt: dayEnd } }).sort({ submitted_at: -1 }).lean(),
-    MaintenanceLog.find({ ...filter, done_at: { $gte: dayStart, $lt: dayEnd } }).sort({ done_at: -1 }).populate('task_id', 'description').lean(),
+    MaintenanceLog.find({ ...filter, done_at: { $gte: dayStart, $lt: dayEnd } }).sort({ done_at: -1 }).populate('task_id', MAINTENANCE_LOG_TASK_FIELDS).lean(),
     IncidentSchade.find({ ...filter, created_at: { $gte: dayStart, $lt: dayEnd } }).sort({ created_at: -1 }).lean(),
     IncidentEhbo.find({ ...filter, created_at: { $gte: dayStart, $lt: dayEnd } }).sort({ created_at: -1 }).lean(),
     Defect.find({ ...filter, created_at: { $gte: dayStart, $lt: dayEnd } }).sort({ created_at: -1 }).lean(),
@@ -554,17 +593,7 @@ export async function CarwashPage({
       const title = taskDesc
         ? `${tp('onderhoudPrefix')} ${taskDesc}${l.notes ? ` — ${l.notes}` : ''}${doneByName ? ` (${doneByName})` : ''}`
         : l.notes ? `${tp('onderhoudPrefix')} ${l.notes}` : tp('onderhoudUitgevoerd');
-      const payload: MaintenanceTaskPayload | undefined = task ? {
-        type: 'maintenance_task',
-        description: taskDesc,
-        triggerType: 'washes',
-        triggerValue: 0,
-        lastDoneAt: fmtDate(new Date(l.done_at as Date)),
-        taskId: task._id.toString(),
-        canUndo: true,
-        notes: (l.notes as string) ?? '',
-        doneByName: doneByName || undefined,
-      } : undefined;
+      const payload = maintenanceLogPayload(l, fmtDate);
       return {
         id:      l._id.toString(),
         refId:   task ? task._id.toString() : l._id.toString(),
@@ -797,17 +826,7 @@ export async function CarwashPage({
     const title = taskDesc
       ? `${tp('onderhoudPrefix')} ${taskDesc}${l.notes ? ` — ${l.notes}` : ''}${doneByName ? ` (${doneByName})` : ''}`
       : l.notes ? `${tp('onderhoudPrefix')} ${l.notes}` : tp('onderhoudUitgevoerd');
-    const payload: MaintenanceTaskPayload | undefined = task ? {
-      type: 'maintenance_task',
-      description: taskDesc,
-      triggerType: 'washes',
-      triggerValue: 0,
-      lastDoneAt: fmtDate(ts),
-      taskId: task._id.toString(),
-      canUndo: true,
-      notes: (l.notes as string) ?? '',
-      doneByName: doneByName || undefined,
-    } : undefined;
+    const payload = maintenanceLogPayload(l, fmtDate);
     dayLogEntries.push({
       ts: ts.getTime(),
       item: {
@@ -930,17 +949,7 @@ export async function CarwashPage({
     const title = taskDesc
       ? `${tp('onderhoudPrefix')} ${taskDesc}${l.notes ? ` — ${l.notes}` : ''}${doneByName ? ` (${doneByName})` : ''}`
       : l.notes ? `${tp('onderhoudPrefix')} ${l.notes}` : tp('onderhoudUitgevoerd');
-    const payload: MaintenanceTaskPayload | undefined = task ? {
-      type: 'maintenance_task',
-      description: taskDesc,
-      triggerType: 'washes',
-      triggerValue: 0,
-      lastDoneAt: fmtDate(new Date(l.done_at as Date)),
-      taskId: task._id.toString(),
-      canUndo: true,
-      notes: (l.notes as string) ?? '',
-      doneByName: doneByName || undefined,
-    } : undefined;
+    const payload = maintenanceLogPayload(l, fmtDate);
     return {
       id:      l._id.toString(),
       refId:   task ? task._id.toString() : l._id.toString(),
