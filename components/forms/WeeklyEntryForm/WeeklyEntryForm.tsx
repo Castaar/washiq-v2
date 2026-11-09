@@ -153,6 +153,7 @@ export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesT
   );
   const [newTellerstand, setNewTellerstand] = useState('');
   const [electricityAmount, setElectricityAmount] = useState('');
+  const [revenue, setRevenue] = useState('');
   const [newWaterTellerstand, setNewWaterTellerstand] = useState('');
   // Per product: the new physical stock count (not a usage amount) — posted
   // straight to /api/stock/reading, which derives consumption itself from
@@ -233,6 +234,7 @@ export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesT
       tellerstand: isSelfcarwash ? previousTellerstand : newContinuous,
       water_liters: waterUsage,
       water_tellerstand: newWaterTellerstandNum ?? previousWaterTellerstand,
+      revenue: revenue.trim() === '' ? null : parseFloat(revenue),
       program_counts: isSelfcarwash ? [] : programs.map((p) => ({
         program_id: p.id,
         name: p.name,
@@ -377,6 +379,19 @@ export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesT
             label={t('bedrag')}
             value={electricityAmount}
             onChange={setElectricityAmount}
+            delta={null}
+          />
+        </div>
+      </section>
+
+      {/* ── Section 1d: Omzet ──────────────────────────────── */}
+      <section className={styles.section}>
+        <SectionTitle>{t('omzet')}</SectionTitle>
+        <div className={styles.fieldsRow}>
+          <EntryField
+            label={t('omzetBedrag')}
+            value={revenue}
+            onChange={setRevenue}
             delta={null}
           />
         </div>

@@ -200,7 +200,11 @@
     "wasprogrammas": "Wasprogramma's",
     "selecteerProgramma": "Selecteer programma",
     "gemKostprijsWagen": "Gem. kostprijs / wagen",
-    "kostprijsBasisWagen": "Kostprijs basis / wagen"
+    "kostprijsBasisWagen": "Kostprijs basis / wagen",
+    "kostenTovOmzet": "Kosten t.o.v. omzet",
+    "omzetExclBtw": "Omzet (excl. btw)",
+    "totaalKostenOmzet": "Totaal kosten",
+    "vorigePct": "vorige {pct}"
   },
   "ehboForm": {
     "titel": "Nieuw EHBO incident rapporteren",
@@ -1210,6 +1214,8 @@
     "opslaanMislukt": "Opslaan mislukt — probeer opnieuw.",
     "elektriciteitsfactuur": "Elektriciteitsfactuur",
     "bedrag": "Bedrag (€)",
+    "omzet": "Omzet",
+    "omzetBedrag": "Omzet sinds vorige ingave (€ excl. btw)",
     "tellerstandWater": "Tellerstand water",
     "vorigeWater": "Vorige tellerstand water: {value} m³",
     "nieuweWater": "Nieuwe tellerstand water (m³)",

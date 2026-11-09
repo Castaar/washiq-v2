@@ -106,6 +106,7 @@ export default async function HistoriekPage({
     saltKg: e.salt_kg ?? 0,
     blobLiters: (e as Record<string, unknown>).blob_liters as number ?? 0,
     totalCost: (e as Record<string, unknown>).total_cost as number ?? 0,
+    revenue: ((e as Record<string, unknown>).revenue as number | null | undefined) ?? null,
     programCounts: (e.program_counts ?? []).map(
       (pc: { program_id?: { toString(): string }; name?: string; count?: number }) => ({
         programId: pc.program_id?.toString() ?? '',

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
 import { WeeklyEntry, ChemicalStock, MaintenanceTask, PriceConfig } from '@/lib/models';
 import { priceAt } from '@/lib/prices';
-import { computeTotalCost } from '@/lib/weeklyEntryCost';
+import { computeTotalCost, parseRevenue } from '@/lib/weeklyEntryCost';
 import { getSessionFromRequest } from '@/lib/session';
 
 export async function POST(req: NextRequest) {
@@ -38,6 +38,7 @@ export async function POST(req: NextRequest) {
     program_counts: body.program_counts ?? [],
     chemical_usages: body.chemical_usages ?? [],
     total_cost,
+    revenue: parseRevenue(body.revenue),
   });
 
   // Update is_overdue for all washes-based maintenance tasks for this site

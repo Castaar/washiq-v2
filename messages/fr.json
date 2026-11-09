@@ -807,6 +807,8 @@
     "opslaanMislukt": "Échec de l’enregistrement — veuillez réessayer.",
     "elektriciteitsfactuur": "Facture d’électricité",
     "bedrag": "Montant (€)",
+    "omzet": "Chiffre d'affaires",
+    "omzetBedrag": "Chiffre d'affaires depuis la saisie précédente (€ HTVA)",
     "tellerstandWater": "Compteur d’eau",
     "vorigeWater": "Compteur d’eau précédent : {value} m³",
     "nieuweWater": "Nouveau compteur d’eau (m³)",
@@ -1047,7 +1049,11 @@
   },
   "dashboard": {
     "klaarVoorShiftSite": "Prêt pour votre shift à {site} ?",
-    "overzichtVoorSite": "Aperçu pour {site}."
+    "overzichtVoorSite": "Aperçu pour {site}.",
+    "kostenTovOmzet": "Coûts / chiffre d'affaires",
+    "omzetExclBtw": "Chiffre d'affaires (HTVA)",
+    "totaalKostenOmzet": "Total des coûts",
+    "vorigePct": "précédent {pct}"
   },
   "ehboForm": {
     "geregistreerdDoor": "Enregistré par : <b>{name}</b>"

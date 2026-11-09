@@ -4,7 +4,7 @@ import { WeeklyEntry, PriceConfig } from '@/lib/models';
 import { priceAt } from '@/lib/prices';
 import { getSessionFromRequest } from '@/lib/session';
 import { isManager } from '@/lib/permissions';
-import { computeTotalCost } from '@/lib/weeklyEntryCost';
+import { computeTotalCost, parseRevenue } from '@/lib/weeklyEntryCost';
 
 export async function GET(
   req: NextRequest,
@@ -50,6 +50,7 @@ export async function PATCH(
     total_cost,
   };
   if (body.tellerstand !== undefined) update.tellerstand = body.tellerstand;
+  if ('revenue' in body) update.revenue = parseRevenue(body.revenue);
   if (body.week_start) update.week_start = new Date(body.week_start);
 
   await WeeklyEntry.findByIdAndUpdate(id, update);

@@ -16,6 +16,11 @@ interface PriceConfigLike {
   chemicals?: { name: string; price_per_unit: number }[];
 }
 
+// Omzet as sent by the ingave forms: a non-negative amount, or null when left empty
+export function parseRevenue(v: unknown): number | null {
+  return typeof v === 'number' && Number.isFinite(v) && v >= 0 ? Math.round(v * 100) / 100 : null;
+}
+
 export function computeTotalCost(body: CostInputs, priceConfig: PriceConfigLike | null): number {
   if (!priceConfig) return 0;
 

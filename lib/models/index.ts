@@ -138,6 +138,7 @@ export interface IWeeklyEntry extends Document {
   program_counts: { program_id: Types.ObjectId; name: string; count: number }[];
   chemical_usages: { chemical_id: string; name: string; amount: number; unit: string }[];
   total_cost: number;
+  revenue: number | null; // omzet since the previous ingave, excl. btw
   created_at: Date;
 }
 const WeeklyEntrySchema = new Schema<IWeeklyEntry>({
@@ -155,6 +156,7 @@ const WeeklyEntrySchema = new Schema<IWeeklyEntry>({
   program_counts: [{ program_id: Schema.Types.ObjectId, name: String, count: Number }],
   chemical_usages: [{ chemical_id: String, name: String, amount: Number, unit: String }],
   total_cost: { type: Number, default: 0 },
+  revenue: { type: Number, default: null },
   created_at: { type: Date, default: Date.now },
 });
 // Force re-registration in development so schema changes take effect after hot reload

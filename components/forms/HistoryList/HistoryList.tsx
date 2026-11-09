@@ -30,6 +30,7 @@ export interface HistoryEntry {
   saltKg: number;
   blobLiters: number;
   totalCost: number;
+  revenue: number | null;
   programCounts: { programId: string; name: string; count: number }[];
   chemicalUsages: { chemicalId: string; name: string; amount: number; unit: string }[];
 }
@@ -96,6 +97,7 @@ function EntryRow({
     initialElectricityAmount != null ? String(initialElectricityAmount) : '',
   );
   const [newWaterTellerstand, setNewWaterTellerstand] = useState(String(entry.waterTellerstand ?? 0));
+  const [revenue, setRevenue] = useState(entry.revenue != null ? String(entry.revenue) : '');
   const [programCounts, setProgramCounts] = useState<Record<string, string>>(
     Object.fromEntries(
       programs.map((p) => {
@@ -183,6 +185,7 @@ function EntryRow({
         water_liters: waterUsage,
         water_tellerstand: newWaterTellerstandNum ?? previousWaterTellerstand,
         energy_kw: entry.energyKw,
+        revenue: revenue.trim() === '' ? null : parseFloat(revenue),
         program_counts: isSelfcarwash ? [] : programs.map((p) => ({
           program_id: p.id,
           name: p.name,
@@ -255,6 +258,12 @@ function EntryRow({
             <span className={styles.summaryLabel}>{t('elektriciteit')}</span>
             {initialElectricityAmount != null ? `€${initialElectricityAmount.toLocaleString(loc, { maximumFractionDigits: 2 })}` : '—'}
           </span>
+          {entry.revenue != null && (
+            <span className={styles.summaryItem}>
+              <span className={styles.summaryLabel}>{tIn('omzet')}</span>
+              €{entry.revenue.toLocaleString(loc, { maximumFractionDigits: 2 })}
+            </span>
+          )}
           {entry.totalCost > 0 && (
             <span className={[styles.summaryItem, styles.costItem].join(' ')}>
               <span className={styles.summaryLabel}>{t('waterkost')}</span>
@@ -351,6 +360,21 @@ function EntryRow({
                       type="number"
                       value={electricityAmount}
                       onChange={(e) => setElectricityAmount(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className={styles.editSection}>
+                <p className={styles.editSectionTitle}>{tIn('omzet')}</p>
+                <div className={styles.fieldsRow}>
+                  <div className={styles.fieldGroup}>
+                    <label className={styles.fieldLabel}>{tIn('omzetBedrag')}</label>
+                    <input
+                      className={styles.input}
+                      type="number"
+                      value={revenue}
+                      onChange={(e) => setRevenue(e.target.value)}
                     />
                   </div>
                 </div>

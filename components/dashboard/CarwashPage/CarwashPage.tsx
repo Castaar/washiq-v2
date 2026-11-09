@@ -25,6 +25,7 @@ import {
 } from '@/lib/models';
 import { ProgrammaCard } from '@/components/dashboard/ProgrammaCard/ProgrammaCard';
 import type { ProgramOption } from '@/components/dashboard/ProgrammaCard/ProgrammaCard';
+import { OmzetCard, type OmzetRow } from '@/components/dashboard/OmzetCard/OmzetCard';
 import { AlertsPanel } from '@/components/dashboard/AlertsPanel/AlertsPanel';
 import { VoorraadPanel } from '@/components/dashboard/VoorraadPanel/VoorraadPanel';
 import { LogboekPanel } from '@/components/logboek/LogboekPanel/LogboekPanel';
@@ -193,7 +194,7 @@ export async function CarwashPage({
     // Pending orders — stay visible until marked handled, regardless of the day/period toggle
     siteId ? OrderRequest.find({ site_id: siteId, is_handled: false }).sort({ requested_at: -1 }).lean() : [],
     // Every ingave's date + wagens — chemistry per wagen divides a count period's consumption by the wagens in that period
-    WeeklyEntry.find(filter).select('week_start program_counts').sort({ week_start: 1 }).lean(),
+    WeeklyEntry.find(filter).select('week_start program_counts revenue water_liters').sort({ week_start: 1 }).lean(),
     // ── Day log (owner/developer "Meldingen" tab: only the selected day) ──
     AttendanceLog.find({ ...filter, timestamp: { $gte: dayStart, $lt: dayEnd } }).sort({ timestamp: -1 }).lean(),
     StockDelivery.find({ ...filter, delivered_at: { $gte: dayStart, $lt: dayEnd } }).sort({ delivered_at: -1 }).populate('chemical_id', 'name').populate('logged_by', 'name').lean(),
@@ -228,18 +229,25 @@ export async function CarwashPage({
   // count, stored per reading) is divided by the wagens of the ingaven dated inside
   // that same period. A count is often entered a few days after the month's ingave,
   // so comparing calendar months would drop the chemistry entirely.
-  type ChemPeriod = { name: string; unit: string; amount: number; wagens: number; at: Date };
+  // `base` is what the consumption is divided by: wagens, or omzet for the omzet card
+  type ChemPeriod = { name: string; unit: string; amount: number; base: number; at: Date };
   const brusselsDay = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Brussels' }).format(d);
-  const entryWagenDays = (allEntriesLite as { week_start?: Date; program_counts?: { count?: number }[] }[]).map((e) => ({
+  const entryWagenDays = (allEntriesLite as { week_start?: Date; program_counts?: { count?: number }[]; revenue?: number | null }[]).map((e) => ({
     day: new Date(e.week_start as Date).toISOString().slice(0, 10),
     wagens: (e.program_counts ?? []).reduce((sum, pc) => sum + (pc.count ?? 0), 0),
+    revenue: e.revenue ?? 0,
   }));
   function wagensBetween(from: Date, to: Date): number {
     const f = brusselsDay(from);
     const t = brusselsDay(to);
     return entryWagenDays.filter((e) => e.day > f && e.day <= t).reduce((sum, e) => sum + e.wagens, 0);
   }
-  function chemPeriods(): { cur: ChemPeriod[]; prev: ChemPeriod[] } {
+  function revenueBetween(from: Date, to: Date): number {
+    const f = brusselsDay(from);
+    const t = brusselsDay(to);
+    return entryWagenDays.filter((e) => e.day > f && e.day <= t).reduce((sum, e) => sum + e.revenue, 0);
+  }
+  function chemPeriods(baseBetween: (from: Date, to: Date) => number): { cur: ChemPeriod[]; prev: ChemPeriod[] } {
     const byName = new Map<string, { unit: string; list: { at: Date; consumption: number }[] }>();
     for (const r of readings) {
       const at = r.recorded_at as Date;
@@ -255,29 +263,32 @@ export async function CarwashPage({
       // ingave in its period can't give a cost per wagen — skip it, don't blank the card)
       const periods: ChemPeriod[] = [];
       for (let i = 1; i < list.length; i++) {
-        const wagens = wagensBetween(list[i - 1].at, list[i].at);
-        if (wagens > 0) periods.push({ name, unit, amount: Math.max(0, list[i].consumption), wagens, at: list[i].at });
+        const base = baseBetween(list[i - 1].at, list[i].at);
+        if (base > 0) periods.push({ name, unit, amount: Math.max(0, list[i].consumption), base, at: list[i].at });
       }
       if (periods.length >= 1) cur.push(periods[periods.length - 1]);
       if (periods.length >= 2) prev.push(periods[periods.length - 2]);
     }
     return { cur, prev };
   }
-  const { cur: curChemPeriods, prev: prevChemPeriods } = chemPeriods();
+  const { cur: curChemPeriods, prev: prevChemPeriods } = chemPeriods(wagensBetween);
 
   // ── Per-wagen cost helper ─────────────────────────────────────
   type CostRow = { label: string; euroPerWagen: number; rawPerWagen?: number; unit?: string; isChemical?: boolean };
+  // Euro value of a count period's consumption, priced with the version valid at the end of the period
+  function chemPeriodCost(c: ChemPeriod): number {
+    const p = priceAt(priceConfigs, c.at);
+    const chemPrice = (p?.chemicals as { name: string; price_per_unit: number; price_unit?: string; liters_per_1000kg?: number }[] | undefined)?.find((x) => x.name === c.name);
+    return c.amount * pricePerStockUnit(chemPrice);
+  }
   function chemistryCostRows(periods: ChemPeriod[]): CostRow[] {
     const r2 = (v: number) => Math.round(v * 100) / 100;
     const r3 = (v: number) => Math.round(v * 1000) / 1000;
-    return periods.filter((c) => c.wagens > 0).map((c) => {
-      // Priced with the version that was valid at the end of this count period
-      const p = priceAt(priceConfigs, c.at);
-      const chemPrice = (p?.chemicals as { name: string; price_per_unit: number; price_unit?: string; liters_per_1000kg?: number }[] | undefined)?.find((x) => x.name === c.name);
+    return periods.filter((c) => c.base > 0).map((c) => {
       return {
         label: translateContent(contentTranslations, 'product', c.name),
-        euroPerWagen: r2(c.amount * pricePerStockUnit(chemPrice) / c.wagens),
-        rawPerWagen: r3(c.amount / c.wagens),
+        euroPerWagen: r2(chemPeriodCost(c) / c.base),
+        rawPerWagen: r3(c.amount / c.base),
         unit: c.unit,
         isChemical: true,
       };
@@ -483,6 +494,46 @@ export async function CarwashPage({
   // Cost breakdown per wagen for latest and previous ingave
   const latestCostRows = costPerWagen(latestEntry, latestBillAmount, curChemistryRows);
   const prevCostRows   = costPerWagen(prevIngave,  prevBillAmount2, prevChemistryRows);
+
+  // ── Costs as a share of omzet ─────────────────────────────────
+  // Water and electricity come from the ingave that carries the omzet (its water usage,
+  // its month's bill); chemistry from the latest count period whose ingaven have omzet.
+  const revenueEntries = (allEntriesLite as { week_start?: Date; revenue?: number | null; water_liters?: number }[])
+    .filter((e) => (e.revenue ?? 0) > 0);
+  const latestRevEntry = revenueEntries[revenueEntries.length - 1] ?? null;
+  const prevRevEntry = revenueEntries[revenueEntries.length - 2] ?? null;
+  async function revenueBill(entry: typeof latestRevEntry): Promise<number> {
+    if (!entry || !siteId) return 0;
+    const d = new Date(entry.week_start as Date);
+    const y = d.getUTCFullYear();
+    const mo = d.getUTCMonth() + 1;
+    if (billBeforeStatsFrom(y, mo, statsFrom)) return 0;
+    const bill = await EnergyBill.findOne({ site_id: siteId, year: y, month: mo }).select('amount_euro').lean();
+    return (bill as { amount_euro?: number } | null)?.amount_euro ?? 0;
+  }
+  const { cur: curRevChem, prev: prevRevChem } = latestRevEntry ? chemPeriods(revenueBetween) : { cur: [], prev: [] };
+  function revenueShareRows(entry: typeof latestRevEntry, bill: number, chem: ChemPeriod[]): OmzetRow[] {
+    if (!entry) return [];
+    const revenue = entry.revenue ?? 0;
+    const p = priceAt(priceConfigs, new Date(entry.week_start as Date));
+    const water = (entry.water_liters ?? 0) * (p?.water_per_liter ?? 0);
+    const r2 = (v: number) => Math.round(v * 100) / 100;
+    return [
+      { label: tp('kostWater'), euro: r2(water), pct: r2(water / revenue * 100) },
+      { label: tp('kostEnergie'), euro: r2(bill), pct: r2(bill / revenue * 100) },
+      ...chem.map((c) => {
+        const cost = chemPeriodCost(c);
+        return { label: translateContent(contentTranslations, 'product', c.name), euro: r2(cost), pct: r2(cost / c.base * 100) };
+      }),
+    ].filter((row) => row.euro > 0);
+  }
+  const [latestRevBill, prevRevBill] = await Promise.all([revenueBill(latestRevEntry), revenueBill(prevRevEntry)]);
+  const omzetCard = latestRevEntry ? {
+    revenue: latestRevEntry.revenue ?? 0,
+    date: new Date(latestRevEntry.week_start as Date).toISOString().slice(0, 10),
+    rows: revenueShareRows(latestRevEntry, latestRevBill, curRevChem),
+    prevRows: revenueShareRows(prevRevEntry, prevRevBill, prevRevChem),
+  } : null;
 
   const now = new Date();
   const alertItems: AlertItem[] = tasks
@@ -1143,15 +1194,19 @@ export async function CarwashPage({
           </div>
 
           {/* ── Left column: wash-program cost breakdown (owner only, wasstraat only — selfcarwash has no per-program wagen counts) ── */}
-          {isOwner && !isSelfCarwash && (
+          {/* Costs as a share of omzet: both site types, once an ingave has omzet */}
+          {isOwner && (!isSelfCarwash || omzetCard) && (
             <div className={styles.gridLeft}>
-              <ProgrammaCard
-                programs={programOptions}
-                totalWagens={programOptions.reduce((s, p) => s + p.count, 0)}
-                view={view}
-                costBreakdown={latestCostRows}
-                prevCostBreakdown={prevCostRows}
-              />
+              {!isSelfCarwash && (
+                <ProgrammaCard
+                  programs={programOptions}
+                  totalWagens={programOptions.reduce((s, p) => s + p.count, 0)}
+                  view={view}
+                  costBreakdown={latestCostRows}
+                  prevCostBreakdown={prevCostRows}
+                />
+              )}
+              {omzetCard && <OmzetCard {...omzetCard} />}
             </div>
           )}
         </div>
