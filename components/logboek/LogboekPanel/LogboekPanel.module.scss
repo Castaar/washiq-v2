@@ -573,6 +573,12 @@
   font-size: 0.8125rem;
 }
 
+.dayDetailSite {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
 .dayDetailHours {
   color: var(--color-text-primary);
   font-weight: 600;

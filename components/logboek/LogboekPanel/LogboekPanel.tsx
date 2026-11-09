@@ -154,6 +154,9 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
   const [monthHistory, setMonthHistory] = useState<{ year: number; month: number; totalHours: number; totalWashes: number }[]>([]);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
+  // Employees switch carwashes, so the month overview starts with everyone over all carwashes
+  const [scope, setScope] = useState<'alle' | 'site'>('alle');
+  const [report, setReport] = useState<MonthlyReport | null>(null);
 
   async function register(type: AttendanceType) {
     setSaving(true);
@@ -249,10 +252,16 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
     }
   }
 
-  async function loadSummary(year: number, month: number) {
+  async function loadSummary(year: number, month: number, sc: 'alle' | 'site' = scope) {
     setSummaryLoading(true);
     setSummary(null);
+    setReport(null);
     try {
+      if (sc === 'alle') {
+        const res = await fetch(`/api/attendance/report?year=${year}&month=${month}`);
+        if (res.ok) setReport(await res.json() as MonthlyReport);
+        return;
+      }
       const res = await fetch(`/api/attendance/monthly?siteId=${siteId}&year=${year}&month=${month}`);
       if (res.ok) {
         const data = await res.json() as { employees: EmployeeSummary[]; totalWashes: number; history: { year: number; month: number; totalHours: number; totalWashes: number }[] };
@@ -268,6 +277,12 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
   function handleViewMonth() {
     setView('maand');
     loadSummary(selYear, selMonth);
+  }
+
+  function handleScopeChange(sc: 'alle' | 'site') {
+    setScope(sc);
+    setExpandedUser(null);
+    loadSummary(selYear, selMonth, sc);
   }
 
   function handleMonthChange(year: number, month: number) {
@@ -638,9 +653,107 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
             </div>
           </div>
 
+          <div className={styles.kindToggle}>
+            <button
+              type="button"
+              className={[styles.kindBtn, scope === 'alle' ? styles.kindBtnActive : ''].filter(Boolean).join(' ')}
+              onClick={() => handleScopeChange('alle')}
+            >
+              {t('scopeAlle')}
+            </button>
+            <button
+              type="button"
+              className={[styles.kindBtn, scope === 'site' ? styles.kindBtnActive : ''].filter(Boolean).join(' ')}
+              onClick={() => handleScopeChange('site')}
+            >
+              {t('scopeSite')}
+            </button>
+          </div>
+
           {summaryLoading && <p className={styles.empty}>{t('laden')}</p>}
 
-          {!summaryLoading && summary !== null && (
+          {/* ── Everyone over all carwashes ── */}
+          {!summaryLoading && scope === 'alle' && report !== null && (
+            <>
+              <div className={styles.totalsRow}>
+                <div className={styles.totalTile}>
+                  <span className={styles.totalLabel}>{t('totaalUrenAlleCarwashes')}</span>
+                  <span className={styles.totalValue}>{t('urenKort', { uren: report.totalHours.toFixed(1).replace('.0', '') })}</span>
+                </div>
+                <div className={styles.totalTile}>
+                  <span className={styles.totalLabel}>{t('aantalWasbeurten')}</span>
+                  <span className={styles.totalValue}>{report.siteStats.reduce((sum, st) => sum + st.washes, 0).toLocaleString(dateLocale)}</span>
+                </div>
+              </div>
+
+              {report.people.length === 0 ? (
+                <p className={styles.empty}>{t('geenRegistratiesMaand')}</p>
+              ) : (
+                <div className={styles.summaryTable}>
+                  <div className={styles.summaryHeader}>
+                    <span className={styles.colName}>{t('csv.medewerker')}</span>
+                    <span className={styles.colDays}>{t('dagen')}</span>
+                    <span className={styles.colHours}>{t('csv.uren')}</span>
+                    <span className={styles.colToggle} />
+                  </div>
+
+                  {report.people.map((p) => (
+                    <div key={p.key} className={styles.summaryRow}>
+                      <div className={styles.summaryLine}>
+                        <span className={styles.colName}>{p.name}{p.isJobstudent && ` (${t('persoonType.jobstudent').toLowerCase()})`}</span>
+                        <span className={styles.colDays}>{t('aantalDagen', { count: p.daysWorked })}</span>
+                        <span className={styles.colHoursVal}>
+                          {t('urenKort', { uren: p.totalHours.toFixed(1).replace('.0', '') })}
+                          {p.contractHours ? (
+                            <span className={styles.contractInfo}>
+                              {t('vanContract', { contract: p.contractHours.toLocaleString(dateLocale) })}
+                              {(p.overtime ?? 0) > 0 && (
+                                <span className={styles.overtimeBadge}>
+                                  {t('overurenKort', { uren: (p.overtime ?? 0).toLocaleString(dateLocale, { maximumFractionDigits: 1 }) })}
+                                </span>
+                              )}
+                            </span>
+                          ) : null}
+                        </span>
+                        <button
+                          type="button"
+                          className={styles.colToggle}
+                          onClick={() => setExpandedUser(expandedUser === p.key ? null : p.key)}
+                        >
+                          {expandedUser === p.key ? '▲' : '▼'}
+                        </button>
+                      </div>
+
+                      {expandedUser === p.key && (
+                        <div className={styles.dayDetail}>
+                          {p.sessions.map((sess, i) => (
+                            <div key={`${sess.date}-${i}`} className={styles.dayDetailRow}>
+                              <span className={styles.dayDetailDate}>{fmtDayNL(sess.date, dateLocale)}</span>
+                              <span className={styles.dayDetailTime}>
+                                {sess.checkIn || '—'} → {sess.checkOut || '?'}
+                                {sess.pauseMinutes > 0 && <> · {t('pauzeMinuten', { min: sess.pauseMinutes })}</>}
+                                <span className={styles.dayDetailSite}>
+                                  {sess.endSite && sess.endSite !== sess.site ? `${sess.site} → ${sess.endSite}` : sess.site}
+                                </span>
+                              </span>
+                              <span className={[styles.dayDetailHours, !sess.checkOut ? styles.dayDetailOpen : ''].filter(Boolean).join(' ')}>
+                                {sess.hours > 0 ? t('urenKort', { uren: sess.hours.toFixed(1).replace('.0', '') }) : sess.checkIn ? t('nietUitgestempeld') : '—'}
+                              </span>
+                            </div>
+                          ))}
+                          <div className={styles.dayDetailTotal}>
+                            {p.perSite.map((ps) => `${ps.site}: ${t('urenKort', { uren: ps.hours.toFixed(1).replace('.0', '') })}`).join(' · ')}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+
+          {!summaryLoading && scope === 'site' && summary !== null && (
             <div className={styles.totalsRow}>
               <div className={styles.totalTile}>
                 <span className={styles.totalLabel}>{t('totaalGewerkteUren')}</span>
@@ -655,7 +768,7 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
             </div>
           )}
 
-          {!summaryLoading && monthHistory.length > 0 && (
+          {!summaryLoading && scope === 'site' && monthHistory.length > 0 && (
             <div className={styles.historyRow}>
               {monthHistory.map((h) => (
                 <button
@@ -672,11 +785,11 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
             </div>
           )}
 
-          {!summaryLoading && summary !== null && summary.length === 0 && (
+          {!summaryLoading && scope === 'site' && summary !== null && summary.length === 0 && (
             <p className={styles.empty}>{t('geenRegistratiesMaand')}</p>
           )}
 
-          {!summaryLoading && summary && summary.length > 0 && (
+          {!summaryLoading && scope === 'site' && summary && summary.length > 0 && (
             <div className={styles.summaryTable}>
               {/* Header row */}
               <div className={styles.summaryHeader}>
