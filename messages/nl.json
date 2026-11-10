@@ -797,7 +797,9 @@
     "tot": "Tot",
     "opmerking": "Opmerking",
     "optioneel": "Optioneel",
-    "opslaanBezig": "Opslaan..."
+    "opslaanBezig": "Opslaan...",
+    "dagenInPeriode": "{dagen, plural, one {# dag} other {# dagen}} · {weekend, plural, one {# weekenddag} other {# weekenddagen}}",
+    "weekendDagenUitleg": "Weekenddagen ingepland in de laatste 4 weken. ⚠ vanaf 4 weekenddagen."
   },
   "technieker": {
     "taakToevoegen": "+ Taak toevoegen",

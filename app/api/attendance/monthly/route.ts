@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
 import { AttendanceLog, Site, User, WeeklyEntry } from '@/lib/models';
 import { getSessionFromRequest } from '@/lib/session';
-import { buildSessions, type WorkSession } from '@/lib/attendance-hours';
+import { buildSessions, floorQuarter, type WorkSession } from '@/lib/attendance-hours';
 
 // Server runs in UTC (Vercel) — Date.getHours()/getDate() etc. would be 1-2h
 // off from actual Belgian local time. Extract the Brussels-local date/time
@@ -169,7 +169,7 @@ export async function GET(req: NextRequest) {
         date,
         checkIn: brusselsTimeStr(new Date(Math.min(...starts))),
         checkOut: ends.length > 0 ? brusselsTimeStr(new Date(Math.max(...ends))) : '',
-        hours: Math.round(hours * 10) / 10,
+        hours: Math.round(hours * 100) / 100,
         pauseMinutes: Math.round(daySessions.filter((x) => x.startSite === siteId).reduce((sum, x) => sum + x.pauseHours, 0) * 60),
         otherSite: daySessions.some((x) => x.startSite !== siteId || (x.endSite !== null && x.endSite !== siteId)) || undefined,
       });
@@ -177,8 +177,8 @@ export async function GET(req: NextRequest) {
     days.sort((a, b) => a.date.localeCompare(b.date));
 
     // Sum unrounded session hours (same as the all-sites total) so both totals match.
-    const totalHours = Math.round(sessions.filter((x) => x.startSite === siteId).reduce((sum, x) => sum + x.hours, 0) * 10) / 10;
-    const totalHoursAllSites = Math.round(sessions.reduce((sum, x) => sum + x.hours, 0) * 10) / 10;
+    const totalHours = Math.round(sessions.filter((x) => x.startSite === siteId).reduce((sum, x) => sum + x.hours, 0) * 100) / 100;
+    const totalHoursAllSites = Math.round(sessions.reduce((sum, x) => sum + x.hours, 0) * 100) / 100;
     const daysWorked = days.filter((d) => d.hours > 0).length;
 
     result.push({ userId, userName: names.get(userId) ?? '', ...(userId.startsWith('js:') ? { isJobstudent: true } : {}), totalHours, totalHoursAllSites, daysWorked, days });
@@ -190,7 +190,7 @@ export async function GET(req: NextRequest) {
     const r = result.find((x) => x.userId === String(c._id));
     if (!r) continue;
     r.contractHours = c.contract_hours as number;
-    r.overtime = Math.round(Math.max(0, r.totalHoursAllSites - r.contractHours) * 10) / 10;
+    r.overtime = floorQuarter(Math.max(0, r.totalHoursAllSites - r.contractHours));
   }
 
   result.sort((a, b) => a.userName.localeCompare(b.userName));
@@ -204,7 +204,7 @@ export async function GET(req: NextRequest) {
       const hFrom = new Date(year, month - 1 - i, 1);
       const hTo = new Date(year, month - i, 1);
       const [hours, hWashes] = await Promise.all([siteHoursForRange(siteId, hFrom, hTo), washCountForRange(siteId, hFrom, hTo)]);
-      return { year: hFrom.getFullYear(), month: hFrom.getMonth() + 1, totalHours: Math.round(hours * 10) / 10, totalWashes: hWashes };
+      return { year: hFrom.getFullYear(), month: hFrom.getMonth() + 1, totalHours: Math.round(hours * 100) / 100, totalWashes: hWashes };
     }),
   );
 

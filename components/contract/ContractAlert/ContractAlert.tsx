@@ -10,7 +10,7 @@ export function ContractAlert({ items }: { items: ContractStatus[] }) {
   const locale = useLocale();
   const reached = items.filter((s) => s.reached);
   if (reached.length === 0) return null;
-  const fmt = (n: number) => n.toLocaleString(locale === 'fr' ? 'fr-BE' : 'nl-BE', { maximumFractionDigits: 1 });
+  const fmt = (n: number) => n.toLocaleString(locale === 'fr' ? 'fr-BE' : 'nl-BE', { maximumFractionDigits: 2 });
   return (
     <div className={styles.alert} role="status">
       <p className={styles.title}>{t('bereiktTitel')}</p>

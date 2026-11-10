@@ -1,6 +1,6 @@
 import type { Types } from 'mongoose';
 import { AttendanceLog, User } from '@/lib/models';
-import { buildSessions } from '@/lib/attendance-hours';
+import { buildSessions, floorQuarter } from '@/lib/attendance-hours';
 import { brusselsInstant } from '@/lib/dates';
 
 // Worked hours this month vs. the monthly contract of each employee. Hours count
@@ -56,7 +56,7 @@ export function toStatus(userId: string, name: string, contractHours: number, wo
     name,
     contractHours,
     workedHours,
-    overtime: round2(Math.max(0, workedHours - contractHours)),
+    overtime: floorQuarter(Math.max(0, workedHours - contractHours)),
     reached: workedHours >= contractHours,
   };
 }

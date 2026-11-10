@@ -1,5 +1,5 @@
 import { AttendanceLog, Site, User, WeeklyEntry } from '@/lib/models';
-import { buildSessions, brusselsDay } from '@/lib/attendance-hours';
+import { buildSessions, brusselsDay, floorQuarter } from '@/lib/attendance-hours';
 import { brusselsInstant } from '@/lib/dates';
 
 // Worked hours of everyone over all the owner's carwashes for one month — used
@@ -122,7 +122,7 @@ export async function buildMonthlyReport(siteIds: string[], year: number, month:
     const p = people.find((x) => x.key === String(c._id));
     if (!p) continue;
     p.contractHours = c.contract_hours as number;
-    p.overtime = round2(Math.max(0, p.totalHours - p.contractHours));
+    p.overtime = floorQuarter(Math.max(0, p.totalHours - p.contractHours));
   }
 
   // Employees first, then jobstudents, each alphabetically

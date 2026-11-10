@@ -264,8 +264,21 @@ export async function CarwashPage({
       const periods: ChemPeriod[] = [];
       for (let i = 1; i < list.length; i++) {
         const base = baseBetween(list[i - 1].at, list[i].at);
-        if (base > 0) periods.push({ name, unit, amount: Math.max(0, list[i].consumption), base, at: list[i].at });
+        if (base <= 0) continue;
+        const amount = list[i].consumption;
+        // Negative consumption = stock rose without a logged delivery, so the count in
+        // between was off. Merge with the previous period, as if that count was skipped,
+        // instead of clamping to 0 (which hid the product from the cards).
+        const last = periods[periods.length - 1];
+        if (amount < 0 && last) {
+          last.amount += amount;
+          last.base += base;
+          last.at = list[i].at;
+        } else {
+          periods.push({ name, unit, amount, base, at: list[i].at });
+        }
       }
+      for (const p of periods) p.amount = Math.max(0, p.amount);
       if (periods.length >= 1) cur.push(periods[periods.length - 1]);
       if (periods.length >= 2) prev.push(periods[periods.length - 2]);
     }

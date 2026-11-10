@@ -18,6 +18,17 @@ export interface WorkSession {
 
 const MAX_SESSION_MS = 16 * 36e5;
 
+// Worked hours per session are rounded DOWN to a quarter hour (7h52 → 7.75).
+// The small epsilon keeps an exact 7h45 from flooring to 7.5 through float error.
+export function floorQuarter(hours: number): number {
+  return Math.floor(hours * 4 + 1e-9) / 4;
+}
+
+// Hours as shown to people: up to 2 decimals in the Belgian locale (7,75 · 7,5 · 8)
+export function formatHours(hours: number, locale: string = 'nl'): string {
+  return hours.toLocaleString(locale === 'fr' ? 'fr-BE' : 'nl-BE', { maximumFractionDigits: 2 });
+}
+
 function idOf(v: unknown): string {
   return (v as { toString(): string }).toString();
 }
@@ -56,7 +67,7 @@ export function buildSessions(logs: AttendanceLogLike[]): WorkSession[] {
       const ms = at.getTime() - open.at.getTime();
       if (ms >= 0 && ms <= MAX_SESSION_MS) {
         const pauseMs = Math.min(ms, open.pauseMs);
-        sessions.push({ startSite: open.site, endSite: idOf(l.site_id), start: open.at, end: at, hours: (ms - pauseMs) / 36e5, pauseHours: pauseMs / 36e5 });
+        sessions.push({ startSite: open.site, endSite: idOf(l.site_id), start: open.at, end: at, hours: floorQuarter((ms - pauseMs) / 36e5), pauseHours: pauseMs / 36e5 });
         open = null;
       } else {
         dropOpen();

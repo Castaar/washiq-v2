@@ -331,7 +331,9 @@
     "tot": "À",
     "opmerking": "Remarque",
     "optioneel": "Facultatif",
-    "opslaanBezig": "Enregistrement..."
+    "opslaanBezig": "Enregistrement...",
+    "dagenInPeriode": "{dagen, plural, one {# jour} other {# jours}} · {weekend, plural, one {# jour de week-end} other {# jours de week-end}}",
+    "weekendDagenUitleg": "Jours de week-end planifiés sur les 4 dernières semaines. ⚠ à partir de 4 jours de week-end."
   },
   "technieker": {
     "taakToevoegen": "+ Ajouter une tâche",

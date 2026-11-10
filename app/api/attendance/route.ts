@@ -163,7 +163,7 @@ export async function POST(req: NextRequest) {
           return; // already told this month
         }
         const owners = await User.find({ is_active: true, role: 'owner', site_ids: body.siteId }).select('_id').lean();
-        const fmt = (n: number) => n.toLocaleString('nl-BE', { maximumFractionDigits: 1 });
+        const fmt = (n: number) => n.toLocaleString('nl-BE', { maximumFractionDigits: 2 });
         await Promise.allSettled(owners.map((o) => sendPushToUser(String(o._id), {
           title: `${status.name}: contracturen bereikt`,
           body: `${fmt(status.workedHours)} u gewerkt van ${fmt(status.contractHours)} u deze maand. Wat erboven komt, telt als overuren.`,

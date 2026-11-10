@@ -431,7 +431,7 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
 
   // ── Owner view: week calendar ───────────────────────────────
   const contractOf = (userId: string) => contractStatus.find((c) => c.userId === userId);
-  const fmtH = (n: number) => n.toLocaleString(locale === 'fr' ? 'fr-BE' : 'nl-BE', { maximumFractionDigits: 1 });
+  const fmtH = (n: number) => n.toLocaleString(locale === 'fr' ? 'fr-BE' : 'nl-BE', { maximumFractionDigits: 2 });
 
   return (
     <div className={styles.wrapper}>
@@ -636,6 +636,8 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
               const totalHours = empHoursShifts.reduce((sum, s) => sum + shiftHours(s.startTime, s.endTime), 0);
               const weekendDays4w = weekendsInWindow(shifts, emp.id, 4, weekStart);
               const weekendWarn = weekendDays4w >= 4;
+              const daysInPeriod = new Set(empHoursShifts.map((s) => s.date)).size;
+              const weekendInPeriod = new Set(empHoursShifts.filter((s) => isWeekend(s.date)).map((s) => s.date)).size;
               const contract = contractOf(emp.id);
               return (
                 <div key={emp.id} className={styles.hoursRow}>
@@ -643,7 +645,15 @@ export function PlanningPanel({ siteId, userRole, currentUserId, shifts: initial
                   <span className={styles.hoursVal}>
                     {totalHours > 0 ? t('uren', { uren: totalHours.toFixed(1).replace('.0', '') }) : '—'}
                   </span>
-                  <span className={[styles.weekendBadge, weekendWarn ? styles.weekendWarn : ''].filter(Boolean).join(' ')}>
+                  {daysInPeriod > 0 && (
+                    <span className={styles.periodBadge}>
+                      {t('dagenInPeriode', { dagen: daysInPeriod, weekend: weekendInPeriod })}
+                    </span>
+                  )}
+                  <span
+                    className={[styles.weekendBadge, weekendWarn ? styles.weekendWarn : ''].filter(Boolean).join(' ')}
+                    title={t('weekendDagenUitleg')}
+                  >
                     {t('weekendDagen', { count: weekendDays4w })}
                     {weekendWarn && ' ⚠'}
                   </span>

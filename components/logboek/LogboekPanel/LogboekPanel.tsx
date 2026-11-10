@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { brusselsInstant } from '@/lib/dates';
-import type { AttendanceType } from '@/lib/attendance-hours';
+import { formatHours, type AttendanceType } from '@/lib/attendance-hours';
 import type { MonthlyReport } from '@/lib/attendance-report';
 import { IconDownload, IconPrinter } from '@/components/ui/icons';
 import { ContractAlert } from '@/components/contract/ContractAlert/ContractAlert';
@@ -94,6 +94,7 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
   const t = useTranslations('logboek');
   const locale = useLocale();
   const dateLocale = locale === 'fr' ? 'fr-BE' : 'nl-BE';
+  const fmtHours = (h: number) => formatHours(h, locale);
   const monthName = (month: number) => t(`maanden.${MONTH_KEYS[month - 1]}`);
   const [logs, setLogs] = useState<LogEntry[]>(recentLogs);
   const [note, setNote] = useState('');
@@ -678,7 +679,7 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
               <div className={styles.totalsRow}>
                 <div className={styles.totalTile}>
                   <span className={styles.totalLabel}>{t('totaalUrenAlleCarwashes')}</span>
-                  <span className={styles.totalValue}>{t('urenKort', { uren: report.totalHours.toFixed(1).replace('.0', '') })}</span>
+                  <span className={styles.totalValue}>{t('urenKort', { uren: fmtHours(report.totalHours) })}</span>
                 </div>
                 <div className={styles.totalTile}>
                   <span className={styles.totalLabel}>{t('aantalWasbeurten')}</span>
@@ -703,13 +704,13 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
                         <span className={styles.colName}>{p.name}{p.isJobstudent && ` (${t('persoonType.jobstudent').toLowerCase()})`}</span>
                         <span className={styles.colDays}>{t('aantalDagen', { count: p.daysWorked })}</span>
                         <span className={styles.colHoursVal}>
-                          {t('urenKort', { uren: p.totalHours.toFixed(1).replace('.0', '') })}
+                          {t('urenKort', { uren: fmtHours(p.totalHours) })}
                           {p.contractHours ? (
                             <span className={styles.contractInfo}>
                               {t('vanContract', { contract: p.contractHours.toLocaleString(dateLocale) })}
                               {(p.overtime ?? 0) > 0 && (
                                 <span className={styles.overtimeBadge}>
-                                  {t('overurenKort', { uren: (p.overtime ?? 0).toLocaleString(dateLocale, { maximumFractionDigits: 1 }) })}
+                                  {t('overurenKort', { uren: fmtHours(p.overtime ?? 0) })}
                                 </span>
                               )}
                             </span>
@@ -737,12 +738,12 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
                                 </span>
                               </span>
                               <span className={[styles.dayDetailHours, !sess.checkOut ? styles.dayDetailOpen : ''].filter(Boolean).join(' ')}>
-                                {sess.hours > 0 ? t('urenKort', { uren: sess.hours.toFixed(1).replace('.0', '') }) : sess.checkIn ? t('nietUitgestempeld') : '—'}
+                                {sess.hours > 0 ? t('urenKort', { uren: fmtHours(sess.hours) }) : sess.checkIn ? t('nietUitgestempeld') : '—'}
                               </span>
                             </div>
                           ))}
                           <div className={styles.dayDetailTotal}>
-                            {p.perSite.map((ps) => `${ps.site}: ${t('urenKort', { uren: ps.hours.toFixed(1).replace('.0', '') })}`).join(' · ')}
+                            {p.perSite.map((ps) => `${ps.site}: ${t('urenKort', { uren: fmtHours(ps.hours) })}`).join(' · ')}
                           </div>
                         </div>
                       )}
@@ -758,7 +759,7 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
               <div className={styles.totalTile}>
                 <span className={styles.totalLabel}>{t('totaalGewerkteUren')}</span>
                 <span className={styles.totalValue}>
-                  {t('urenKort', { uren: summary.reduce((s, e) => s + e.totalHoursAllSites, 0).toFixed(1).replace('.0', '') })}
+                  {t('urenKort', { uren: fmtHours(summary.reduce((s, e) => s + e.totalHoursAllSites, 0)) })}
                 </span>
               </div>
               <div className={styles.totalTile}>
@@ -806,13 +807,13 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
                     <span className={styles.colName}>{emp.userName}{emp.isJobstudent && ` (${t('persoonType.jobstudent').toLowerCase()})`}</span>
                     <span className={styles.colDays}>{t('aantalDagen', { count: emp.daysWorked })}</span>
                     <span className={styles.colHoursVal}>
-                      {t('urenKort', { uren: emp.totalHoursAllSites.toFixed(1).replace('.0', '') })}
+                      {t('urenKort', { uren: fmtHours(emp.totalHoursAllSites) })}
                       {emp.contractHours ? (
                         <span className={styles.contractInfo}>
                           {t('vanContract', { contract: emp.contractHours.toLocaleString(dateLocale) })}
                           {(emp.overtime ?? 0) > 0 && (
                             <span className={styles.overtimeBadge}>
-                              {t('overurenKort', { uren: (emp.overtime ?? 0).toLocaleString(dateLocale, { maximumFractionDigits: 1 }) })}
+                              {t('overurenKort', { uren: fmtHours(emp.overtime ?? 0) })}
                             </span>
                           )}
                         </span>
@@ -838,14 +839,14 @@ export function LogboekPanel({ siteId, userRole, userName, currentUserId, recent
                             {(day.pauseMinutes ?? 0) > 0 && <> · {t('pauzeMinuten', { min: day.pauseMinutes ?? 0 })}</>}
                           </span>
                           <span className={[styles.dayDetailHours, !day.checkOut ? styles.dayDetailOpen : ''].filter(Boolean).join(' ')}>
-                            {day.hours > 0 ? t('urenKort', { uren: day.hours.toFixed(1).replace('.0', '') }) : day.checkIn ? t('nietUitgestempeld') : '—'}
+                            {day.hours > 0 ? t('urenKort', { uren: fmtHours(day.hours) }) : day.checkIn ? t('nietUitgestempeld') : '—'}
                           </span>
                         </div>
                       ))}
                       <div className={styles.dayDetailTotal}>
-                        {t.rich('dezeSite', { uren: emp.totalHours.toFixed(1).replace('.0', ''), strong: (chunks) => <strong>{chunks}</strong> })}
+                        {t.rich('dezeSite', { uren: fmtHours(emp.totalHours), strong: (chunks) => <strong>{chunks}</strong> })}
                         {emp.totalHoursAllSites !== emp.totalHours && (
-                          <> · {t.rich('alleSites', { uren: emp.totalHoursAllSites.toFixed(1).replace('.0', ''), strong: (chunks) => <strong>{chunks}</strong> })}</>
+                          <> · {t.rich('alleSites', { uren: fmtHours(emp.totalHoursAllSites), strong: (chunks) => <strong>{chunks}</strong> })}</>
                         )}
                       </div>
                     </div>
