@@ -910,7 +910,8 @@
     "geenIngavePeriode": "Geen ingave voor deze periode — meest recente ingave getoond",
     "neemtPauze": "{name} neemt pauze",
     "terugVanPauze": "{name} is terug van pauze",
-    "pauzeDuur": "{duur} pauze"
+    "pauzeDuur": "{duur} pauze",
+    "dezeMaandKort": "deze maand"
   },
   "washPrograms": {
     "confirmVerwijderen": "Programma \"{name}\" verwijderen?",
@@ -1553,7 +1554,7 @@
     "totaal": "Totaal",
     "dagenGemeten": "{count, plural, one {# dag gemeten} other {# dagen gemeten}}",
     "kost": "Waterkost",
-    "perM3": "{prijs} per m³",
+    "perM3": "huidige prijs {prijs} per m³",
     "gemPerDag": "Gemiddeld per dag",
     "piek": "Piek {date}: {liters}",
     "tijdensOpening": "Tijdens openingsuren",
@@ -1586,6 +1587,19 @@
     "lekGisteren": "⚠ Mogelijk lek op {date}: {liters}",
     "laatste14": "Laatste 14 dagen · blauw = open, oranje = buiten openingsuren",
     "verdictKlein": "Buiten de openingsuren liep er maar {liters} ({pct}), vooral rond {uur}: water net vóór de eerste aankomst of na het laatste vertrek (opstart, schoonmaak). De osmose en ontharder hangen dus niet achter deze meter of vullen bij tijdens de openingsuren. Geen teken van een lek.",
-    "laatsteDag": "Laatste dag ({date})"
+    "laatsteDag": "Laatste dag ({date})",
+    "perWasbeurt": "Water per wasbeurt",
+    "wasbeurtenDezeMaand": "{count} wasbeurten (MyCarwash)",
+    "volgensIngave": "ingave {from}–{to}: {wagens} wagens",
+    "perWasbeurtNog": "zodra er wasbeurten gekend zijn",
+    "kolWasbeurten": "Wasbeurten",
+    "kolPerWasbeurt": "L/wasbeurt",
+    "perIngaveTitel": "Water per wasbeurt per ingave",
+    "perIngaveUitleg": "Waterverbruik van de meter gedeeld door het aantal wagens uit de maandelijkse ingave. Een periode telt pas mee als de meter er elke dag gemeten heeft. Zodra MyCarwash gekoppeld is, komt dit ook per dag.",
+    "geenIngaves": "Nog geen ingaves.",
+    "kolPeriode": "Periode",
+    "kolWagens": "Wagens",
+    "kolWater": "Water",
+    "nietVolledig": "meter mat niet de hele periode"
   }
 }

@@ -475,7 +475,8 @@
     "geenIngavePeriode": "Aucune saisie pour cette période — dernière saisie affichée",
     "neemtPauze": "{name} prend sa pause",
     "terugVanPauze": "{name} est de retour de pause",
-    "pauzeDuur": "{duur} de pause"
+    "pauzeDuur": "{duur} de pause",
+    "dezeMaandKort": "ce mois-ci"
   },
   "incidenten": {
     "ehboRapport": "Rapport premiers secours",
@@ -1179,7 +1180,7 @@
     "totaal": "Total",
     "dagenGemeten": "{count, plural, one {# jour mesuré} other {# jours mesurés}}",
     "kost": "Coût de l'eau",
-    "perM3": "{prijs} par m³",
+    "perM3": "prix actuel {prijs} par m³",
     "gemPerDag": "Moyenne par jour",
     "piek": "Pic {date} : {liters}",
     "tijdensOpening": "Pendant l'ouverture",
@@ -1212,6 +1213,19 @@
     "lekGisteren": "⚠ Fuite possible le {date} : {liters}",
     "laatste14": "14 derniers jours · bleu = ouvert, orange = hors heures d'ouverture",
     "verdictKlein": "Hors des heures d'ouverture, seulement {liters} ({pct}), surtout vers {uur} : de l'eau juste avant la première arrivée ou après le dernier départ (démarrage, nettoyage). L'osmose et l'adoucisseur ne sont donc pas derrière ce compteur ou se remplissent pendant l'ouverture. Aucun signe de fuite.",
-    "laatsteDag": "Dernier jour ({date})"
+    "laatsteDag": "Dernier jour ({date})",
+    "perWasbeurt": "Eau par lavage",
+    "wasbeurtenDezeMaand": "{count} lavages (MyCarwash)",
+    "volgensIngave": "saisie {from}–{to} : {wagens} voitures",
+    "perWasbeurtNog": "dès que les lavages sont connus",
+    "kolWasbeurten": "Lavages",
+    "kolPerWasbeurt": "L/lavage",
+    "perIngaveTitel": "Eau par lavage par saisie",
+    "perIngaveUitleg": "Consommation du compteur divisée par le nombre de voitures de la saisie mensuelle. Une période ne compte que si le compteur a mesuré chaque jour. Dès que MyCarwash est connecté, ce chiffre est aussi disponible par jour.",
+    "geenIngaves": "Pas encore de saisies.",
+    "kolPeriode": "Période",
+    "kolWagens": "Voitures",
+    "kolWater": "Eau",
+    "nietVolledig": "compteur pas actif toute la période"
   }
 }

@@ -27,7 +27,7 @@ import { ProgrammaCard } from '@/components/dashboard/ProgrammaCard/ProgrammaCar
 import type { ProgramOption } from '@/components/dashboard/ProgrammaCard/ProgrammaCard';
 import { OmzetCard, type OmzetRow } from '@/components/dashboard/OmzetCard/OmzetCard';
 import { WaterCard, type WaterCardProps } from '@/components/dashboard/WaterCard/WaterCard';
-import { hasWaterMeter, waterOverview } from '@/lib/water';
+import { hasWaterMeter, waterOverview, waterPerIngave } from '@/lib/water';
 import { addDays as addDaysStr, brusselsDay as brusselsDayStr } from '@/lib/integrations';
 import { AlertsPanel } from '@/components/dashboard/AlertsPanel/AlertsPanel';
 import { VoorraadPanel } from '@/components/dashboard/VoorraadPanel/VoorraadPanel';
@@ -494,7 +494,20 @@ export async function CarwashPage({
         monthClosed: yesterdayStr >= monthStart ? month.closed : 0,
         prevMonthSamePeriod: prevComplete ? prev.total : null,
         bars: last14.map((d) => ({ date: d.date, open: d.open, closed: d.closed })),
+        litersPerWash: null,
+        perWashSource: '',
       };
+      // Per wasbeurt: daily MyCarwash counts this month, else the latest fully measured ingave period
+      if (month.litersPerWash !== null) {
+        waterCard.litersPerWash = month.litersPerWash;
+        waterCard.perWashSource = tp('dezeMaandKort');
+      } else {
+        const period = (await waterPerIngave(siteId)).find((p) => p.litersPerWash !== null);
+        if (period) {
+          waterCard.litersPerWash = period.litersPerWash;
+          waterCard.perWashSource = `${period.from.split('-').reverse().slice(0, 2).join('/')}–${period.to.split('-').reverse().slice(0, 2).join('/')}`;
+        }
+      }
     }
   }
 

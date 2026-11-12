@@ -13,9 +13,11 @@ export interface WaterCardProps {
   monthClosed: number;
   prevMonthSamePeriod: number | null; // L, same days of the previous month (null = not measured then)
   bars: { date: string; open: number; closed: number }[]; // last 14 days
+  litersPerWash: number | null;
+  perWashSource: string; // e.g. "deze maand" or the ingave period
 }
 
-export function WaterCard({ siteId, yesterday, avgPerDay, monthTotal, monthCost, monthClosed, prevMonthSamePeriod, bars }: WaterCardProps) {
+export function WaterCard({ siteId, yesterday, avgPerDay, monthTotal, monthCost, monthClosed, prevMonthSamePeriod, bars, litersPerWash, perWashSource }: WaterCardProps) {
   const t = useTranslations('water');
   const loc = useLocale() === 'fr' ? 'fr-BE' : 'nl-BE';
   const L = (n: number) => `${Math.round(n).toLocaleString(loc)} L`;
@@ -46,6 +48,13 @@ export function WaterCard({ siteId, yesterday, avgPerDay, monthTotal, monthCost,
       <div className={styles.row}>
         <span className={styles.label}>{t('buitenOpening')}</span>
         <span className={monthClosed > 0 ? styles.valueWarn : styles.value}>{L(monthClosed)}</span>
+      </div>
+      <div className={styles.row}>
+        <span className={styles.label}>{t('perWasbeurt')}</span>
+        <span className={styles.value}>
+          {litersPerWash !== null ? L(litersPerWash) : '—'}
+          {litersPerWash !== null && perWashSource && <span className={styles.sub}> ({perWashSource})</span>}
+        </span>
       </div>
       {yesterday && yesterday.leak > 0 && (
         <p className={styles.alert}>{t('lekGisteren', { liters: L(yesterday.leak), date: yesterday.date.split('-').reverse().slice(0, 2).join('/') })}</p>

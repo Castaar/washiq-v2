@@ -10,7 +10,7 @@ import { Site, User } from '@/lib/models';
 import { getSession } from '@/lib/session';
 import { filterSitesForUser, resolveActiveSite, redirectIfSetupNeeded, redirectWithSiteParam } from '@/lib/getUserSites';
 import { addDays, brusselsDay } from '@/lib/integrations';
-import { hasWaterMeter, waterOverview } from '@/lib/water';
+import { hasWaterMeter, waterOverview, waterPerIngave } from '@/lib/water';
 import styles from './page.module.scss';
 
 const MONTH = /^\d{4}-\d{2}$/;
@@ -49,6 +49,9 @@ export default async function WaterPage({ searchParams }: { searchParams: Promis
 
   const meter = siteId ? await hasWaterMeter(siteId) : false;
   const ov = siteId && meter && to >= monthStart ? await waterOverview(siteId, monthStart, to) : null;
+  const periods = siteId && meter ? await waterPerIngave(siteId) : [];
+  const latestPeriod = periods.find((p) => p.litersPerWash !== null) ?? null;
+  const hasDailyWashes = !!ov && ov.days.some((d) => d.washes !== null);
 
   const L = (n: number) => `${Math.round(n).toLocaleString(loc)} L`;
   const M3 = (n: number) => `${(n / 1000).toLocaleString(loc, { maximumFractionDigits: 1 })} m³`;
@@ -93,6 +96,19 @@ export default async function WaterPage({ searchParams }: { searchParams: Promis
                 <div className={styles.tile}><span className={styles.tileLabel}>{t('tijdensOpening')}</span><span className={styles.tileValue}>{L(ov.open)}</span><span className={styles.tileSub}>{pct(ov.open, ov.total)}</span></div>
                 <div className={[styles.tile, ov.closed > 0 ? styles.tileWarn : ''].join(' ')}><span className={styles.tileLabel}>{t('buitenOpening')}</span><span className={styles.tileValue}>{L(ov.closed)}</span><span className={styles.tileSub}>{pct(ov.closed, ov.total)}</span></div>
                 <div className={[styles.tile, ov.leak > 0 ? styles.tileAlert : ''].join(' ')}><span className={styles.tileLabel}>{t('lek')}</span><span className={styles.tileValue}>{L(ov.leak)}</span><span className={styles.tileSub}>{t('volgensShayp')}</span></div>
+                <div className={styles.tile}>
+                  <span className={styles.tileLabel}>{t('perWasbeurt')}</span>
+                  <span className={styles.tileValue}>
+                    {ov.litersPerWash !== null ? L(ov.litersPerWash) : latestPeriod ? L(latestPeriod.litersPerWash ?? 0) : '—'}
+                  </span>
+                  <span className={styles.tileSub}>
+                    {ov.litersPerWash !== null
+                      ? t('wasbeurtenDezeMaand', { count: ov.washes.toLocaleString(loc) })
+                      : latestPeriod
+                        ? t('volgensIngave', { from: fmtDay(latestPeriod.from), to: fmtDay(latestPeriod.to), wagens: latestPeriod.wagens.toLocaleString(loc) })
+                        : t('perWasbeurtNog')}
+                  </span>
+                </div>
               </div>
 
               <div className={styles.explain}>
@@ -124,6 +140,8 @@ export default async function WaterPage({ searchParams }: { searchParams: Promis
                       <th className={styles.num}>{t('kolLek')}</th>
                       <th className={styles.num}>{t('kolTotaal')}</th>
                       <th className={styles.num}>{t('kolKost')}</th>
+                      {hasDailyWashes && <th className={styles.num}>{t('kolWasbeurten')}</th>}
+                      {hasDailyWashes && <th className={styles.num}>{t('kolPerWasbeurt')}</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -138,10 +156,42 @@ export default async function WaterPage({ searchParams }: { searchParams: Promis
                         <td className={[styles.num, d.leak > 0 ? styles.alert : ''].join(' ')}>{L(d.leak)}</td>
                         <td className={styles.num}><strong>{L(d.total)}</strong></td>
                         <td className={styles.num}>{EUR(d.cost)}</td>
+                        {hasDailyWashes && <td className={styles.num}>{d.washes ?? '—'}</td>}
+                        {hasDailyWashes && <td className={styles.num}>{d.washes ? L(d.total / d.washes) : '—'}</td>}
                       </tr>
                     ))}
                   </tbody>
                 </table>
+              </div>
+              <div className={styles.explain}>
+                <h2 className={styles.subtitle}>{t('perIngaveTitel')}</h2>
+                <p className={styles.muted}>{t('perIngaveUitleg')}</p>
+                {periods.length === 0 ? (
+                  <p className={styles.muted}>{t('geenIngaves')}</p>
+                ) : (
+                  <div className={styles.tableWrap}>
+                    <table className={styles.table}>
+                      <thead>
+                        <tr>
+                          <th>{t('kolPeriode')}</th>
+                          <th className={styles.num}>{t('kolWagens')}</th>
+                          <th className={styles.num}>{t('kolWater')}</th>
+                          <th className={styles.num}>{t('kolPerWasbeurt')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {periods.map((p) => (
+                          <tr key={p.to}>
+                            <td>{fmtDay(p.from)} → {fmtDay(p.to)}</td>
+                            <td className={styles.num}>{p.wagens.toLocaleString(loc)}</td>
+                            <td className={styles.num}>{p.liters !== null ? M3(p.liters) : <span className={styles.muted}>{t('nietVolledig')}</span>}</td>
+                            <td className={styles.num}>{p.litersPerWash !== null ? <strong>{L(p.litersPerWash)}</strong> : '—'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
               <p className={styles.muted}>{t('voetnoot')}</p>
             </>

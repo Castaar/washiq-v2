@@ -1,5 +1,5 @@
 import type { Types } from 'mongoose';
-import { AttendanceLog, IntegrationDay, PriceConfig, SiteIntegration } from '@/lib/models';
+import { AttendanceLog, IntegrationDay, PriceConfig, SiteIntegration, WeeklyEntry } from '@/lib/models';
 import { priceAt } from '@/lib/prices';
 import { addDays, brusselsDay } from '@/lib/integrations';
 
@@ -29,6 +29,7 @@ export interface WaterDay {
   fromLogboek: boolean;
   hourly: number[];
   cost: number; // €
+  washes: number | null; // wasbeurten that day (MyCarwash koppeling), null = not known
 }
 
 export interface WaterOverview {
@@ -45,6 +46,8 @@ export interface WaterOverview {
   avgHourly: number[]; // average liters per hour of the day over measured days
   peakDay: WaterDay | null;
   nightLiters: number[]; // per hour 0..23: total outside opening hours (where installations run)
+  washes: number; // wasbeurten on the days where both water and washes are known
+  litersPerWash: number | null; // water of those days / their wasbeurten
 }
 
 function hourOf(d: Date): number {
@@ -85,12 +88,14 @@ export async function hasWaterMeter(siteId: string): Promise<boolean> {
 // Days from..to inclusive (YYYY-MM-DD)
 export async function waterOverview(siteId: string | Types.ObjectId, from: string, to: string): Promise<WaterOverview> {
   const sid = String(siteId);
-  const [rows, first, windows, prices] = await Promise.all([
+  const [rows, first, windows, prices, washRows] = await Promise.all([
     IntegrationDay.find({ site_id: sid, provider: 'shayp', date: { $gte: from, $lte: to } }).sort({ date: 1 }).lean(),
     IntegrationDay.findOne({ site_id: sid, provider: 'shayp', water_liters: { $gt: 0 } }).sort({ date: 1 }).select('date').lean(),
     openingWindows(sid, from, to),
     PriceConfig.find({ site_id: sid }).select('valid_from water_per_liter').lean(),
+    IntegrationDay.find({ site_id: sid, provider: 'mycarwash', date: { $gte: from, $lte: to } }).select('date counters').lean(),
   ]);
+  const washesByDay = new Map(washRows.map((w) => [w.date as string, washesOf(w.counters as Counter[])]));
   const firstMeasured = (first?.date as string | undefined) ?? null;
 
   const days: WaterDay[] = [];
@@ -116,8 +121,11 @@ export async function waterOverview(siteId: string | Types.ObjectId, from: strin
       fromLogboek: !!w,
       hourly: hourly ?? Array(24).fill(0),
       cost: Math.round((total / 1000) * price * 100) / 100,
+      washes: washesByDay.get(date) ?? null,
     });
   }
+  const washDays = days.filter((d) => d.washes !== null && d.washes > 0);
+  const washes = washDays.reduce((s, d) => s + (d.washes ?? 0), 0);
 
   const sum = (f: (d: WaterDay) => number) => days.reduce((s, d) => s + f(d), 0);
   const withHourly = days.filter((d) => d.hourly.some((v) => v > 0));
@@ -141,7 +149,45 @@ export async function waterOverview(siteId: string | Types.ObjectId, from: strin
     avgHourly,
     peakDay: days.reduce<WaterDay | null>((m, d) => (!m || d.total > m.total ? d : m), null),
     nightLiters,
+    washes,
+    litersPerWash: washes > 0 ? Math.round(washDays.reduce((s, d) => s + d.total, 0) / washes) : null,
   };
+}
+
+type Counter = { controller?: number; pos?: number };
+// All washes that day: the wash controller's count, or the till's when the controller reports 0
+export function washesOf(counters: Counter[] | undefined): number {
+  return (counters ?? []).reduce((s, c) => s + ((c.controller || c.pos) ?? 0), 0);
+}
+
+export interface IngavePeriod {
+  from: string; // first day (inclusive)
+  to: string; // ingave date (inclusive)
+  wagens: number;
+  liters: number | null; // null when the meter did not measure every day of the period
+  litersPerWash: number | null;
+}
+
+// Water per wasbeurt per ingave period (wagens from the monthly ingave). Only periods the
+// meter measured completely get a figure: a partial month would give a too low number.
+export async function waterPerIngave(siteId: string, limit = 6): Promise<IngavePeriod[]> {
+  const entries = await WeeklyEntry.find({ site_id: siteId }).sort({ week_start: -1 }).limit(limit + 1).select('week_start program_counts').lean();
+  const first = await IntegrationDay.findOne({ site_id: siteId, provider: 'shayp', water_liters: { $gt: 0 } }).sort({ date: 1 }).select('date').lean();
+  const firstMeasured = (first?.date as string | undefined) ?? null;
+  const out: IngavePeriod[] = [];
+  for (let i = 0; i < Math.min(limit, entries.length - 1); i++) {
+    const to = new Date(entries[i].week_start as Date).toISOString().slice(0, 10);
+    const from = addDays(new Date(entries[i + 1].week_start as Date).toISOString().slice(0, 10), 1);
+    const wagens = ((entries[i].program_counts as { count?: number }[]) ?? []).reduce((s, p) => s + (p.count ?? 0), 0);
+    let liters: number | null = null;
+    if (firstMeasured && firstMeasured <= from) {
+      const rows = await IntegrationDay.find({ site_id: siteId, provider: 'shayp', date: { $gte: from, $lte: to } }).select('water_liters').lean();
+      const expected = Math.round((new Date(`${to}T00:00:00Z`).getTime() - new Date(`${from}T00:00:00Z`).getTime()) / 864e5) + 1;
+      if (rows.length === expected) liters = rows.reduce((s, r) => s + ((r.water_liters as number) ?? 0), 0);
+    }
+    out.push({ from, to, wagens, liters, litersPerWash: liters !== null && wagens > 0 ? Math.round(liters / wagens) : null });
+  }
+  return out;
 }
 
 // Leak / unusual use outside opening hours on `day`, compared with the 14 days before.
