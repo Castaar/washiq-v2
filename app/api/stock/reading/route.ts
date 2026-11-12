@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
 import { ChemicalStock, StockReading, User } from '@/lib/models';
-import { recomputeChemical } from '@/lib/stock-ledger';
+import { movementBetween, recomputeChemical } from '@/lib/stock-ledger';
 import { brusselsInstant } from '@/lib/dates';
 import { getSessionFromRequest } from '@/lib/session';
 import { sendPushToUser, afterResponse } from '@/lib/push';
@@ -16,9 +16,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const body = await req.json() as { chemicalId?: string; quantity?: number; recordedAt?: string };
+  const body = await req.json() as { chemicalId?: string; quantity?: number; recordedAt?: string; countedNow?: boolean };
   const chemicalId = body.chemicalId;
-  const quantity = Number(body.quantity);
+  let quantity = Number(body.quantity);
   if (!chemicalId || !Number.isFinite(quantity) || quantity < 0) {
     return NextResponse.json({ error: 'Ongeldige gegevens' }, { status: 400 });
   }
@@ -38,6 +38,14 @@ export async function POST(req: NextRequest) {
   }
   // Only counts from an earlier day skip the low-stock push; today's count still alerts.
   const isBackdated = now.getTime() - recordedAt.getTime() > 12 * 36e5;
+
+  // The monthly ingave is dated on the last day of the month, but the stock is counted
+  // a few days later. A delivery or transfer logged in between is already in that count,
+  // so take it out again to get the stock as it was at month-end.
+  if (body.countedNow && recordedAt.getTime() < now.getTime()) {
+    const m = await movementBetween(chemicalId, recordedAt, now);
+    quantity = Math.max(0, Math.round((quantity - (m.delivered + m.transferredIn - m.transferredOut + m.adjusted)) * 1000) / 1000);
+  }
 
   // One count per product per day: a second count on the same (Brussels) day replaces
   // the first instead of creating a zero-length period with bogus consumption.

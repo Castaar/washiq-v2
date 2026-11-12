@@ -893,3 +893,85 @@ const BrushSchema = new Schema<IBrush>({
 });
 BrushSchema.index({ site_id: 1, category: 1, order: 1 });
 export const Brush = models.Brush || model<IBrush>('Brush', BrushSchema);
+
+// ─── Integrations (external APIs) ─────────────────────────────
+// A connection holds one owner's credentials for an external system (MyCarwash /
+// Total Wash counters, Shayp water meter). Secrets are encrypted (lib/secret-box.ts)
+// and never sent to the browser. A carwash opts in per provider through a
+// SiteIntegration that points at a connection and at the location/device there.
+export type IntegrationProvider = 'mycarwash' | 'shayp';
+
+export interface IIntegrationConnection extends Document {
+  provider: IntegrationProvider;
+  label: string;
+  owner_id: Types.ObjectId; // who created it
+  base_url: string; // mycarwash: API base; shayp: API host
+  username: string; // mycarwash login (not secret)
+  customer_id: string; // shayp customer UUID
+  secret_enc: string; // encrypted password (mycarwash) or API key (shayp)
+  last_ok_at: Date | null;
+  last_error: string;
+  created_at: Date;
+}
+const IntegrationConnectionSchema = new Schema<IIntegrationConnection>({
+  provider: { type: String, enum: ['mycarwash', 'shayp'], required: true },
+  label: { type: String, default: '' },
+  owner_id: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  base_url: { type: String, default: '' },
+  username: { type: String, default: '' },
+  customer_id: { type: String, default: '' },
+  secret_enc: { type: String, default: '' },
+  last_ok_at: { type: Date, default: null },
+  last_error: { type: String, default: '' },
+  created_at: { type: Date, default: Date.now },
+});
+IntegrationConnectionSchema.index({ owner_id: 1 });
+export const IntegrationConnection = models.IntegrationConnection || model<IIntegrationConnection>('IntegrationConnection', IntegrationConnectionSchema);
+
+export interface ISiteIntegration extends Document {
+  site_id: Types.ObjectId;
+  provider: IntegrationProvider;
+  connection_id: Types.ObjectId;
+  enabled: boolean;
+  external_id: string; // mycarwash location id / shayp device UUID
+  external_name: string;
+  // mycarwash: Total Wash program number -> Glosiv wash program
+  program_map: { number: number; name: string; program_id: Types.ObjectId | null }[];
+  last_synced_at: Date | null;
+  last_error: string;
+  created_at: Date;
+}
+const SiteIntegrationSchema = new Schema<ISiteIntegration>({
+  site_id: { type: Schema.Types.ObjectId, ref: 'Site', required: true },
+  provider: { type: String, enum: ['mycarwash', 'shayp'], required: true },
+  connection_id: { type: Schema.Types.ObjectId, ref: 'IntegrationConnection', required: true },
+  enabled: { type: Boolean, default: true },
+  external_id: { type: String, default: '' },
+  external_name: { type: String, default: '' },
+  program_map: [{ number: Number, name: String, program_id: { type: Schema.Types.ObjectId, ref: 'WashProgram', default: null } }],
+  last_synced_at: { type: Date, default: null },
+  last_error: { type: String, default: '' },
+  created_at: { type: Date, default: Date.now },
+});
+SiteIntegrationSchema.index({ site_id: 1, provider: 1 }, { unique: true });
+export const SiteIntegration = models.SiteIntegration || model<ISiteIntegration>('SiteIntegration', SiteIntegrationSchema);
+
+// One row per site, provider and (Brussels) day with what the external system reported.
+export interface IIntegrationDay extends Document {
+  site_id: Types.ObjectId;
+  provider: IntegrationProvider;
+  date: string; // YYYY-MM-DD
+  counters: { number: number; name: string; controller: number; pos: number }[]; // mycarwash
+  water_liters: number | null; // shayp
+  fetched_at: Date;
+}
+const IntegrationDaySchema = new Schema<IIntegrationDay>({
+  site_id: { type: Schema.Types.ObjectId, ref: 'Site', required: true },
+  provider: { type: String, enum: ['mycarwash', 'shayp'], required: true },
+  date: { type: String, required: true },
+  counters: [{ number: Number, name: String, controller: Number, pos: Number, _id: false }],
+  water_liters: { type: Number, default: null },
+  fetched_at: { type: Date, default: Date.now },
+});
+IntegrationDaySchema.index({ site_id: 1, provider: 1, date: 1 }, { unique: true });
+export const IntegrationDay = models.IntegrationDay || model<IIntegrationDay>('IntegrationDay', IntegrationDaySchema);

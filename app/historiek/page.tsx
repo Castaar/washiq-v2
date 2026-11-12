@@ -273,8 +273,11 @@ export default async function HistoriekPage({
         const adjusted = sumIn(ledgerAdjustments, (a) => ({ id: idStr(a.chemical_id), at: a.adjusted_at as Date, q: (a.quantity as number) ?? 0 }), cid, from, to);
         const f = brusselsDay(from);
         const t = brusselsDay(to);
+        // A count at the end of a day (month-end ingave: 23:59) closes that day, so the
+        // next period starts the day after: 31/10 23:59 -> "01/11".
+        const endOfDay = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Brussels', hour: '2-digit', minute: '2-digit' }).format(from) === '23:59';
         periods.push({
-          from: fmtShort(from),
+          from: fmtShort(endOfDay ? new Date(from.getTime() + 61_000) : from),
           to: fmtShort(to),
           start: (prev.quantity as number) ?? 0,
           delivered,

@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import { NavBar } from '@/components/layout/NavBar/NavBar';
 import { InstellingenForm } from '@/components/forms/InstellingenForm/InstellingenForm';
+import { KoppelingenPanel } from '@/components/instellingen/KoppelingenPanel/KoppelingenPanel';
 import { dbConnect } from '@/lib/db/mongoose';
 import { Site, PriceConfig, ChemicalStock, EnergyBill, User, MaintenanceTask, WeeklyEntry, WashProgram } from '@/lib/models';
 import { getSession } from '@/lib/session';
@@ -116,6 +117,7 @@ export default async function InstellingenPage({
     <div className={styles.root}>
       <NavBar sites={allowedSites} activeSiteId={siteId ?? ''} backHref="/" />
       <main className={styles.main}>
+        <div className={styles.column}>
         <InstellingenForm
           key={siteId}
           siteId={siteId ?? ''}
@@ -132,6 +134,16 @@ export default async function InstellingenPage({
           currentTotalWashes={currentTotalWashes}
           programs={programs}
         />
+        {siteId && (userRole === 'owner' || userRole === 'developer') && (
+          <KoppelingenPanel
+            key={`koppelingen-${siteId}`}
+            siteId={siteId}
+            siteName={siteName}
+            siteType={siteType}
+            programs={programs.map((p) => ({ id: p.id, name: p.name }))}
+          />
+        )}
+        </div>
       </main>
     </div>
   );

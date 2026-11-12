@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
@@ -161,7 +161,11 @@ export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesT
   const [stockCounts, setStockCounts] = useState<Record<string, string>>(
     () => Object.fromEntries(uniqueChemicals.map((c) => [c.id, ''])),
   );
-  const [pickedDate, setPickedDate] = useState<string>(() => dateToDateString(new Date()));
+  // An ingave is always about the previous month (Danny): default to its last day
+  const [pickedDate, setPickedDate] = useState<string>(() => {
+    const now = new Date();
+    return dateToDateString(new Date(Date.UTC(now.getFullYear(), now.getMonth(), 0)));
+  });
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState('');
 
@@ -183,6 +187,64 @@ export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesT
   const previousWaterTellerstand = lastEntry?.waterTellerstand ?? startWaterCount;
   const newWaterTellerstandNum = newWaterTellerstand.trim() === '' ? null : parseFloat(newWaterTellerstand);
   const waterUsage = newWaterTellerstandNum !== null ? newWaterTellerstandNum - previousWaterTellerstand : 0;
+
+  // ── Prefill from koppelingen (MyCarwash counters, Shayp water) ──
+  // Sums the stored days of this ingave's period. Only fields that are empty, or
+  // still hold the previous prefill, are (re)filled — a typed value is never overwritten.
+  type PrefillInfo = { days: number; totalDays: number; missingDays: string[]; includesToday: boolean; error: string; source: string };
+  const [prefill, setPrefill] = useState<{
+    mycarwash?: PrefillInfo & { programCounts: Record<string, number>; unmapped: { number: number; name: string; count: number }[] };
+    shayp?: PrefillInfo & { liters: number };
+  } | null>(null);
+  const autoValues = useRef<Record<string, string>>({});
+  useEffect(() => {
+    if (!siteId || !lastEntry?.weekStart || lastDay >= pickedDate) { setPrefill(null); return; }
+    let cancelled = false;
+    fetch(`/api/integrations/prefill?siteId=${siteId}&from=${lastDay}&to=${pickedDate}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (cancelled || !data) return;
+        setPrefill(data);
+        const keep = (key: string, current: string) => current.trim() === '' || current === autoValues.current[key];
+        const mc = data.mycarwash as { programCounts: Record<string, number> } | undefined;
+        if (mc && !isSelfcarwash) {
+          setProgramCounts((prev) => {
+            const next = { ...prev };
+            for (const p of programs) {
+              const v = mc.programCounts[p.id];
+              if (v === undefined || !keep(`p.${p.id}`, prev[p.id] ?? '')) continue;
+              next[p.id] = String(v);
+              autoValues.current[`p.${p.id}`] = String(v);
+            }
+            return next;
+          });
+        }
+        const sh = data.shayp as { liters: number; days: number } | undefined;
+        if (sh && sh.days > 0) {
+          const v = String(Math.round(previousWaterTellerstand + sh.liters / 1000));
+          setNewWaterTellerstand((prev) => {
+            if (!keep('water', prev)) return prev;
+            autoValues.current.water = v;
+            return v;
+          });
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [siteId, lastDay, pickedDate]);
+
+  const prefillNote = (info: PrefillInfo | undefined, label: string) => {
+    if (!info) return null;
+    const missing = info.missingDays.length;
+    return (
+      <p className={missing > 0 || info.error ? styles.tellerstandError : styles.tellerstandOk}>
+        {t('autoIngevuld', { bron: label, dagen: info.days, totaal: info.totalDays })}
+        {missing > 0 && ` — ${t('autoOntbreekt', { count: missing })}`}
+        {info.error && ` — ${info.error}`}
+      </p>
+    );
+  };
 
   const maintenanceWarnings = washesTasks
     .map((t) => {
@@ -265,7 +327,7 @@ export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesT
           fetch('/api/stock/reading', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chemicalId: c.id, quantity: parseFloat(stockCounts[c.id].replace(',', '.')) || 0, recordedAt: countAt }),
+            body: JSON.stringify({ chemicalId: c.id, quantity: parseFloat(stockCounts[c.id].replace(',', '.')) || 0, recordedAt: countAt, countedNow: true }),
           }),
         );
       if (readings.length > 0) await Promise.allSettled(readings);
@@ -362,6 +424,12 @@ export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesT
             <p className={styles.emptyHint}>{t('geenProgrammas')}</p>
           )}
         </div>
+        {prefillNote(prefill?.mycarwash, 'MyCarwash')}
+        {(prefill?.mycarwash?.unmapped.length ?? 0) > 0 && (
+          <p className={styles.tellerstandError}>
+            {t('autoNietGekoppeld', { lijst: prefill!.mycarwash!.unmapped.map((u) => `#${u.number} ${u.name} (${u.count})`).join(', ') })}
+          </p>
+        )}
         {newTellerstandNum !== null && (
           <p className={tellerstandMismatch ? styles.tellerstandError : styles.tellerstandOk}>
             {t('somPerProgramma', { sum: programCountSum.toLocaleString(loc), diff: (expectedDiff ?? 0).toLocaleString(loc) })}
@@ -414,6 +482,7 @@ export function WeeklyEntryForm({ siteId, programs, products, lastEntry, washesT
         {newWaterTellerstandNum !== null && (
           <p className={styles.tellerstandOk}>{t('verbruikPeriode', { value: waterUsage.toLocaleString(loc) })}</p>
         )}
+        {prefillNote(prefill?.shayp, 'Shayp')}
       </section>
 
       {/* ── Section 3: Voorraad per product ─────────────────── */}
