@@ -58,6 +58,7 @@ export async function proxy(req: NextRequest) {
       pathname.startsWith('/wekelijkse-ingave') ||
       pathname.startsWith('/historiek') ||
       pathname.startsWith('/instellingen') ||
+      pathname.startsWith('/water') ||
       pathname.startsWith('/dagfiches') ||
       pathname.startsWith('/setup') ||
       pathname.startsWith('/technieker') ||

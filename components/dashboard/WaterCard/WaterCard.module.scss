@@ -1,0 +1,95 @@
+@use '../../../styles/variables' as *;
+
+.card {
+  @include glass(0.04);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.header,
+.row {
+  @include flex-between;
+  gap: var(--space-3);
+}
+
+.headerLabel {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.detailLink {
+  font-size: 0.75rem;
+  color: var(--color-accent-blue);
+  text-decoration: none;
+}
+
+.label {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+}
+
+.value,
+.valueWarn {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.valueWarn {
+  color: var(--color-accent-amber, #f59e0b);
+}
+
+.sub {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.up {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-accent-red);
+}
+
+.alert {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--color-accent-red);
+}
+
+.bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 56px;
+}
+
+.barCol {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.barOpen {
+  background: #3b82f6;
+  border-radius: 2px 2px 0 0;
+  min-height: 1px;
+}
+
+.barClosed {
+  background: #f59e0b;
+}
+
+.foot {
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+}

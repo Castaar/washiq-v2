@@ -26,6 +26,9 @@ import {
 import { ProgrammaCard } from '@/components/dashboard/ProgrammaCard/ProgrammaCard';
 import type { ProgramOption } from '@/components/dashboard/ProgrammaCard/ProgrammaCard';
 import { OmzetCard, type OmzetRow } from '@/components/dashboard/OmzetCard/OmzetCard';
+import { WaterCard, type WaterCardProps } from '@/components/dashboard/WaterCard/WaterCard';
+import { hasWaterMeter, waterOverview } from '@/lib/water';
+import { addDays as addDaysStr, brusselsDay as brusselsDayStr } from '@/lib/integrations';
 import { AlertsPanel } from '@/components/dashboard/AlertsPanel/AlertsPanel';
 import { VoorraadPanel } from '@/components/dashboard/VoorraadPanel/VoorraadPanel';
 import { LogboekPanel } from '@/components/logboek/LogboekPanel/LogboekPanel';
@@ -460,6 +463,40 @@ export async function CarwashPage({
       chemicals: ((p.chemicals as string[]) ?? []).map((n) => translateContent(contentTranslations, 'product', n)),
     };
   });
+
+  // ── Water card (Shayp meter koppeling), owners only ──────────
+  let waterCard: WaterCardProps | null = null;
+  if ((userRole === 'owner' || userRole === 'developer') && siteId && (await hasWaterMeter(siteId))) {
+    const todayStr = brusselsDayStr(new Date());
+    const yesterdayStr = addDaysStr(todayStr, -1);
+    const monthStart = `${todayStr.slice(0, 7)}-01`;
+    const recentFrom = addDaysStr(yesterdayStr, -13);
+    const [recent, month] = await Promise.all([
+      waterOverview(siteId, recentFrom < monthStart ? recentFrom : monthStart, yesterdayStr),
+      waterOverview(siteId, monthStart, yesterdayStr),
+    ]);
+    // Same days of the previous month, only when the meter already measured all of them
+    const [py, pm] = [Number(monthStart.slice(0, 4)), Number(monthStart.slice(5, 7))];
+    const prevStart = new Date(Date.UTC(py, pm - 2, 1)).toISOString().slice(0, 10);
+    const prevEnd = addDaysStr(prevStart, Number(yesterdayStr.slice(8, 10)) - 1);
+    const prev = yesterdayStr >= monthStart ? await waterOverview(siteId, prevStart, prevEnd) : null;
+    const prevComplete = prev && prev.firstMeasured && prev.firstMeasured <= prevStart;
+    const last14 = recent.days.filter((d) => d.date >= recentFrom);
+    // Latest measured day: Shayp only serves a day 12h after it ended, so this is often the day before yesterday
+    const y = recent.days[recent.days.length - 1] ?? null;
+    if (recent.measuredDays > 0) {
+      waterCard = {
+        siteId,
+        yesterday: y ? { date: y.date, total: y.total, closed: y.closed, leak: y.leak } : null,
+        avgPerDay: last14.length ? Math.round(last14.reduce((s, d) => s + d.total, 0) / last14.length) : 0,
+        monthTotal: yesterdayStr >= monthStart ? month.total : 0,
+        monthCost: yesterdayStr >= monthStart ? month.cost : 0,
+        monthClosed: yesterdayStr >= monthStart ? month.closed : 0,
+        prevMonthSamePeriod: prevComplete ? prev.total : null,
+        bars: last14.map((d) => ({ date: d.date, open: d.open, closed: d.closed })),
+      };
+    }
+  }
 
   // ── Alerts panel ─────────────────────────────────────────────
   // This runs server-side (Vercel = UTC), so plain getHours()/getDate()
@@ -1174,6 +1211,8 @@ export async function CarwashPage({
                 className={styles.heroImage}
               />
             </div>
+
+            {waterCard && <WaterCard {...waterCard} />}
 
             {isOwner && topAnomaly && (
               <div className={styles.anomalyBanner}>

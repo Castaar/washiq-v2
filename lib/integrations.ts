@@ -28,9 +28,17 @@ function trimUrl(u: string): string {
   return u.trim().replace(/\/+$/, '');
 }
 
-async function fetchJson(url: string, init: RequestInit = {}): Promise<unknown> {
+async function fetchJson(url: string, init: RequestInit = {}, attempt = 0): Promise<unknown> {
   const res = await fetch(url, { ...init, signal: AbortSignal.timeout(TIMEOUT_MS), cache: 'no-store' });
   const text = await res.text();
+  // Rate limited (Shayp): wait as long as the API asks (max 15 s), then retry, up to 4 times
+  if (res.status === 429 && attempt < 4) {
+    const fromHeader = Number(res.headers.get('retry-after'));
+    const fromBody = Number(/available in (\d+)/i.exec(text)?.[1]);
+    const waitS = Math.min(15, Math.max(1, Number.isFinite(fromHeader) && fromHeader > 0 ? fromHeader : Number.isFinite(fromBody) && fromBody > 0 ? fromBody : 5));
+    await new Promise((r) => setTimeout(r, waitS * 1000 + 250));
+    return fetchJson(url, init, attempt + 1);
+  }
   if (!res.ok) {
     if (res.status === 401 || res.status === 403) throw new Error(`Geen toegang (HTTP ${res.status}) — controleer de gegevens`);
     throw new Error(`HTTP ${res.status}${text ? `: ${text.slice(0, 120)}` : ''}`);
@@ -161,21 +169,35 @@ export async function syncDays(link: LinkDoc, days: string[]): Promise<number> {
     const cutoff = Date.now() - 12 * 36e5;
     const sorted = [...days].sort().filter((d) => brusselsInstant(addDays(d, 1), '00:00:00').getTime() <= cutoff);
     if (sorted.length === 0) return 0;
-    const perDay = new Map<string, number>(sorted.map((d) => [d, 0]));
+    const hourly = new Map<string, number[]>(sorted.map((d) => [d, Array(24).fill(0)]));
+    const leaks = new Map<string, number>(sorted.map((d) => [d, 0]));
+    // Buckets (10 min) come back in the requested timezone (Brussels) although they carry
+    // a "Z": the 00:00 bucket is local midnight. So read day and hour straight from the text.
+    const dev = `/devices/${encodeURIComponent(link.external_id)}`;
     // Shayp allows at most 7 days per request
     for (let i = 0; i < sorted.length; i += 7) {
       const chunk = sorted.slice(i, i + 7);
       const qs = new URLSearchParams({ start: `${chunk[0]}T00:00:00`, end: `${addDays(chunk[chunk.length - 1], 1)}T00:00:00`, timezone: 'Europe/Brussels' });
-      const series = await shaypGet<{ timestamp: string; consumption: number }[]>(conn, secret, `/devices/${encodeURIComponent(link.external_id)}/consumptions/timeseries/?${qs}`);
+      // One after the other: Shayp throttles bursts of requests
+      const series = await shaypGet<{ timestamp: string; consumption: number }[]>(conn, secret, `${dev}/consumptions/timeseries/?${qs}`);
+      const leakSeries = await shaypGet<{ timestamp: string; leak: number }[]>(conn, secret, `${dev}/leaks/timeseries/?${qs}`);
       for (const p of Array.isArray(series) ? series : []) {
-        // Buckets come back in the requested timezone (Brussels) although they carry a
-        // "Z": the 00:00 bucket is local midnight. So read the day straight from the text.
+        const ts = String(p.timestamp);
+        const h = hourly.get(ts.slice(0, 10));
+        if (h) h[Number(ts.slice(11, 13)) || 0] += Number(p.consumption) || 0;
+      }
+      for (const p of Array.isArray(leakSeries) ? leakSeries : []) {
         const day = String(p.timestamp).slice(0, 10);
-        if (perDay.has(day)) perDay.set(day, (perDay.get(day) ?? 0) + (Number(p.consumption) || 0));
+        if (leaks.has(day)) leaks.set(day, (leaks.get(day) ?? 0) + (Number(p.leak) || 0));
       }
     }
-    for (const [date, liters] of perDay) {
-      await upsert(date, { water_liters: Math.round(liters) });
+    for (const [date, hours] of hourly) {
+      const rounded = hours.map((v) => Math.round(v));
+      await upsert(date, {
+        water_liters: rounded.reduce((a, b) => a + b, 0),
+        water_hourly: rounded,
+        water_leak_liters: Math.round(leaks.get(date) ?? 0),
+      });
       stored++;
     }
   }

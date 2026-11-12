@@ -963,6 +963,9 @@ export interface IIntegrationDay extends Document {
   date: string; // YYYY-MM-DD
   counters: { number: number; name: string; controller: number; pos: number }[]; // mycarwash
   water_liters: number | null; // shayp
+  water_hourly: number[]; // shayp: liters per Brussels hour 0..23
+  water_leak_liters: number | null; // shayp: what Shayp classified as leak that day
+  alert_sent_at: Date | null; // leak / unusual night use already notified
   fetched_at: Date;
 }
 const IntegrationDaySchema = new Schema<IIntegrationDay>({
@@ -971,6 +974,9 @@ const IntegrationDaySchema = new Schema<IIntegrationDay>({
   date: { type: String, required: true },
   counters: [{ number: Number, name: String, controller: Number, pos: Number, _id: false }],
   water_liters: { type: Number, default: null },
+  water_hourly: { type: [Number], default: [] },
+  water_leak_liters: { type: Number, default: null },
+  alert_sent_at: { type: Date, default: null },
   fetched_at: { type: Date, default: Date.now },
 });
 IntegrationDaySchema.index({ site_id: 1, provider: 1, date: 1 }, { unique: true });
