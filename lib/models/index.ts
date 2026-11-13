@@ -311,9 +311,9 @@ export const StockAdjustment = models.StockAdjustment || model<IStockAdjustment>
 export interface IMaintenanceTask extends Document {
   site_id: Types.ObjectId;
   description: string;
-  // washes: every X washes | months: every X months (12=yearly, 24=biennial)
+  // washes: every X washes | weeks: every X weeks | months: every X months (12=yearly, 24=biennial)
   // fixed_date: annually on trigger_day/trigger_month | fixed_months: list of months per year
-  trigger_type: 'washes' | 'months' | 'fixed_date' | 'fixed_months';
+  trigger_type: 'washes' | 'weeks' | 'months' | 'fixed_date' | 'fixed_months';
   trigger_value: number;          // washes: interval count; months: month count
   trigger_day: number;            // fixed_date: day of month (1-31)
   trigger_month: number;          // fixed_date: month (1-12)
@@ -327,7 +327,7 @@ export interface IMaintenanceTask extends Document {
 const MaintenanceTaskSchema = new Schema<IMaintenanceTask>({
   site_id: { type: Schema.Types.ObjectId, ref: 'Site' },
   description: String,
-  trigger_type: { type: String, enum: ['washes', 'months', 'fixed_date', 'fixed_months'], default: 'months' },
+  trigger_type: { type: String, enum: ['washes', 'weeks', 'months', 'fixed_date', 'fixed_months'], default: 'months' },
   trigger_value: { type: Number, default: 0 },
   trigger_day: { type: Number, default: 0 },
   trigger_month: { type: Number, default: 0 },

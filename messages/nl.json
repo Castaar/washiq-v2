@@ -56,7 +56,8 @@
     "nogTeGaan": "Nog {count} {unit}",
     "opmerkingOptioneel": "Opmerking (optioneel)",
     "bevestigen": "Bevestigen?",
-    "uitgevoerd": "Uitgevoerd"
+    "uitgevoerd": "Uitgevoerd",
+    "weken": "weken"
   },
   "common": {
     "sluiten": "Sluiten",
@@ -157,7 +158,8 @@
     "addLabelMaandelijkseIngave": "Maandelijkse Ingave",
     "contractUitleg": "Contracturen per maand. Leeg laten als er geen contract is.",
     "contractUrenPerMaand": "Contracturen per maand voor {name}",
-    "contractEenheid": "u/maand"
+    "contractEenheid": "u/maand",
+    "elkeWeken": "{count, plural, one {Elke week} other {Elke # weken}}"
   },
   "notificaties": {
     "ingeschakeld": "Meldingen zijn ingeschakeld.",
@@ -476,7 +478,8 @@
     "fotoGeenVerbinding": "Geen verbinding — foto niet toegevoegd.",
     "extraFotoToevoegen": "Extra foto toevoegen",
     "fotoToevoegen": "Foto toevoegen",
-    "fotoOpslaan": "Foto opslaan…"
+    "fotoOpslaan": "Foto opslaan…",
+    "elkeWeken": "{count, plural, one {Elke week} other {Elke # weken}}"
   },
   "alerts": {
     "meldingen": "Meldingen",
@@ -1020,7 +1023,10 @@
     "nogGeenTaken": "Nog geen onderhoudstaken geconfigureerd.",
     "taakToevoegen": "Taak toevoegen",
     "onderhoudstaakToevoegen": "+ Onderhoudstaak toevoegen",
-    "productHernoemen": "{name} hernoemen"
+    "productHernoemen": "{name} hernoemen",
+    "elkeWeken": "{count, plural, one {Elke week} other {Elke # weken}}",
+    "triggerWeken": "Op aantal weken",
+    "intervalWeken": "Interval (weken)"
   },
   "setup": {
     "stapWelkom": "Welkom",

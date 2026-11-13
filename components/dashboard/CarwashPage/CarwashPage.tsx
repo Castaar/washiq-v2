@@ -901,6 +901,8 @@ export async function CarwashPage({
         date: fmtTime(ts),
         severity: 'low' as const,
         iconName: 'package',
+        // Opens the delivery history, where the full note (often long, e.g. "Besoin de …") is shown
+        href: `/leveringen?site=${siteId}`,
       },
     });
   }

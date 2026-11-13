@@ -33,7 +33,7 @@ export interface DeveloperMaintenanceTask {
   id: string;
   siteId: string;
   description: string;
-  trigger_type: 'washes' | 'months' | 'fixed_date' | 'fixed_months';
+  trigger_type: 'washes' | 'weeks' | 'months' | 'fixed_date' | 'fixed_months';
   trigger_value: number;
   trigger_day?: number;
   trigger_month?: number;
@@ -770,7 +770,7 @@ export function DeveloperPanel({ users: initialUsers, sites: initialSites, progr
         description: newTaskDesc.trim(),
         trigger_type: newTaskType,
       };
-      if (newTaskType === 'washes' || newTaskType === 'months') {
+      if (newTaskType === 'washes' || newTaskType === 'weeks' || newTaskType === 'months') {
         body.trigger_value = parseInt(newTaskValue) || 0;
       }
       if (newTaskType === 'fixed_date') {
@@ -828,6 +828,7 @@ export function DeveloperPanel({ users: initialUsers, sites: initialSites, progr
 
   function taskTriggerLabel(t: DeveloperMaintenanceTask): string {
     if (t.trigger_type === 'washes') return `Elke ${(t.trigger_value ?? 0).toLocaleString('nl-BE')} wassingen`;
+    if (t.trigger_type === 'weeks') return t.trigger_value === 1 ? 'Elke week' : `Elke ${t.trigger_value} weken`;
     if (t.trigger_type === 'months') {
       if (t.trigger_value === 12) return '1× per jaar';
       if (t.trigger_value === 24) return 'Om de 2 jaar';
@@ -1170,12 +1171,13 @@ export function DeveloperPanel({ users: initialUsers, sites: initialSites, progr
                   onChange={(e) => { setNewTaskType(e.target.value as DeveloperMaintenanceTask['trigger_type']); }}
                 >
                   <option value="washes">Elke X wassingen</option>
+                  <option value="weeks">Elke X weken</option>
                   <option value="months">Elke X maanden (12 = jaarlijks, 24 = 2 jaar)</option>
                   <option value="fixed_date">Vaste datum per jaar</option>
                   <option value="fixed_months">Vaste maand(en) per jaar</option>
                 </select>
               </div>
-              {(newTaskType === 'washes' || newTaskType === 'months') && (
+              {(newTaskType === 'washes' || newTaskType === 'weeks' || newTaskType === 'months') && (
                 <div className={styles.addField}>
                   <label className={styles.addLabel}>{newTaskType === 'washes' ? 'Aantal wassingen' : 'Aantal maanden'}</label>
                   <input

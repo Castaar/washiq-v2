@@ -54,6 +54,12 @@ export function computeIsOverdue(task: TaskLike, now: Date = new Date(), current
       return new Date(task.last_done_at) < windowStart;
     }
 
+    case 'weeks': {
+      if (!task.last_done_at) return false;
+      const weeksElapsed = (now.getTime() - new Date(task.last_done_at).getTime()) / (7 * 864e5);
+      return weeksElapsed >= (task.trigger_value ?? 0);
+    }
+
     case 'months': {
       if (!task.last_done_at) return false;
       const lastDone = new Date(task.last_done_at);

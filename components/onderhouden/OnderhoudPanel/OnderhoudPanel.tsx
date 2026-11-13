@@ -9,7 +9,7 @@ import styles from './OnderhoudPanel.module.scss';
 export interface OnderhoudTask {
   id: string;
   description: string;
-  triggerType: 'washes' | 'months' | 'fixed_date' | 'fixed_months';
+  triggerType: 'washes' | 'weeks' | 'months' | 'fixed_date' | 'fixed_months';
   triggerValue: number;
   lastDoneAt?: string;
   lastDoneByName?: string;
@@ -150,6 +150,7 @@ function TaskCard({
   const numLocale = locale === 'fr' ? 'fr-BE' : 'nl-BE';
   const TRIGGER_LABEL: Record<string, string> = {
     washes: t('wassingen'),
+    weeks: t('weken'),
     months: t('maanden'),
     fixed_date: t('vasteDatum'),
     fixed_months: t('vasteMaanden'),
@@ -174,7 +175,7 @@ function TaskCard({
           {task.triggerType === 'washes' && task.triggerValue > 0 && (
             <span>{t('elke', { count: task.triggerValue.toLocaleString(numLocale), unit: TRIGGER_LABEL[task.triggerType] })}</span>
           )}
-          {task.triggerType === 'months' && task.triggerValue > 0 && (
+          {(task.triggerType === 'months' || task.triggerType === 'weeks') && task.triggerValue > 0 && (
             <span>{t('elke', { count: task.triggerValue, unit: TRIGGER_LABEL[task.triggerType] })}</span>
           )}
           {task.lastDoneAt && (

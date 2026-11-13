@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     };
     maintenanceTasks?: {
       description: string;
-      trigger_type: 'washes' | 'months' | 'fixed_date' | 'fixed_months';
+      trigger_type: 'washes' | 'weeks' | 'months' | 'fixed_date' | 'fixed_months';
       trigger_value: number;
       trigger_day?: number;
       trigger_month?: number;

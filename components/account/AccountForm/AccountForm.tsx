@@ -27,7 +27,7 @@ export interface EnergyBillItem {
 export interface MaintenanceTaskItem {
   id: string;
   description: string;
-  trigger_type: 'washes' | 'months' | 'fixed_date' | 'fixed_months';
+  trigger_type: 'washes' | 'weeks' | 'months' | 'fixed_date' | 'fixed_months';
   trigger_value: number;
   trigger_day: number;
   trigger_month: number;
@@ -354,6 +354,7 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
 
   function taskTriggerLabel(task: MaintenanceTaskItem): string {
     if (task.trigger_type === 'washes') return t('elkeWassingen', { count: (task.trigger_value ?? 0).toLocaleString(numLocale) });
+    if (task.trigger_type === 'weeks') return t('elkeWeken', { count: task.trigger_value });
     if (task.trigger_type === 'months') {
       if (task.trigger_value === 12) return t('eenKeerPerJaar');
       if (task.trigger_value === 24) return t('omDe2Jaar');
@@ -374,10 +375,11 @@ export function AccountForm({ users: initialUsers, siteId, currentUser, role, ma
         overdue,
       };
     }
-    if (task.trigger_type === 'months') {
+    if (task.trigger_type === 'months' || task.trigger_type === 'weeks') {
       if (!task.last_done_at) return { label: t('nogNietGedaan'), overdue: true };
       const next = new Date(task.last_done_at);
-      next.setMonth(next.getMonth() + task.trigger_value);
+      if (task.trigger_type === 'weeks') next.setDate(next.getDate() + 7 * task.trigger_value);
+      else next.setMonth(next.getMonth() + task.trigger_value);
       const overdue = now >= next;
       return { label: next.toLocaleDateString(numLocale, { day: '2-digit', month: '2-digit', year: 'numeric' }), overdue };
     }

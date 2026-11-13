@@ -431,7 +431,8 @@
     "elkeWassingen": "Tous les {count} lavages",
     "fotoAltText": "Photo {number}",
     "jaarlijks": "{date} (annuel)",
-    "opgelostDoor": "Résolu par {name}"
+    "opgelostDoor": "Résolu par {name}",
+    "elkeWeken": "{count, plural, one {Chaque semaine} other {Toutes les # semaines}}"
   },
   "carwashPage": {
     "kostWater": "Eau",
@@ -504,7 +505,8 @@
     "volgende": "Prochain : {label}",
     "contractUitleg": "Heures de contrat par mois. Laisser vide s’il n’y a pas de contrat.",
     "contractUrenPerMaand": "Heures de contrat par mois pour {name}",
-    "contractEenheid": "h/mois"
+    "contractEenheid": "h/mois",
+    "elkeWeken": "{count, plural, one {Chaque semaine} other {Toutes les # semaines}}"
   },
   "washPrograms": {
     "confirmVerwijderen": "Supprimer le programme « {name} » ?",
@@ -613,7 +615,10 @@
     "nogGeenTaken": "Aucune tâche d’entretien configurée.",
     "taakToevoegen": "Ajouter la tâche",
     "onderhoudstaakToevoegen": "+ Ajouter une tâche d’entretien",
-    "productHernoemen": "Renommer {name}"
+    "productHernoemen": "Renommer {name}",
+    "elkeWeken": "{count, plural, one {Chaque semaine} other {Toutes les # semaines}}",
+    "triggerWeken": "Nombre de semaines",
+    "intervalWeken": "Intervalle (semaines)"
   },
   "setup": {
     "stapWelkom": "Bienvenue",

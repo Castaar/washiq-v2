@@ -31,6 +31,7 @@ export default async function OnderhoudTaskHistoryPage({
   const tCommon = await getTranslations('common');
   const TRIGGER_LABEL: Record<string, string> = {
     washes: t('wassingen'),
+    weeks: t('weken'),
     months: t('maanden'),
     fixed_date: t('vasteDatum'),
     fixed_months: t('vasteMaanden'),
@@ -61,8 +62,8 @@ export default async function OnderhoudTaskHistoryPage({
 
   const triggerLabel = task.trigger_type === 'washes' && (task.trigger_value as number) > 0
     ? t('elke', { count: (task.trigger_value as number).toLocaleString(locale === 'fr' ? 'fr-BE' : 'nl-BE'), unit: t('wassingen') })
-    : task.trigger_type === 'months' && (task.trigger_value as number) > 0
-      ? t('elke', { count: task.trigger_value as number, unit: t('maanden') })
+    : (task.trigger_type === 'months' || task.trigger_type === 'weeks') && (task.trigger_value as number) > 0
+      ? t('elke', { count: task.trigger_value as number, unit: task.trigger_type === 'weeks' ? t('weken') : t('maanden') })
       : TRIGGER_LABEL[task.trigger_type as string] ?? '';
 
   const logs = logDocs.map((l) => ({

@@ -75,7 +75,7 @@ export type IncidentPayload = IncidentSchadePayload | IncidentEhboPayload | Defe
 export interface MaintenanceTaskPayload {
   type: 'maintenance_task';
   description: string;
-  triggerType: 'washes' | 'months' | 'fixed_date' | 'fixed_months';
+  triggerType: 'washes' | 'weeks' | 'months' | 'fixed_date' | 'fixed_months';
   triggerValue: number;
   triggerDay?: number;
   triggerMonth?: number;

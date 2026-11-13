@@ -21,7 +21,7 @@ interface Prices {
 
 interface TaskDraft {
   description: string;
-  trigger_type: 'washes' | 'months' | 'fixed_date';
+  trigger_type: 'washes' | 'weeks' | 'months' | 'fixed_date';
   trigger_value: number;
   trigger_day: number;
   trigger_month: number;
@@ -380,7 +380,7 @@ export function SetupWizard({ siteId, siteName, sites, initialPrices, initialTas
               <div className={styles.fieldGroup}>
                 <label className={styles.label}>{tInst('typeTrigger')}</label>
                 <div className={styles.radioGroup}>
-                  {([['washes', tInst('triggerWasbeurten')], ['months', tInst('triggerMaanden')], ['fixed_date', tInst('triggerVasteDatum')]] as [TaskDraft['trigger_type'], string][])
+                  {([['washes', tInst('triggerWasbeurten')], ['weeks', tInst('triggerWeken')], ['months', tInst('triggerMaanden')], ['fixed_date', tInst('triggerVasteDatum')]] as [TaskDraft['trigger_type'], string][])
                     .filter(([val]) => siteType !== 'selfcarwash' || val !== 'washes')
                     .map(([val, lbl]) => (
                     <label key={val} className={styles.radioLabel}>
@@ -433,10 +433,10 @@ export function SetupWizard({ siteId, siteName, sites, initialPrices, initialTas
                 </div>
               )}
 
-              {newTask.trigger_type === 'months' && (
+              {(newTask.trigger_type === 'months' || newTask.trigger_type === 'weeks') && (
                 <div className={styles.fieldRow}>
                   <div className={styles.fieldGroup}>
-                    <label className={styles.label}>{tInst('intervalMaanden')}</label>
+                    <label className={styles.label}>{newTask.trigger_type === 'weeks' ? tInst('intervalWeken') : tInst('intervalMaanden')}</label>
                     <input
                       type="number"
                       min={1}

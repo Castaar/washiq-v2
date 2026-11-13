@@ -82,7 +82,7 @@ export default async function AccountPage({
   const maintenanceTasks = taskDocs.map((t) => ({
     id: (t._id as Types.ObjectId).toString(),
     description: (t.description as string) ?? '',
-    trigger_type: (t.trigger_type as string) as 'washes' | 'months' | 'fixed_date' | 'fixed_months',
+    trigger_type: (t.trigger_type as string) as 'washes' | 'weeks' | 'months' | 'fixed_date' | 'fixed_months',
     trigger_value: (t.trigger_value as number) ?? 0,
     trigger_day: (t.trigger_day as number) ?? 0,
     trigger_month: (t.trigger_month as number) ?? 0,

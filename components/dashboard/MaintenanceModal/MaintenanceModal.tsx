@@ -21,6 +21,8 @@ function triggerLabel(payload: MaintenanceTaskPayload, t: (key: string, values?:
   switch (payload.triggerType) {
     case 'washes':
       return t('elkeWassingen', { count: payload.triggerValue.toLocaleString(numLocale) });
+    case 'weeks':
+      return t('elkeWeken', { count: payload.triggerValue });
     case 'months':
       if (payload.triggerValue === 12) return t('eenKeerPerJaar');
       if (payload.triggerValue === 24) return t('omDe2Jaar');

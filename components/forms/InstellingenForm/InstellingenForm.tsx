@@ -13,7 +13,7 @@ import styles from './InstellingenForm.module.scss';
 interface MaintenanceTaskItem {
   id: string;
   description: string;
-  trigger_type: 'washes' | 'months' | 'fixed_date' | 'fixed_months';
+  trigger_type: 'washes' | 'weeks' | 'months' | 'fixed_date' | 'fixed_months';
   trigger_value: number;
   trigger_day: number;
   trigger_month: number;
@@ -24,7 +24,7 @@ interface MaintenanceTaskItem {
 
 interface NewTaskDraft {
   description: string;
-  trigger_type: 'washes' | 'months' | 'fixed_date';
+  trigger_type: 'washes' | 'weeks' | 'months' | 'fixed_date';
   trigger_value: number;
   trigger_day: number;
   trigger_month: number;
@@ -106,6 +106,7 @@ function emptyTask(): NewTaskDraft {
 
 function taskTriggerLabel(t: MaintenanceTaskItem, tr: TFn, months: string[], numLocale: string): string {
   if (t.trigger_type === 'washes') return tr('elkeWasbeurten', { count: t.trigger_value.toLocaleString(numLocale) });
+  if (t.trigger_type === 'weeks') return tr('elkeWeken', { count: t.trigger_value });
   if (t.trigger_type === 'months') {
     if (t.trigger_value === 12) return tr('eenKeerPerJaar');
     if (t.trigger_value === 24) return tr('omDe2Jaar');
@@ -1369,7 +1370,7 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
                   <div className={styles.taskFormField}>
                     <label className={styles.priceLabel}>{tr('typeTrigger')}</label>
                     <div className={styles.radioGroup}>
-                      {([['washes', tr('triggerWasbeurten')], ['months', tr('triggerMaanden')], ['fixed_date', tr('triggerVasteDatum')]] as [NewTaskDraft['trigger_type'], string][]).filter(([val]) => siteType !== 'selfcarwash' || val !== 'washes').map(([val, lbl]) => (
+                      {([['washes', tr('triggerWasbeurten')], ['weeks', tr('triggerWeken')], ['months', tr('triggerMaanden')], ['fixed_date', tr('triggerVasteDatum')]] as [NewTaskDraft['trigger_type'], string][]).filter(([val]) => siteType !== 'selfcarwash' || val !== 'washes').map(([val, lbl]) => (
                         <label key={val} className={styles.radioLabel}>
                           <input
                             type="radio"
@@ -1418,10 +1419,10 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
                     </div>
                   )}
 
-                  {editTask.trigger_type === 'months' && (
+                  {(editTask.trigger_type === 'months' || editTask.trigger_type === 'weeks') && (
                     <div className={styles.taskFormRow}>
                       <div className={styles.taskFormField}>
-                        <label className={styles.priceLabel}>{tr('intervalMaanden')}</label>
+                        <label className={styles.priceLabel}>{editTask.trigger_type === 'weeks' ? tr('intervalWeken') : tr('intervalMaanden')}</label>
                         <input
                           className={styles.stockInput}
                           type="number"
@@ -1546,7 +1547,7 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
             <div className={styles.taskFormField}>
               <label className={styles.priceLabel}>{tr('typeTrigger')}</label>
               <div className={styles.radioGroup}>
-                {([['washes', tr('triggerWasbeurten')], ['months', tr('triggerMaanden')], ['fixed_date', tr('triggerVasteDatum')]] as [NewTaskDraft['trigger_type'], string][]).filter(([val]) => siteType !== 'selfcarwash' || val !== 'washes').map(([val, lbl]) => (
+                {([['washes', tr('triggerWasbeurten')], ['weeks', tr('triggerWeken')], ['months', tr('triggerMaanden')], ['fixed_date', tr('triggerVasteDatum')]] as [NewTaskDraft['trigger_type'], string][]).filter(([val]) => siteType !== 'selfcarwash' || val !== 'washes').map(([val, lbl]) => (
                   <label key={val} className={styles.radioLabel}>
                     <input
                       type="radio"
@@ -1597,10 +1598,10 @@ export function InstellingenForm({ siteId, siteName, siteType, priceConfig, stoc
               </div>
             )}
 
-            {newTask.trigger_type === 'months' && (
+            {(newTask.trigger_type === 'months' || newTask.trigger_type === 'weeks') && (
               <div className={styles.taskFormRow}>
                 <div className={styles.taskFormField}>
-                  <label className={styles.priceLabel}>{tr('intervalMaanden')}</label>
+                  <label className={styles.priceLabel}>{newTask.trigger_type === 'weeks' ? tr('intervalWeken') : tr('intervalMaanden')}</label>
                   <input
                     className={styles.stockInput}
                     type="number"

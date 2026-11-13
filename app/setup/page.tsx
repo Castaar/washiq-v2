@@ -48,7 +48,7 @@ export default async function SetupPage({
 
   const initialTasks = existingTasks.map((t) => ({
     description: t.description as string,
-    trigger_type: t.trigger_type as 'washes' | 'months' | 'fixed_date',
+    trigger_type: t.trigger_type as 'washes' | 'weeks' | 'months' | 'fixed_date',
     trigger_value: t.trigger_value as number,
     last_done_at: t.last_done_at ? (t.last_done_at as Date).toISOString().slice(0, 10) : '',
     washes_at_last_done: t.washes_at_last_done as number,
