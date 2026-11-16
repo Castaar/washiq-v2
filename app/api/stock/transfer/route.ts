@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import { dbConnect } from '@/lib/db/mongoose';
 import { ChemicalStock, Site, StockTransfer } from '@/lib/models';
 import { getSessionFromRequest } from '@/lib/session';
+import { sameProductName } from '@/lib/product-name';
 
 // POST /api/stock/transfer — move stock of one product from one site to another.
 // Writes a StockTransfer record so the move is part of the ledger: it counts as
@@ -40,12 +41,16 @@ export async function POST(req: NextRequest) {
   fromStock.last_updated = now;
   await fromStock.save();
 
+  // Same product at the target, even when spelled with another capital/spacing there;
+  // only when it really doesn't exist is it created (with the source's name).
+  const targetNames = await ChemicalStock.find({ site_id: toSiteId }).select('name').lean();
+  const targetName = (targetNames.find((s) => sameProductName(s.name as string, name))?.name as string | undefined) ?? name;
   const toStock = await ChemicalStock.findOneAndUpdate(
-    { site_id: toSiteId, name },
+    { site_id: toSiteId, name: targetName },
     {
       $inc: { current_stock: quantity },
       $set: { last_updated: now },
-      $setOnInsert: { site_id: toSiteId, name, unit: fromStock.unit, min_stock_alert: 0 },
+      $setOnInsert: { site_id: toSiteId, name: targetName, unit: fromStock.unit, min_stock_alert: 0 },
     },
     { upsert: true, new: true },
   );

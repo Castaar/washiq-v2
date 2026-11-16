@@ -1,5 +1,6 @@
 'use client';
 
+import { sameProductName } from '@/lib/product-name';
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
@@ -95,7 +96,7 @@ export function LeveringenPanel({
     try {
       const res = await fetch(`/api/stock?siteId=${toSiteId}`);
       const targetStocks = res.ok ? ((await res.json()) as { name: string }[]) : [];
-      setTransferTargetHasProduct((prev) => ({ ...prev, [stockId]: targetStocks.some((s) => s.name === name) }));
+      setTransferTargetHasProduct((prev) => ({ ...prev, [stockId]: targetStocks.some((s) => sameProductName(s.name, name)) }));
     } catch {
       setTransferTargetHasProduct((prev) => ({ ...prev, [stockId]: null }));
     }

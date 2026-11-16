@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { sameProductName } from '@/lib/product-name';
 import { dbConnect } from '@/lib/db/mongoose';
 import { WashProgram, ChemicalStock, MaintenanceTask, PriceConfig, User } from '@/lib/models';
 import { getSessionFromRequest } from '@/lib/session';
@@ -43,8 +44,8 @@ export async function POST(
   if (copyProducts) {
     const sourceProducts = await ChemicalStock.find({ site_id: sourceSiteId }).lean();
     const existingProducts = await ChemicalStock.find({ site_id: targetSiteId }).select('name').lean();
-    const existingNames = new Set(existingProducts.map((p) => p.name as string));
-    const toCreate = sourceProducts.filter((p) => !existingNames.has(p.name as string));
+    // Already there when spelled with another capital/spacing too — don't create a duplicate
+    const toCreate = sourceProducts.filter((p) => !existingProducts.some((e) => sameProductName(e.name as string, p.name as string)));
     if (toCreate.length > 0) {
       await ChemicalStock.insertMany(
         toCreate.map((p) => ({
@@ -63,8 +64,7 @@ export async function POST(
   if (copyPrograms) {
     const sourcePrograms = await WashProgram.find({ site_id: sourceSiteId }).lean();
     const existingPrograms = await WashProgram.find({ site_id: targetSiteId }).select('name').lean();
-    const existingNames = new Set(existingPrograms.map((p) => p.name as string));
-    const toCreate = sourcePrograms.filter((p) => !existingNames.has(p.name as string));
+    const toCreate = sourcePrograms.filter((p) => !existingPrograms.some((e) => sameProductName(e.name as string, p.name as string)));
     if (toCreate.length > 0) {
       await WashProgram.insertMany(
         toCreate.map((p) => ({
