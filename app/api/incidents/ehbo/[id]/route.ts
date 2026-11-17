@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { deletePhotos, storePhotos } from '@/lib/photos';
 import { dbConnect } from '@/lib/db/mongoose';
 import { IncidentEhbo, ActivityLog } from '@/lib/models';
 import { canModify } from '@/lib/permissions';
@@ -40,13 +41,14 @@ export async function PUT(
   const addPhotos = (body as { add_photos?: unknown }).add_photos;
   if (Array.isArray(addPhotos) && addPhotos.length > 0) {
     const valid = addPhotos.filter((x): x is string => typeof x === 'string' && x.startsWith('data:image/'));
-    const existing = await IncidentEhbo.findById(id).select('photos').lean();
+    const existing = await IncidentEhbo.findById(id).select('photos site_id').lean();
     if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     const current = ((existing as { photos?: string[] }).photos ?? []).length;
     if (current + valid.length > 10) {
       return NextResponse.json({ error: `Maximaal 10 foto's per melding (nu ${current}).` }, { status: 400 });
     }
-    (update as Record<string, unknown>).$push = { photos: { $each: valid } };
+    const stored = await storePhotos(valid, String((existing as { site_id?: unknown }).site_id ?? ''), 'ehbo');
+    (update as Record<string, unknown>).$push = { photos: { $each: stored } };
   }
 
   const doc = await IncidentEhbo.findByIdAndUpdate(id, update, { new: true });
@@ -82,7 +84,8 @@ export async function DELETE(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  await IncidentEhbo.findByIdAndDelete(id);
+  const removed = await IncidentEhbo.findByIdAndDelete(id).select('photos').lean();
+  await deletePhotos((removed as { photos?: unknown } | null)?.photos);
   await ActivityLog.deleteMany({ ref_id: id, ref_type: 'incident_ehbo' });
   return NextResponse.json({ ok: true });
 }

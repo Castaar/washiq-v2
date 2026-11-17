@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { storePhotos } from '@/lib/photos';
 import { dbConnect } from '@/lib/db/mongoose';
 import { Defect, User } from '@/lib/models';
 import { getSessionFromRequest } from '@/lib/session';
@@ -23,7 +24,7 @@ export async function POST(req: NextRequest) {
     omschrijving: body.omschrijving ?? '',
     ernst,
     assigned_to_name: body.assigned_to_name ?? '',
-    photos: Array.isArray(body.photos) ? body.photos : [],
+    photos: await storePhotos(body.photos, String(body.siteId ?? ''), 'defect'),
   });
 
   // Developers see every site regardless of their assigned site_ids —

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { storePhotos } from '@/lib/photos';
 import { dbConnect } from '@/lib/db/mongoose';
 import { IncidentEhbo, User } from '@/lib/models';
 import { getSessionFromRequest } from '@/lib/session';
@@ -25,7 +26,7 @@ export async function POST(req: NextRequest) {
     ehbo_verlener: body.ehbo_verlener ?? '',
     beschrijving: body.beschrijving ?? '',
     dokter_nodig: body.dokter_nodig ?? false,
-    photos: Array.isArray(body.photos) ? body.photos : [],
+    photos: await storePhotos(body.photos, String(body.siteId ?? ''), 'ehbo'),
   });
 
   // Developers see every site regardless of their assigned site_ids —
