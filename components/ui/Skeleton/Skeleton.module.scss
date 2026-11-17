@@ -1,0 +1,160 @@
+@use '../../../styles/variables' as *;
+
+.root {
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--color-bg);
+  // Don't flash on fast pages: only appear when loading takes a moment
+  opacity: 0;
+  animation: appear 0.2s ease-out 0.15s forwards;
+}
+
+.nav {
+  @include flex-between;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.navLeft {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.navTitle {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.main {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  padding: var(--space-6);
+
+  @include respond-to('mobile') {
+    padding: var(--space-4);
+  }
+}
+
+.mainWide {
+  flex: 1;
+  padding: var(--space-4) var(--space-6) var(--space-10);
+
+  @include respond-to('mobile') {
+    padding: var(--space-4);
+  }
+}
+
+.column {
+  width: 100%;
+  max-width: 780px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: 640px;
+  margin: 0 auto;
+
+  @include respond-to('tablet') {
+    max-width: 900px;
+  }
+
+  @include respond-to('desktop') {
+    max-width: unset;
+    display: grid;
+    align-items: start;
+    gap: var(--space-5);
+    grid-template-columns: 260px minmax(0, 1fr) 320px;
+  }
+
+  @include respond-to('wide') {
+    grid-template-columns: 300px minmax(0, 1fr) 360px;
+  }
+}
+
+.center,
+.right,
+.left {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+@include respond-to('desktop') {
+  .left { grid-column: 1; grid-row: 1; }
+  .center { grid-column: 2; grid-row: 1; }
+  .right { grid-column: 3; grid-row: 1; }
+}
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.image {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  border-radius: var(--radius-lg);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+// Soft, slightly blurred pulsing block where data will appear
+.block {
+  display: block;
+  flex-shrink: 0;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--color-bg-tertiary) 0%, var(--color-border) 50%, var(--color-bg-tertiary) 100%);
+  background-size: 200% 100%;
+  filter: blur(0.5px);
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+.round {
+  border-radius: 999px;
+}
+
+@keyframes shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+@keyframes appear {
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .block { animation: none; }
+  .root { animation-duration: 0s; }
+}

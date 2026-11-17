@@ -1,14 +1,7 @@
-import styles from './loading.module.scss';
+import { DashboardSkeleton } from '@/components/ui/Skeleton/Skeleton';
 
-// Shown by Next.js instantly on every route navigation while the new
-// page's server-side data fetches — without this, App Router shows
-// nothing at all until the whole page resolves, which reads as the app
-// "hanging" on every page switch (worse in the installed PWA, which has
-// no browser chrome loading indicator of its own).
+// Shown instantly on navigation while the page's server data loads. The root
+// segment is the dashboard; other pages have their own loading.tsx (PageSkeleton).
 export default function Loading() {
-  return (
-    <div className={styles.wrap}>
-      <span className={styles.spinner} />
-    </div>
-  );
+  return <DashboardSkeleton />;
 }
